@@ -1,41 +1,57 @@
-import { json } from 'micro';
-
-let respuestas = []; // usar el mismo array que en verRespuestas.js
-
 export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).end("Method not allowed");
-  
-  const datos = await json(req);
-  const { id, visitanteId, numeroAsistencia, nombre, correo, telefono, edad, asociacion } = datos;
+  if (req.method !== 'POST') return res.status(405).send('Método no permitido');
 
-  // Buscar registro del usuario
-  let registro = respuestas.find(r => r.id === id && r.visitanteId === visitanteId);
-  const ahora = new Date();
+  const { id, nombre, correo, edad, telefono, asociacion } = req.body;
+  const fecha = new Date().toISOString();
+  const nuevoRegistro = { nombre, correo, edad, telefono, asociacion, fecha };
 
-  // Obtener fechas del formulario
-  const form = await fetch(`https://tu-dominio.vercel.app/api/obtenerFormulario?id=${id}`).then(r=>r.json());
-  const fechaInicio = new Date(form.fechaInicio);
-  const DURACION_ASISTENCIAS = [30,30,10]; // minutos
-  let acumulado=0;
-  const fechas = DURACION_ASISTENCIAS.map(min=>{
-    acumulado+=min;
-    return new Date(fechaInicio.getTime()+acumulado*60000);
+  const archivo = `respuestas/${id}/respuestas.json`;
+  const repo = "proyectoja/asistencia-especialidades";
+
+  // Leer el archivo actual desde GitHub
+  const respuesta = await fetch(`https://api.github.com/repos/${repo}/contents/${archivo}`, {
+    headers: {
+      Authorization: `token ${process.env.GITHUB_TOKEN}`,
+      'Content-Type': 'application/json'
+    }
   });
 
-  // Validar si el tiempo permitido de la asistencia ya pasó
-  if(ahora>fechas[numeroAsistencia-1]){
-    return res.status(400).json({ error: "Tiempo de asistencia expirado" });
+  let registros = [];
+  let sha = null;
+
+  if (respuesta.ok) {
+    const data = await respuesta.json();
+    const decoded = Buffer.from(data.content, 'base64').toString();
+    registros = JSON.parse(decoded);
+    sha = data.sha;
+
+    
   }
 
-  if(!registro){
-    // Primera vez
-    if(numeroAsistencia!==1) return res.status(400).json({ error:"Debe registrar la primera asistencia primero"});
-    registro = {id, visitanteId, nombre, correo, telefono, edad, asociacion, asistencias:[false,false,false], fecha:ahora.toISOString()};
-    respuestas.push(registro);
+  // Agregar el nuevo registro
+  registros.push(nuevoRegistro);
+  const contenidoCodificado = Buffer.from(JSON.stringify(registros, null, 2)).toString('base64');
+
+  // Guardar el archivo actualizado en GitHub
+  const guardar = await fetch(`https://api.github.com/repos/${repo}/contents/${archivo}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `token ${process.env.GITHUB_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      message: `Nueva respuesta en ${archivo}`,
+      content: contenidoCodificado,
+      branch: 'main',
+      ...(sha && { sha })
+    })
+  });
+
+  if (guardar.ok) {
+    res.status(200).send("✅ Respuesta guardada correctamente.");
+  } else {
+    const error = await guardar.json();
+    console.error(error);
+    res.status(500).send("❌ Error al guardar: " + JSON.stringify(error));
   }
-
-  if(registro.asistencias[numeroAsistencia-1]) return res.status(400).json({ error:"Asistencia ya registrada" });
-
-  registro.asistencias[numeroAsistencia-1] = true;
-  res.json({ ok:true });
 }

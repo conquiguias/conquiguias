@@ -31,170 +31,102 @@
 
     <button type="submit">Enviar</button>
   </form>
-<!-- Botones dinámicos para asistencias -->
-<div id="botonesAsistencia" style="margin-top: 20px; display: none;">
-  <button id="btnPrimera" style="display:none;">Primera Asistencia</button>
-  <button id="btnSegunda" style="display:none;">Segunda Asistencia</button>
-  <button id="btnTercera" style="display:none;">Tercer Asistencia</button>
+<!-- Botones de asistencia -->
+<div id="botonesAsistencia" style="margin-top:20px; display:none;">
+  <button id="btnPrimera">Registrar Primera Asistencia</button>
+  <button id="btnSegunda" style="display:none;">Registrar Segunda Asistencia</button>
+  <button id="btnTercera" style="display:none;">Registrar Tercera Asistencia</button>
 </div>
 
-  <p id="mensaje"></p>
+<script>
+let visitanteId = localStorage.getItem("visitanteId");
+if (!visitanteId) {
+  visitanteId = crypto.randomUUID();
+  localStorage.setItem("visitanteId", visitanteId);
+}
 
-  <h3>📊 Respuestas registradas | Se actualiza cada 5 minutos.</h3><p id="contadorRecarga">🔄 Próxima recarga en: <span id="segundos">300</span> segundos</p>
+document.addEventListener("DOMContentLoaded", async () => {
+  const params = new URLSearchParams(location.search);
+  const id = params.get("id");
+  if (!id) return;
 
-  <p>Información exclusiva para instructores y directores. Su información es borrada después de 90 días</p>
-  <table border="1" id="tablaRespuestas" style="border-collapse: collapse; width: 100%;">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Nombre</th>
-        <th>Correo</th>
-        <th>Edad</th>
-        <th>Teléfono</th>
-        <th>Asociación</th>
-        <th>Fecha</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-
-  <script>
-    // 🔹 Genera un UUID si no existe
-    function generarUUID() {
-      return crypto.randomUUID();
-    }
-  
-    let visitanteId = localStorage.getItem("visitanteId");
-    if (!visitanteId) {
-      visitanteId = generarUUID();
-      localStorage.setItem("visitanteId", visitanteId);
-    }
-  
-    document.addEventListener("DOMContentLoaded", async () => {
-      const params = new URLSearchParams(location.search);
-      const id = params.get("id");
-  
-      if (!id) {
-        document.body.innerHTML = "<h2>❌ Error: ID de formulario no especificado.</h2>";
-        return;
-      }
-  
-      // Clave única para progreso de asistencias por formulario
-      const claveProgreso = `progreso_${id}`;
-      let progreso = JSON.parse(localStorage.getItem(claveProgreso)) || {
-        asistencias: [false, false, false] // Primera, segunda, tercera
-      };
-  
-      // Botones dinámicos
-      const botonesDiv = document.createElement("div");
-      botonesDiv.id = "botonesAsistencia";
-      botonesDiv.style.marginTop = "20px";
-      document.body.insertBefore(botonesDiv, document.getElementById("mensaje"));
-  
-      const btnPrimera = document.createElement("button");
-      btnPrimera.textContent = "Primera Asistencia";
-      btnPrimera.style.display = progreso.asistencias[0] ? "none" : "inline-block";
-  
-      const btnSegunda = document.createElement("button");
-      btnSegunda.textContent = "Segunda Asistencia";
-      btnSegunda.style.display = progreso.asistencias[1] || !progreso.asistencias[0] ? "none" : "inline-block";
-  
-      const btnTercera = document.createElement("button");
-      btnTercera.textContent = "Tercer Asistencia";
-      btnTercera.style.display = progreso.asistencias[2] || !progreso.asistencias[1] ? "none" : "inline-block";
-  
-      botonesDiv.appendChild(btnPrimera);
-      botonesDiv.appendChild(btnSegunda);
-      botonesDiv.appendChild(btnTercera);
-  
-      // Función para registrar asistencia
-      async function registrarAsistencia(numero) {
-        const datos = {
-          id,
-          visitanteId,
-          numeroAsistencia: numero,
-          asistio: "Sí",
-          fecha: new Date().toISOString()
-        };
-  
-        try {
-          const res = await fetch("/api/guardarAsistencia", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(datos)
-          });
-  
-          if (res.ok) {
-            alert(`✅ Asistencia ${numero} registrada correctamente`);
-            progreso.asistencias[numero - 1] = true;
-            localStorage.setItem(claveProgreso, JSON.stringify(progreso));
-            actualizarTabla();
-            // Ocultar botón usado
-            if (numero === 1) btnPrimera.style.display = "none";
-            if (numero === 2) btnSegunda.style.display = "none";
-            if (numero === 3) btnTercera.style.display = "none";
-          } else {
-            alert("❌ Error al registrar asistencia (usuario ya registrado)");
-          }
-        } catch (e) {
-          console.error(e);
-          alert("⚠️ Error de conexión");
-        }
-      }
-  
-      btnPrimera.addEventListener("click", () => registrarAsistencia(1));
-      btnSegunda.addEventListener("click", () => registrarAsistencia(2));
-      btnTercera.addEventListener("click", () => registrarAsistencia(3));
-  
-      // Cargar tabla
-      async function actualizarTabla() {
-        const tablaBody = document.querySelector("#tablaRespuestas tbody");
-        tablaBody.innerHTML = "<tr><td colspan='9'>Cargando respuestas...</td></tr>";
-  
-        try {
-          const res = await fetch(`/api/verRespuestas?id=${encodeURIComponent(id)}`);
-          if (!res.ok) {
-            tablaBody.innerHTML = "<tr><td colspan='9'>No hay respuestas aún.</td></tr>";
-            return;
-          }
-  
-          const respuestas = await res.json();
-          tablaBody.innerHTML = "";
-  
-          respuestas.forEach((r, i) => {
-            // Aseguramos que r.asistencias exista
-            r.asistencias = r.asistencias || [false, false, false];
-  
-            r.asistencias.forEach((asistio, idx) => {
-              tablaBody.insertAdjacentHTML(
-                "beforeend",
-                `<tr>
-                  <td>${i + 1}</td>
-                  <td>${r.nombre || "-"}</td>
-                  <td>${r.correo || "-"}</td>
-                  <td>${r.edad || "-"}</td>
-                  <td>${r.telefono || "-"}</td>
-                  <td>${r.asociacion || "-"}</td>
-                  <td>${idx + 1}</td>
-                  <td>${asistio ? "Sí" : "No"}</td>
-                  <td>${r.asistencias.every(a => a) ? '<button>Hacer examen</button>' : "No puede hacer examen"}</td>
-                </tr>`
-              );
-            });
-          });
-  
-        } catch (e) {
-          console.error("Error al cargar tabla", e);
-          tablaBody.innerHTML = "<tr><td colspan='9'>Error al cargar tabla</td></tr>";
-        }
-      }
-  
-      // Inicializar tabla
-      actualizarTabla();
-  
+  let registros = [];
+  async function cargarRespuestas() {
+    const res = await fetch(`/api/verRespuestas?id=${id}`);
+    registros = await res.json();
+    const tbody = document.querySelector("#tablaRespuestas tbody");
+    tbody.innerHTML = "";
+    registros.forEach((r, index) => {
+      r.asistencias.forEach((asistio, i) => {
+        let examen = "-";
+        if (r.asistencias.every(a => a === true)) {
+          examen = `<button onclick="alert('Hacer examen de ${r.nombre}')">Hacer Examen</button>`;
+        } else if (i === r.asistencias.length - 1) examen = "No puede hacer examen";
+        tbody.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${r.nombre}</td>
+            <td>${r.correo || "-"}</td>
+            <td>${r.edad || "-"}</td>
+            <td>${r.telefono}</td>
+            <td>${r.asociacion}</td>
+            <td>${i+1}</td>
+            <td>${asistio ? "Sí" : "No"}</td>
+            <td>${i === 2 ? examen : "-"}</td>
+          </tr>
+        `);
+      });
     });
-  </script>
+  }
+
+  await cargarRespuestas();
+
+  // 🔹 Mostrar botones según asistencias previas
+  const registroUsuario = registros.find(r => r.visitanteId === visitanteId);
+  const btnPrimera = document.getElementById("btnPrimera");
+  const btnSegunda = document.getElementById("btnSegunda");
+  const btnTercera = document.getElementById("btnTercera");
+  document.getElementById("botonesAsistencia").style.display = "block";
+
+  if (!registroUsuario) {
+    btnPrimera.style.display = "inline-block";
+  } else if (registroUsuario.asistencias[0] && !registroUsuario.asistencias[1]) {
+    btnSegunda.style.display = "inline-block";
+  } else if (registroUsuario.asistencias[1] && !registroUsuario.asistencias[2]) {
+    btnTercera.style.display = "inline-block";
+  }
+
+  async function registrarAsistencia(num) {
+    const res = await fetch("/api/guardar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id,
+        visitanteId,
+        numeroAsistencia: num,
+        nombre: document.querySelector("input[name=nombre]").value,
+        correo: document.querySelector("input[name=correo]").value,
+        telefono: document.querySelector("input[name=telefono]").value,
+        edad: document.querySelector("input[name=edad]").value,
+        asociacion: document.querySelector("input[name=asociacion]").value
+      })
+    });
+    if (res.ok) {
+      await cargarRespuestas();
+      btnPrimera.style.display = "none";
+      btnSegunda.style.display = "none";
+      btnTercera.style.display = "none";
+      alert(`Asistencia #${num} registrada`);
+    }
+  }
+
+  btnPrimera.addEventListener("click", () => registrarAsistencia(1));
+  btnSegunda.addEventListener("click", () => registrarAsistencia(2));
+  btnTercera.addEventListener("click", () => registrarAsistencia(3));
+
+});
+</script>
+
   
   
   

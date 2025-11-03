@@ -54,174 +54,139 @@
 
 
   <script>
-    // 🔹 Genera un UUID si no existe
-    function generarUUID() {
-      return crypto.randomUUID();
-    }
-  
-    let visitanteId = localStorage.getItem("visitanteId");
-    if (!visitanteId) {
-      visitanteId = generarUUID();
-      localStorage.setItem("visitanteId", visitanteId);
-    }
-  
-    document.addEventListener("DOMContentLoaded", async () => {
-      const params = new URLSearchParams(location.search);
-      const id = params.get("id");
-  
-      if (!id) {
-        document.body.innerHTML = "<h2>❌ Error: ID de formulario no especificado.</h2>";
-        return;
-      }
-  
-      // 🧠 Clave única por cada formulario (especialidad)
-      const claveProgreso = `progreso_${id}`;
-      let progreso = JSON.parse(localStorage.getItem(claveProgreso)) || {
-        registrado: false,
-        fechaRegistro: null
-      };
-  
+    /* ---------- Reemplazar la función cargarRespuestas por este bloque ---------- */
+    async function cargarRespuestas(idFormulario) {
+      const tabla = document.getElementById("tablaRespuestas");
+      const tablaBody = tabla.querySelector("tbody");
+    
+      // Actualizar encabezado para incluir las nuevas columnas (si quieres mantener el header estático, puedes omitir esto)
+      const thead = tabla.querySelector("thead");
+      thead.innerHTML = `
+        <tr>
+          <th>#</th>
+          <th>Nombre</th>
+          <th>Correo</th>
+          <th>Edad</th>
+          <th>Teléfono</th>
+          <th>Asociación</th>
+          <th>Número Asistencia</th>
+          <th>¿Asistió?</th>
+          <th>Examen</th>
+          <th>Fecha</th>
+        </tr>
+      `;
+    
+      tablaBody.innerHTML = "<tr><td colspan='10'>Cargando respuestas...</td></tr>";
+    
       try {
-        const res = await fetch(`/api/obtenerFormulario?id=${id}`);
+        const res = await fetch(`/api/verRespuestas?id=${encodeURIComponent(idFormulario)}`);
         if (!res.ok) {
-          document.body.innerHTML = `<h2>❌ Formulario '${id}' no encontrado.</h2>`;
+          tablaBody.innerHTML = "<tr><td colspan='10'>No hay respuestas aún.</td></tr>";
           return;
         }
-  
-        const data = await res.json();
-        const fechaCierre = new Date(data.fechaCierre);
-        const ahora = new Date();
-  
-        document.getElementById("tituloFormulario").textContent = data.titulo;
-  
-        if (ahora > fechaCierre) {
-          document.getElementById("contador").textContent =
-            `⛔ El formulario ha caducado. Estaba disponible hasta ${fechaCierre.toLocaleTimeString()}`;
+    
+        const registros = await res.json();
+    
+        if (!Array.isArray(registros) || registros.length === 0) {
+          tablaBody.innerHTML = "<tr><td colspan='10'>No hay respuestas aún.</td></tr>";
           return;
         }
-  
-        const contadorEl = document.getElementById("contador");
-        const actualizarContador = () => {
-          const restante = fechaCierre - new Date();
-          if (restante <= 0) {
-            contadorEl.textContent = "⛔ El formulario ha caducado.";
-            document.getElementById("formulario").style.display = "none";
-            return;
+    
+        // Agrupar por correo (cada fila será 1 usuario con resumen)
+        const mapa = new Map();
+        registros.forEach(r => {
+          const correo = (r.correo || "").toLowerCase() || `_sin_correo_${Math.random()}`;
+          if (!mapa.has(correo)) {
+            mapa.set(correo, { registros: [], nombre: r.nombre || "-", telefono: r.telefono || "-", asociacion: r.asociacion || "-" });
           }
-          const minutos = Math.floor((restante / 1000 / 60) % 60);
-          const segundos = Math.floor((restante / 1000) % 60);
-          contadorEl.textContent = `⏳ El formulario se cerrará en ${minutos}:${segundos.toString().padStart(2, "0")}`;
-        };
-        actualizarContador();
-        setInterval(actualizarContador, 1000);
-  
-        // Si el usuario ya se registró en este formulario, oculta el formulario
-        if (progreso.registrado) {
-          document.getElementById("formulario").style.display = "none";
-          document.getElementById("mensaje").textContent =
-            "✅ Ya registraste tu asistencia para esta especialidad.";
-        } else {
-          document.getElementById("formulario").style.display = "block";
-          document.getElementById("idFormulario").value = id;
-        }
-  
-        // 🔄 Cargar tabla y contador de recarga
-        cargarRespuestas(id);
-        let segundosRestantes = 300;
-        setInterval(() => {
-          segundosRestantes--;
-          document.getElementById("segundos").textContent = segundosRestantes;
-          if (segundosRestantes <= 0) {
-            cargarRespuestas(id);
-            segundosRestantes = 300;
-          }
-        }, 1000);
-      } catch (error) {
-        console.error(error);
-        document.body.innerHTML = "<h2>❌ Error al cargar el formulario.</h2>";
-      }
-  
-      // 📊 Mostrar respuestas del formulario
-      // 📊 Mostrar respuestas del formulario
-async function cargarRespuestas(idFormulario) {
-  const tablaBody = document.querySelector("#tablaRespuestas tbody");
-  tablaBody.innerHTML = "<tr><td colspan='7'>Cargando respuestas...</td></tr>";
-
-  try {
-    const res = await fetch(`/api/verRespuestas?id=${encodeURIComponent(idFormulario)}`);
-    if (!res.ok) {
-      tablaBody.innerHTML = "<tr><td colspan='7'>No hay respuestas aún.</td></tr>";
-      return;
-    }
-
-    const respuestas = await res.json();
-
-    if (!Array.isArray(respuestas) || respuestas.length === 0) {
-      tablaBody.innerHTML = "<tr><td colspan='7'>No hay respuestas aún.</td></tr>";
-      return;
-    }
-
-    tablaBody.innerHTML = "";
-    respuestas.forEach((r, i) => {
-      tablaBody.insertAdjacentHTML(
-        "beforeend",
-        `
-          <tr>
-            <td>${i + 1}</td>
-            <td>${r.nombre || "-"}</td>
-            <td>${r.correo || "-"}</td>
-            <td>${r.edad || "-"}</td>
-            <td>${r.telefono || "-"}</td>
-            <td>${r.asociacion || "-"}</td>
-            <td>${r.fecha ? new Date(r.fecha).toLocaleString() : "-"}</td>
-          </tr>
-        `
-      );
-    });
-  } catch (error) {
-    console.error("Error al cargar respuestas:", error);
-    tablaBody.innerHTML =
-      "<tr><td colspan='7'>⚠️ Error al conectar con el servidor.</td></tr>";
-  }
-}
-
-  
-      // 📝 Envío del formulario
-      document.getElementById("formulario").addEventListener("submit", async function (e) {
-        e.preventDefault();
-  
-        const datos = Object.fromEntries(new FormData(this).entries());
-        datos.id = id;
-        datos.visitanteId = visitanteId;
-  
-        const mensaje = document.getElementById("mensaje");
-        try {
-          const res = await fetch("/api/guardar", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(datos)
+          mapa.get(correo).registros.push(r);
+        });
+    
+        // Construir filas de la tabla
+        tablaBody.innerHTML = "";
+        let contador = 1;
+        for (const [correo, info] of mapa.entries()) {
+          const regs = info.registros;
+    
+          // Determinar número de asistencias:
+          // 1) si los registros individuales tienen campo numeroAsistencia -> tomar máximo
+          // 2) si el registro tiene objeto asistencias -> contar valores true
+          // 3) fallback: usar cantidad de registros
+          let numeroAsistencia = 0;
+          let asistenciasTrue = 0;
+          regs.forEach(r => {
+            if (typeof r.numeroAsistencia === "number") {
+              numeroAsistencia = Math.max(numeroAsistencia, r.numeroAsistencia);
+            }
+            if (r.asistencias && typeof r.asistencias === "object") {
+              const c = Object.values(r.asistencias).filter(Boolean).length;
+              asistenciasTrue = Math.max(asistenciasTrue, c);
+            }
           });
-  
-          if (res.ok) {
-            mensaje.textContent = "✅ Tu asistencia ha sido registrada. ¡Gracias!";
-            this.reset();
-            this.style.display = "none";
-            cargarRespuestas(id);
-  
-            // ✅ Guardar progreso solo para este formulario
-            progreso.registrado = true;
-            progreso.fechaRegistro = Date.now();
-            localStorage.setItem(claveProgreso, JSON.stringify(progreso));
-          } else {
-            mensaje.textContent = "❌ Error: usuario ya registrado.";
-          }
-        } catch (error) {
-          console.error(error);
-          mensaje.textContent = "⚠️ Error al conectar con el servidor.";
+    
+          if (numeroAsistencia === 0 && asistenciasTrue > 0) numeroAsistencia = asistenciasTrue;
+          if (numeroAsistencia === 0) numeroAsistencia = regs.length;
+    
+          // ¿Asistió? => Solo "Sí" si tiene las 3 asistencias (según tu regla)
+          const asistioCompletamente = numeroAsistencia >= 3 ? "Sí" : "No";
+    
+          // Fecha más reciente
+          const fechas = regs.map(r => r.fecha ? new Date(r.fecha) : null).filter(Boolean);
+          const fechaUltima = fechas.length ? new Date(Math.max(...fechas.map(d => d.getTime()))) : null;
+          const fechaTexto = fechaUltima ? fechaUltima.toLocaleString() : "-";
+    
+          // Mostrar botón de examen solo si completó las 3 asistencias
+          const examenHTML = numeroAsistencia >= 3
+            ? `<button class="btn-examen" data-correo="${correo}">Hacer examen</button>`
+            : "No puede hacer examen";
+    
+          // Inserta fila
+          tablaBody.insertAdjacentHTML("beforeend", `
+            <tr>
+              <td>${contador}</td>
+              <td>${escapeHtml(info.nombre)}</td>
+              <td>${escapeHtml(correo)}</td>
+              <td>${escapeHtml(regs[0].edad || "")}</td>
+              <td>${escapeHtml(info.telefono)}</td>
+              <td>${escapeHtml(info.asociacion)}</td>
+              <td style="text-align:center">${numeroAsistencia}</td>
+              <td style="text-align:center">${asistioCompletamente}</td>
+              <td style="text-align:center">${examenHTML}</td>
+              <td>${fechaTexto}</td>
+            </tr>
+          `);
+          contador++;
         }
-      });
-    });
-  </script>
+    
+        // Añadir listener para botones "Hacer examen"
+        document.querySelectorAll(".btn-examen").forEach(btn => {
+          btn.addEventListener("click", (e) => {
+            const correo = e.currentTarget.dataset.correo;
+            // Aquí abres o muestras el formulario de examen; por ahora mostramos alerta
+            // (Reemplaza esto por la lógica que necesites para mostrar el examen en la página)
+            alert(`Abrir examen para: ${correo}`);
+            // Si quieres mostrar un formulario debajo de la tabla, puedes llamara una función que genere el HTML del examen y lo inserte.
+          });
+        });
+    
+      } catch (error) {
+        console.error("Error al cargar respuestas:", error);
+        tablaBody.innerHTML = "<tr><td colspan='10'>⚠️ Error al conectar con el servidor.</td></tr>";
+      }
+    }
+    
+    /* ---------- helper: escape básico para evitar inyección accidental ---------- */
+    function escapeHtml(str) {
+      if (!str && str !== 0) return "";
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+    </script>
+    
   
   
 

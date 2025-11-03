@@ -55,155 +55,185 @@
 </table>
 
 <script>
-document.addEventListener("DOMContentLoaded", async () => {
-  const params = new URLSearchParams(location.search);
-  const id = params.get("id");
-  if (!id) return alert("❌ Falta el parámetro id en la URL.");
-
-  document.getElementById("idFormulario").value = id;
-
-  const form = document.getElementById("formulario");
-  const botonesDiv = document.getElementById("botonesAsistencia");
-  const btn2 = document.getElementById("btnSegunda");
-  const btn3 = document.getElementById("btnTercera");
-  const mensaje = document.getElementById("mensaje");
-  const tablaBody = document.querySelector("#tablaRespuestas tbody");
-
-  let usuario = JSON.parse(localStorage.getItem("asistenciaUsuario_" + id)) || null;
-  let tiempoGuardado = JSON.parse(localStorage.getItem("asistenciaTiempo_" + id)) || null;
-
-  if (usuario) {
-    form.style.display = "none";
-    mostrarEstado(usuario);
-  } else {
-    form.style.display = "block";
-  }
-
-  // === Registro de la primera asistencia ===
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const datos = Object.fromEntries(new FormData(form).entries());
-
-    const res = await fetch("/api/guardar", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...datos, id })
-    });
-
-    const data = await res.json();
-    if (!res.ok) return alert(data.error || "❌ Error al guardar.");
-
-    alert(data.message);
-    localStorage.setItem("correoUsuario", datos.correo);
-
-    const nuevoUsuario = {
-      nombre: datos.nombre,
-      correo: datos.correo,
-      telefono: datos.telefono,
-      asociacion: datos.asociacion,
-      asistenciaNumero: 1
-    };
-
-    localStorage.setItem("asistenciaUsuario_" + id, JSON.stringify(nuevoUsuario));
-    localStorage.setItem("asistenciaTiempo_" + id, JSON.stringify({ ultima: Date.now() }));
-
-    form.style.display = "none";
-    mostrarEstado(nuevoUsuario);
-  });
-
-  // === Muestra botones y cronómetros según progreso ===
-  function mostrarEstado(usuario) {
-    botonesDiv.style.display = "block";
-    actualizarTabla();
-
-    const tiempo = JSON.parse(localStorage.getItem("asistenciaTiempo_" + id));
-    const diffMin = tiempo ? Math.floor((Date.now() - tiempo.ultima) / 60000) : 0;
-
-    if (usuario.asistenciaNumero === 1) {
-      if (diffMin < 30) {
-        const restante = 30 - diffMin;
-        mensaje.textContent = `⏳ Espera ${restante} minutos para registrar la segunda asistencia.`;
-      } else {
-        btn2.style.display = "inline-block";
+  document.addEventListener("DOMContentLoaded", async () => {
+    const params = new URLSearchParams(location.search);
+    const id = params.get("id");
+    if (!id) return alert("❌ Falta el parámetro id en la URL.");
+  
+    document.getElementById("idFormulario").value = id;
+  
+    const form = document.getElementById("formulario");
+    const botonesDiv = document.getElementById("botonesAsistencia");
+    const btn2 = document.getElementById("btnSegunda");
+    const btn3 = document.getElementById("btnTercera");
+    const mensaje = document.getElementById("mensaje");
+    const tablaBody = document.querySelector("#tablaRespuestas tbody");
+  
+    // ⚙️ Recuperar correo global (no depende del ID)
+    const correoGlobal = localStorage.getItem("correoUsuario");
+  
+    // ⚙️ Verificar si ya existe registro previo en esta especialidad
+    let usuario = null;
+    let tiempoGuardado = null;
+  
+    if (correoGlobal) {
+      const res = await fetch(`/api/leer?id=${id}&correo=${encodeURIComponent(correoGlobal)}`);
+      const data = await res.json();
+  
+      if (data.success && data.asistencias.length > 0) {
+        const ultima = data.asistencias[data.asistencias.length - 1];
+        usuario = {
+          nombre: ultima.nombre,
+          correo: ultima.correo,
+          telefono: ultima.telefono,
+          asociacion: ultima.asociacion,
+          asistenciaNumero: data.asistencias.length
+        };
+        localStorage.setItem("asistenciaUsuario_" + id, JSON.stringify(usuario));
+        localStorage.setItem("asistenciaTiempo_" + id, JSON.stringify({ ultima: Date.now() }));
       }
-    } else if (usuario.asistenciaNumero === 2) {
-      if (diffMin < 30) {
-        const restante = 30 - diffMin;
-        mensaje.textContent = `⏳ Espera ${restante} minutos para registrar la tercera asistencia.`;
-      } else {
-        btn3.style.display = "inline-block";
-      }
-    } else if (usuario.asistenciaNumero >= 3) {
-      mensaje.textContent = "✅ Has completado las 3 asistencias.";
     }
-  }
-
-  async function registrarAsistencia(num) {
-    const usuario = JSON.parse(localStorage.getItem("asistenciaUsuario_" + id));
-    const res = await fetch("/api/guardar", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...usuario, id })
-    });
-    const data = await res.json();
-    if (!res.ok) return alert(data.error || "❌ Error al guardar.");
-
-    alert(data.message);
-    usuario.asistenciaNumero = num;
-    localStorage.setItem("asistenciaUsuario_" + id, JSON.stringify(usuario));
-    localStorage.setItem("asistenciaTiempo_" + id, JSON.stringify({ ultima: Date.now() }));
-    btn2.style.display = "none";
-    btn3.style.display = "none";
-    mensaje.textContent = `✅ ${num === 2 ? "Segunda" : "Tercera"} asistencia registrada correctamente.`;
-    actualizarTabla();
-  }
-
-  btn2.addEventListener("click", () => registrarAsistencia(2));
-  btn3.addEventListener("click", () => registrarAsistencia(3));
-
-  // === Actualizar tabla ===
-  async function actualizarTabla() {
-    const correo = localStorage.getItem("correoUsuario");
-    if (!correo) return;
-    tablaBody.innerHTML = "<tr><td colspan='8'>Cargando...</td></tr>";
-
-    const res = await fetch(`/api/leer?id=${id}&correo=${encodeURIComponent(correo)}`);
-    const data = await res.json();
-
-    if (!data.success || !data.asistencias.length) {
-      tablaBody.innerHTML = "<tr><td colspan='8'>Sin registros aún.</td></tr>";
-      return;
+  
+    // ⚙️ Cargar usuario desde almacenamiento local si existe
+    if (!usuario) {
+      usuario = JSON.parse(localStorage.getItem("asistenciaUsuario_" + id)) || null;
+      tiempoGuardado = JSON.parse(localStorage.getItem("asistenciaTiempo_" + id)) || null;
     }
-
-    tablaBody.innerHTML = "";
-    data.asistencias.forEach((a, i) => {
-      tablaBody.insertAdjacentHTML("beforeend", `
-        <tr>
-          <td>${i + 1}</td>
-          <td>${a.nombre}</td>
-          <td>${a.correo}</td>
-          <td>${a.telefono}</td>
-          <td>${a.asociacion}</td>
-          <td>${a.numeroAsistencia}</td>
-          <td>${a.asistio}</td>
-          <td>${new Date(a.fecha).toLocaleString()}</td>
-        </tr>
-      `);
+  
+    if (usuario) {
+      form.style.display = "none";
+      mostrarEstado(usuario);
+    } else {
+      form.style.display = "block";
+    }
+  
+    // === Registro de la primera asistencia ===
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const datos = Object.fromEntries(new FormData(form).entries());
+  
+      const res = await fetch("/api/guardar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...datos, id })
+      });
+  
+      const data = await res.json();
+      if (!res.ok) return alert(data.error || "❌ Error al guardar.");
+  
+      alert(data.message);
+      localStorage.setItem("correoUsuario", datos.correo);
+  
+      const nuevoUsuario = {
+        nombre: datos.nombre,
+        correo: datos.correo,
+        telefono: datos.telefono,
+        asociacion: datos.asociacion,
+        asistenciaNumero: 1
+      };
+  
+      localStorage.setItem("asistenciaUsuario_" + id, JSON.stringify(nuevoUsuario));
+      localStorage.setItem("asistenciaTiempo_" + id, JSON.stringify({ ultima: Date.now() }));
+  
+      form.style.display = "none";
+      mostrarEstado(nuevoUsuario);
     });
-  }
-
-  // 🔁 Recarga automática de tabla cada 5 minutos
-  let segundos = 300;
-  setInterval(() => {
-    segundos--;
-    document.getElementById("segundos").textContent = segundos;
-    if (segundos <= 0) {
+  
+    // === Muestra botones y cronómetros según progreso ===
+    function mostrarEstado(usuario) {
+      botonesDiv.style.display = "block";
       actualizarTabla();
-      segundos = 300;
+  
+      const tiempo = JSON.parse(localStorage.getItem("asistenciaTiempo_" + id));
+      const diffMin = tiempo ? Math.floor((Date.now() - tiempo.ultima) / 60000) : 0;
+  
+      btn2.style.display = "none";
+      btn3.style.display = "none";
+  
+      if (usuario.asistenciaNumero === 1) {
+        if (diffMin < 30) {
+          mensaje.textContent = `⏳ Espera ${30 - diffMin} minutos para registrar la segunda asistencia.`;
+        } else {
+          btn2.style.display = "inline-block";
+        }
+      } else if (usuario.asistenciaNumero === 2) {
+        if (diffMin < 30) {
+          mensaje.textContent = `⏳ Espera ${30 - diffMin} minutos para registrar la tercera asistencia.`;
+        } else {
+          btn3.style.display = "inline-block";
+        }
+      } else if (usuario.asistenciaNumero >= 3) {
+        mensaje.textContent = "✅ Has completado las 3 asistencias.";
+      }
     }
-  }, 1000);
-});
-</script>
+  
+    async function registrarAsistencia(num) {
+      const usuario = JSON.parse(localStorage.getItem("asistenciaUsuario_" + id));
+      const res = await fetch("/api/guardar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...usuario, id })
+      });
+      const data = await res.json();
+      if (!res.ok) return alert(data.error || "❌ Error al guardar.");
+  
+      alert(data.message);
+      usuario.asistenciaNumero = num;
+      localStorage.setItem("asistenciaUsuario_" + id, JSON.stringify(usuario));
+      localStorage.setItem("asistenciaTiempo_" + id, JSON.stringify({ ultima: Date.now() }));
+      btn2.style.display = "none";
+      btn3.style.display = "none";
+      mensaje.textContent = `✅ ${num === 2 ? "Segunda" : "Tercera"} asistencia registrada correctamente.`;
+      actualizarTabla();
+    }
+  
+    btn2.addEventListener("click", () => registrarAsistencia(2));
+    btn3.addEventListener("click", () => registrarAsistencia(3));
+  
+    // === Actualizar tabla ===
+    async function actualizarTabla() {
+      const correo = localStorage.getItem("correoUsuario");
+      if (!correo) return;
+      tablaBody.innerHTML = "<tr><td colspan='8'>Cargando...</td></tr>";
+  
+      const res = await fetch(`/api/leer?id=${id}&correo=${encodeURIComponent(correo)}`);
+      const data = await res.json();
+  
+      if (!data.success || !data.asistencias.length) {
+        tablaBody.innerHTML = "<tr><td colspan='8'>Sin registros aún.</td></tr>";
+        return;
+      }
+  
+      tablaBody.innerHTML = "";
+      data.asistencias.forEach((a, i) => {
+        tablaBody.insertAdjacentHTML("beforeend", `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${a.nombre}</td>
+            <td>${a.correo}</td>
+            <td>${a.telefono}</td>
+            <td>${a.asociacion}</td>
+            <td>${a.numeroAsistencia}</td>
+            <td>${a.asistio}</td>
+            <td>${new Date(a.fecha).toLocaleString()}</td>
+          </tr>
+        `);
+      });
+    }
+  
+    // 🔁 Recarga automática de tabla cada 5 minutos
+    let segundos = 300;
+    setInterval(() => {
+      segundos--;
+      document.getElementById("segundos").textContent = segundos;
+      if (segundos <= 0) {
+        actualizarTabla();
+        segundos = 300;
+      }
+    }, 1000);
+  });
+  </script>
+  
 
     
     

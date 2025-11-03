@@ -7,27 +7,26 @@
 <body>
 <img src="logo1.png" style="width:25%;" alt="">
 <h2 id="tituloFormulario">Cargando...</h2>
+<p id="contador"></p>
 
-<!-- Formulario primera asistencia -->
 <form id="formulario" style="display:none;">
-<input type="hidden" name="id" id="idFormulario">
-<label>Nombre:</label><br>
-<input type="text" name="nombre" required><br><br>
-<label>Correo: (Opcional)</label><br>
-<input type="email" name="correo"><br><br>
-<label>Edad: (Opcional)</label><br>
-<input type="number" name="edad"><br><br>
-<label>Teléfono:</label><br>
-<input type="tel" name="telefono" required><br><br>
-<label>Asociación o campo:</label><br>
-<input type="text" name="asociacion" required><br><br>
-<button type="submit">Registrar Primera Asistencia</button>
+  <input type="hidden" name="id" id="idFormulario">
+  <label>Nombre:</label><br>
+  <input type="text" name="nombre" required><br><br>
+  <label>Correo: (Opcional)</label><br>
+  <input type="email" name="correo"><br><br>
+  <label>Edad: (Opcional)</label><br>
+  <input type="number" name="edad"><br><br>
+  <label>Teléfono:</label><br>
+  <input type="tel" name="telefono" required><br><br>
+  <label>Asociación o campo:</label><br>
+  <input type="text" name="asociacion" required><br><br>
+  <button type="submit">Enviar Primera Asistencia</button>
 </form>
 
-<!-- Botones segunda y tercera asistencia -->
 <div id="botonesAsistencia" style="margin-top:20px; display:none;">
-<button id="btnSegunda" disabled>Registrar Segunda Asistencia (<span id="contadorSegunda">--:--</span>)</button>
-<button id="btnTercera" disabled>Registrar Tercera Asistencia (<span id="contadorTercera">--:--</span>)</button>
+  <button id="btnSegunda" disabled>Registrar Segunda Asistencia</button>
+  <button id="btnTercera" disabled>Registrar Tercera Asistencia</button>
 </div>
 
 <p id="mensaje"></p>
@@ -36,162 +35,177 @@
 <p id="contadorRecarga">🔄 Próxima recarga en: <span id="segundos">300</span> segundos</p>
 
 <table border="1" id="tablaRespuestas" style="border-collapse: collapse; width:100%;">
-<thead>
-<tr>
-<th>#</th>
-<th>Nombre</th>
-<th>Correo</th>
-<th>Edad</th>
-<th>Teléfono</th>
-<th>Asociación</th>
-<th>Número Asistencia</th>
-<th>¿Asistió?</th>
-<th>Examen</th>
-</tr>
-</thead>
-<tbody></tbody>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Nombre</th>
+      <th>Correo</th>
+      <th>Edad</th>
+      <th>Teléfono</th>
+      <th>Asociación</th>
+      <th>Número Asistencia</th>
+      <th>¿Asistió?</th>
+      <th>Examen</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
 </table>
 
 <script>
-const DURACION_ASISTENCIAS = [30,30,10]; // minutos
+// Generar UUID
 let visitanteId = localStorage.getItem("visitanteId");
-if (!visitanteId) { visitanteId = crypto.randomUUID(); localStorage.setItem("visitanteId", visitanteId); }
+if(!visitanteId){
+  visitanteId = crypto.randomUUID();
+  localStorage.setItem("visitanteId", visitanteId);
+}
 
 document.addEventListener("DOMContentLoaded", async ()=>{
-const params = new URLSearchParams(location.search);
-const id = params.get("id");
-if(!id) return;
+  const params = new URLSearchParams(location.search);
+  const id = params.get("id");
+  if(!id) return;
 
-const tituloEl = document.getElementById("tituloFormulario");
-const contadorEl = document.getElementById("contador");
-const formulario = document.getElementById("formulario");
-const btnSegunda = document.getElementById("btnSegunda");
-const btnTercera = document.getElementById("btnTercera");
-const contadorSegunda = document.getElementById("contadorSegunda");
-const contadorTercera = document.getElementById("contadorTercera");
-const botonesDiv = document.getElementById("botonesAsistencia");
-const mensaje = document.getElementById("mensaje");
-const tablaBody = document.querySelector("#tablaRespuestas tbody");
+  // Traer formulario desde servidor
+  const resForm = await fetch(`/api/obtenerFormulario?id=${id}`);
+  if(!resForm.ok){ document.body.innerHTML="<h2>Error formulario no encontrado</h2>"; return; }
+  const formData = await resForm.json();
+  document.getElementById("tituloFormulario").textContent = formData.titulo;
+  document.getElementById("idFormulario").value = id;
 
-let fechaInicio, fechaFinAsistencias;
+  const fechaInicio = new Date(formData.fechaInicio);
+  const DURACION_ASISTENCIAS = [30,30,10]; // minutos
+  let acumulado=0;
+  const fechaFinAsistencias = DURACION_ASISTENCIAS.map(min=>{
+    acumulado+=min;
+    return new Date(fechaInicio.getTime()+acumulado*60000);
+  });
 
-try{
-const res = await fetch(`/api/obtenerFormulario?id=${id}`);
-const data = await res.json();
-tituloEl.textContent = data.titulo;
-formulario.idFormulario.value = id;
-fechaInicio = new Date(data.fechaInicio);
-let acumulado=0;
-fechaFinAsistencias = DURACION_ASISTENCIAS.map(min=>{
-acumulado+=min;
-return new Date(fechaInicio.getTime()+acumulado*60*1000);
-});
-} catch(e){console.error(e); tituloEl.textContent="❌ Error al cargar formulario"; return;}
+  const btnSegunda = document.getElementById("btnSegunda");
+  const btnTercera = document.getElementById("btnTercera");
+  const formulario = document.getElementById("formulario");
+  const mensaje = document.getElementById("mensaje");
 
-async function cargarRespuestas(){
-try{
-const res = await fetch(`/api/verRespuestas?id=${id}`);
-const respuestas = await res.json();
-tablaBody.innerHTML="";
-respuestas.forEach((r,index)=>{
-r.asistencias = r.asistencias || [false,false,false];
-let examen = (r.asistencias.every(a=>a))?`<button onclick="alert('Hacer examen de ${r.nombre}')">Hacer Examen</button>`:"No puede hacer examen";
-r.asistencias.forEach((asistio,num)=>{
-tablaBody.insertAdjacentHTML("beforeend",`
-<tr>
-<td>${index+1}</td>
-<td>${r.nombre}</td>
-<td>${r.correo||"-"}</td>
-<td>${r.edad||"-"}</td>
-<td>${r.telefono||"-"}</td>
-<td>${r.asociacion}</td>
-<td>${num+1}</td>
-<td>${asistio?"Sí":"No"}</td>
-<td>${num===2?examen:"-"}</td>
-</tr>
-`);
-});
-});
-}catch(e){console.error(e);}
-}
-await cargarRespuestas();
+  async function cargarRespuestas(){
+    const tablaBody = document.querySelector("#tablaRespuestas tbody");
+    tablaBody.innerHTML="<tr><td colspan='9'>Cargando...</td></tr>";
+    const res = await fetch(`/api/verRespuestas?id=${id}`);
+    const respuestas = res.ok ? await res.json() : [];
+    tablaBody.innerHTML="";
+    respuestas.forEach((r,index)=>{
+      r.asistencias = r.asistencias || [false,false,false];
+      r.asistencias.forEach((a,i)=>{
+        let examen="-";
+        if(i===2) examen = r.asistencias.every(x=>x) ? `<button onclick="alert('Hacer examen de ${r.nombre}')">Hacer Examen</button>` : "No puede hacer examen";
+        tablaBody.insertAdjacentHTML("beforeend",`
+          <tr>
+            <td>${index+1}</td>
+            <td>${r.nombre}</td>
+            <td>${r.correo||"-"}</td>
+            <td>${r.edad||"-"}</td>
+            <td>${r.telefono}</td>
+            <td>${r.asociacion}</td>
+            <td>${i+1}</td>
+            <td>${a?"Sí":"No"}</td>
+            <td>${examen}</td>
+          </tr>
+        `);
+      });
+    });
+  }
 
-// mostrar botones y formulario según asistencia y tiempo
-async function actualizarBotones(){
-const resUsuarios = await fetch(`/api/verRespuestas?id=${id}`);
-const registros = await resUsuarios.json();
-let registroUsuario = registros.find(r=>r.visitanteId===visitanteId);
-const ahora = new Date();
-botonesDiv.style.display="block";
+  await cargarRespuestas();
 
-if(!registroUsuario && ahora<fechaFinAsistencias[0]){
-formulario.style.display="block"; btnSegunda.disabled=true; btnTercera.disabled=true;
-}else{
-formulario.style.display="none";
-if(registroUsuario && registroUsuario.asistencias[0] && ahora<fechaFinAsistencias[1]){
-btnSegunda.disabled=false;
-}else{btnSegunda.disabled=true;}
-if(registroUsuario && registroUsuario.asistencias[1] && ahora<fechaFinAsistencias[2]){
-btnTercera.disabled=false;
-}else{btnTercera.disabled=true;}
-}
-}
+  // Contador
+  function actualizarContador(){
+    const ahora = new Date();
+    if(ahora>fechaFinAsistencias[2]){
+      document.getElementById("contador").textContent="⛔ El formulario ha caducado";
+      formulario.style.display="none";
+      btnSegunda.disabled=true;
+      btnTercera.disabled=true;
+      return;
+    }
+    let texto="";
+    if(!formulario.dataset.registrado){
+      if(ahora<fechaFinAsistencias[0]){
+        const rem = fechaFinAsistencias[0]-ahora;
+        const m=Math.floor(rem/60000), s=Math.floor((rem%60000)/1000);
+        texto=`⏳ Primera asistencia termina en ${m}:${s.toString().padStart(2,"0")}`;
+      }else{
+        formulario.style.display="none";
+        texto="❌ Se acabó la primera asistencia";
+      }
+    }else{
+      if(!btnSegunda.disabled){
+        const rem = fechaFinAsistencias[1]-ahora;
+        const m=Math.floor(rem/60000), s=Math.floor((rem%60000)/1000);
+        texto=`⏳ Segunda asistencia termina en ${m}:${s.toString().padStart(2,"0")}`;
+      }else if(!btnTercera.disabled){
+        const rem = fechaFinAsistencias[2]-ahora;
+        const m=Math.floor(rem/60000), s=Math.floor((rem%60000)/1000);
+        texto=`⏳ Tercera asistencia termina en ${m}:${s.toString().padStart(2,"0")}`;
+      }
+    }
+    document.getElementById("contador").textContent=texto;
+  }
+  setInterval(actualizarContador,1000);
 
-// cronómetro global y botones
-setInterval(()=>{
-const ahora = new Date();
-let texto="";
-if(ahora<fechaFinAsistencias[0]) texto=`⏳ Primera asistencia activa (${Math.floor((fechaFinAsistencias[0]-ahora)/60000)}:${Math.floor((fechaFinAsistencias[0]-ahora)/1000%60).toString().padStart(2,'0')})`;
-else if(ahora<fechaFinAsistencias[1]) texto=`⏳ Segunda asistencia activa (${Math.floor((fechaFinAsistencias[1]-ahora)/60000)}:${Math.floor((fechaFinAsistencias[1]-ahora)/1000%60).toString().padStart(2,'0')})`;
-else if(ahora<fechaFinAsistencias[2]) texto=`⏳ Tercera asistencia activa (${Math.floor((fechaFinAsistencias[2]-ahora)/60000)}:${Math.floor((fechaFinAsistencias[2]-ahora)/1000%60).toString().padStart(2,'0')})`;
-else texto="⛔ Todas las asistencias han finalizado";
-contadorEl.textContent=texto;
+  // Comprobar usuario
+  const resUsuarios = await fetch(`/api/verRespuestas?id=${id}`);
+  const usuarios = resUsuarios.ok ? await resUsuarios.json() : [];
+  const registroUsuario = usuarios.find(u=>u.visitanteId===visitanteId);
+  if(registroUsuario){
+    formulario.dataset.registrado="true";
+    formulario.style.display="none";
+    if(registroUsuario.asistencias[0]) btnSegunda.disabled=false;
+    if(registroUsuario.asistencias[1]) btnTercera.disabled=false;
+  }
 
-// contar individualmente botones
-contadorSegunda.textContent = (ahora<fechaFinAsistencias[1])?`${Math.floor((fechaFinAsistencias[1]-ahora)/60000)}:${Math.floor((fechaFinAsistencias[1]-ahora)/1000%60).toString().padStart(2,'0')}`:"--:--";
-contadorTercera.textContent = (ahora<fechaFinAsistencias[2])?`${Math.floor((fechaFinAsistencias[2]-ahora)/60000)}:${Math.floor((fechaFinAsistencias[2]-ahora)/1000%60).toString().padStart(2,'0')}`:"--:--";
+  // Formulario primera asistencia
+  formulario.addEventListener("submit", async e=>{
+    e.preventDefault();
+    const datos = Object.fromEntries(new FormData(formulario).entries());
+    datos.visitanteId = visitanteId;
+    datos.numeroAsistencia=1;
+    const res = await fetch("/api/guardar",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(datos)
+    });
+    if(res.ok){
+      mensaje.textContent="✅ Primera asistencia registrada";
+      formulario.style.display="none";
+      formulario.dataset.registrado="true";
+      btnSegunda.disabled=false;
+      await cargarRespuestas();
+    }else{
+      mensaje.textContent="❌ Error al registrar primera asistencia";
+    }
+  });
 
-actualizarBotones();
-},1000);
+  // Segunda asistencia
+  btnSegunda.addEventListener("click", async ()=>{
+    const datos = {visitanteId, id, numeroAsistencia:2};
+    const res = await fetch("/api/guardar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(datos)});
+    if(res.ok){ 
+      btnSegunda.disabled=true; 
+      btnTercera.disabled=false;
+      mensaje.textContent="✅ Segunda asistencia registrada"; 
+      await cargarRespuestas();
+    }
+  });
 
-// primera asistencia
-formulario.addEventListener("submit", async e=>{
-e.preventDefault();
-const datos = Object.fromEntries(new FormData(formulario).entries());
-datos.visitanteId = visitanteId;
-datos.numeroAsistencia = 1;
-datos.asistencias=[true,false,false];
-const res = await fetch("/api/guardar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(datos)});
-if(res.ok){mensaje.textContent="✅ Primera asistencia registrada"; formulario.style.display="none"; await cargarRespuestas();}
-});
+  // Tercera asistencia
+  btnTercera.addEventListener("click", async ()=>{
+    const datos = {visitanteId, id, numeroAsistencia:3};
+    const res = await fetch("/api/guardar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(datos)});
+    if(res.ok){ 
+      btnTercera.disabled=true;
+      mensaje.textContent="✅ Tercera asistencia registrada"; 
+      await cargarRespuestas();
+    }
+  });
 
-// segunda asistencia
-btnSegunda.addEventListener("click", async ()=>{
-const res = await fetch("/api/guardar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,visitanteId,numeroAsistencia:2,asistencias:[true]} )});
-if(res.ok){mensaje.textContent="✅ Segunda asistencia registrada"; btnSegunda.disabled=true; btnTercera.disabled=false; await cargarRespuestas();}
-});
-
-// tercera asistencia
-btnTercera.addEventListener("click", async ()=>{
-const res = await fetch("/api/guardar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,visitanteId,numeroAsistencia:3,asistencias:[true]} )});
-if(res.ok){mensaje.textContent="✅ Tercera asistencia registrada"; btnTercera.disabled=true; await cargarRespuestas();}
-});
-
-// auto marcar no asistió si tiempo terminó
-setInterval(async ()=>{
-const resUsuarios = await fetch(`/api/verRespuestas?id=${id}`);
-const registros = await resUsuarios.json();
-let registroUsuario = registros.find(r=>r.visitanteId===visitanteId);
-if(!registroUsuario) return;
-const ahora = new Date();
-for(let i=0;i<3;i++){
-if(!registroUsuario.asistencias[i] && ahora>fechaFinAsistencias[i]){
-await fetch("/api/guardar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,visitanteId,numeroAsistencia:i+1,asistencias:[false]})});
-await cargarRespuestas();
-}
-}
-},10000);
-
+  document.getElementById("botonesAsistencia").style.display="block";
 });
 </script>
 </body>

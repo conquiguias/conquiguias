@@ -1,221 +1,197 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Formulario de Asistencias</title>
-  <style>
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-    .temporizador { font-size: 0.9em; color: gray; margin-left: 10px; }
-  </style>
+<meta charset="UTF-8">
+<title>Formulario de Asistencias</title>
 </head>
 <body>
-  <img src="logo1.png" style="width: 25%;" alt="">
-  <h2 id="tituloFormulario">Cargando...</h2>
 
-  <!-- Formulario Primera Asistencia -->
-  <form id="formulario" style="display:none;">
-    <input type="hidden" name="id" id="idFormulario">
-    <label>Nombre:</label><br>
-    <input type="text" name="nombre" required><br><br>
-    <label>Correo: (Opcional)</label><br>
-    <input type="email" name="correo"><br><br>
-    <label>Edad: (Opcional)</label><br>
-    <input type="number" name="edad"><br><br>
-    <label>Teléfono:</label><br>
-    <input type="tel" name="telefono" required><br><br>
-    <label>Asociación o campo:</label><br>
-    <input type="text" name="asociacion" required><br><br>
-    <button type="submit">Registrar Primera Asistencia</button>
-  </form>
+<img src="logo1.png" style="width:25%;" alt="">
+<h2 id="tituloFormulario">Cargando...</h2>
+<p id="contador"></p>
 
-  <!-- Botones Segunda y Tercera Asistencia -->
-  <div id="botonesAsistencia" style="margin-top:20px; display:none;">
-    <button id="btnSegunda" disabled>Segunda Asistencia</button>
-    <span id="timerSegunda" class="temporizador"></span><br><br>
-    <button id="btnTercera" disabled>Tercera Asistencia</button>
-    <span id="timerTercera" class="temporizador"></span>
-  </div>
+<!-- Formulario de datos personales -->
+<form id="formulario" style="display:none;">
+  <input type="hidden" name="id" id="idFormulario">
+  <label>Nombre:</label><br>
+  <input type="text" name="nombre" required><br><br>
 
-  <p id="mensaje"></p>
+  <label>Correo (opcional):</label><br>
+  <input type="email" name="correo"><br><br>
 
-  <h3>📊 Respuestas registradas | Se actualiza cada 5 minutos.</h3>
-  <p id="contadorRecarga">🔄 Próxima recarga en: <span id="segundos">300</span> segundos</p>
+  <label>Edad (opcional):</label><br>
+  <input type="number" name="edad"><br><br>
 
-  <p>Información exclusiva para instructores y directores. Su información es borrada después de 90 días</p>
+  <label>Teléfono:</label><br>
+  <input type="tel" name="telefono" required><br><br>
 
-  <table border="1" id="tablaRespuestas" style="border-collapse: collapse; width: 100%;">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Nombre</th>
-        <th>Correo</th>
-        <th>Edad</th>
-        <th>Teléfono</th>
-        <th>Asociación</th>
-        <th>Número Asistencia</th>
-        <th>¿Asistió?</th>
-        <th>Examen</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <label>Asociación:</label><br>
+  <input type="text" name="asociacion" required><br><br>
+
+  <button type="submit">Registrar Primera Asistencia</button>
+</form>
+
+<!-- Botones para segunda y tercera asistencia -->
+<div id="botonesAsistencia" style="margin-top:20px; display:none;">
+  <button id="btnSegunda" disabled>Registrar Segunda Asistencia</button>
+  <button id="btnTercera" disabled>Registrar Tercera Asistencia</button>
+</div>
+
+<p id="mensaje"></p>
+
+<h3>📊 Respuestas registradas | Se actualiza cada 5 minutos.</h3>
+<p id="contadorRecarga">🔄 Próxima recarga en: <span id="segundos">300</span> segundos</p>
+
+<table border="1" id="tablaRespuestas" style="border-collapse:collapse; width:100%;">
+<thead>
+<tr>
+  <th>#</th>
+  <th>Nombre</th>
+  <th>Correo</th>
+  <th>Edad</th>
+  <th>Teléfono</th>
+  <th>Asociación</th>
+  <th>Número de Asistencia</th>
+  <th>¿Asistió?</th>
+  <th>Examen</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
 
 <script>
-  function generarUUID(){ return crypto.randomUUID(); }
-  let visitanteId = localStorage.getItem("visitanteId");
-  if(!visitanteId){ visitanteId = generarUUID(); localStorage.setItem("visitanteId", visitanteId); }
+const visitanteId = localStorage.getItem("visitanteId") || crypto.randomUUID();
+if (!localStorage.getItem("visitanteId")) localStorage.setItem("visitanteId", visitanteId);
 
-  document.addEventListener("DOMContentLoaded", async ()=>{
-    const params = new URLSearchParams(location.search);
-    const id = params.get("id");
-    if(!id) return;
+document.addEventListener("DOMContentLoaded", async () => {
+  const params = new URLSearchParams(location.search);
+  const idFormulario = params.get("id");
+  if (!idFormulario) return;
 
-    document.getElementById("idFormulario").value = id;
-    document.getElementById("tituloFormulario").textContent = "Formulario: " + id;
+  const tituloEl = document.getElementById("tituloFormulario");
+  const contadorEl = document.getElementById("contador");
+  const formularioEl = document.getElementById("formulario");
+  const btnSegunda = document.getElementById("btnSegunda");
+  const btnTercera = document.getElementById("btnTercera");
+  const botonesDiv = document.getElementById("botonesAsistencia");
 
-    const btnSegunda = document.getElementById("btnSegunda");
-    const btnTercera = document.getElementById("btnTercera");
-    const timerSegunda = document.getElementById("timerSegunda");
-    const timerTercera = document.getElementById("timerTercera");
-    const formulario = document.getElementById("formulario");
-    const botonesDiv = document.getElementById("botonesAsistencia");
+  tituloEl.textContent = "Cargando...";
+
+  // Obtener datos del formulario desde backend
+  const resForm = await fetch(`/api/obtenerFormulario?id=${idFormulario}`);
+  if (!resForm.ok) { tituloEl.textContent = "Formulario no encontrado"; return; }
+  const formData = await resForm.json();
+  tituloEl.textContent = formData.titulo;
+
+  // Obtener registros actuales
+  let registros = [];
+  async function cargarRespuestas() {
+    const res = await fetch(`/api/verRespuestas?id=${idFormulario}`);
+    registros = res.ok ? await res.json() : [];
+    const tbody = document.querySelector("#tablaRespuestas tbody");
+    tbody.innerHTML = "";
+
+    registros.forEach((r,index)=>{
+      for(let i=0;i<3;i++){
+        const asistio = r.asistencias?.[i]?.registrado || false;
+        let examen="-";
+        if(i===2){
+          examen = r.asistencias?.every(a=>a?.registrado)? 
+            `<button onclick="alert('Hacer examen de ${r.nombre}')">Hacer examen</button>` : "No puede hacer examen";
+        }
+        tbody.insertAdjacentHTML("beforeend",`
+          <tr>
+            <td>${index+1}</td>
+            <td>${r.nombre}</td>
+            <td>${r.correo||"-"}</td>
+            <td>${r.edad||"-"}</td>
+            <td>${r.telefono}</td>
+            <td>${r.asociacion}</td>
+            <td>${i+1}</td>
+            <td>${asistio?"Sí":"No"}</td>
+            <td>${i===2?examen:"-"}</td>
+          </tr>
+        `);
+      }
+    });
+  }
+
+  await cargarRespuestas();
+
+  // Determinar estado del usuario actual
+  const registroUsuario = registros.find(r=>r.visitanteId===visitanteId);
+  if(!registroUsuario){
+    formularioEl.style.display="block";
+    botonesDiv.style.display="none";
+  } else {
+    formularioEl.style.display="none";
     botonesDiv.style.display="block";
+  }
 
-    // Función para cargar la tabla
-    async function cargarRespuestas(){
-      const tablaBody = document.querySelector("#tablaRespuestas tbody");
-      const res = await fetch(`/api/verRespuestas?id=${id}`);
-      const registros = await res.json();
-      tablaBody.innerHTML="";
-      registros.forEach((r,index)=>{
-        r.asistencias.forEach((asistio,num)=>{
-          let examen="-";
-          if(r.asistencias.length===3 && r.asistencias.every(a=>a===true)) 
-            examen=`<button onclick="alert('Hacer examen de ${r.nombre}')">Hacer Examen</button>`;
-          else if(num===2) examen="No puede hacer examen";
-          tablaBody.insertAdjacentHTML("beforeend",`
-            <tr>
-              <td>${index+1}</td>
-              <td>${r.nombre}</td>
-              <td>${r.correo||"-"}</td>
-              <td>${r.edad||"-"}</td>
-              <td>${r.telefono}</td>
-              <td>${r.asociacion}</td>
-              <td>${num+1}</td>
-              <td>${asistio?"Sí":"No"}</td>
-              <td>${num===2?examen:"-"}</td>
-            </tr>
-          `);
-        });
-      });
+  // Temporizadores de asistencia
+  let tiempoSegunda=null, tiempoTercera=null;
+
+  function habilitarSegunda(){
+    btnSegunda.disabled=false;
+  }
+  function habilitarTercera(){
+    btnTercera.disabled=false;
+  }
+
+  // Submit primera asistencia
+  formularioEl.addEventListener("submit", async e=>{
+    e.preventDefault();
+    const datos = Object.fromEntries(new FormData(formularioEl).entries());
+    datos.visitanteId=visitanteId;
+    datos.numeroAsistencia=1;
+    const res = await fetch("/api/guardar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(datos)});
+    if(res.ok){
+      document.getElementById("mensaje").textContent="✅ Primera asistencia registrada";
+      formularioEl.style.display="none";
+      botonesDiv.style.display="block";
+
+      // activar segunda asistencia después de 30 min
+      tiempoSegunda = setTimeout(habilitarSegunda,30*60*1000);
+      await cargarRespuestas();
     }
-
-    await cargarRespuestas();
-
-    // Revisar si el usuario ya tiene registro
-    const resUsuarios = await fetch(`/api/verRespuestas?id=${id}`);
-    const registros = await resUsuarios.json();
-    const registroUsuario = registros.find(r=>r.visitanteId===visitanteId);
-
-    let segundosSegunda = 0;
-    let segundosTercera = 0;
-
-    if(!registroUsuario){
-      formulario.style.display="block";
-    } else {
-      formulario.style.display="none";
-      if(registroUsuario.asistencias[0] && !registroUsuario.asistencias[1]){
-        // Segunda asistencia bloqueada 30 min
-        segundosSegunda = 30*60;
-        btnSegunda.disabled=true;
-      }
-      if(registroUsuario.asistencias[1] && !registroUsuario.asistencias[2]){
-        // Tercera asistencia bloqueada 10 min
-        segundosTercera = 10*60;
-        btnTercera.disabled=true;
-      }
-    }
-
-    // Función temporizador
-    function actualizarTimers(){
-      if(segundosSegunda>0){
-        btnSegunda.disabled=true;
-        let min=Math.floor(segundosSegunda/60);
-        let seg=segundosSegunda%60;
-        timerSegunda.textContent=`Disponible en ${min}:${seg.toString().padStart(2,'0')}`;
-        segundosSegunda--;
-      } else btnSegunda.disabled=false;
-
-      if(segundosTercera>0){
-        btnTercera.disabled=true;
-        let min=Math.floor(segundosTercera/60);
-        let seg=segundosTercera%60;
-        timerTercera.textContent=`Disponible en ${min}:${seg.toString().padStart(2,'0')}`;
-        segundosTercera--;
-      } else btnTercera.disabled=false;
-    }
-
-    setInterval(actualizarTimers,1000);
-
-    // Registrar Primera Asistencia
-    formulario.addEventListener("submit", async (e)=>{
-      e.preventDefault();
-      const datos = Object.fromEntries(new FormData(formulario).entries());
-      datos.visitanteId = visitanteId;
-      datos.numeroAsistencia=1;
-      datos.asistencias=[true];
-      const res = await fetch("/api/guardar",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify(datos)
-      });
-      if(res.ok){
-        alert("Primera asistencia registrada");
-        formulario.style.display="none";
-        segundosSegunda = 30*60;
-        btnSegunda.disabled=true;
-        await cargarRespuestas();
-      } else alert("Error al registrar");
-    });
-
-    // Segunda Asistencia
-    btnSegunda.addEventListener("click", async ()=>{
-      const res = await fetch("/api/guardar",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({id,visitanteId,numeroAsistencia:2})
-      });
-      if(res.ok){
-        alert("Segunda asistencia registrada");
-        segundosTercera=10*60;
-        await cargarRespuestas();
-      }
-    });
-
-    // Tercera Asistencia
-    btnTercera.addEventListener("click", async ()=>{
-      const res = await fetch("/api/guardar",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({id,visitanteId,numeroAsistencia:3})
-      });
-      if(res.ok){
-        alert("Tercera asistencia registrada");
-        await cargarRespuestas();
-      }
-    });
-
-    // Recarga cada 5 min
-    let segundosRestantes = 300;
-    setInterval(()=>{
-      segundosRestantes--;
-      document.getElementById("segundos").textContent = segundosRestantes;
-      if(segundosRestantes<=0){
-        cargarRespuestas();
-        segundosRestantes=300;
-      }
-    },1000);
   });
+
+  // Segunda asistencia
+  btnSegunda.addEventListener("click", async ()=>{
+    btnSegunda.disabled=true;
+    const datos={visitanteId,numeroAsistencia:2,id:idFormulario};
+    const res=await fetch("/api/guardar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(datos)});
+    if(res.ok){
+      document.getElementById("mensaje").textContent="✅ Segunda asistencia registrada";
+      tiempoTercera = setTimeout(habilitarTercera,10*60*1000); // activar tercera después de 10 min
+      await cargarRespuestas();
+    }
+  });
+
+  // Tercera asistencia
+  btnTercera.addEventListener("click", async ()=>{
+    btnTercera.disabled=true;
+    const datos={visitanteId,numeroAsistencia:3,id:idFormulario};
+    const res=await fetch("/api/guardar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(datos)});
+    if(res.ok){
+      document.getElementById("mensaje").textContent="✅ Tercera asistencia registrada";
+      await cargarRespuestas();
+    }
+  });
+
+  // Refrescar tabla cada 5 minutos
+  let segundosRestantes=300;
+  setInterval(async ()=>{
+    segundosRestantes--;
+    document.getElementById("segundos").textContent=segundosRestantes;
+    if(segundosRestantes<=0){
+      await cargarRespuestas();
+      segundosRestantes=300;
+    }
+  },1000);
+
+});
 </script>
+
 </body>
 </html>

@@ -12,9 +12,9 @@
   
   <!-- Contadores para cada asistencia -->
   <div id="contadores">
-    <p id="contadorPrimera" style="display: none;">⏳ Primera asistencia: <span id="tiempoPrimera">30:00</span></p>
-    <p id="contadorSegunda" style="display: none;">⏳ Segunda asistencia: <span id="tiempoSegunda">20:00</span></p>
-    <p id="contadorTercera" style="display: none;">⏳ Tercera asistencia: <span id="tiempoTercera">20:00</span></p>
+    <p id="contadorPrimera">⏳ Primera asistencia: <span id="tiempoPrimera">30:00</span></p>
+    <p id="contadorSegunda" style="display: none;">⏳ Segunda asistencia: <span id="tiempoSegunda">30:00</span></p>
+    <p id="contadorTercera" style="display: none;">⏳ Tercera asistencia: <span id="tiempoTercera">10:00</span></p>
   </div>
 
   <!-- Botones de asistencia -->
@@ -112,8 +112,8 @@
         const fechaCierre = new Date(data.fechaCierre);
         fechaInicioFormulario = new Date(fechaCierre.getTime() - (70 * 60 * 1000)); // 70 minutos antes
         fechaFinPrimera = new Date(fechaInicioFormulario.getTime() + (30 * 60 * 1000)); // 30 minutos
-        fechaFinSegunda = new Date(fechaFinPrimera.getTime() + (20 * 60 * 1000)); // 20 minutos
-        fechaFinTercera = new Date(fechaFinSegunda.getTime() + (20 * 60 * 1000)); // 20 minutos
+        fechaFinSegunda = new Date(fechaFinPrimera.getTime() + (30 * 60 * 1000)); // 30 minutos
+        fechaFinTercera = new Date(fechaFinSegunda.getTime() + (10 * 60 * 1000)); // 10 minutos
 
         // Verificar estado de asistencias del usuario
         await verificarEstadoAsistencias(id);
@@ -168,22 +168,25 @@
         return;
       }
 
-      // Configurar primera asistencia si aún no está completada y está en tiempo
-      if (!primeraAsistenciaCompletada && ahora < fechaFinPrimera) {
+      // Mostrar todos los botones desde el principio pero desactivados
+      document.getElementById("btnPrimeraAsistencia").style.display = "block";
+      document.getElementById("btnSegundaAsistencia").style.display = "block";
+      document.getElementById("btnTerceraAsistencia").style.display = "block";
+
+      // Configurar primera asistencia si está en tiempo y no está completada
+      if (ahora < fechaFinPrimera && !primeraAsistenciaCompletada) {
         configurarPrimeraAsistencia();
-      } 
-      // Si la primera ya está completada o el tiempo pasó, configurar segunda
-      else if (primeraAsistenciaCompletada && !segundaAsistenciaCompletada && ahora < fechaFinSegunda) {
+      } else if (primeraAsistenciaCompletada) {
+        // Si ya completó la primera, configurar segunda
         configurarSegundaAsistencia();
       }
-      // Si la segunda ya está completada o el tiempo pasó, configurar tercera
-      else if (segundaAsistenciaCompletada && !terceraAsistenciaCompletada && ahora < fechaFinTercera) {
-        configurarTerceraAsistencia();
-      }
+
+      // Mostrar contadores según el estado actual
+      actualizarContadores();
     }
 
     function configurarPrimeraAsistencia() {
-      document.getElementById("btnPrimeraAsistencia").style.display = "block";
+      document.getElementById("btnPrimeraAsistencia").disabled = false;
       document.getElementById("contadorPrimera").style.display = "block";
 
       // Configurar contador regresivo
@@ -192,7 +195,7 @@
 
       document.getElementById("btnPrimeraAsistencia").addEventListener("click", () => {
         document.getElementById("formulario").style.display = "block";
-        document.getElementById("btnPrimeraAsistencia").style.display = "none";
+        document.getElementById("btnPrimeraAsistencia").disabled = true;
       });
     }
 
@@ -204,7 +207,8 @@
         clearInterval(intervaloPrimera);
         document.getElementById("contadorPrimera").textContent = "⏰ Tiempo agotado para primera asistencia";
         document.getElementById("btnPrimeraAsistencia").disabled = true;
-        // Pasar a segunda asistencia automáticamente si ya completó la primera
+        
+        // Si completó la primera, pasar a segunda
         if (primeraAsistenciaCompletada) {
           configurarSegundaAsistencia();
         }
@@ -223,12 +227,8 @@
         return;
       }
 
-      document.getElementById("btnSegundaAsistencia").style.display = "block";
       document.getElementById("contadorSegunda").style.display = "block";
       document.getElementById("btnSegundaAsistencia").disabled = false;
-
-      // Ocultar primera asistencia
-      document.getElementById("contadorPrimera").style.display = "none";
 
       // Configurar contador regresivo
       actualizarContadorSegunda();
@@ -250,8 +250,7 @@
 
         if (res.ok) {
           segundaAsistenciaCompletada = true;
-          document.getElementById("btnSegundaAsistencia").style.display = "none";
-          document.getElementById("contadorSegunda").style.display = "none";
+          document.getElementById("btnSegundaAsistencia").disabled = true;
           document.getElementById("mensaje").textContent = "✅ Segunda asistencia registrada";
           configurarTerceraAsistencia();
           cargarRespuestas(datos.id);
@@ -269,7 +268,8 @@
         clearInterval(intervaloSegunda);
         document.getElementById("contadorSegunda").textContent = "⏰ Tiempo agotado para segunda asistencia";
         document.getElementById("btnSegundaAsistencia").disabled = true;
-        // Pasar a tercera asistencia automáticamente si ya completó la segunda
+        
+        // Si completó la segunda, pasar a tercera
         if (segundaAsistenciaCompletada) {
           configurarTerceraAsistencia();
         }
@@ -288,12 +288,8 @@
         return;
       }
 
-      document.getElementById("btnTerceraAsistencia").style.display = "block";
       document.getElementById("contadorTercera").style.display = "block";
       document.getElementById("btnTerceraAsistencia").disabled = false;
-
-      // Ocultar segunda asistencia
-      document.getElementById("contadorSegunda").style.display = "none";
 
       // Configurar contador regresivo
       actualizarContadorTercera();
@@ -315,8 +311,7 @@
 
         if (res.ok) {
           terceraAsistenciaCompletada = true;
-          document.getElementById("btnTerceraAsistencia").style.display = "none";
-          document.getElementById("contadorTercera").style.display = "none";
+          document.getElementById("btnTerceraAsistencia").disabled = true;
           document.getElementById("mensaje").textContent = "✅ Tercera asistencia registrada. ¡Completaste todas las asistencias!";
           cargarRespuestas(datos.id);
         } else {
@@ -340,6 +335,19 @@
       const segundos = Math.floor((restante / 1000) % 60);
       document.getElementById("tiempoTercera").textContent = 
         `${minutos}:${segundos.toString().padStart(2, "0")}`;
+    }
+
+    function actualizarContadores() {
+      const ahora = new Date();
+      
+      // Mostrar contadores según el tiempo actual
+      if (ahora < fechaFinPrimera) {
+        document.getElementById("contadorPrimera").style.display = "block";
+      } else if (ahora < fechaFinSegunda) {
+        document.getElementById("contadorSegunda").style.display = "block";
+      } else if (ahora < fechaFinTercera) {
+        document.getElementById("contadorTercera").style.display = "block";
+      }
     }
 
     // Mostrar respuestas del formulario en la tabla

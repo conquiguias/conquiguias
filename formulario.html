@@ -168,25 +168,27 @@
         return;
       }
 
-      // Mostrar todos los botones desde el principio pero desactivados
-      document.getElementById("btnPrimeraAsistencia").style.display = "block";
-      document.getElementById("btnSegundaAsistencia").style.display = "block";
-      document.getElementById("btnTerceraAsistencia").style.display = "block";
-
-      // Configurar primera asistencia si está en tiempo y no está completada
-      if (ahora < fechaFinPrimera && !primeraAsistenciaCompletada) {
-        configurarPrimeraAsistencia();
-      } else if (primeraAsistenciaCompletada) {
-        // Si ya completó la primera, configurar segunda
-        configurarSegundaAsistencia();
-      }
-
-      // Mostrar contadores según el estado actual
-      actualizarContadores();
+      // Configurar primera asistencia
+      configurarPrimeraAsistencia();
     }
 
     function configurarPrimeraAsistencia() {
-      document.getElementById("btnPrimeraAsistencia").disabled = false;
+      const ahora = new Date();
+      
+      // Si ya completó la primera asistencia, pasar a la segunda
+      if (primeraAsistenciaCompletada) {
+        configurarSegundaAsistencia();
+        return;
+      }
+
+      // Si el tiempo de la primera asistencia ya pasó, mostrar mensaje
+      if (ahora > fechaFinPrimera) {
+        document.getElementById("contadorPrimera").textContent = "⏰ Tiempo agotado para primera asistencia";
+        return;
+      }
+
+      // Mostrar primer botón y contador
+      document.getElementById("btnPrimeraAsistencia").style.display = "block";
       document.getElementById("contadorPrimera").style.display = "block";
 
       // Configurar contador regresivo
@@ -207,11 +209,6 @@
         clearInterval(intervaloPrimera);
         document.getElementById("contadorPrimera").textContent = "⏰ Tiempo agotado para primera asistencia";
         document.getElementById("btnPrimeraAsistencia").disabled = true;
-        
-        // Si completó la primera, pasar a segunda
-        if (primeraAsistenciaCompletada) {
-          configurarSegundaAsistencia();
-        }
         return;
       }
 
@@ -222,11 +219,27 @@
     }
 
     function configurarSegundaAsistencia() {
-      if (!primeraAsistenciaCompletada) {
-        document.getElementById("mensaje").textContent = "❌ Debes completar la primera asistencia antes de continuar.";
+      const ahora = new Date();
+      
+      // Si ya completó la segunda asistencia, pasar a la tercera
+      if (segundaAsistenciaCompletada) {
+        configurarTerceraAsistencia();
         return;
       }
 
+      // Si el tiempo de la segunda asistencia ya pasó, mostrar mensaje
+      if (ahora > fechaFinSegunda) {
+        document.getElementById("contadorSegunda").textContent = "⏰ Tiempo agotado para segunda asistencia";
+        document.getElementById("contadorSegunda").style.display = "block";
+        return;
+      }
+
+      // Ocultar primera asistencia
+      document.getElementById("contadorPrimera").style.display = "none";
+      document.getElementById("btnPrimeraAsistencia").style.display = "none";
+
+      // Mostrar segunda asistencia
+      document.getElementById("btnSegundaAsistencia").style.display = "block";
       document.getElementById("contadorSegunda").style.display = "block";
       document.getElementById("btnSegundaAsistencia").disabled = false;
 
@@ -242,20 +255,26 @@
           fecha: new Date().toISOString()
         };
 
-        const res = await fetch("/api/guardar", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(datos)
-        });
+        try {
+          const res = await fetch("/api/guardar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(datos)
+          });
 
-        if (res.ok) {
-          segundaAsistenciaCompletada = true;
-          document.getElementById("btnSegundaAsistencia").disabled = true;
-          document.getElementById("mensaje").textContent = "✅ Segunda asistencia registrada";
-          configurarTerceraAsistencia();
-          cargarRespuestas(datos.id);
-        } else {
-          document.getElementById("mensaje").textContent = "❌ Error al registrar segunda asistencia";
+          if (res.ok) {
+            segundaAsistenciaCompletada = true;
+            document.getElementById("btnSegundaAsistencia").disabled = true;
+            document.getElementById("mensaje").textContent = "✅ Segunda asistencia registrada";
+            clearInterval(intervaloSegunda);
+            configurarTerceraAsistencia();
+            cargarRespuestas(datos.id);
+          } else {
+            const errorText = await res.text();
+            document.getElementById("mensaje").textContent = "❌ Error al registrar segunda asistencia: " + errorText;
+          }
+        } catch (error) {
+          document.getElementById("mensaje").textContent = "❌ Error de conexión al registrar segunda asistencia";
         }
       });
     }
@@ -268,11 +287,6 @@
         clearInterval(intervaloSegunda);
         document.getElementById("contadorSegunda").textContent = "⏰ Tiempo agotado para segunda asistencia";
         document.getElementById("btnSegundaAsistencia").disabled = true;
-        
-        // Si completó la segunda, pasar a tercera
-        if (segundaAsistenciaCompletada) {
-          configurarTerceraAsistencia();
-        }
         return;
       }
 
@@ -283,11 +297,27 @@
     }
 
     function configurarTerceraAsistencia() {
-      if (!segundaAsistenciaCompletada) {
-        document.getElementById("mensaje").textContent = "❌ Debes completar la segunda asistencia antes de continuar.";
+      const ahora = new Date();
+      
+      // Si ya completó la tercera asistencia, mostrar mensaje
+      if (terceraAsistenciaCompletada) {
+        document.getElementById("mensaje").textContent = "✅ ¡Completaste todas las asistencias!";
         return;
       }
 
+      // Si el tiempo de la tercera asistencia ya pasó, mostrar mensaje
+      if (ahora > fechaFinTercera) {
+        document.getElementById("contadorTercera").textContent = "⏰ Tiempo agotado para tercera asistencia";
+        document.getElementById("contadorTercera").style.display = "block";
+        return;
+      }
+
+      // Ocultar segunda asistencia
+      document.getElementById("contadorSegunda").style.display = "none";
+      document.getElementById("btnSegundaAsistencia").style.display = "none";
+
+      // Mostrar tercera asistencia
+      document.getElementById("btnTerceraAsistencia").style.display = "block";
       document.getElementById("contadorTercera").style.display = "block";
       document.getElementById("btnTerceraAsistencia").disabled = false;
 
@@ -303,19 +333,25 @@
           fecha: new Date().toISOString()
         };
 
-        const res = await fetch("/api/guardar", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(datos)
-        });
+        try {
+          const res = await fetch("/api/guardar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(datos)
+          });
 
-        if (res.ok) {
-          terceraAsistenciaCompletada = true;
-          document.getElementById("btnTerceraAsistencia").disabled = true;
-          document.getElementById("mensaje").textContent = "✅ Tercera asistencia registrada. ¡Completaste todas las asistencias!";
-          cargarRespuestas(datos.id);
-        } else {
-          document.getElementById("mensaje").textContent = "❌ Error al registrar tercera asistencia";
+          if (res.ok) {
+            terceraAsistenciaCompletada = true;
+            document.getElementById("btnTerceraAsistencia").disabled = true;
+            document.getElementById("mensaje").textContent = "✅ Tercera asistencia registrada. ¡Completaste todas las asistencias!";
+            clearInterval(intervaloTercera);
+            cargarRespuestas(datos.id);
+          } else {
+            const errorText = await res.text();
+            document.getElementById("mensaje").textContent = "❌ Error al registrar tercera asistencia: " + errorText;
+          }
+        } catch (error) {
+          document.getElementById("mensaje").textContent = "❌ Error de conexión al registrar tercera asistencia";
         }
       });
     }
@@ -335,19 +371,6 @@
       const segundos = Math.floor((restante / 1000) % 60);
       document.getElementById("tiempoTercera").textContent = 
         `${minutos}:${segundos.toString().padStart(2, "0")}`;
-    }
-
-    function actualizarContadores() {
-      const ahora = new Date();
-      
-      // Mostrar contadores según el tiempo actual
-      if (ahora < fechaFinPrimera) {
-        document.getElementById("contadorPrimera").style.display = "block";
-      } else if (ahora < fechaFinSegunda) {
-        document.getElementById("contadorSegunda").style.display = "block";
-      } else if (ahora < fechaFinTercera) {
-        document.getElementById("contadorTercera").style.display = "block";
-      }
     }
 
     // Mostrar respuestas del formulario en la tabla
@@ -444,27 +467,32 @@
         return;
       }
 
-      const res = await fetch("/api/guardar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(datos)
-      });
+      try {
+        const res = await fetch("/api/guardar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(datos)
+        });
 
-      const mensaje = document.getElementById("mensaje");
-      if (res.ok) {
-        mensaje.textContent = "✅ Primera asistencia registrada. ¡Gracias!";
-        this.reset();
-        this.style.display = "none";
-        primeraAsistenciaCompletada = true;
-        
-        // Limpiar intervalo de primera asistencia
-        if (intervaloPrimera) clearInterval(intervaloPrimera);
-        
-        // Configurar segunda asistencia
-        configurarSegundaAsistencia();
-        cargarRespuestas(datos.id);
-      } else {
-        mensaje.textContent = "❌ Ocurrió un error al guardar. Usuario Ya registrado";
+        const mensaje = document.getElementById("mensaje");
+        if (res.ok) {
+          mensaje.textContent = "✅ Primera asistencia registrada. ¡Gracias!";
+          this.reset();
+          this.style.display = "none";
+          primeraAsistenciaCompletada = true;
+          
+          // Limpiar intervalo de primera asistencia
+          if (intervaloPrimera) clearInterval(intervaloPrimera);
+          
+          // Configurar segunda asistencia
+          configurarSegundaAsistencia();
+          cargarRespuestas(datos.id);
+        } else {
+          const errorText = await res.text();
+          mensaje.textContent = "❌ Ocurrió un error al guardar: " + errorText;
+        }
+      } catch (error) {
+        document.getElementById("mensaje").textContent = "❌ Error de conexión al guardar";
       }
     });
   </script>

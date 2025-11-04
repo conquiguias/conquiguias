@@ -87,6 +87,9 @@
     let intervaloPrimera, intervaloSegunda, intervaloTercera;
     let fechaInicioFormulario;
     let fechaFinPrimera, fechaFinSegunda, fechaFinTercera;
+    let tiempoRestantePrimera = 30 * 60; // 30 minutos en segundos
+    let tiempoRestanteSegunda = 30 * 60; // 30 minutos en segundos
+    let tiempoRestanteTercera = 10 * 60; // 10 minutos en segundos
 
     document.addEventListener("DOMContentLoaded", async () => {
       const params = new URLSearchParams(location.search);
@@ -107,13 +110,6 @@
         const data = await res.json();
         document.getElementById("tituloFormulario").textContent = data.titulo;
         document.getElementById("idFormulario").value = id;
-
-        // Calcular tiempos basados en la fecha de cierre del formulario
-        const fechaCierre = new Date(data.fechaCierre);
-        fechaInicioFormulario = new Date(fechaCierre.getTime() - (70 * 60 * 1000)); // 70 minutos antes
-        fechaFinPrimera = new Date(fechaInicioFormulario.getTime() + (30 * 60 * 1000)); // 30 minutos
-        fechaFinSegunda = new Date(fechaFinPrimera.getTime() + (30 * 60 * 1000)); // 30 minutos
-        fechaFinTercera = new Date(fechaFinSegunda.getTime() + (10 * 60 * 1000)); // 10 minutos
 
         // Verificar estado de asistencias del usuario
         await verificarEstadoAsistencias(id);
@@ -209,6 +205,11 @@
         clearInterval(intervaloPrimera);
         document.getElementById("contadorPrimera").textContent = "⏰ Tiempo agotado para primera asistencia";
         document.getElementById("btnPrimeraAsistencia").disabled = true;
+        
+        // Si completó la primera asistencia, pasar a la segunda
+        if (primeraAsistenciaCompletada) {
+          configurarSegundaAsistencia();
+        }
         return;
       }
 
@@ -241,13 +242,29 @@
       // Mostrar segunda asistencia
       document.getElementById("btnSegundaAsistencia").style.display = "block";
       document.getElementById("contadorSegunda").style.display = "block";
-      document.getElementById("btnSegundaAsistencia").disabled = false;
+
+      // Solo activar el botón si ya pasó el tiempo de la primera asistencia
+      //const ahora = new Date();
+      if (ahora >= fechaFinPrimera) {
+        document.getElementById("btnSegundaAsistencia").disabled = false;
+      } else {
+        document.getElementById("btnSegundaAsistencia").disabled = true;
+        document.getElementById("mensaje").textContent = "⏳ Espera a que termine el tiempo de la primera asistencia";
+      }
 
       // Configurar contador regresivo
       actualizarContadorSegunda();
       intervaloSegunda = setInterval(actualizarContadorSegunda, 1000);
 
       document.getElementById("btnSegundaAsistencia").addEventListener("click", async () => {
+        const ahora = new Date();
+        
+        // Verificar que esté en el tiempo correcto para la segunda asistencia
+        if (ahora < fechaFinPrimera) {
+          document.getElementById("mensaje").textContent = "❌ Aún no es tiempo para la segunda asistencia";
+          return;
+        }
+
         const datos = {
           id: document.getElementById("idFormulario").value,
           visitanteId: visitanteId,
@@ -287,6 +304,11 @@
         clearInterval(intervaloSegunda);
         document.getElementById("contadorSegunda").textContent = "⏰ Tiempo agotado para segunda asistencia";
         document.getElementById("btnSegundaAsistencia").disabled = true;
+        
+        // Si completó la segunda asistencia, pasar a la tercera
+        if (segundaAsistenciaCompletada) {
+          configurarTerceraAsistencia();
+        }
         return;
       }
 
@@ -294,6 +316,11 @@
       const segundos = Math.floor((restante / 1000) % 60);
       document.getElementById("tiempoSegunda").textContent = 
         `${minutos}:${segundos.toString().padStart(2, "0")}`;
+        
+      // Activar el botón solo cuando haya pasado el tiempo de la primera asistencia
+      if (ahora >= fechaFinPrimera) {
+        document.getElementById("btnSegundaAsistencia").disabled = false;
+      }
     }
 
     function configurarTerceraAsistencia() {
@@ -319,13 +346,28 @@
       // Mostrar tercera asistencia
       document.getElementById("btnTerceraAsistencia").style.display = "block";
       document.getElementById("contadorTercera").style.display = "block";
-      document.getElementById("btnTerceraAsistencia").disabled = false;
+
+      // Solo activar el botón si ya pasó el tiempo de la segunda asistencia
+      if (ahora >= fechaFinSegunda) {
+        document.getElementById("btnTerceraAsistencia").disabled = false;
+      } else {
+        document.getElementById("btnTerceraAsistencia").disabled = true;
+        document.getElementById("mensaje").textContent = "⏳ Espera a que termine el tiempo de la segunda asistencia";
+      }
 
       // Configurar contador regresivo
       actualizarContadorTercera();
       intervaloTercera = setInterval(actualizarContadorTercera, 1000);
 
       document.getElementById("btnTerceraAsistencia").addEventListener("click", async () => {
+        const ahora = new Date();
+        
+        // Verificar que esté en el tiempo correcto para la tercera asistencia
+        if (ahora < fechaFinSegunda) {
+          document.getElementById("mensaje").textContent = "❌ Aún no es tiempo para la tercera asistencia";
+          return;
+        }
+
         const datos = {
           id: document.getElementById("idFormulario").value,
           visitanteId: visitanteId,
@@ -371,6 +413,11 @@
       const segundos = Math.floor((restante / 1000) % 60);
       document.getElementById("tiempoTercera").textContent = 
         `${minutos}:${segundos.toString().padStart(2, "0")}`;
+        
+      // Activar el botón solo cuando haya pasado el tiempo de la segunda asistencia
+      if (ahora >= fechaFinSegunda) {
+        document.getElementById("btnTerceraAsistencia").disabled = false;
+      }
     }
 
     // Mostrar respuestas del formulario en la tabla
@@ -484,7 +531,7 @@
           // Limpiar intervalo de primera asistencia
           if (intervaloPrimera) clearInterval(intervaloPrimera);
           
-          // Configurar segunda asistencia
+          // Configurar segunda asistencia (pero el botón estará desactivado hasta que pase el tiempo)
           configurarSegundaAsistencia();
           cargarRespuestas(datos.id);
         } else {

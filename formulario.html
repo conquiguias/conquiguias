@@ -87,9 +87,6 @@
     let intervaloPrimera, intervaloSegunda, intervaloTercera;
     let fechaInicioFormulario;
     let fechaFinPrimera, fechaFinSegunda, fechaFinTercera;
-    let tiempoRestantePrimera = 30 * 60; // 30 minutos en segundos
-    let tiempoRestanteSegunda = 30 * 60; // 30 minutos en segundos
-    let tiempoRestanteTercera = 10 * 60; // 10 minutos en segundos
 
     document.addEventListener("DOMContentLoaded", async () => {
       const params = new URLSearchParams(location.search);
@@ -110,6 +107,13 @@
         const data = await res.json();
         document.getElementById("tituloFormulario").textContent = data.titulo;
         document.getElementById("idFormulario").value = id;
+
+        // Calcular tiempos basados en la fecha de cierre del formulario
+        const fechaCierre = new Date(data.fechaCierre);
+        fechaInicioFormulario = new Date(fechaCierre.getTime() - (70 * 60 * 1000)); // 70 minutos antes
+        fechaFinPrimera = new Date(fechaInicioFormulario.getTime() + (30 * 60 * 1000)); // 30 minutos
+        fechaFinSegunda = new Date(fechaFinPrimera.getTime() + (30 * 60 * 1000)); // 30 minutos
+        fechaFinTercera = new Date(fechaFinSegunda.getTime() + (10 * 60 * 1000)); // 10 minutos
 
         // Verificar estado de asistencias del usuario
         await verificarEstadoAsistencias(id);
@@ -220,7 +224,7 @@
     }
 
     function configurarSegundaAsistencia() {
-      const ahora = new Date();
+      const ahoraActual = new Date();
       
       // Si ya completó la segunda asistencia, pasar a la tercera
       if (segundaAsistenciaCompletada) {
@@ -229,7 +233,7 @@
       }
 
       // Si el tiempo de la segunda asistencia ya pasó, mostrar mensaje
-      if (ahora > fechaFinSegunda) {
+      if (ahoraActual > fechaFinSegunda) {
         document.getElementById("contadorSegunda").textContent = "⏰ Tiempo agotado para segunda asistencia";
         document.getElementById("contadorSegunda").style.display = "block";
         return;
@@ -244,8 +248,7 @@
       document.getElementById("contadorSegunda").style.display = "block";
 
       // Solo activar el botón si ya pasó el tiempo de la primera asistencia
-      //const ahora = new Date();
-      if (ahora >= fechaFinPrimera) {
+      if (ahoraActual >= fechaFinPrimera) {
         document.getElementById("btnSegundaAsistencia").disabled = false;
       } else {
         document.getElementById("btnSegundaAsistencia").disabled = true;
@@ -257,10 +260,10 @@
       intervaloSegunda = setInterval(actualizarContadorSegunda, 1000);
 
       document.getElementById("btnSegundaAsistencia").addEventListener("click", async () => {
-        const ahora = new Date();
+        const ahoraClick = new Date();
         
         // Verificar que esté en el tiempo correcto para la segunda asistencia
-        if (ahora < fechaFinPrimera) {
+        if (ahoraClick < fechaFinPrimera) {
           document.getElementById("mensaje").textContent = "❌ Aún no es tiempo para la segunda asistencia";
           return;
         }
@@ -324,7 +327,7 @@
     }
 
     function configurarTerceraAsistencia() {
-      const ahora = new Date();
+      const ahoraActual = new Date();
       
       // Si ya completó la tercera asistencia, mostrar mensaje
       if (terceraAsistenciaCompletada) {
@@ -333,7 +336,7 @@
       }
 
       // Si el tiempo de la tercera asistencia ya pasó, mostrar mensaje
-      if (ahora > fechaFinTercera) {
+      if (ahoraActual > fechaFinTercera) {
         document.getElementById("contadorTercera").textContent = "⏰ Tiempo agotado para tercera asistencia";
         document.getElementById("contadorTercera").style.display = "block";
         return;
@@ -348,7 +351,7 @@
       document.getElementById("contadorTercera").style.display = "block";
 
       // Solo activar el botón si ya pasó el tiempo de la segunda asistencia
-      if (ahora >= fechaFinSegunda) {
+      if (ahoraActual >= fechaFinSegunda) {
         document.getElementById("btnTerceraAsistencia").disabled = false;
       } else {
         document.getElementById("btnTerceraAsistencia").disabled = true;
@@ -360,10 +363,10 @@
       intervaloTercera = setInterval(actualizarContadorTercera, 1000);
 
       document.getElementById("btnTerceraAsistencia").addEventListener("click", async () => {
-        const ahora = new Date();
+        const ahoraClick = new Date();
         
         // Verificar que esté en el tiempo correcto para la tercera asistencia
-        if (ahora < fechaFinSegunda) {
+        if (ahoraClick < fechaFinSegunda) {
           document.getElementById("mensaje").textContent = "❌ Aún no es tiempo para la tercera asistencia";
           return;
         }

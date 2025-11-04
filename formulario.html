@@ -369,18 +369,6 @@
       animation: fadeIn 0.5s ease;
     }
 
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
     /* Responsive para el modal de examen */
     @media (max-width: 768px) {
       #examenModal .modal-content {
@@ -396,6 +384,21 @@
       .pregunta-examen h3 {
         font-size: 1.1em;
       }
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #3498db;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
   </style>
 </head>
@@ -492,6 +495,9 @@
       }
 
       try {
+        // Mostrar loading
+        document.getElementById("tituloFormulario").innerHTML = "Cargando... <div class='loading'></div>";
+
         const res = await fetch(`/api/obtenerFormulario?id=${id}`);
         if (!res.ok) {
           document.body.innerHTML = `<h2>❌ Formulario '${id}' no encontrado.</h2>`;
@@ -509,10 +515,10 @@
         fechaFinSegunda = new Date(fechaInicioFormulario.getTime() + (60 * 60 * 1000)); // 60 minutos
         fechaFinTercera = new Date(fechaInicioFormulario.getTime() + (70 * 60 * 1000)); // 70 minutos
 
-        // Verificar estado de asistencias del usuario
-        await verificarEstadoAsistencias(id);
+        // Verificar estado REAL de asistencias del usuario desde el backend
+        await verificarEstadoRealAsistencias(id);
 
-        // Iniciar sistema de asistencias basado en el estado real
+        // Iniciar sistema de asistencias basado en el estado REAL
         iniciarSistemaAsistencias();
 
         // Cargar respuestas y configurar recarga
@@ -534,13 +540,17 @@
     });
 
     // Función para verificar el estado REAL de asistencias del usuario desde la base de datos
-    async function verificarEstadoAsistencias(idFormulario) {
+    async function verificarEstadoRealAsistencias(idFormulario) {
       try {
         const res = await fetch(`/api/verRespuestas?id=${idFormulario}`);
         if (res.ok) {
           const data = await res.json();
           const respuestas = data.asistencias || [];
+          
+          // Buscar TODAS las respuestas de este usuario
           const misRespuestas = respuestas.filter(r => r.visitanteId === visitanteId);
+          
+          console.log("Respuestas encontradas para el usuario:", misRespuestas);
 
           // Resetear estados
           primeraAsistenciaCompletada = false;
@@ -549,12 +559,21 @@
 
           // Verificar asistencias basado en los registros reales
           misRespuestas.forEach(respuesta => {
-            if (respuesta.asistenciaNumero === 1) primeraAsistenciaCompletada = true;
-            if (respuesta.asistenciaNumero === 2) segundaAsistenciaCompletada = true;
-            if (respuesta.asistenciaNumero === 3) terceraAsistenciaCompletada = true;
+            if (respuesta.asistenciaNumero === 1) {
+              primeraAsistenciaCompletada = true;
+              console.log("✅ Primera asistencia encontrada");
+            }
+            if (respuesta.asistenciaNumero === 2) {
+              segundaAsistenciaCompletada = true;
+              console.log("✅ Segunda asistencia encontrada");
+            }
+            if (respuesta.asistenciaNumero === 3) {
+              terceraAsistenciaCompletada = true;
+              console.log("✅ Tercera asistencia encontrada");
+            }
           });
 
-          console.log("Estado de asistencias:", {
+          console.log("Estado REAL de asistencias:", {
             primera: primeraAsistenciaCompletada,
             segunda: segundaAsistenciaCompletada,
             tercera: terceraAsistenciaCompletada
@@ -572,12 +591,19 @@
       // Verificar si el formulario ya expiró
       if (ahora > fechaFinTercera) {
         document.getElementById("mensaje").textContent = "⛔ El formulario ha caducado. No se pueden registrar más asistencias.";
+        mostrarEstadoFinal();
         return;
       }
 
+      console.log("Iniciando sistema con estado:", {
+        primera: primeraAsistenciaCompletada,
+        segunda: segundaAsistenciaCompletada,
+        tercera: terceraAsistenciaCompletada
+      });
+
       // Determinar qué botón mostrar basado en el estado REAL del usuario
       if (terceraAsistenciaCompletada) {
-        document.getElementById("mensaje").textContent = "✅ ¡Completaste todas las asistencias!";
+        mostrarEstadoFinal();
       } else if (segundaAsistenciaCompletada) {
         configurarTerceraAsistencia();
       } else if (primeraAsistenciaCompletada) {
@@ -587,6 +613,16 @@
       }
     }
 
+    function mostrarEstadoFinal() {
+      if (terceraAsistenciaCompletada) {
+        document.getElementById("mensaje").textContent = "✅ ¡Completaste todas las asistencias!";
+      }
+      // Ocultar todos los botones
+      document.getElementById("btnPrimeraAsistencia").style.display = "none";
+      document.getElementById("btnSegundaAsistencia").style.display = "none";
+      document.getElementById("btnTerceraAsistencia").style.display = "none";
+    }
+
     function configurarPrimeraAsistencia() {
       const ahora = new Date();
 
@@ -594,6 +630,7 @@
       if (ahora > fechaFinPrimera) {
         document.getElementById("contadorPrimera").textContent = "⏰ Tiempo agotado para primera asistencia";
         document.getElementById("contadorPrimera").style.display = "block";
+        document.getElementById("mensaje").textContent = "❌ El tiempo para la primera asistencia ha expirado";
         return;
       }
 
@@ -619,6 +656,7 @@
         clearInterval(intervaloPrimera);
         document.getElementById("contadorPrimera").textContent = "⏰ Tiempo agotado para primera asistencia";
         document.getElementById("btnPrimeraAsistencia").disabled = true;
+        document.getElementById("mensaje").textContent = "❌ El tiempo para la primera asistencia ha expirado";
         return;
       }
 
@@ -639,6 +677,7 @@
       if (ahora > fechaFinSegunda) {
         document.getElementById("contadorSegunda").textContent = "⏰ Tiempo agotado para segunda asistencia";
         document.getElementById("contadorSegunda").style.display = "block";
+        document.getElementById("mensaje").textContent = "❌ El tiempo para la segunda asistencia ha expirado";
         return;
       }
 
@@ -649,6 +688,7 @@
       // Solo activar el botón si ya pasó el tiempo de la primera asistencia
       if (ahora >= fechaFinPrimera) {
         document.getElementById("btnSegundaAsistencia").disabled = false;
+        document.getElementById("mensaje").textContent = "⏳ Puedes registrar tu segunda asistencia";
       } else {
         document.getElementById("btnSegundaAsistencia").disabled = true;
         document.getElementById("mensaje").textContent = "⏳ Espera a que termine el tiempo de la primera asistencia";
@@ -686,6 +726,9 @@
             document.getElementById("btnSegundaAsistencia").disabled = true;
             document.getElementById("mensaje").textContent = "✅ Segunda asistencia registrada";
             clearInterval(intervaloSegunda);
+            
+            // Actualizar estado local y backend
+            await verificarEstadoRealAsistencias(datos.id);
             configurarTerceraAsistencia();
             cargarRespuestas(datos.id);
           } else {
@@ -706,6 +749,7 @@
         clearInterval(intervaloSegunda);
         document.getElementById("contadorSegunda").textContent = "⏰ Tiempo agotado para segunda asistencia";
         document.getElementById("btnSegundaAsistencia").disabled = true;
+        document.getElementById("mensaje").textContent = "❌ El tiempo para la segunda asistencia ha expirado";
         return;
       }
 
@@ -731,6 +775,7 @@
       if (ahora > fechaFinTercera) {
         document.getElementById("contadorTercera").textContent = "⏰ Tiempo agotado para tercera asistencia";
         document.getElementById("contadorTercera").style.display = "block";
+        document.getElementById("mensaje").textContent = "❌ El tiempo para la tercera asistencia ha expirado";
         return;
       }
 
@@ -741,6 +786,7 @@
       // Solo activar el botón si ya pasó el tiempo de la segunda asistencia
       if (ahora >= fechaFinSegunda) {
         document.getElementById("btnTerceraAsistencia").disabled = false;
+        document.getElementById("mensaje").textContent = "⏳ Puedes registrar tu tercera asistencia";
       } else {
         document.getElementById("btnTerceraAsistencia").disabled = true;
         document.getElementById("mensaje").textContent = "⏳ Espera a que termine el tiempo de la segunda asistencia";
@@ -778,6 +824,10 @@
             document.getElementById("btnTerceraAsistencia").disabled = true;
             document.getElementById("mensaje").textContent = "✅ Tercera asistencia registrada. ¡Completaste todas las asistencias!";
             clearInterval(intervaloTercera);
+            
+            // Actualizar estado local y backend
+            await verificarEstadoRealAsistencias(datos.id);
+            mostrarEstadoFinal();
             cargarRespuestas(datos.id);
           } else {
             const errorText = await res.text();
@@ -797,6 +847,7 @@
         clearInterval(intervaloTercera);
         document.getElementById("contadorTercera").textContent = "⏰ Tiempo agotado para tercera asistencia";
         document.getElementById("btnTerceraAsistencia").disabled = true;
+        document.getElementById("mensaje").textContent = "❌ El tiempo para la tercera asistencia ha expirado";
         return;
       }
 
@@ -929,7 +980,8 @@
           // Limpiar intervalo de primera asistencia
           if (intervaloPrimera) clearInterval(intervaloPrimera);
 
-          // Configurar segunda asistencia (pero el botón estará desactivado hasta que pase el tiempo)
+          // Actualizar estado en el backend y configurar siguiente asistencia
+          await verificarEstadoRealAsistencias(datos.id);
           configurarSegundaAsistencia();
           cargarRespuestas(datos.id);
         } else {

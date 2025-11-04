@@ -110,6 +110,15 @@
       border: 1px solid #e9ecef;
       border-radius: 8px;
     }
+
+    .error-message {
+      color: #dc3545;
+      background: #f8d7da;
+      padding: 10px;
+      border-radius: 5px;
+      margin: 10px 0;
+      border: 1px solid #f5c6cb;
+    }
   </style>
 </head>
 
@@ -185,17 +194,30 @@
   <script>
     const baseURL = location.origin;
     let questions = [];
+    let questionCounter = 0;
+    let optionCounter = 0;
+
+    // Función para generar IDs únicos
+    function generateId() {
+      return Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    }
 
     // Función para agregar pregunta
     function addQuestion(type) {
-      const questionId = 'q' + Date.now();
+      const questionId = 'q-' + generateId();
       const question = {
         id: questionId,
         type: type,
         text: '',
         options: type === 'multiple' ? 
-          [{ id: 'opt1', text: '', correct: false }, { id: 'opt2', text: '', correct: false }] :
-          [{ id: 'true', text: 'Verdadero', correct: false }, { id: 'false', text: 'Falso', correct: false }]
+          [
+            { id: 'opt-' + generateId(), text: '', correct: false },
+            { id: 'opt-' + generateId(), text: '', correct: false }
+          ] :
+          [
+            { id: 'true-' + generateId(), text: 'Verdadero', correct: false },
+            { id: 'false-' + generateId(), text: 'Falso', correct: false }
+          ]
       };
       
       questions.push(question);
@@ -207,9 +229,14 @@
       const container = document.getElementById('questionsContainer');
       container.innerHTML = '';
 
+      if (questions.length === 0) {
+        container.innerHTML = '<p style="color: #6c757d; text-align: center;">No hay preguntas agregadas aún.</p>';
+        return;
+      }
+
       questions.forEach((question, index) => {
         const questionHtml = `
-          <div class="question-item">
+          <div class="question-item" data-question-id="${question.id}">
             <div class="question-header">
               <strong>Pregunta ${index + 1}</strong>
               <span class="question-type ${question.type === 'multiple' ? 'multiple-choice' : 'true-false'}">
@@ -220,7 +247,7 @@
             <input type="text" 
                    placeholder="Escribe la pregunta aquí..." 
                    value="${question.text}"
-                   onchange="updateQuestionText('${question.id}', this.value)"
+                   oninput="updateQuestionText('${question.id}', this.value)"
                    style="width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ced4da; border-radius: 4px;">
             
             <div class="options-container">
@@ -232,23 +259,23 @@
                          onchange="setCorrectAnswer('${question.id}', '${option.id}')">
                   <input type="text" 
                          value="${option.text}" 
-                         ${question.type === 'truefalse' ? 'readonly' : ''}
-                         onchange="updateOptionText('${question.id}', '${option.id}', this.value)"
+                         ${question.type === 'truefalse' ? 'readonly style=\"background: #e9ecef;\"' : ''}
+                         oninput="updateOptionText('${question.id}', '${option.id}', this.value)"
                          style="flex: 1; padding: 5px; border: 1px solid #ced4da; border-radius: 4px;">
                   ${question.type === 'multiple' ? `
-                    <button class="btn-remove" onclick="removeOption('${question.id}', '${option.id}')">❌</button>
+                    <button type="button" class="btn-remove" onclick="removeOption('${question.id}', '${option.id}')">❌</button>
                   ` : ''}
                 </div>
               `).join('')}
             </div>
 
             ${question.type === 'multiple' ? `
-              <button class="btn-add-option" onclick="addOption('${question.id}')">
+              <button type="button" class="btn-add-option" onclick="addOption('${question.id}')">
                 ➕ Agregar Opción
               </button>
             ` : ''}
             
-            <button class="btn-remove" onclick="removeQuestion('${question.id}')" style="margin-top: 10px;">
+            <button type="button" class="btn-remove" onclick="removeQuestion('${question.id}')" style="margin-top: 10px;">
               🗑️ Eliminar Pregunta
             </button>
           </div>
@@ -282,8 +309,8 @@
 
     function addOption(questionId) {
       const question = questions.find(q => q.id === questionId);
-      if (question && question.options.length < 4) {
-        const newOptionId = 'opt' + (question.options.length + 1);
+      if (question) {
+        const newOptionId = 'opt-' + generateId();
         question.options.push({ id: newOptionId, text: '', correct: false });
         renderQuestions();
       }
@@ -294,12 +321,16 @@
       if (question && question.options.length > 2) {
         question.options = question.options.filter(opt => opt.id !== optionId);
         renderQuestions();
+      } else if (question.options.length <= 2) {
+        alert('Cada pregunta debe tener al menos 2 opciones.');
       }
     }
 
     function removeQuestion(questionId) {
-      questions = questions.filter(q => q.id !== questionId);
-      renderQuestions();
+      if (confirm('¿Estás seguro de que quieres eliminar esta pregunta?')) {
+        questions = questions.filter(q => q.id !== questionId);
+        renderQuestions();
+      }
     }
 
     // Previsualización del examen
@@ -308,7 +339,7 @@
       previewContainer.innerHTML = '';
 
       if (questions.length === 0) {
-        previewContainer.innerHTML = '<p>No hay preguntas para mostrar.</p>';
+        previewContainer.innerHTML = '<p style="color: #6c757d; text-align: center;">No hay preguntas para mostrar.</p>';
       } else {
         questions.forEach((question, index) => {
           const questionHtml = `
@@ -319,7 +350,7 @@
                   <div style="margin: 5px 0;">
                     <input type="radio" name="preview_${question.id}" disabled>
                     <label>${option.text}</label>
-                    ${option.correct ? ' ✅' : ''}
+                    ${option.correct ? ' <span style="color: #28a745;">✅ Correcta</span>' : ''}
                   </div>
                 `).join('')}
               </div>
@@ -337,57 +368,67 @@
     }
 
     // Validación antes de enviar el formulario
-    document.getElementById("crearFormulario").addEventListener("submit", function (e) {
+    document.getElementById("crearFormulario").addEventListener("submit", async function (e) {
       e.preventDefault();
 
-      // Validar que todas las preguntas tengan texto y al menos una respuesta correcta
+      // Validar ID y título
+      const formId = document.getElementById("formId").value.trim();
+      const titulo = document.getElementById("titulo").value.trim();
+
+      if (!formId) {
+        alert('❌ El ID del formulario es obligatorio.');
+        return;
+      }
+
+      if (!titulo) {
+        alert('❌ El título del formulario es obligatorio.');
+        return;
+      }
+
+      // Validar evaluación
       let isValid = true;
       let errorMessage = '';
 
-      questions.forEach((question, index) => {
-        if (!question.text.trim()) {
-          isValid = false;
-          errorMessage = `La pregunta ${index + 1} no tiene texto.`;
+      if (questions.length === 0) {
+        if (!confirm('⚠️ No has creado ninguna pregunta para la evaluación. ¿Deseas continuar sin evaluación?')) {
           return;
         }
-
-        const hasCorrectAnswer = question.options.some(opt => opt.correct);
-        if (!hasCorrectAnswer) {
-          isValid = false;
-          errorMessage = `La pregunta ${index + 1} no tiene una respuesta correcta seleccionada.`;
-          return;
-        }
-
-        if (question.type === 'multiple') {
-          const emptyOptions = question.options.filter(opt => !opt.text.trim());
-          if (emptyOptions.length > 0) {
+      } else {
+        questions.forEach((question, index) => {
+          if (!question.text.trim()) {
             isValid = false;
-            errorMessage = `La pregunta ${index + 1} tiene opciones vacías.`;
+            errorMessage = `La pregunta ${index + 1} no tiene texto.`;
             return;
           }
-        }
-      });
+
+          const hasCorrectAnswer = question.options.some(opt => opt.correct);
+          if (!hasCorrectAnswer) {
+            isValid = false;
+            errorMessage = `La pregunta ${index + 1} no tiene una respuesta correcta seleccionada.`;
+            return;
+          }
+
+          if (question.type === 'multiple') {
+            const emptyOptions = question.options.filter(opt => !opt.text.trim());
+            if (emptyOptions.length > 0) {
+              isValid = false;
+              errorMessage = `La pregunta ${index + 1} tiene opciones vacías.`;
+              return;
+            }
+          }
+        });
+      }
 
       if (!isValid) {
         alert('❌ Error en la evaluación: ' + errorMessage);
         return;
       }
 
-      // Continuar con el envío del formulario...
-      const rawId = document.getElementById("formId").value.trim();
-      const idPalabras = rawId.split(/\s+/).filter(Boolean);
-      const formId = idPalabras.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join("");
+      // Generar ID único para el formulario
+      const idPalabras = formId.split(/\s+/).filter(Boolean);
+      const normalizedFormId = idPalabras.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join("");
       
-      document.getElementById("formId").value = formId;
-      
-      const rawTitulo = document.getElementById("titulo").value.trim();
-      const tituloPalabras = rawTitulo.split(/\s+/).filter(Boolean);
-      const tituloP = tituloPalabras.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
-      document.getElementById("titulo").value = tituloP;
-
-      let id = document.getElementById("formId").value.trim();
-      let titulo = document.getElementById("titulo").value.trim();
-      id = id + "-" + generarIdAlfanumerico();
+      let id = normalizedFormId + "-" + generarIdAlfanumerico();
 
       function generarIdAlfanumerico() {
         const caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -400,35 +441,45 @@
 
       const ahora = new Date();
       const fechaCierre = new Date(ahora.getTime() + 70 * 60 * 1000).toISOString();
-      document.getElementById("fechaCierre").value = fechaCierre;
 
-      // Enviar formulario y evaluación
-      fetch("/api/guardarFormulario", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          id, 
-          titulo, 
-          fechaCierre: fechaCierre,
-          evaluation: questions 
-        })
-      })
-      .then(res => {
-        if (!res.ok) throw new Error("No se pudo guardar");
-        const enlace = `${baseURL}/formulario.html?id=${encodeURIComponent(id)}`;
-        document.getElementById("mensaje").innerHTML = `
-          ✅ Formulario con evaluación creado con éxito.<br>
-          👉 <a href="${enlace}" target="_blank">${enlace}</a>
-          <br><button onclick="navigator.clipboard.writeText('${enlace}')">📋 Copiar enlace</button>
-        `;
-        questions = []; // Limpiar preguntas
-        renderQuestions();
-        cargarFormularios();
-      })
-      .catch(err => {
+      try {
+        // Enviar formulario y evaluación
+        const response = await fetch("/api/guardarFormulario", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            id, 
+            titulo, 
+            fechaCierre: fechaCierre,
+            evaluation: questions.length > 0 ? questions : null
+          })
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.ok) {
+          const enlace = `${baseURL}/formulario.html?id=${encodeURIComponent(id)}`;
+          document.getElementById("mensaje").innerHTML = `
+            <div style="color: #28a745; background: #d4edda; padding: 15px; border-radius: 5px; border: 1px solid #c3e6cb;">
+              ✅ Formulario con evaluación creado con éxito.<br>
+              👉 <a href="${enlace}" target="_blank">${enlace}</a>
+              <br><button onclick="navigator.clipboard.writeText('${enlace}')" style="margin-top: 10px; padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">📋 Copiar enlace</button>
+            </div>
+          `;
+          questions = []; // Limpiar preguntas
+          renderQuestions();
+          cargarFormularios();
+        } else {
+          throw new Error(result.error || "Error desconocido al guardar");
+        }
+      } catch (err) {
         console.error(err);
-        document.getElementById("mensaje").textContent = "❌ Error al guardar.";
-      });
+        document.getElementById("mensaje").innerHTML = `
+          <div class="error-message">
+            ❌ Error al guardar: ${err.message}
+          </div>
+        `;
+      }
     });
 
     // El resto del código existente (cargarFormularios, limpiar formularios, etc.)
@@ -504,14 +555,19 @@
         const res = await fetch(`/api/obtenerEvaluacion?id=${formId}`);
         if (res.ok) {
           const evaluacion = await res.json();
-          questions = evaluacion;
-          previewExam();
+          if (evaluacion && evaluacion.length > 0) {
+            questions = evaluacion;
+            previewExam();
+          } else {
+            alert('Este formulario no tiene evaluación asociada o está vacía.');
+          }
         } else {
-          alert('Este formulario no tiene evaluación asociada.');
+          const error = await res.json();
+          alert('Este formulario no tiene evaluación asociada. ' + (error.error || ''));
         }
       } catch (error) {
         console.error('Error al obtener evaluación:', error);
-        alert('Error al cargar la evaluación.');
+        alert('Error al cargar la evaluación: ' + error.message);
       }
     }
 

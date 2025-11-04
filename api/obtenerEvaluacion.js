@@ -14,15 +14,40 @@ export default async function handler(req, res) {
         }
       });
   
-      if (!respuesta.ok) return res.status(404).json({ error: "Evaluación no encontrada" });
+      if (!respuesta.ok) {
+        // Si no encuentra el archivo, retornar array vacío en lugar de error
+        if (respuesta.status === 404) {
+          return res.status(200).json([]);
+        }
+        throw new Error(`Error ${respuesta.status}: ${respuesta.statusText}`);
+      }
   
       const data = await respuesta.json();
+      
+      // Verificar que el contenido existe
+      if (!data.content) {
+        return res.status(200).json([]);
+      }
+      
       const decoded = Buffer.from(data.content, 'base64').toString();
+      
+      // Verificar que el contenido decodificado no esté vacío
+      if (!decoded.trim()) {
+        return res.status(200).json([]);
+      }
+      
       const evaluacion = JSON.parse(decoded);
+  
+      // Verificar que sea un array
+      if (!Array.isArray(evaluacion)) {
+        return res.status(200).json([]);
+      }
   
       res.status(200).json(evaluacion);
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Error al obtener evaluación" });
+      console.error("Error al obtener evaluación:", err);
+      
+      // En caso de error, retornar array vacío en lugar de error 500
+      res.status(200).json([]);
     }
   }

@@ -1048,20 +1048,29 @@
     }
 
     // Cargar evaluación desde el backend
+    // Cargar evaluación desde el backend
     async function cargarEvaluacion(idFormulario) {
       try {
         const res = await fetch(`/api/obtenerEvaluacion?id=${idFormulario}`);
+
         if (!res.ok) {
           throw new Error('No se pudo cargar la evaluación');
         }
 
-        examenActual = await res.json();
+        const evaluacion = await res.json();
+
+        // Verificar que la evaluación tenga contenido
+        if (!evaluacion || !Array.isArray(evaluacion) || evaluacion.length === 0) {
+          throw new Error('No hay evaluación disponible para este formulario');
+        }
+
+        examenActual = evaluacion;
         mostrarExamen(examenActual);
         examenModal.style.display = 'block';
 
       } catch (error) {
         console.error('Error al cargar evaluación:', error);
-        alert('❌ No se pudo cargar el examen. Intente más tarde.');
+        alert('❌ ' + error.message);
       }
     }
 

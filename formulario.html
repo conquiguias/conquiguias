@@ -512,7 +512,7 @@
         // Verificar estado de asistencias del usuario
         await verificarEstadoAsistencias(id);
 
-        // Iniciar sistema de asistencias
+        // Iniciar sistema de asistencias basado en el estado real
         iniciarSistemaAsistencias();
 
         // Cargar respuestas y configurar recarga
@@ -533,18 +533,31 @@
       }
     });
 
-    // Función para verificar el estado de asistencias del usuario
+    // Función para verificar el estado REAL de asistencias del usuario desde la base de datos
     async function verificarEstadoAsistencias(idFormulario) {
       try {
         const res = await fetch(`/api/verRespuestas?id=${idFormulario}`);
         if (res.ok) {
-          const respuestas = await res.json();
+          const data = await res.json();
+          const respuestas = data.asistencias || [];
           const misRespuestas = respuestas.filter(r => r.visitanteId === visitanteId);
 
+          // Resetear estados
+          primeraAsistenciaCompletada = false;
+          segundaAsistenciaCompletada = false;
+          terceraAsistenciaCompletada = false;
+
+          // Verificar asistencias basado en los registros reales
           misRespuestas.forEach(respuesta => {
             if (respuesta.asistenciaNumero === 1) primeraAsistenciaCompletada = true;
             if (respuesta.asistenciaNumero === 2) segundaAsistenciaCompletada = true;
             if (respuesta.asistenciaNumero === 3) terceraAsistenciaCompletada = true;
+          });
+
+          console.log("Estado de asistencias:", {
+            primera: primeraAsistenciaCompletada,
+            segunda: segundaAsistenciaCompletada,
+            tercera: terceraAsistenciaCompletada
           });
         }
       } catch (error) {
@@ -552,7 +565,7 @@
       }
     }
 
-    // Sistema principal de asistencias
+    // Sistema principal de asistencias - BASADO EN EL ESTADO REAL
     function iniciarSistemaAsistencias() {
       const ahora = new Date();
 
@@ -562,22 +575,25 @@
         return;
       }
 
-      // Configurar primera asistencia
-      configurarPrimeraAsistencia();
+      // Determinar qué botón mostrar basado en el estado REAL del usuario
+      if (terceraAsistenciaCompletada) {
+        document.getElementById("mensaje").textContent = "✅ ¡Completaste todas las asistencias!";
+      } else if (segundaAsistenciaCompletada) {
+        configurarTerceraAsistencia();
+      } else if (primeraAsistenciaCompletada) {
+        configurarSegundaAsistencia();
+      } else {
+        configurarPrimeraAsistencia();
+      }
     }
 
     function configurarPrimeraAsistencia() {
       const ahora = new Date();
 
-      // Si ya completó la primera asistencia, pasar a la segunda
-      if (primeraAsistenciaCompletada) {
-        configurarSegundaAsistencia();
-        return;
-      }
-
       // Si el tiempo de la primera asistencia ya pasó, mostrar mensaje
       if (ahora > fechaFinPrimera) {
         document.getElementById("contadorPrimera").textContent = "⏰ Tiempo agotado para primera asistencia";
+        document.getElementById("contadorPrimera").style.display = "block";
         return;
       }
 
@@ -603,11 +619,6 @@
         clearInterval(intervaloPrimera);
         document.getElementById("contadorPrimera").textContent = "⏰ Tiempo agotado para primera asistencia";
         document.getElementById("btnPrimeraAsistencia").disabled = true;
-
-        // Si completó la primera asistencia, pasar a la segunda
-        if (primeraAsistenciaCompletada) {
-          configurarSegundaAsistencia();
-        }
         return;
       }
 
@@ -620,11 +631,9 @@
     function configurarSegundaAsistencia() {
       const ahora = new Date();
 
-      // Si ya completó la segunda asistencia, pasar a la tercera
-      if (segundaAsistenciaCompletada) {
-        configurarTerceraAsistencia();
-        return;
-      }
+      // Ocultar primera asistencia
+      document.getElementById("contadorPrimera").style.display = "none";
+      document.getElementById("btnPrimeraAsistencia").style.display = "none";
 
       // Si el tiempo de la segunda asistencia ya pasó, mostrar mensaje
       if (ahora > fechaFinSegunda) {
@@ -632,10 +641,6 @@
         document.getElementById("contadorSegunda").style.display = "block";
         return;
       }
-
-      // Ocultar primera asistencia
-      document.getElementById("contadorPrimera").style.display = "none";
-      document.getElementById("btnPrimeraAsistencia").style.display = "none";
 
       // Mostrar segunda asistencia
       document.getElementById("btnSegundaAsistencia").style.display = "block";
@@ -701,11 +706,6 @@
         clearInterval(intervaloSegunda);
         document.getElementById("contadorSegunda").textContent = "⏰ Tiempo agotado para segunda asistencia";
         document.getElementById("btnSegundaAsistencia").disabled = true;
-
-        // Si completó la segunda asistencia, pasar a la tercera
-        if (segundaAsistenciaCompletada) {
-          configurarTerceraAsistencia();
-        }
         return;
       }
 
@@ -723,11 +723,9 @@
     function configurarTerceraAsistencia() {
       const ahora = new Date();
 
-      // Si ya completó la tercera asistencia, mostrar mensaje
-      if (terceraAsistenciaCompletada) {
-        document.getElementById("mensaje").textContent = "✅ ¡Completaste todas las asistencias!";
-        return;
-      }
+      // Ocultar segunda asistencia
+      document.getElementById("contadorSegunda").style.display = "none";
+      document.getElementById("btnSegundaAsistencia").style.display = "none";
 
       // Si el tiempo de la tercera asistencia ya pasó, mostrar mensaje
       if (ahora > fechaFinTercera) {
@@ -735,10 +733,6 @@
         document.getElementById("contadorTercera").style.display = "block";
         return;
       }
-
-      // Ocultar segunda asistencia
-      document.getElementById("contadorSegunda").style.display = "none";
-      document.getElementById("btnSegundaAsistencia").style.display = "none";
 
       // Mostrar tercera asistencia
       document.getElementById("btnTerceraAsistencia").style.display = "block";
@@ -818,7 +812,6 @@
     }
 
     // Mostrar respuestas del formulario en la tabla
-    // Mostrar respuestas del formulario en la tabla (versión actualizada)
     async function cargarRespuestas(idFormulario) {
       const tablaBody = document.querySelector("#tablaRespuestas tbody");
       tablaBody.innerHTML = "<tr><td colspan='10'>Cargando respuestas...</td></tr>";
@@ -948,20 +941,6 @@
       }
     });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     // ========== SISTEMA DE EVALUACIÓN ==========
 
     let examenModal = null;
@@ -1047,7 +1026,6 @@
       document.getElementById('btnEnviarExamen').addEventListener('click', enviarExamen);
     }
 
-    // Cargar evaluación desde el backend
     // Cargar evaluación desde el backend
     async function cargarEvaluacion(idFormulario) {
       try {

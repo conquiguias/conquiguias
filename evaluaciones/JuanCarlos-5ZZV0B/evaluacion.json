@@ -1,0 +1,75 @@
+[
+  {
+    "id": "q-1762279433120-iyuv2wjpi",
+    "type": "truefalse",
+    "text": "eres loco?",
+    "options": [
+      {
+        "id": "true-1762279433120-mcgbkbl9r",
+        "text": "Verdadero",
+        "correct": true
+      },
+      {
+        "id": "false-1762279433120-lgdoidaxh",
+        "text": "Falso",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762296097218-x50ljb4wg",
+    "type": "truefalse",
+    "text": "te gusta Becki?",
+    "options": [
+      {
+        "id": "true-1762296097218-17m5v9wrd",
+        "text": "Verdadero",
+        "correct": true
+      },
+      {
+        "id": "false-1762296097218-py2q8iuyx",
+        "text": "Falso",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762296109217-wmml96rdu",
+    "type": "multiple",
+    "text": "Cuál de estos son animales?",
+    "options": [
+      {
+        "id": "opt-1762296109217-g6mm2l61z",
+        "text": "Silla",
+        "correct": false
+      },
+      {
+        "id": "opt-1762296109217-b06wahbon",
+        "text": "Perro",
+        "correct": true
+      },
+      {
+        "id": "opt-1762296120978-cts1vj18l",
+        "text": "Casa",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762296137649-cug8fsn3q",
+    "type": "truefalse",
+    "text": "Los gatos tienen 9 vidas?",
+    "options": [
+      {
+        "id": "true-1762296137649-qu0vewnhh",
+        "text": "Verdadero",
+        "correct": false
+      },
+      {
+        "id": "false-1762296137649-02xpvdizl",
+        "text": "Falso",
+        "correct": true
+      }
+    ]
+  }
+]

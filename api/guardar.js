@@ -1,9 +1,13 @@
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('Método no permitido');
 
-  const { id, nombre, correo, edad, telefono, asociacion } = req.body;
+  const { id, nombre, correo, edad, telefono, asociacion, visitanteId, asistenciaNumero } = req.body;
   const fecha = new Date().toISOString();
-  const nuevoRegistro = { nombre, correo, edad, telefono, asociacion, fecha };
+  
+  // Para asistencias 2 y 3, no necesitamos todos los datos personales
+  const nuevoRegistro = asistenciaNumero === 1 
+    ? { nombre, correo, edad, telefono, asociacion, fecha, visitanteId, asistenciaNumero }
+    : { fecha, visitanteId, asistenciaNumero, id };
 
   const archivo = `respuestas/${id}/respuestas.json`;
   const repo = "proyectoja/asistencia-especialidades";
@@ -24,8 +28,15 @@ export default async function handler(req, res) {
     const decoded = Buffer.from(data.content, 'base64').toString();
     registros = JSON.parse(decoded);
     sha = data.sha;
+  }
 
-    
+  // Verificar si ya existe una asistencia del mismo número para este usuario
+  const asistenciaExistente = registros.find(r => 
+    r.visitanteId === visitanteId && r.asistenciaNumero === asistenciaNumero
+  );
+
+  if (asistenciaExistente) {
+    return res.status(409).send("❌ Esta asistencia ya fue registrada");
   }
 
   // Agregar el nuevo registro

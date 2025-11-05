@@ -4,15 +4,21 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log("Recibiendo solicitud para guardar formulario...");
+    
     const { id, titulo, fechaCierre, evaluation, imagenEspecialidad, imagenFirma1, imagenFirma2, imagenFirma3 } = req.body;
 
-    // Validar campos requeridos
-    if (!id || !titulo || !fechaCierre) {
-      return res.status(400).json({ error: "Faltan campos requeridos" });
+    // Validaciones básicas
+    if (!id || !titulo) {
+      return res.status(400).json({ error: "ID y título son requeridos" });
     }
 
     const archivoFormularios = `data/formularios.json`;
     const repo = "proyectoja/asistencia-especialidades";
+
+    if (!process.env.GITHUB_TOKEN) {
+      return res.status(500).json({ error: "Token de GitHub no configurado" });
+    }
 
     // Obtener archivo actual de formularios
     const resp = await fetch(`https://api.github.com/repos/${repo}/contents/${archivoFormularios}`, {
@@ -32,8 +38,8 @@ export default async function handler(req, res) {
       sha = archivoJson.sha;
     } else if (resp.status !== 404) {
       const errorText = await resp.text();
-      console.error("Error al obtener formularios:", errorText);
-      return res.status(500).json({ error: "Error al acceder al repositorio" });
+      console.error("Error al obtener formularios:", resp.status, errorText);
+      return res.status(500).json({ error: "Error al acceder al repositorio de GitHub" });
     }
 
     // Validar si ya existe el ID
@@ -41,12 +47,12 @@ export default async function handler(req, res) {
       return res.status(409).json({ error: `El formulario con ID '${id}' ya existe.` });
     }
 
-    // Agregar nuevo formulario CON LAS 3 FIRMAS
+    // Agregar nuevo formulario
     data[id] = {
       titulo,
-      fechaCierre,
+      fechaCierre: fechaCierre || new Date(Date.now() + 70 * 60 * 1000).toISOString(),
       creado: new Date().toISOString(),
-      tieneEvaluacion: !!evaluation,
+      tieneEvaluacion: !!(evaluation && evaluation.length > 0),
       imagenEspecialidad: imagenEspecialidad || null,
       imagenFirma1: imagenFirma1 || null,
       imagenFirma2: imagenFirma2 || null,
@@ -71,9 +77,9 @@ export default async function handler(req, res) {
     });
 
     if (!guardarFormulario.ok) {
-      const errorData = await guardarFormulario.json();
-      console.error("Error al guardar formulario:", errorData);
-      return res.status(500).json({ error: errorData.message || "Error al guardar formulario" });
+      const errorData = await guardarFormulario.text();
+      console.error("Error al guardar formulario:", guardarFormulario.status, errorData);
+      return res.status(500).json({ error: "Error al guardar en GitHub" });
     }
 
     // Si hay evaluación, guardarla también
@@ -103,6 +109,7 @@ export default async function handler(req, res) {
       }
     }
 
+    console.log("Formulario creado exitosamente:", id);
     res.status(200).json({ 
       ok: true, 
       message: "Formulario creado exitosamente",
@@ -110,7 +117,7 @@ export default async function handler(req, res) {
     });
 
   } catch (err) {
-    console.error("Error general:", err);
-    res.status(500).json({ error: err.message || "Error interno del servidor" });
+    console.error("Error general en guardarFormulario:", err);
+    res.status(500).json({ error: "Error interno del servidor: " + err.message });
   }
 }

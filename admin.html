@@ -132,12 +132,13 @@
     }
 
     .error-message {
-      color: #dc3545;
+      color: #721c24;
       background: #f8d7da;
-      padding: 10px;
-      border-radius: 5px;
-      margin: 10px 0;
-      border: 1px solid #f5c6cb;
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+      border: 2px solid #f5c6cb;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
 
     /* Estilos para selectores de imágenes */
@@ -834,7 +835,9 @@
       const ahora = new Date();
       const fechaCierre = new Date(ahora.getTime() + 70 * 60 * 1000).toISOString();
 
+      // En la función del event listener del submit, reemplaza desde el try hasta el catch:
       try {
+        // Enviar formulario y evaluación CON TODAS LAS IMÁGENES
         const response = await fetch("/api/guardarFormulario", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -852,25 +855,90 @@
 
         // Verificar si la respuesta es JSON
         const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
+        let result;
+
+        if (contentType && contentType.includes('application/json')) {
+          result = await response.json();
+        } else {
           const text = await response.text();
           throw new Error(`Respuesta del servidor no es JSON: ${text.substring(0, 100)}`);
         }
 
-        const result = await response.json();
-
         if (response.ok && result.ok) {
-          // ... código de éxito ...
+          const enlace = `${baseURL}/formulario.html?id=${encodeURIComponent(id)}`;
+          document.getElementById("mensaje").innerHTML = `
+            <div style="color: #28a745; background: #d4edda; padding: 20px; border-radius: 10px; border: 2px solid #c3e6cb; margin: 20px 0;">
+                <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                    <span style="font-size: 24px; margin-right: 10px;">✅</span>
+                    <h3 style="margin: 0; color: #155724;">¡Formulario Creado Exitosamente!</h3>
+                </div>
+                <p style="margin: 10px 0; font-size: 16px;">Puedes acceder al formulario a través del siguiente enlace:</p>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; border: 1px solid #dee2e6; margin: 15px 0;">
+                    <a href="${enlace}" target="_blank" style="color: #007bff; text-decoration: none; font-weight: bold; word-break: break-all;">
+                        ${enlace}
+                    </a>
+                </div>
+                <button onclick="navigator.clipboard.writeText('${enlace}')" 
+                        style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                               color: white; 
+                               border: none; 
+                               padding: 12px 25px; 
+                               border-radius: 6px; 
+                               cursor: pointer; 
+                               font-size: 16px;
+                               font-weight: bold;
+                               display: flex;
+                               align-items: center;
+                               gap: 8px;
+                               margin: 10px 0;">
+                    📋 Copiar Enlace
+                </button>
+                <p style="margin: 10px 0 0 0; font-size: 14px; color: #6c757d;">
+                    Comparte este enlace con los participantes para que puedan registrar sus asistencias.
+                </p>
+            </div>
+        `;
+          questions = []; // Limpiar preguntas
+          renderQuestions();
+          cargarFormularios();
+
+          // Limpiar selecciones de imágenes
+          imagenEspecialidadSeleccionada = null;
+          imagenFirma1Seleccionada = null;
+          imagenFirma2Seleccionada = null;
+          imagenFirma3Seleccionada = null;
+
+          // Limpiar campos del formulario
+          document.getElementById("formId").value = '';
+          document.getElementById("titulo").value = '';
+          document.getElementById("nombreEspecialidad").value = '';
+          document.getElementById("nombreFirma1").value = '';
+          document.getElementById("nombreFirma2").value = '';
+          document.getElementById("nombreFirma3").value = '';
+
+          // Deseleccionar imágenes en los selects
+          document.querySelectorAll('.image-option.selected').forEach(option => {
+            option.classList.remove('selected');
+          });
+
         } else {
           throw new Error(result.error || "Error desconocido al guardar");
         }
       } catch (err) {
         console.error(err);
         document.getElementById("mensaje").innerHTML = `
-    <div class="error-message">
-      ❌ Error al guardar: ${err.message}
-    </div>
-  `;
+        <div class="error-message">
+            <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 20px; margin-right: 10px;">❌</span>
+                <h4 style="margin: 0; color: #721c24;">Error al crear formulario</h4>
+            </div>
+            <p style="margin: 0;">${err.message}</p>
+        </div>
+    `;
+      } finally {
+        // Restaurar el botón
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
       }
     });
 

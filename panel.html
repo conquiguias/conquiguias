@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Panel del Usuario</title>
+  <style>
+    /* Reset básico */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    /* Body y contenedor principal */
+    body {
+      display: flex;
+      height: 100vh;
+      background: #eef2f7;
+      color: #333;
+    }
+
+    /* Menú lateral */
+    #sidebar {
+      width: 220px;
+      background: linear-gradient(180deg, #1976d2, #1565c0);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      padding: 20px 0;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    }
+
+    #sidebar h2 {
+      text-align: center;
+      margin-bottom: 25px;
+      font-size: 22px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    #sidebar button {
+      padding: 12px 20px;
+      margin: 5px 10px;
+      border: none;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      cursor: pointer;
+      text-align: left;
+      font-size: 15px;
+      transition: background 0.3s, transform 0.2s;
+    }
+
+    #sidebar button:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateX(5px);
+    }
+
+    #sidebar button.active {
+      background: rgba(255, 255, 255, 0.3);
+      font-weight: bold;
+    }
+
+    #sidebar #logoutBtn {
+      margin-top: auto;
+      background: #e53935;
+    }
+
+    #sidebar #logoutBtn:hover {
+      background: #b71c1c;
+      transform: translateX(0);
+    }
+
+    /* Contenido principal */
+    #mainContent {
+      flex: 1;
+      padding: 25px;
+      overflow-y: auto;
+    }
+
+    /* Cards */
+    .card {
+      background: #fff;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+      max-width: 650px;
+      margin: 20px auto;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    /* Imagenes de perfil */
+    #preview,
+    #inicioFoto {
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #ccc;
+      display: block;
+      margin: 15px auto;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    #preview:hover,
+    #inicioFoto:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Inputs y selects */
+    input,
+    select {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+      transition: border 0.3s, box-shadow 0.3s;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: #1976d2;
+      box-shadow: 0 0 5px rgba(25, 118, 210, 0.5);
+      outline: none;
+    }
+
+    /* Botones */
+    button.saveBtn,
+    button#crearEspecialidad,
+    button#subirArchivoBtn {
+      background: #1976d2;
+      color: #fff;
+      cursor: pointer;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      font-size: 15px;
+      transition: background 0.3s, transform 0.2s;
+    }
+
+    button.saveBtn:hover,
+    button#crearEspecialidad:hover,
+    button#subirArchivoBtn:hover {
+      background: #125aa0;
+      transform: translateY(-2px);
+    }
+
+    /* Botón eliminar foto */
+    #removePhoto {
+      background: #e53935;
+      margin-top: 5px;
+    }
+
+    #removePhoto:hover {
+      background: #b71c1c;
+      transform: translateY(-2px);
+    }
+
+    /* Listas de archivos y especialidades */
+    ul {
+      list-style: none;
+      padding-left: 0;
+      margin-top: 10px;
+    }
+
+    ul li {
+      padding: 10px 12px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      background: #f4f6f8;
+      transition: background 0.3s;
+    }
+
+    ul li:hover {
+      background: #e0e7f1;
+    }
+
+    ul li a {
+      text-decoration: none;
+      color: #1976d2;
+      font-weight: 500;
+    }
+
+    ul li a:hover {
+      text-decoration: underline;
+    }
+
+    /* Encabezados */
+    h2,
+    h3,
+    h4 {
+      color: #333;
+      margin-bottom: 15px;
+    }
+
+    /* Ocultar secciones */
+    .hidden {
+      display: none;
+    }
+
+    .carpeta-item {
+      cursor: pointer;
+      background: #f3f3f3;
+      margin: 6px 0;
+      padding: 10px;
+      border-radius: 8px;
+      transition: background 0.3s;
+    }
+
+    .carpeta-item:hover {
+      background: #dce8ff;
+    }
+
+    .archivo-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f8f9fa;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin: 5px 0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .archivo-item a {
+      color: #007bff;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .archivo-item a:hover {
+      text-decoration: underline;
+    }
+
+    .delete-btn {
+      border: none;
+      background: transparent;
+      font-size: 18px;
+      cursor: pointer;
+      color: #e74c3c;
+      transition: transform 0.2s;
+    }
+
+    .delete-btn:hover {
+      transform: scale(1.2);
+    }
+
+    /* 🔹 Fondo del visor */
+    #pdfViewerModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    /* 🔹 Contenedor del visor */
+    .pdf-viewer-content {
+      position: relative;
+      width: 90%;
+      height: 90%;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+      animation: fadeIn 0.3s ease;
+    }
+
+    /* 🔹 Botón de cerrar */
+    .cerrar-pdf {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      background: #e74c3c;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 35px;
+      height: 35px;
+      font-size: 18px;
+      cursor: pointer;
+      z-index: 10;
+      transition: background 0.3s;
+    }
+
+    .cerrar-pdf:hover {
+      background: #c0392b;
+    }
+
+    /* 🔹 PDF dentro del visor */
+    .pdf-viewer-content iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* 🔹 Animación */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    #ordenContainer {
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #ordenSelect {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    /* 🔹 Fondo del modal */
+    #mensajeModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+
+    /* 🔹 Caja del mensaje */
+    .mensaje-content {
+      background: #fff;
+      padding: 25px 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+      text-align: center;
+      width: 90%;
+      max-width: 400px;
+      animation: fadeIn 0.25s ease;
+    }
+
+    .mensaje-content h3 {
+      margin-bottom: 12px;
+      color: #1976d2;
+    }
+
+    .mensaje-content p {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    /* 🔹 Botones */
+    #mensajeBotones {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+    }
+
+    #mensajeBotones button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 15px;
+      transition: transform 0.2s, background 0.3s;
+    }
+
+    #mensajeAceptar {
+      background: #1976d2;
+      color: white;
+    }
+
+    #mensajeCancelar {
+      background: #e53935;
+      color: white;
+    }
+
+    #mensajeBotones button:hover {
+      transform: scale(1.05);
+    }
+
+    .hiddenX {
+      display: none !important;
+    }
+
+    /* Niveles en filas de 3 */
+    .niveles {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .nivel {
+      flex: 1;
+      padding: 12px;
+      background: #1976d2;
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .nivel:hover {
+      transform: scale(1.05);
+    }
+
+    /* Carpetas tipo Windows */
+    .secciones-conquistadores {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .seccion-item {
+      margin: 6px 0;
+    }
+
+    .seccion-titulo {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      background: #f3f3f3;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      transition: background 0.2s;
+    }
+
+    .seccion-titulo::before {
+      content: "📁";
+      margin-right: 8px;
+    }
+
+    .seccion-titulo.abierto::before {
+      content: "📂";
+    }
+
+    .seccion-titulo:hover {
+      background: #dce8ff;
+    }
+
+    .seccion-contenido {
+      padding: 10px 20px;
+      margin-top: 4px;
+      border-left: 4px solid #1976d2;
+      background: #fff;
+      border-radius: 0 4px 4px 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Menú lateral -->
+  <div id="sidebar">
+    <h2></h2>
+    <button id="menuInicio" class="active">Inicio</button>
+    <button id="menuClubes">Clubes</button>
+    <button id="menuEspecialidades">Especialidades Storage</button>
+    <button id="menuPerfil">Perfil</button>
+    <button id="logoutBtn">Cerrar sesión</button>
+  </div>
+
+  <!-- Contenido principal -->
+  <div id="mainContent">
+
+    <!-- Inicio -->
+    <div id="inicioSection" class="card">
+      <img id="inicioFoto" src="https://dummyimage.com/120x120/ccc/fff">
+      <h2 id="inicioNombre">Cargando...</h2>
+    </div>
+
+    <!-- Sección Clubes -->
+    <div id="clubesSection" class="card hidden">
+      <h2>Clubes</h2>
+
+      <!-- Botones de clubes -->
+      <div id="clubesContainer" style="display:flex; gap:10px; margin-bottom:15px;">
+        <button class="clubBtn" data-club="aventureros">Club de Aventureros</button>
+        <button class="clubBtn" data-club="conquistadores">Club de Conquistadores</button>
+        <button class="clubBtn" data-club="guias">Club de Guías Mayores</button>
+      </div>
+
+      <!-- Panel de contenido de clubes -->
+      <div id="clubesPanel">
+        <!-- Aquí se irán agregando las carpetas y secciones dinámicamente -->
+      </div>
+    </div>
+
+
+
+    <!-- Especialidades Storage -->
+    <div id="especialidadesSection" class="card hidden">
+      <h2>Mi Almacenamiento Leyenda De Especialidades</h2>
+      <!--
+      <input type="text" id="nombreEspecialidad" placeholder="Nombre de la especialidad">
+      <button id="crearEspecialidad">Crear Carpeta</button>-->
+
+
+      <h4>Carpetas existentes:</h4>
+      <ul id="listaEspecialidades"></ul>
+      <div id="archivosContainer" class="hidden">
+        <h3 id="especialidadActual">Especialidad:</h3>
+        <button id="cerrarEspecialidad">Cerrar carpeta</button>
+        <input type="file" id="subirArchivo" accept=".pdf, .jpg, .jpeg, .png">
+        <button id="subirArchivoBtn">Subir Archivo</button>
+
+        <div>
+          <label for="ordenArchivos">Ordenar por:</label>
+          <select id="ordenArchivos">
+            <option value="nombreDesc">Nombre ↓</option>
+            <option value="nombreAsc">Nombre ↑</option>
+            <option value="fechaDesc">Fecha ↓</option>
+            <option value="fechaAsc">Fecha ↑</option>
+            <option value="sizeDesc">Tamaño ↓</option>
+            <option value="sizeAsc">Tamaño ↑</option>
+          </select>
+        </div>
+
+        <ul id="listaArchivos"></ul>
+
+      </div>
+    </div>
+
+    <!-- Perfil (igual que antes) -->
+    <div id="perfilSection" class="card hidden">
+      <h1>Editar Información</h1>
+      <form id="editForm">
+        <img id="preview" src="https://dummyimage.com/120x120/ccc/fff">
+        <h3>Actualizar Foto:</h3>
+        <input type="file" id="foto" accept="image/*">
+        <h3>Actualizar Datos personales:</h3>
+        <input type="text" id="nombre" placeholder="Nombre" required>
+        <input type="text" id="apellido" placeholder="Apellido" required>
+        <input type="number" id="edad" placeholder="Edad" required>
+        <select id="sexo" required>
+          <option value="">Seleccionar sexo</option>
+          <option value="Masculino">Masculino</option>
+          <option value="Femenino">Femenino</option>
+          <option value="Otro">Otro</option>
+        </select>
+        <input type="text" id="pais" placeholder="País" required>
+        <button type="submit" class="saveBtn">Guardar cambios</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 🔹 Visor PDF modal -->
+  <div id="pdfViewerModal" class="hidden" style="display: none;">
+    <div class="pdf-viewer-content">
+      <button id="cerrarPDF" class="cerrar-pdf">✖</button>
+      <iframe id="pdfFrame" src="" allowfullscreen style="border:none;"></iframe>
+    </div>
+  </div>
+
+  <!-- 🔹 Contenedor general de mensajes -->
+  <div id="mensajeModal" class="hiddenX">
+    <div class="mensaje-content">
+      <h3 id="mensajeTitulo">Título</h3>
+      <p id="mensajeTexto">Texto del mensaje</p>
+      <div id="mensajeBotones">
+        <button id="mensajeAceptar">Aceptar</button>
+        <button id="mensajeCancelar" class="hiddenX">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+    import {
+      getStorage, ref, uploadBytes, getDownloadURL, deleteObject, listAll, getMetadata
+    } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-storage.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB1YTwZM8wKlxZ8HhXb7EUse8YyLmcfeS8",
+      authDomain: "conquiguias-world-85ccd.firebaseapp.com",
+      projectId: "conquiguias-world-85ccd",
+      storageBucket: "conquiguias-world-85ccd.firebasestorage.app",
+      messagingSenderId: "785222651205",
+      appId: "1:785222651205:web:0486c50e9d8af6bf9b022c"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+
+    // Elementos UI
+    const inicioNombre = document.getElementById("inicioNombre");
+    const inicioFoto = document.getElementById("inicioFoto");
+    const perfilSection = document.getElementById("perfilSection");
+    const inicioSection = document.getElementById("inicioSection");
+    const especialidadesSection = document.getElementById("especialidadesSection");
+    const menuInicio = document.getElementById("menuInicio");
+    const menuPerfil = document.getElementById("menuPerfil");
+    const menuEspecialidades = document.getElementById("menuEspecialidades");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const editForm = document.getElementById("editForm");
+    const fotoInput = document.getElementById("foto");
+    const preview = document.getElementById("preview");
+    const removePhotoBtn = document.getElementById("removePhoto");
+    const nombreInput = document.getElementById("nombre");
+    const apellidoInput = document.getElementById("apellido");
+    const edadInput = document.getElementById("edad");
+    const sexoInput = document.getElementById("sexo");
+    const paisInput = document.getElementById("pais");
+    const listaEspecialidades = document.getElementById("listaEspecialidades");
+    const archivosContainer = document.getElementById("archivosContainer");
+    const especialidadActualH3 = document.getElementById("especialidadActual");
+    const subirArchivoInput = document.getElementById("subirArchivo");
+    const subirArchivoBtn = document.getElementById("subirArchivoBtn");
+    const listaArchivos = document.getElementById("listaArchivos");
+    const cerrarEspecialidadBtn = document.getElementById("cerrarEspecialidad");
+
+    let especialidadSeleccionada = "";
+    let currentUserId = null;
+    let currentPhotoURL = "";
+    const placeholderURL = "https://dummyimage.com/120x120/ccc/fff";
+
+    // Variable global para guardar si el usuario puede acceder o no
+    let puedeEntrarEspecialidades = false;
+
+    // 🔹 Detectar usuario logueado
+    onAuthStateChanged(auth, async (user) => {
+
+      // 🔒 Lista de correos permitidos para entrar a Especialidades
+      const correosAutorizados = [
+        "kendall.torres.17@gmail.com"
+      ];
+
+
+
+      // Dentro del onAuthStateChanged (después de obtener el usuario)
+      if (user) {
+        const email = user.email;
+        puedeEntrarEspecialidades = correosAutorizados.includes(email);
+      }
+
+
+
+      if (!user) { window.location.href = "index.html"; return; }
+      currentUserId = user.uid;
+
+      const docRef = doc(db, "usuarios", currentUserId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        currentPhotoURL = data.fotoURL || placeholderURL;
+        inicioNombre.textContent = `${data.nombre} ${data.apellido}`;
+        inicioFoto.src = currentPhotoURL;
+        nombreInput.value = data.nombre;
+        apellidoInput.value = data.apellido;
+        edadInput.value = data.edad;
+        sexoInput.value = data.sexo;
+        paisInput.value = data.pais;
+        preview.src = currentPhotoURL;
+      }
+
+      cargarEspecialidadesFijas();
+    });
+
+    // 🔹 Navegación
+    menuInicio.addEventListener("click", () => mostrarSeccion(inicioSection, menuInicio));
+    menuPerfil.addEventListener("click", () => mostrarSeccion(perfilSection, menuPerfil));
+
+    // 🔹 Menú Especialidades con bloqueo si no es autorizado
+    menuEspecialidades.addEventListener("click", () => {
+      if (!puedeEntrarEspecialidades) {
+        mostrarMensaje("error", "Acceso restringido", "🚫 Solo personal Premium puede ingresar a esta sección.");
+        return;
+      }
+
+      mostrarSeccion(especialidadesSection, menuEspecialidades);
+      cargarEspecialidadesFijas();
+    });
+
+
+    // 🔹 Foto de perfil
+    fotoInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = () => preview.src = reader.result;
+        reader.readAsDataURL(file);
+      }
+    });
+
+
+
+    // 🔹 Guardar perfil (versión con eliminación de foto anterior)
+    editForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!currentUserId) return;
+
+      let newPhotoURL = currentPhotoURL;
+      const file = fotoInput.files[0];
+
+      try {
+        // ✅ Validar tamaño antes de subir
+        if (file && file.size > 1024 * 1024) {
+          mostrarMensaje("info", "⚠️ La imagen no debe superar 1 MB.", "");
+          return;
+        }
+
+        // ✅ Si hay un archivo nuevo, eliminar el anterior
+        if (file && currentPhotoURL) {
+          try {
+            // Buscar y eliminar foto anterior
+            const oldRef = ref(storage, currentPhotoURL);
+            await deleteObject(oldRef);
+            console.log("🗑️ Foto anterior eliminada del servidor");
+          } catch (err) {
+            console.warn("⚠️ No se pudo eliminar la foto anterior:", err.message);
+          }
+        }
+
+        // ✅ Subir la nueva imagen (si existe)
+        if (file) {
+          const storageRef = ref(storage, `usuarios/${currentUserId}/${file.name}`);
+          await uploadBytes(storageRef, file);
+          newPhotoURL = await getDownloadURL(storageRef);
+        }
+
+        // ✅ Actualizar datos en Firestore
+        const docRef = doc(db, "usuarios", currentUserId);
+        await updateDoc(docRef, {
+          nombre: nombreInput.value,
+          apellido: apellidoInput.value,
+          edad: edadInput.value,
+          sexo: sexoInput.value,
+          pais: paisInput.value,
+          fotoURL: newPhotoURL
+        });
+
+        mostrarMensaje("info", "✅ Información actualizada correctamente.", "", () => {
+          window.location.reload();
+        });
+
+      } catch (error) {
+        console.error(error);
+        mostrarMensaje("error", "❌ Error al actualizar", "");
+      }
+    });
+
+
+
+    logoutBtn.addEventListener("click", async () => {
+      await signOut(auth);
+      window.location.href = "index.html";
+    });
+
+    ////////////////////////
+    // 📁 ESPECIALIDADES STORAGE
+    ////////////////////////
+    const especialidadesFijas = ["Especialidades Completadas", "Certificaciones", "Carpeta Guía Mayor", "Otros"];
+
+    function cargarEspecialidadesFijas() {
+      listaEspecialidades.innerHTML = "";
+      especialidadesFijas.forEach(nombre => {
+        const li = document.createElement("li");
+        li.textContent = nombre;
+        li.classList.add("carpeta-item");
+        listaEspecialidades.appendChild(li);
+      });
+    }
+
+    listaEspecialidades.addEventListener("click", (e) => {
+      if (e.target.tagName !== "LI") return;
+      especialidadSeleccionada = e.target.textContent;
+      especialidadActualH3.textContent = `📂 ${especialidadSeleccionada}`;
+      archivosContainer.classList.remove("hidden");
+      cargarArchivos(especialidadSeleccionada);
+    });
+
+    subirArchivoBtn.addEventListener("click", async () => {
+      if (!especialidadSeleccionada || !subirArchivoInput.files[0])
+        return mostrarMensaje("info", "Selecciona un archivo válido", "");
+
+      const file = subirArchivoInput.files[0];
+      const ext = file.name.split(".").pop().toLowerCase();
+      if (!["pdf", "jpg", "jpeg", "png"].includes(ext))
+        return mostrarMensaje("error", "❌ Solo se permiten archivos PDF o imágenes (JPG, JPEG, PNG)", "No se aceptan extensiones diferentes que no sean archivos de pdf o imágenes.");
+
+      const storageRefFile = ref(storage, `usuarios/${currentUserId}/carpetas/${especialidadSeleccionada}/${file.name}`);
+      await uploadBytes(storageRefFile, file);
+      mostrarMensaje("info", `📄 Archivo "${file.name}" subido correctamente`, "");
+      subirArchivoInput.value = "";
+      cargarArchivos(especialidadSeleccionada);
+    });
+
+    async function cargarArchivos(especialidad, orden = "nombreDesc") {
+      listaArchivos.innerHTML = "";
+      const folderRef = ref(storage, `usuarios/${currentUserId}/carpetas/${especialidad}/`);
+      try {
+        const result = await listAll(folderRef);
+        if (result.items.length === 0) {
+          listaArchivos.innerHTML = "<li>No hay archivos aún.</li>";
+          return;
+        }
+
+        const archivos = [];
+        for (const fileRef of result.items) {
+          const url = await getDownloadURL(fileRef);
+          const meta = await getMetadata(fileRef);
+
+          archivos.push({
+            ref: fileRef,
+            url,
+            nombre: fileRef.name,
+            fecha: new Date(meta.timeCreated),
+            size: meta.size
+          });
+        }
+
+        // 🔹 Orden según selección
+        switch (orden) {
+          case "nombreAsc":
+            archivos.sort((a, b) => a.nombre.localeCompare(b.nombre));
+            break;
+          case "nombreDesc":
+            archivos.sort((a, b) => b.nombre.localeCompare(a.nombre));
+            break;
+          case "fechaAsc":
+            archivos.sort((a, b) => a.fecha - b.fecha);
+            break;
+          case "fechaDesc":
+            archivos.sort((a, b) => b.fecha - a.fecha);
+            break;
+          case "sizeAsc":
+            archivos.sort((a, b) => a.size - b.size);
+            break;
+          case "sizeDesc":
+            archivos.sort((a, b) => b.size - a.size);
+            break;
+        }
+
+        // 🔹 Crear elementos en la lista (igual que antes)
+        archivos.forEach(file => {
+          const li = document.createElement("li");
+          li.classList.add("archivo-item");
+          li.style.display = "flex";
+          li.style.justifyContent = "space-between";
+          li.style.alignItems = "center";
+
+          const nombreSpan = document.createElement("span");
+          nombreSpan.textContent = file.nombre;
+          nombreSpan.classList.add("archivo-link");
+          nombreSpan.style.cursor = "pointer";
+          nombreSpan.addEventListener("click", () => {
+            const ext = file.nombre.split('.').pop().toLowerCase();
+            if (ext === "pdf") abrirVisorPDF(file.url);
+            else window.open(file.url, "_blank");
+          });
+
+          const infoSpan = document.createElement("span");
+          infoSpan.textContent = `${file.fecha.toLocaleDateString()} ${file.fecha.toLocaleTimeString()} • ${(file.size / 1024).toFixed(2)} KB`;
+          infoSpan.style.color = "#555";
+          infoSpan.style.fontSize = "13px";
+
+          const eliminarBtn = document.createElement("button");
+          eliminarBtn.textContent = "🗑️";
+          eliminarBtn.classList.add("delete-btn");
+          eliminarBtn.addEventListener("click", async () => {
+            mostrarMensaje("confirm", "Confirmar eliminación", `¿Eliminar "${file.nombre}"?`, async () => {
+              await deleteObject(file.ref);
+              cargarArchivos(especialidad, orden);
+            });
+
+          });
+
+          const infoContainer = document.createElement("div");
+          infoContainer.style.display = "flex";
+          infoContainer.style.gap = "10px";
+          infoContainer.appendChild(infoSpan);
+          infoContainer.appendChild(eliminarBtn);
+
+          li.appendChild(nombreSpan);
+          li.appendChild(infoContainer);
+          listaArchivos.appendChild(li);
+        });
+
+      } catch (err) {
+        console.error("Error al cargar archivos:", err);
+        mostrarMensaje("error", "Error al cargar archivos", "");
+      }
+    }
+    const ordenSelect = document.getElementById("ordenArchivos");
+
+    ordenSelect.addEventListener("change", () => {
+      if (especialidadSeleccionada) {
+        cargarArchivos(especialidadSeleccionada, ordenSelect.value);
+      }
+    });
+
+
+
+    cerrarEspecialidadBtn.addEventListener("click", () => {
+      archivosContainer.classList.add("hidden");
+      especialidadSeleccionada = "";
+    });
+
+    function mostrarSeccion(seccion, botonActivo) {
+      [inicioSection, perfilSection, especialidadesSection, clubesSection].forEach(sec => sec.classList.add("hidden"));
+      [menuInicio, menuPerfil, menuEspecialidades, menuClubes].forEach(btn => btn.classList.remove("active"));
+
+      seccion.classList.remove("hidden");
+      botonActivo.classList.add("active");
+    }
+
+
+    ////////////////////////////////////////////
+    // 🔹 VISOR PDF
+    const pdfViewerModal = document.getElementById("pdfViewerModal");
+    const pdfFrame = document.getElementById("pdfFrame");
+    const cerrarPDF = document.getElementById("cerrarPDF");
+
+    function abrirVisorPDF(url) {
+      pdfFrame.src = url;
+      pdfViewerModal.style.display = "flex";
+    }
+
+    cerrarPDF.addEventListener("click", () => {
+      pdfViewerModal.style.display = "none";
+      pdfFrame.src = "";
+    });
+
+    pdfViewerModal.addEventListener("click", (e) => {
+      if (e.target === pdfViewerModal) {
+        pdfViewerModal.style.display = "none";
+        pdfFrame.src = "";
+      }
+    });
+
+    ////////////////////////////////////////
+    /**
+ * 🔹 Mostrar mensaje dinámico
+ * @param {string} tipo - "info" | "error" | "confirm"
+ * @param {string} titulo - Texto del título
+ * @param {string} mensaje - Texto del cuerpo
+ * @param {function} onConfirm - (Opcional) callback si se presiona "Aceptar" en tipo confirm
+ */
+
+    function mostrarMensaje(tipo, titulo, mensaje, onConfirm = null) {
+      const modal = document.getElementById("mensajeModal");
+      const tituloEl = document.getElementById("mensajeTitulo");
+      const textoEl = document.getElementById("mensajeTexto");
+      const btnAceptar = document.getElementById("mensajeAceptar");
+      const btnCancelar = document.getElementById("mensajeCancelar");
+
+      tituloEl.textContent = titulo;
+      textoEl.textContent = mensaje;
+      modal.classList.remove("hiddenX");
+
+      // Configurar botones
+      btnCancelar.classList.toggle("hiddenX", tipo !== "confirm");
+
+      const cerrar = () => {
+        modal.classList.add("hiddenX");
+        btnAceptar.onclick = null;
+        btnCancelar.onclick = null;
+      };
+
+      btnAceptar.onclick = () => {
+        cerrar();
+        if (onConfirm && (tipo === "confirm" || tipo === "info")) onConfirm();
+      };
+
+      btnCancelar.onclick = cerrar;
+    }
+
+    ////////////////////////////////////////////
+    const menuClubes = document.getElementById("menuClubes");
+    const clubesSection = document.getElementById("clubesSection");
+
+    menuClubes.addEventListener("click", () => {
+      mostrarSeccion(clubesSection, menuClubes);
+    });
+    ///////////////////////////////////////////
+
+
+
+    const clubBtns = document.querySelectorAll(".clubBtn");
+    const clubesPanel = document.getElementById("clubesPanel");
+
+
+    // Datos de Conquistadores
+    // Datos de cada club
+const clubesData = {
+  aventureros: {
+    niveles: ["Amigo", "Compañero", "Explorador"],
+    carpetas: ["Voto y Ley", "Bandera de Aventureros", "Himno del Club"]
+  },
+  conquistadores: {
+    niveles: ["Amigo", "Compañero", "Explorador", "Orientador", "Viajero", "Guía"],
+    carpetas: [
+      "Voto y Ley",
+      "Especialidades Ja",
+      "Bandera de Conquistadores",
+      "Himno del Conquistador",
+      "Manual de Nudos",
+      "Formularios y Permisos",
+      "Manual del Uniforme",
+      "Uso del Hacha y Cuchillo",
+      "Registros",
+      "Guía para el Director",
+      "Guía Rápida para el Director del Club de Conquistadores",
+      "Logos e Imágenes",
+      "Lista de Especialidades para Cada Nivel Progresivo"
+    ]
+  },
+  guias: {
+    niveles: ["Explorador", "Guía", "Coordinador"],
+    carpetas: ["Voto y Ley", "Manual de Guías", "Registros"]
+  }
+};
+
+// Click en club
+clubBtns.forEach(btn => {
+  btn.addEventListener("click", () => {
+    const clubKey = btn.dataset.club;
+
+    // Limpiar panel
+    clubesPanel.innerHTML = "";
+
+    const clubData = clubesData[clubKey] || { niveles: [], carpetas: [] };
+
+    const clubContainer = document.createElement("div");
+    clubContainer.dataset.panel = clubKey;
+
+    // 🔹 Niveles
+    if (clubData.niveles.length > 0) {
+      const nivelesContainer = document.createElement("div");
+      nivelesContainer.style.display = "grid";
+      nivelesContainer.style.gridTemplateColumns = "repeat(3, 1fr)";
+      nivelesContainer.style.gap = "10px";
+      nivelesContainer.style.marginBottom = "15px";
+
+      const nivelesContenidoContainer = document.createElement("div");
+
+      clubData.niveles.forEach(nivel => {
+        const btnNivel = document.createElement("div");
+        btnNivel.classList.add("carpeta-item");
+        btnNivel.textContent = nivel;
+
+        const contenido = document.createElement("div");
+        contenido.classList.add("hidden");
+        contenido.style.marginTop = "5px";
+        contenido.textContent = "Contenido de " + nivel;
+
+        btnNivel.addEventListener("click", () => {
+          contenido.classList.toggle("hidden");
+        });
+
+        nivelesContainer.appendChild(btnNivel);
+        nivelesContenidoContainer.appendChild(contenido);
+      });
+
+      clubContainer.appendChild(nivelesContainer);
+      clubContainer.appendChild(nivelesContenidoContainer);
+    }
+
+    // 🔹 Carpetas
+    if (clubData.carpetas.length > 0) {
+      const carpetasContainer = document.createElement("div");
+      clubData.carpetas.forEach(carpetaName => {
+        const carpeta = document.createElement("div");
+        carpeta.classList.add("carpeta-item");
+        carpeta.textContent = carpetaName;
+
+        const contenido = document.createElement("div");
+        contenido.classList.add("hidden");
+        contenido.style.marginLeft = "20px";
+        contenido.style.marginBottom = "5px";
+
+        const archivo = document.createElement("div");
+        archivo.textContent = "Contenido de " + carpetaName;
+        contenido.appendChild(archivo);
+
+        carpeta.addEventListener("click", () => {
+          contenido.classList.toggle("hidden");
+        });
+
+        carpetasContainer.appendChild(carpeta);
+        carpetasContainer.appendChild(contenido);
+      });
+
+      clubContainer.appendChild(carpetasContainer);
+    }
+
+    clubesPanel.appendChild(clubContainer);
+  });
+});
+
+
+
+  </script>
+
+
+</body>
+
+</html>

@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ConquiGuías World - Acceso</title>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+    import {
+      getAuth,
+      createUserWithEmailAndPassword,
+      signInWithEmailAndPassword,
+      updateProfile
+    } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      setDoc
+    } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+    import {
+      getStorage,
+      ref,
+      uploadBytes,
+      getDownloadURL
+    } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-storage.js";
+
+    // 🔥 CONFIGURACIÓN FIREBASE
+    const firebaseConfig = {
+      apiKey: "AIzaSyB1YTwZM8wKlxZ8HhXb7EUse8YyLmcfeS8",
+      authDomain: "conquiguias-world-85ccd.firebaseapp.com",
+      projectId: "conquiguias-world-85ccd",
+      storageBucket: "conquiguias-world-85ccd.firebasestorage.app",
+      messagingSenderId: "785222651205",
+      appId: "1:785222651205:web:0486c50e9d8af6bf9b022c"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const loginForm = document.getElementById("loginForm");
+      const registerForm = document.getElementById("registerForm");
+
+      // LOGIN
+      loginForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const email = loginForm.email.value.trim();
+        const password = loginForm.password.value.trim();
+
+        try {
+          await signInWithEmailAndPassword(auth, email, password);
+          console.log("✅ Bienvenido de nuevo");
+          window.location.href = "panel.html";
+        } catch (error) {
+          mostrarMensaje("error", "⚠️ Error al iniciar sesión.");
+        }
+      });
+
+      // REGISTRO
+      registerForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const nombre = registerForm.nombre.value.trim();
+        const apellido = registerForm.apellido.value.trim();
+        const edad = registerForm.edad.value.trim();
+        const sexo = registerForm.sexo.value;
+        const pais = registerForm.pais.value.trim();
+        const email = registerForm.email.value.trim();
+        const password = registerForm.password.value.trim();
+        const foto = registerForm.foto.files[0];
+
+        try {
+          // ✅ VALIDAR FOTO ANTES DE CREAR USUARIO
+          if (!foto) {
+            mostrarMensaje("info", "⚠️ Debes seleccionar una foto de perfil.");
+            return;
+          }
+
+          if (foto.size > 1024 * 1024) {
+            mostrarMensaje("info", "⚠️ La imagen no debe superar 1 MB.");
+            return;
+          }
+
+          // 🔹 Crear usuario
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
+          console.log("🟢 Usuario creado:", user.uid);
+
+          // Subir foto
+          const fotoRef = ref(storage, `usuarios/${user.uid}/${foto.name}`);
+          await uploadBytes(fotoRef, foto);
+          const fotoURL = await getDownloadURL(fotoRef);
+
+          // Actualizar perfil de Auth
+          await updateProfile(user, {
+            displayName: `${nombre} ${apellido}`,
+            photoURL: fotoURL
+          });
+
+          // Guardar datos en Firestore
+          await setDoc(doc(db, "usuarios", user.uid), {
+            nombre,
+            apellido,
+            edad,
+            sexo,
+            pais,
+            email,
+            fotoURL,
+            creado: new Date().toISOString()
+          });
+
+          mostrarMensaje("info", `🎉 Registro exitoso, ¡bienvenido ${nombre}!`, "Esperamos sea de gran bendición nuestra plataforma especialmente hecha para ti, un apasionad@ por los clubes. Jesús te bendiga, nuestro  Gran Guía Mayor.", () => {
+            window.location.href = "panel.html";
+          });
+
+
+        } catch (error) {
+          console.error("Error al registrarse:", error);
+          mostrarMensaje("error", "❌ Error en el registro.", "Revisa tus datos o el tamaño de la imagen.");
+        }
+      });
+    });
+
+    // Alternar formularios
+    function toggleForms() {
+      document.getElementById("loginBox").classList.toggle("hidden");
+      document.getElementById("registerBox").classList.toggle("hidden");
+    }
+    window.toggleForms = toggleForms;
+
+
+    ////////////////////////////////////////
+    /**
+ * 🔹 Mostrar mensaje dinámico
+ * @param {string} tipo - "info" | "error" | "confirm"
+ * @param {string} titulo - Texto del título
+ * @param {string} mensaje - Texto del cuerpo
+ * @param {function} onConfirm - (Opcional) callback si se presiona "Aceptar" en tipo confirm
+ */
+
+    function mostrarMensaje(tipo, titulo, mensaje, onConfirm = null) {
+      const modal = document.getElementById("mensajeModal");
+      const tituloEl = document.getElementById("mensajeTitulo");
+      const textoEl = document.getElementById("mensajeTexto");
+      const btnAceptar = document.getElementById("mensajeAceptar");
+      const btnCancelar = document.getElementById("mensajeCancelar");
+
+      tituloEl.textContent = titulo;
+      textoEl.textContent = mensaje;
+      modal.classList.remove("hiddenX");
+
+      // Configurar botones
+      btnCancelar.classList.toggle("hiddenX", tipo !== "confirm");
+
+      const cerrar = () => {
+        modal.classList.add("hiddenX");
+        btnAceptar.onclick = null;
+        btnCancelar.onclick = null;
+      };
+
+      btnAceptar.onclick = () => {
+        cerrar();
+        if (onConfirm && (tipo === "confirm" || tipo === "info")) onConfirm();
+      };
+
+      btnCancelar.onclick = cerrar;
+    }
+  </script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #007bff, #00c2a8);
+      color: #fff;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      display: flex;
+      position: relative;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 20px;
+      width: 300px;
+      text-align: center;
+    }
+
+    input,
+    select {
+      width: 100%;
+      margin: 6px 0;
+      padding: 8px;
+      border: none;
+      border-radius: 6px;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      background: #00e0a8;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background: #00d49a;
+    }
+
+    .toggle {
+      color: #ffdf70;
+      margin-top: 8px;
+      cursor: pointer;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* 🔹 Fondo del modal */
+    #mensajeModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+
+    /* 🔹 Caja del mensaje */
+    .mensaje-content {
+      background: #fff;
+      padding: 25px 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+      text-align: center;
+      width: 90%;
+      max-width: 400px;
+      animation: fadeIn 0.25s ease;
+    }
+
+    .mensaje-content h3 {
+      margin-bottom: 12px;
+      color: #1976d2;
+    }
+
+    .mensaje-content p {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    /* 🔹 Botones */
+    #mensajeBotones {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+    }
+
+    #mensajeBotones button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 15px;
+      transition: transform 0.2s, background 0.3s;
+    }
+
+    #mensajeAceptar {
+      background: #1976d2;
+      color: white;
+    }
+
+    #mensajeCancelar {
+      background: #e53935;
+      color: white;
+    }
+
+    #mensajeBotones button:hover {
+      transform: scale(1.05);
+    }
+
+    .hiddenX {
+      display: none !important;
+    }
+
+
+    .contenedor-password {
+      display: flex;
+      position: relative;
+      flex-direction: row;
+      margin: 0%;
+      padding: 0%;
+      overflow: hidden;
+      padding-bottom: 10px;
+    }
+
+    .password {
+      width: 100%;
+    }
+
+    .chkShow {
+      display: flex;
+      position: relative;
+      width: 30px;
+      margin-left: 10px;
+    }
+
+    .container {
+      flex-direction: column;
+      position: relative;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Login -->
+  <div class="container" id="loginBox">
+    <h1>Iniciar Sesión</h1>
+    <form id="loginForm">
+      <input class="email" type="email" name="email" placeholder="Correo electrónico" required>
+      <div class="contenedor-password">
+        <input class="password" id="password" type="password" name="password" placeholder="Contraseña" required>
+        <input class="chkShow" id="chkShow" type="checkbox">
+      </div>
+      <button style="font-size: 20px;" type="submit">Entrar</button>
+    </form>
+    <div class="toggle" onclick="toggleForms()">¿No tienes cuenta? Regístrate</div>
+  </div>
+
+  <!-- Registro -->
+  <div class="container hidden" id="registerBox">
+    <h1 style="margin: 0%;">Crear Cuenta</h1>
+    <form id="registerForm">
+      <input type="text" name="nombre" placeholder="Nombre" required>
+      <input type="text" name="apellido" placeholder="Apellido" required>
+      <input type="number" name="edad" placeholder="Edad" required>
+      <select name="sexo" required>
+        <option value="">Sexo</option>
+        <option>Masculino</option>
+        <option>Femenino</option>
+      </select>
+      <input type="text" name="pais" placeholder="País" required>
+      <input type="email" name="email" placeholder="Correo" required>
+      <div class="contenedor-password">
+        <input class="password" id="passwordX" type="password" name="password" placeholder="Contraseña" required>
+        <input class="chkShow" id="chkShowX" type="checkbox">
+      </div>
+      <h2 style="margin: 0%;">Subir Foto:</h2>
+      <input type="file" name="foto" accept="image/*" required>
+      <button type="submit">Registrar</button>
+    </form>
+    <div class="toggle" onclick="toggleForms()">¿Ya tienes cuenta? Inicia sesión</div>
+  </div>
+  <!-- 🔹 Contenedor general de mensajes -->
+  <div id="mensajeModal" class="hiddenX">
+    <div class="mensaje-content">
+      <h3 id="mensajeTitulo">Título</h3>
+      <p id="mensajeTexto">Texto del mensaje</p>
+      <div id="mensajeBotones">
+        <button id="mensajeAceptar">Aceptar</button>
+        <button id="mensajeCancelar" class="hiddenX">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</body>
+<script>
+  document.getElementById('chkShow').addEventListener('change', (e) => {
+    document.getElementById('password').type = e.target.checked ? 'text' : 'password';
+  });
+  document.getElementById('chkShowX').addEventListener('change', (e) => {
+    document.getElementById('passwordX').type = e.target.checked ? 'text' : 'password';
+  });
+</script>
+
+</html>

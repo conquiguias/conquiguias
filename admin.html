@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Panel de Administración - Sistema de Evaluaciones</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https: data:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:;">
   <style>
     /* Estilos para el sistema de evaluación */
     .evaluation-creator {
@@ -247,6 +248,22 @@
       margin: 0 0 10px 0;
       color: #856404;
     }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #3498db;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-left: 8px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 
@@ -416,124 +433,155 @@
   </div>
 
   <script>
-    const baseURL = location.origin;
-    let questions = [];
-    let questionCounter = 0;
-    let optionCounter = 0;
-
-    // Variables globales para las imágenes seleccionadas
-    let imagenEspecialidadSeleccionada = null;
-    let imagenFirma1Seleccionada = null;
-    let imagenFirma2Seleccionada = null;
-    let imagenFirma3Seleccionada = null;
-
-    // Función para generar IDs únicos
-    function generateId() {
-      return Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-    }
-
-    // Función para cargar imágenes en un select
-    async function cargarImagenes(carpeta, selectId) {
-      const select = document.getElementById(selectId);
+    // Eliminar cualquier uso potencial de eval y mejorar la seguridad
+    (function() {
+      'use strict';
       
-      try {
-        const res = await fetch(`/api/listarImagenes?carpeta=${carpeta}`);
-        
-        if (res.ok) {
-          const imagenes = await res.json();
-          select.innerHTML = '';
-
-          if (imagenes.length === 0) {
-            select.innerHTML = '<div style="padding: 10px; text-align: center; color: #6c757d;">No hay imágenes disponibles</div>';
-            return;
-          }
-
-          imagenes.forEach(imagen => {
-            const option = document.createElement('div');
-            option.className = 'image-option';
-            option.innerHTML = `
-              <img src="${imagen.url}" alt="${imagen.nombre}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAxMUMyMi43NjE0IDExIDI1IDEzLjIzODYgMjUgMTZDMjUgMTguNzYxNCAyMi43NjE0IDIxIDIwIDIxQzE3LjIzODYgMjEgMTUgMTguNzYxNCAxNSAxNkMxNSAxMy4yMzg2IDE3LjIzODYgMTEgMjAgMTFaIiBmaWxsPSIjOTRBQkNEIi8+CjxwYXRoIGQ9Ik0xMSAyOUMyOSAyOSAyOSAyOSAyOSAyOUMyOSAzMS4yMDkxIDI3LjIwOTEgMzMgMjUgMzNIMTVDMTIuNzkwOSAzMyAxMSAzMS4yMDkxIDExIDI5QzExIDI5IDExIDI5IDExIDI5WiIgZmlsbD0iIzk0QUJDRCIvPgo8L3N2Zz4K'">
-              <div class="image-name">${imagen.nombre.replace(/\.[^/.]+$/, "")}</div>
-            `;
-            
-            option.addEventListener('click', () => {
-              // Remover selección anterior
-              document.querySelectorAll(`#${selectId} .image-option`).forEach(opt => {
-                opt.classList.remove('selected');
-              });
-              
-              // Seleccionar actual
-              option.classList.add('selected');
-              
-              // Guardar selección y actualizar campos correspondientes
-              if (carpeta === 'especialidades') {
-                imagenEspecialidadSeleccionada = imagen;
-                document.getElementById('nombreEspecialidad').value = imagen.nombre.replace(/\.[^/.]+$/, "");
-                // Actualizar título automáticamente
-                document.getElementById('titulo').value = imagen.nombre.replace(/\.[^/.]+$/, "");
-              } else if (carpeta === 'firmas') {
-                // Determinar qué firma se está seleccionando basado en el selectId
-                if (selectId === 'selectFirma1') {
-                  imagenFirma1Seleccionada = imagen;
-                  document.getElementById('nombreFirma1').value = imagen.nombre.replace(/\.[^/.]+$/, "");
-                  // Actualizar ID del formulario automáticamente si es la primera firma
-                  document.getElementById('formId').value = imagen.nombre.replace(/\.[^/.]+$/, "");
-                } else if (selectId === 'selectFirma2') {
-                  imagenFirma2Seleccionada = imagen;
-                  document.getElementById('nombreFirma2').value = imagen.nombre.replace(/\.[^/.]+$/, "");
-                } else if (selectId === 'selectFirma3') {
-                  imagenFirma3Seleccionada = imagen;
-                  document.getElementById('nombreFirma3').value = imagen.nombre.replace(/\.[^/.]+$/, "");
-                }
-              }
-            });
-            
-            select.appendChild(option);
-          });
-        } else {
-          select.innerHTML = '<div style="padding: 10px; text-align: center; color: #dc3545;">Error al cargar imágenes</div>';
-        }
-      } catch (error) {
-        console.error(`Error al cargar imágenes de ${carpeta}:`, error);
-        select.innerHTML = '<div style="padding: 10px; text-align: center; color: #dc3545;">Error de conexión</div>';
-      }
-    }
-
-    // Función para subir imagen
-    async function subirImagen(carpeta, file, nombreInputId, mensajeId, selectId) {
-      const nombreInput = document.getElementById(nombreInputId);
-      const mensaje = document.getElementById(mensajeId);
+      const baseURL = location.origin;
+      let questions = [];
       
-      if (!file) {
-        mensaje.innerHTML = '❌ No se seleccionó ningún archivo';
-        return;
+      // Variables globales para las imágenes seleccionadas
+      let imagenEspecialidadSeleccionada = null;
+      let imagenFirma1Seleccionada = null;
+      let imagenFirma2Seleccionada = null;
+      let imagenFirma3Seleccionada = null;
+      
+      // Placeholder SVG para imágenes que no cargan
+      const placeholderSVG = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAxMUMyMi43NjE0IDExIDI1IDEzLjIzODYgMjUgMTZDMjUgMTguNzYxNCAyMi43NjE0IDIxIDIwIDIxQzE3LjIzODYgMjEgMTUgMTguNzYxNCAxNSAxNkMxNSAxMy4yMzg2IDE3LjIzODYgMTEgMjAgMTFaIiBmaWxsPSIjOTRBQkNEIi8+CjxwYXRoIGQ9Ik0xMSAyOUMyOSAyOSAyOSAyOSAyOSAyOUMyOSAzMS4yMDkxIDI3LjIwOTEgMzMgMjUgMzNIMTVDMTIuNzkwOSAzMyAxMSAzMS4yMDkxIDExIDI5QzExIDI5IDExIDI5IDExIDI5WiIgZmlsbD0iIzk0QUJDRCIvPgo8L3N2Zz4K';
+
+      // Función para generar IDs únicos sin usar eval
+      function generateId() {
+        return Date.now() + '-' + Math.random().toString(36).substr(2, 9);
       }
 
-      const nombrePersonalizado = nombreInput.value.trim();
-      if (!nombrePersonalizado) {
-        mensaje.innerHTML = '❌ Ingresa un nombre para la imagen';
-        return;
-      }
-
-      // Validar formato de archivo
-      const formatosPermitidos = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp'];
-      if (!formatosPermitidos.includes(file.type)) {
-        mensaje.innerHTML = '❌ Formato no válido. Use JPEG, PNG, GIF, BMP o WebP';
-        return;
-      }
-
-      // Obtener extensión del archivo original
-      const extension = file.name.split('.').pop();
-      const nombreArchivo = `${nombrePersonalizado}.${extension}`;
-
-      // Convertir a base64
-      const reader = new FileReader();
-      reader.onload = async function(e) {
-        const contenidoBase64 = e.target.result.split(',')[1]; // Remover el prefijo data:image/...;base64,
-        
-        mensaje.innerHTML = '⏳ Subiendo imagen...';
+      // Función para cargar imágenes en un select
+      async function cargarImagenes(carpeta, selectId) {
+        const select = document.getElementById(selectId);
         
         try {
+          const res = await fetch(`/api/listarImagenes?carpeta=${encodeURIComponent(carpeta)}`);
+          
+          if (res.ok) {
+            const imagenes = await res.json();
+            select.innerHTML = '';
+
+            if (imagenes.length === 0) {
+              select.innerHTML = '<div style="padding: 10px; text-align: center; color: #6c757d;">No hay imágenes disponibles</div>';
+              return;
+            }
+
+            imagenes.forEach(imagen => {
+              const option = document.createElement('div');
+              option.className = 'image-option';
+              
+              const img = document.createElement('img');
+              img.src = imagen.url;
+              img.alt = imagen.nombre;
+              img.onerror = function() {
+                this.src = placeholderSVG;
+              };
+              
+              const nameDiv = document.createElement('div');
+              nameDiv.className = 'image-name';
+              nameDiv.textContent = imagen.nombre.replace(/\.[^/.]+$/, "");
+              
+              option.appendChild(img);
+              option.appendChild(nameDiv);
+              
+              option.addEventListener('click', () => {
+                // Remover selección anterior
+                document.querySelectorAll(`#${selectId} .image-option`).forEach(opt => {
+                  opt.classList.remove('selected');
+                });
+                
+                // Seleccionar actual
+                option.classList.add('selected');
+                
+                // Guardar selección y actualizar campos correspondientes
+                if (carpeta === 'especialidades') {
+                  imagenEspecialidadSeleccionada = imagen;
+                  document.getElementById('nombreEspecialidad').value = imagen.nombre.replace(/\.[^/.]+$/, "");
+                  // Actualizar título automáticamente
+                  document.getElementById('titulo').value = imagen.nombre.replace(/\.[^/.]+$/, "");
+                } else if (carpeta === 'firmas') {
+                  // Determinar qué firma se está seleccionando basado en el selectId
+                  if (selectId === 'selectFirma1') {
+                    imagenFirma1Seleccionada = imagen;
+                    document.getElementById('nombreFirma1').value = imagen.nombre.replace(/\.[^/.]+$/, "");
+                    // Actualizar ID del formulario automáticamente si es la primera firma
+                    document.getElementById('formId').value = imagen.nombre.replace(/\.[^/.]+$/, "");
+                  } else if (selectId === 'selectFirma2') {
+                    imagenFirma2Seleccionada = imagen;
+                    document.getElementById('nombreFirma2').value = imagen.nombre.replace(/\.[^/.]+$/, "");
+                  } else if (selectId === 'selectFirma3') {
+                    imagenFirma3Seleccionada = imagen;
+                    document.getElementById('nombreFirma3').value = imagen.nombre.replace(/\.[^/.]+$/, "");
+                  }
+                }
+              });
+              
+              select.appendChild(option);
+            });
+          } else {
+            select.innerHTML = '<div style="padding: 10px; text-align: center; color: #dc3545;">Error al cargar imágenes</div>';
+          }
+        } catch (error) {
+          console.error(`Error al cargar imágenes de ${carpeta}:`, error);
+          select.innerHTML = '<div style="padding: 10px; text-align: center; color: #dc3545;">Error de conexión</div>';
+        }
+      }
+
+      // Función para subir imagen - Versión mejorada y segura
+      async function subirImagen(carpeta, file, nombreInputId, mensajeId, selectId) {
+        const nombreInput = document.getElementById(nombreInputId);
+        const mensaje = document.getElementById(mensajeId);
+        
+        if (!file) {
+          mensaje.textContent = '❌ No se seleccionó ningún archivo';
+          return;
+        }
+
+        const nombrePersonalizado = nombreInput.value.trim();
+        if (!nombrePersonalizado) {
+          mensaje.textContent = '❌ Ingresa un nombre para la imagen';
+          return;
+        }
+
+        // Validar formato de archivo de manera segura
+        const formatosPermitidos = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp'];
+        if (!formatosPermitidos.includes(file.type)) {
+          mensaje.textContent = '❌ Formato no válido. Use JPEG, PNG, GIF, BMP o WebP';
+          return;
+        }
+
+        // Validar tamaño del archivo (máximo 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          mensaje.textContent = '❌ El archivo es demasiado grande. Máximo 5MB';
+          return;
+        }
+
+        // Obtener extensión del archivo original de manera segura
+        const extension = file.name.split('.').pop().toLowerCase();
+        const nombreArchivo = `${nombrePersonalizado}.${extension}`;
+
+        // Mostrar estado de carga
+        mensaje.innerHTML = '⏳ Subiendo imagen...<span class="loading-spinner"></span>';
+        
+        // Deshabilitar el botón de subida temporalmente
+        const uploadBtn = document.querySelector(`[onclick*="${nombreInputId.replace('nombre', 'upload')}"]`);
+        const originalText = uploadBtn.textContent;
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '📤 Subiendo...';
+
+        try {
+          // Convertir a base64 usando Promise
+          const contenidoBase64 = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result.split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+
           const res = await fetch('/api/subirImagen', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -547,427 +595,553 @@
           const data = await res.json();
 
           if (res.ok) {
-            mensaje.innerHTML = '✅ Imagen subida correctamente';
+            mensaje.textContent = '✅ Imagen subida correctamente';
             nombreInput.value = '';
             
             // Recargar el select correspondiente inmediatamente
-            cargarImagenes(carpeta, selectId);
+            await cargarImagenes(carpeta, selectId);
+            
+            // Seleccionar automáticamente la imagen recién subida
+            setTimeout(() => {
+              const options = document.querySelectorAll(`#${selectId} .image-option`);
+              for (let option of options) {
+                const nameDiv = option.querySelector('.image-name');
+                if (nameDiv && nameDiv.textContent === nombrePersonalizado) {
+                  option.click();
+                  break;
+                }
+              }
+            }, 500);
+            
           } else {
-            mensaje.innerHTML = `❌ ${data.error}`;
+            mensaje.textContent = `❌ ${data.error || 'Error al subir imagen'}`;
           }
         } catch (error) {
           console.error('Error al subir imagen:', error);
-          mensaje.innerHTML = '❌ Error de conexión';
+          mensaje.textContent = '❌ Error de conexión al subir imagen';
+        } finally {
+          // Rehabilitar el botón
+          uploadBtn.disabled = false;
+          uploadBtn.textContent = originalText;
         }
-      };
-      
-      reader.readAsDataURL(file);
-    }
-
-    // Función para agregar pregunta
-    function addQuestion(type) {
-      const questionId = 'q-' + generateId();
-      const question = {
-        id: questionId,
-        type: type,
-        text: '',
-        options: type === 'multiple' ?
-          [
-            { id: 'opt-' + generateId(), text: '', correct: false },
-            { id: 'opt-' + generateId(), text: '', correct: false }
-          ] :
-          [
-            { id: 'true-' + generateId(), text: 'Verdadero', correct: false },
-            { id: 'false-' + generateId(), text: 'Falso', correct: false }
-          ]
-      };
-
-      questions.push(question);
-      renderQuestions();
-    }
-
-    // Función para renderizar preguntas
-    function renderQuestions() {
-      const container = document.getElementById('questionsContainer');
-      container.innerHTML = '';
-
-      if (questions.length === 0) {
-        container.innerHTML = '<p style="color: #6c757d; text-align: center;">No hay preguntas agregadas aún.</p>';
-        return;
       }
 
-      questions.forEach((question, index) => {
-        const questionHtml = `
-          <div class="question-item" data-question-id="${question.id}">
-            <div class="question-header">
-              <strong>Pregunta ${index + 1}</strong>
-              <span class="question-type ${question.type === 'multiple' ? 'multiple-choice' : 'true-false'}">
-                ${question.type === 'multiple' ? 'Opción Múltiple' : 'Verdadero/Falso'}
-              </span>
-            </div>
-            
-            <input type="text" 
-                   placeholder="Escribe la pregunta aquí..." 
-                   value="${question.text}"
-                   oninput="updateQuestionText('${question.id}', this.value)"
-                   style="width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ced4da; border-radius: 4px;">
-            
-            <div class="options-container">
-              ${question.options.map(option => `
-                <div class="option-item">
-                  <input type="radio" 
-                         name="${question.id}" 
-                         ${option.correct ? 'checked' : ''}
-                         onchange="setCorrectAnswer('${question.id}', '${option.id}')">
-                  <input type="text" 
-                         value="${option.text}" 
-                         ${question.type === 'truefalse' ? 'readonly style=\"background: #e9ecef;\"' : ''}
-                         oninput="updateOptionText('${question.id}', '${option.id}', this.value)"
-                         style="flex: 1; padding: 5px; border: 1px solid #ced4da; border-radius: 4px;">
-                  ${question.type === 'multiple' ? `
-                    <button type="button" class="btn-remove" onclick="removeOption('${question.id}', '${option.id}')">❌</button>
-                  ` : ''}
-                </div>
-              `).join('')}
-            </div>
+      // Función para agregar pregunta
+      function addQuestion(type) {
+        const questionId = 'q-' + generateId();
+        const question = {
+          id: questionId,
+          type: type,
+          text: '',
+          options: type === 'multiple' ?
+            [
+              { id: 'opt-' + generateId(), text: '', correct: false },
+              { id: 'opt-' + generateId(), text: '', correct: false }
+            ] :
+            [
+              { id: 'true-' + generateId(), text: 'Verdadero', correct: false },
+              { id: 'false-' + generateId(), text: 'Falso', correct: false }
+            ]
+        };
 
-            ${question.type === 'multiple' ? `
-              <button type="button" class="btn-add-option" onclick="addOption('${question.id}')">
-                ➕ Agregar Opción
-              </button>
-            ` : ''}
-            
-            <button type="button" class="btn-remove" onclick="removeQuestion('${question.id}')" style="margin-top: 10px;">
-              🗑️ Eliminar Pregunta
-            </button>
-          </div>
-        `;
-        container.innerHTML += questionHtml;
-      });
-    }
-
-    // Funciones para manejar preguntas y opciones
-    function updateQuestionText(questionId, text) {
-      const question = questions.find(q => q.id === questionId);
-      if (question) question.text = text;
-    }
-
-    function updateOptionText(questionId, optionId, text) {
-      const question = questions.find(q => q.id === questionId);
-      if (question) {
-        const option = question.options.find(opt => opt.id === optionId);
-        if (option) option.text = text;
-      }
-    }
-
-    function setCorrectAnswer(questionId, optionId) {
-      const question = questions.find(q => q.id === questionId);
-      if (question) {
-        question.options.forEach(option => {
-          option.correct = option.id === optionId;
-        });
-      }
-    }
-
-    function addOption(questionId) {
-      const question = questions.find(q => q.id === questionId);
-      if (question) {
-        const newOptionId = 'opt-' + generateId();
-        question.options.push({ id: newOptionId, text: '', correct: false });
+        questions.push(question);
         renderQuestions();
       }
-    }
 
-    function removeOption(questionId, optionId) {
-      const question = questions.find(q => q.id === questionId);
-      if (question && question.options.length > 2) {
-        question.options = question.options.filter(opt => opt.id !== optionId);
-        renderQuestions();
-      } else if (question.options.length <= 2) {
-        alert('Cada pregunta debe tener al menos 2 opciones.');
-      }
-    }
+      // Función para renderizar preguntas de manera segura
+      function renderQuestions() {
+        const container = document.getElementById('questionsContainer');
+        container.innerHTML = '';
 
-    function removeQuestion(questionId) {
-      if (confirm('¿Estás seguro de que quieres eliminar esta pregunta?')) {
-        questions = questions.filter(q => q.id !== questionId);
-        renderQuestions();
-      }
-    }
-
-    // Previsualización del examen
-    function previewExam() {
-      const previewContainer = document.getElementById('previewQuestions');
-      previewContainer.innerHTML = '';
-
-      if (questions.length === 0) {
-        previewContainer.innerHTML = '<p style="color: #6c757d; text-align: center;">No hay preguntas para mostrar.</p>';
-      } else {
-        questions.forEach((question, index) => {
-          const questionHtml = `
-            <div class="exam-question">
-              <p><strong>Pregunta ${index + 1}:</strong> ${question.text || '[Pregunta sin texto]'}</p>
-              <div>
-                ${question.options.map(option => `
-                  <div style="margin: 5px 0;">
-                    <input type="radio" name="preview_${question.id}" disabled>
-                    <label>${option.text}</label>
-                    ${option.correct ? ' <span style="color: #28a745;">✅ Correcta</span>' : ''}
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          `;
-          previewContainer.innerHTML += questionHtml;
-        });
-      }
-
-      document.getElementById('previewModal').style.display = 'block';
-    }
-
-    function closePreview() {
-      document.getElementById('previewModal').style.display = 'none';
-    }
-
-    // Validación antes de enviar el formulario
-    document.getElementById("crearFormulario").addEventListener("submit", async function (e) {
-      e.preventDefault();
-
-      // Validar que se hayan seleccionado todas las imágenes requeridas
-      if (!imagenEspecialidadSeleccionada || !imagenFirma1Seleccionada || !imagenFirma2Seleccionada || !imagenFirma3Seleccionada) {
-        alert('❌ Debes seleccionar una especialidad y las tres firmas requeridas.');
-        return;
-      }
-
-      // Validar ID y título
-      const formId = document.getElementById("formId").value.trim();
-      const titulo = document.getElementById("titulo").value.trim();
-
-      if (!formId) {
-        alert('❌ El ID del formulario es obligatorio.');
-        return;
-      }
-
-      if (!titulo) {
-        alert('❌ El título del formulario es obligatorio.');
-        return;
-      }
-
-      // Validar evaluación
-      let isValid = true;
-      let errorMessage = '';
-
-      if (questions.length === 0) {
-        if (!confirm('⚠️ No has creado ninguna pregunta para la evaluación. ¿Deseas continuar sin evaluación?')) {
+        if (questions.length === 0) {
+          const emptyMsg = document.createElement('p');
+          emptyMsg.style.cssText = 'color: #6c757d; text-align: center;';
+          emptyMsg.textContent = 'No hay preguntas agregadas aún.';
+          container.appendChild(emptyMsg);
           return;
         }
-      } else {
-        questions.forEach((question, index) => {
-          if (!question.text.trim()) {
-            isValid = false;
-            errorMessage = `La pregunta ${index + 1} no tiene texto.`;
-            return;
-          }
 
-          const hasCorrectAnswer = question.options.some(opt => opt.correct);
-          if (!hasCorrectAnswer) {
-            isValid = false;
-            errorMessage = `La pregunta ${index + 1} no tiene una respuesta correcta seleccionada.`;
-            return;
-          }
+        questions.forEach((question, index) => {
+          const questionDiv = document.createElement('div');
+          questionDiv.className = 'question-item';
+          questionDiv.setAttribute('data-question-id', question.id);
+
+          const headerDiv = document.createElement('div');
+          headerDiv.className = 'question-header';
+
+          const strong = document.createElement('strong');
+          strong.textContent = `Pregunta ${index + 1}`;
+
+          const typeSpan = document.createElement('span');
+          typeSpan.className = `question-type ${question.type === 'multiple' ? 'multiple-choice' : 'true-false'}`;
+          typeSpan.textContent = question.type === 'multiple' ? 'Opción Múltiple' : 'Verdadero/Falso';
+
+          headerDiv.appendChild(strong);
+          headerDiv.appendChild(typeSpan);
+
+          const textInput = document.createElement('input');
+          textInput.type = 'text';
+          textInput.placeholder = 'Escribe la pregunta aquí...';
+          textInput.value = question.text;
+          textInput.style.cssText = 'width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ced4da; border-radius: 4px;';
+          textInput.addEventListener('input', (e) => {
+            updateQuestionText(question.id, e.target.value);
+          });
+
+          const optionsContainer = document.createElement('div');
+          optionsContainer.className = 'options-container';
+
+          question.options.forEach(option => {
+            const optionDiv = document.createElement('div');
+            optionDiv.className = 'option-item';
+
+            const radioInput = document.createElement('input');
+            radioInput.type = 'radio';
+            radioInput.name = question.id;
+            radioInput.checked = option.correct;
+            radioInput.addEventListener('change', () => {
+              setCorrectAnswer(question.id, option.id);
+            });
+
+            const textInput = document.createElement('input');
+            textInput.type = 'text';
+            textInput.value = option.text;
+            textInput.style.cssText = 'flex: 1; padding: 5px; border: 1px solid #ced4da; border-radius: 4px;';
+            if (question.type === 'truefalse') {
+              textInput.readOnly = true;
+              textInput.style.background = '#e9ecef';
+            } else {
+              textInput.addEventListener('input', (e) => {
+                updateOptionText(question.id, option.id, e.target.value);
+              });
+            }
+
+            optionDiv.appendChild(radioInput);
+            optionDiv.appendChild(textInput);
+
+            if (question.type === 'multiple') {
+              const removeBtn = document.createElement('button');
+              removeBtn.type = 'button';
+              removeBtn.className = 'btn-remove';
+              removeBtn.textContent = '❌';
+              removeBtn.addEventListener('click', () => {
+                removeOption(question.id, option.id);
+              });
+              optionDiv.appendChild(removeBtn);
+            }
+
+            optionsContainer.appendChild(optionDiv);
+          });
+
+          questionDiv.appendChild(headerDiv);
+          questionDiv.appendChild(textInput);
+          questionDiv.appendChild(optionsContainer);
 
           if (question.type === 'multiple') {
-            const emptyOptions = question.options.filter(opt => !opt.text.trim());
-            if (emptyOptions.length > 0) {
-              isValid = false;
-              errorMessage = `La pregunta ${index + 1} tiene opciones vacías.`;
-              return;
-            }
+            const addOptionBtn = document.createElement('button');
+            addOptionBtn.type = 'button';
+            addOptionBtn.className = 'btn-add-option';
+            addOptionBtn.textContent = '➕ Agregar Opción';
+            addOptionBtn.addEventListener('click', () => {
+              addOption(question.id);
+            });
+            questionDiv.appendChild(addOptionBtn);
           }
+
+          const removeQuestionBtn = document.createElement('button');
+          removeQuestionBtn.type = 'button';
+          removeQuestionBtn.className = 'btn-remove';
+          removeQuestionBtn.style.marginTop = '10px';
+          removeQuestionBtn.textContent = '🗑️ Eliminar Pregunta';
+          removeQuestionBtn.addEventListener('click', () => {
+            removeQuestion(question.id);
+          });
+          questionDiv.appendChild(removeQuestionBtn);
+
+          container.appendChild(questionDiv);
         });
       }
 
-      if (!isValid) {
-        alert('❌ Error en la evaluación: ' + errorMessage);
-        return;
+      // Funciones para manejar preguntas y opciones
+      function updateQuestionText(questionId, text) {
+        const question = questions.find(q => q.id === questionId);
+        if (question) question.text = text;
       }
 
-      // Generar ID único para el formulario
-      const idPalabras = formId.split(/\s+/).filter(Boolean);
-      const normalizedFormId = idPalabras.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join("");
-
-      let id = normalizedFormId + "-" + generarIdAlfanumerico();
-
-      function generarIdAlfanumerico() {
-        const caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        let id = "";
-        for (let i = 0; i < 6; i++) {
-          id += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+      function updateOptionText(questionId, optionId, text) {
+        const question = questions.find(q => q.id === questionId);
+        if (question) {
+          const option = question.options.find(opt => opt.id === optionId);
+          if (option) option.text = text;
         }
-        return id;
       }
 
-      const ahora = new Date();
-      const fechaCierre = new Date(ahora.getTime() + 70 * 60 * 1000).toISOString();
-
-      try {
-        // Enviar formulario y evaluación CON TODAS LAS IMÁGENES
-        const response = await fetch("/api/guardarFormulario", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id,
-            titulo,
-            fechaCierre: fechaCierre,
-            evaluation: questions.length > 0 ? questions : null,
-            imagenEspecialidad: imagenEspecialidadSeleccionada.url,
-            imagenFirma1: imagenFirma1Seleccionada.url,
-            imagenFirma2: imagenFirma2Seleccionada.url,
-            imagenFirma3: imagenFirma3Seleccionada.url
-          })
-        });
-
-        const result = await response.json();
-
-        if (response.ok && result.ok) {
-          const enlace = `${baseURL}/formulario.html?id=${encodeURIComponent(id)}`;
-          document.getElementById("mensaje").innerHTML = `
-            <div style="color: #28a745; background: #d4edda; padding: 15px; border-radius: 5px; border: 1px solid #c3e6cb;">
-              ✅ Formulario con evaluación creado con éxito.<br>
-              👉 <a href="${enlace}" target="_blank">${enlace}</a>
-              <br><button onclick="navigator.clipboard.writeText('${enlace}')" style="margin-top: 10px; padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">📋 Copiar enlace</button>
-            </div>
-          `;
-          questions = []; // Limpiar preguntas
+      function setCorrectAnswer(questionId, optionId) {
+        const question = questions.find(q => q.id === questionId);
+        if (question) {
+          question.options.forEach(option => {
+            option.correct = option.id === optionId;
+          });
           renderQuestions();
-          cargarFormularios();
-        } else {
-          throw new Error(result.error || "Error desconocido al guardar");
         }
-      } catch (err) {
-        console.error(err);
-        document.getElementById("mensaje").innerHTML = `
-          <div class="error-message">
-            ❌ Error al guardar: ${err.message}
-          </div>
-        `;
       }
-    });
 
-    // El resto del código existente (cargarFormularios, limpiar formularios, etc.)
-    document.getElementById("btnLimpiarFormularios").addEventListener("click", async () => {
-      const pResultado = document.getElementById("resultadoLimpieza");
-      pResultado.textContent = "Procesando... ⏳";
-
-      try {
-        const res = await fetch("/api/limpiarFormulariosVencidos");
-        const data = await res.json();
-
-        if (res.ok) {
-          pResultado.textContent = `✅ ${data.mensaje}`;
-        } else {
-          pResultado.textContent = `❌ Error: ${data.error}`;
+      function addOption(questionId) {
+        const question = questions.find(q => q.id === questionId);
+        if (question) {
+          const newOptionId = 'opt-' + generateId();
+          question.options.push({ id: newOptionId, text: '', correct: false });
+          renderQuestions();
         }
-      } catch (err) {
-        console.error(err);
-        pResultado.textContent = "❌ Ocurrió un error inesperado al limpiar.";
       }
-    });
 
-    async function cargarFormularios() {
-      const tabla = document.querySelector("#tablaFormularios tbody");
-      tabla.innerHTML = "<tr><td colspan='7'>Cargando formularios...</td></tr>";
+      function removeOption(questionId, optionId) {
+        const question = questions.find(q => q.id === questionId);
+        if (question && question.options.length > 2) {
+          question.options = question.options.filter(opt => opt.id !== optionId);
+          renderQuestions();
+        } else if (question && question.options.length <= 2) {
+          alert('Cada pregunta debe tener al menos 2 opciones.');
+        }
+      }
 
-      try {
-        const res = await fetch("/api/listarFormularios");
-        if (!res.ok) throw new Error("No se pudo cargar");
+      function removeQuestion(questionId) {
+        if (confirm('¿Estás seguro de que quieres eliminar esta pregunta?')) {
+          questions = questions.filter(q => q.id !== questionId);
+          renderQuestions();
+        }
+      }
 
-        const data = await res.json();
-        const claves = Object.keys(data);
+      // Previsualización del examen
+      function previewExam() {
+        const previewContainer = document.getElementById('previewQuestions');
+        previewContainer.innerHTML = '';
 
-        if (!claves.length) {
-          tabla.innerHTML = "<tr><td colspan='7'>No hay formularios creados.</td></tr>";
+        if (questions.length === 0) {
+          previewContainer.textContent = 'No hay preguntas para mostrar.';
           return;
         }
 
-        tabla.innerHTML = "";
-        claves.forEach((id, i) => {
-          const f = data[id];
-          const fila = `
-            <tr>
+        questions.forEach((question, index) => {
+          const questionDiv = document.createElement('div');
+          questionDiv.className = 'exam-question';
+
+          const questionText = document.createElement('p');
+          const strong = document.createElement('strong');
+          strong.textContent = `Pregunta ${index + 1}: `;
+          questionText.appendChild(strong);
+          questionText.appendChild(document.createTextNode(question.text || '[Pregunta sin texto]'));
+
+          const optionsDiv = document.createElement('div');
+          question.options.forEach(option => {
+            const optionDiv = document.createElement('div');
+            optionDiv.style.margin = '5px 0';
+
+            const radioInput = document.createElement('input');
+            radioInput.type = 'radio';
+            radioInput.name = `preview_${question.id}`;
+            radioInput.disabled = true;
+
+            const label = document.createElement('label');
+            label.textContent = option.text;
+
+            optionDiv.appendChild(radioInput);
+            optionDiv.appendChild(label);
+
+            if (option.correct) {
+              const correctSpan = document.createElement('span');
+              correctSpan.style.color = '#28a745';
+              correctSpan.textContent = ' ✅ Correcta';
+              optionDiv.appendChild(correctSpan);
+            }
+
+            optionsDiv.appendChild(optionDiv);
+          });
+
+          questionDiv.appendChild(questionText);
+          questionDiv.appendChild(optionsDiv);
+          previewContainer.appendChild(questionDiv);
+        });
+
+        document.getElementById('previewModal').style.display = 'block';
+      }
+
+      function closePreview() {
+        document.getElementById('previewModal').style.display = 'none';
+      }
+
+      // Validación antes de enviar el formulario
+      document.getElementById("crearFormulario").addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        // Validar que se hayan seleccionado todas las imágenes requeridas
+        if (!imagenEspecialidadSeleccionada || !imagenFirma1Seleccionada || !imagenFirma2Seleccionada || !imagenFirma3Seleccionada) {
+          alert('❌ Debes seleccionar una especialidad y las tres firmas requeridas.');
+          return;
+        }
+
+        // Validar ID y título
+        const formId = document.getElementById("formId").value.trim();
+        const titulo = document.getElementById("titulo").value.trim();
+
+        if (!formId) {
+          alert('❌ El ID del formulario es obligatorio.');
+          return;
+        }
+
+        if (!titulo) {
+          alert('❌ El título del formulario es obligatorio.');
+          return;
+        }
+
+        // Validar evaluación
+        let isValid = true;
+        let errorMessage = '';
+
+        if (questions.length === 0) {
+          if (!confirm('⚠️ No has creado ninguna pregunta para la evaluación. ¿Deseas continuar sin evaluación?')) {
+            return;
+          }
+        } else {
+          for (let i = 0; i < questions.length; i++) {
+            const question = questions[i];
+            if (!question.text.trim()) {
+              isValid = false;
+              errorMessage = `La pregunta ${i + 1} no tiene texto.`;
+              break;
+            }
+
+            const hasCorrectAnswer = question.options.some(opt => opt.correct);
+            if (!hasCorrectAnswer) {
+              isValid = false;
+              errorMessage = `La pregunta ${i + 1} no tiene una respuesta correcta seleccionada.`;
+              break;
+            }
+
+            if (question.type === 'multiple') {
+              const emptyOptions = question.options.filter(opt => !opt.text.trim());
+              if (emptyOptions.length > 0) {
+                isValid = false;
+                errorMessage = `La pregunta ${i + 1} tiene opciones vacías.`;
+                break;
+              }
+            }
+          }
+        }
+
+        if (!isValid) {
+          alert('❌ Error en la evaluación: ' + errorMessage);
+          return;
+        }
+
+        // Generar ID único para el formulario de manera segura
+        const idPalabras = formId.split(/\s+/).filter(Boolean);
+        const normalizedFormId = idPalabras.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join("");
+
+        let id = normalizedFormId + "-" + generarIdAlfanumerico();
+
+        function generarIdAlfanumerico() {
+          const caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+          let id = "";
+          for (let i = 0; i < 6; i++) {
+            id += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+          }
+          return id;
+        }
+
+        const ahora = new Date();
+        const fechaCierre = new Date(ahora.getTime() + 70 * 60 * 1000).toISOString();
+
+        // Mostrar loading en el botón de enviar
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Creando... <span class="loading-spinner"></span>';
+
+        try {
+          // Enviar formulario y evaluación CON TODAS LAS IMÁGENES
+          const response = await fetch("/api/guardarFormulario", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id,
+              titulo,
+              fechaCierre: fechaCierre,
+              evaluation: questions.length > 0 ? questions : null,
+              imagenEspecialidad: imagenEspecialidadSeleccionada.url,
+              imagenFirma1: imagenFirma1Seleccionada.url,
+              imagenFirma2: imagenFirma2Seleccionada.url,
+              imagenFirma3: imagenFirma3Seleccionada.url
+            })
+          });
+
+          const result = await response.json();
+
+          if (response.ok && result.ok) {
+            const enlace = `${baseURL}/formulario.html?id=${encodeURIComponent(id)}`;
+            document.getElementById("mensaje").innerHTML = `
+              <div style="color: #28a745; background: #d4edda; padding: 15px; border-radius: 5px; border: 1px solid #c3e6cb;">
+                ✅ Formulario con evaluación creado con éxito.<br>
+                👉 <a href="${enlace}" target="_blank">${enlace}</a>
+                <br><button onclick="navigator.clipboard.writeText('${enlace}')" style="margin-top: 10px; padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">📋 Copiar enlace</button>
+              </div>
+            `;
+            questions = []; // Limpiar preguntas
+            renderQuestions();
+            cargarFormularios();
+          } else {
+            throw new Error(result.error || "Error desconocido al guardar");
+          }
+        } catch (err) {
+          console.error(err);
+          document.getElementById("mensaje").innerHTML = `
+            <div class="error-message">
+              ❌ Error al guardar: ${err.message}
+            </div>
+          `;
+        } finally {
+          // Restaurar el botón
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalBtnText;
+        }
+      });
+
+      // Limpiar formularios vencidos
+      document.getElementById("btnLimpiarFormularios").addEventListener("click", async () => {
+        const pResultado = document.getElementById("resultadoLimpieza");
+        const btn = document.getElementById("btnLimpiarFormularios");
+        const originalText = btn.textContent;
+        
+        btn.disabled = true;
+        btn.textContent = "Procesando... ⏳";
+        pResultado.textContent = "Procesando... ⏳";
+
+        try {
+          const res = await fetch("/api/limpiarFormulariosVencidos");
+          const data = await res.json();
+
+          if (res.ok) {
+            pResultado.textContent = `✅ ${data.mensaje}`;
+          } else {
+            pResultado.textContent = `❌ Error: ${data.error}`;
+          }
+        } catch (err) {
+          console.error(err);
+          pResultado.textContent = "❌ Ocurrió un error inesperado al limpiar.";
+        } finally {
+          btn.disabled = false;
+          btn.textContent = originalText;
+        }
+      });
+
+      async function cargarFormularios() {
+        const tabla = document.querySelector("#tablaFormularios tbody");
+        tabla.innerHTML = "<tr><td colspan='7'>Cargando formularios...</td></tr>";
+
+        try {
+          const res = await fetch("/api/listarFormularios");
+          if (!res.ok) throw new Error("No se pudo cargar");
+
+          const data = await res.json();
+          const claves = Object.keys(data);
+
+          if (!claves.length) {
+            tabla.innerHTML = "<tr><td colspan='7'>No hay formularios creados.</td></tr>";
+            return;
+          }
+
+          tabla.innerHTML = "";
+          claves.forEach((id, i) => {
+            const f = data[id];
+            const fila = document.createElement('tr');
+            
+            fila.innerHTML = `
               <td>${i + 1}</td>
-              <td>${id}</td>
-              <td>${f.titulo}</td>
+              <td>${escapeHTML(id)}</td>
+              <td>${escapeHTML(f.titulo)}</td>
               <td>${new Date(f.fechaCierre).toLocaleString()}</td>
               <td>${f.creado ? new Date(f.creado).toLocaleString() : '―'}</td>
               <td>
-                <a href="${baseURL}/formulario.html?id=${id}" target="_blank">
+                <a href="${baseURL}/formulario.html?id=${encodeURIComponent(id)}" target="_blank">
                   <button>👁 Ver registros</button>
                 </a>
-                <button onclick="navigator.clipboard.writeText('${baseURL}/formulario.html?id=${id}')">📋 Copiar enlace</button>
+                <button onclick="navigator.clipboard.writeText('${baseURL}/formulario.html?id=${encodeURIComponent(id)}')">📋 Copiar enlace</button>
               </td>
               <td>
-                <button onclick="verEvaluacion('${id}')" style="background: #17a2b8; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+                <button onclick="verEvaluacion('${escapeHTML(id)}')" style="background: #17a2b8; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
                   📊 Ver Evaluación
                 </button>
               </td>
-            </tr>
-          `;
-          tabla.insertAdjacentHTML("beforeend", fila);
-        });
-      } catch (e) {
-        console.error(e);
-        tabla.innerHTML = "<tr><td colspan='7'>❌ Error al cargar formularios.</td></tr>";
-      }
-    }
-
-    // Función para ver evaluación existente
-    async function verEvaluacion(formId) {
-      try {
-        const res = await fetch(`/api/obtenerEvaluacion?id=${formId}`);
-        if (res.ok) {
-          const evaluacion = await res.json();
-          if (evaluacion && evaluacion.length > 0) {
-            questions = evaluacion;
-            previewExam();
-          } else {
-            alert('Este formulario no tiene evaluación asociada o está vacía.');
-          }
-        } else {
-          const error = await res.json();
-          alert('Este formulario no tiene evaluación asociada. ' + (error.error || ''));
+            `;
+            tabla.appendChild(fila);
+          });
+        } catch (e) {
+          console.error(e);
+          tabla.innerHTML = "<tr><td colspan='7'>❌ Error al cargar formularios.</td></tr>";
         }
-      } catch (error) {
-        console.error('Error al obtener evaluación:', error);
-        alert('Error al cargar la evaluación: ' + error.message);
       }
-    }
 
-    // Ejecutar cuando cargue la página
-    document.addEventListener("DOMContentLoaded", () => {
-      cargarFormularios();
-      cargarImagenes('especialidades', 'selectEspecialidad');
-      cargarImagenes('firmas', 'selectFirma1');
-      cargarImagenes('firmas', 'selectFirma2');
-      cargarImagenes('firmas', 'selectFirma3');
-      
-      // Configurar eventos para subir imágenes
-      document.getElementById('uploadEspecialidad').addEventListener('change', (e) => {
-        subirImagen('especialidades', e.target.files[0], 'nombreEspecialidad', 'mensajeEspecialidad', 'selectEspecialidad');
+      // Función auxiliar para escapar HTML
+      function escapeHTML(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+      }
+
+      // Función para ver evaluación existente
+      async function verEvaluacion(formId) {
+        try {
+          const res = await fetch(`/api/obtenerEvaluacion?id=${encodeURIComponent(formId)}`);
+          if (res.ok) {
+            const evaluacion = await res.json();
+            if (evaluacion && evaluacion.length > 0) {
+              questions = evaluacion;
+              previewExam();
+            } else {
+              alert('Este formulario no tiene evaluación asociada o está vacía.');
+            }
+          } else {
+            const error = await res.json();
+            alert('Este formulario no tiene evaluación asociada. ' + (error.error || ''));
+          }
+        } catch (error) {
+          console.error('Error al obtener evaluación:', error);
+          alert('Error al cargar la evaluación: ' + error.message);
+        }
+      }
+
+      // Hacer funciones globales para los event listeners
+      window.addQuestion = addQuestion;
+      window.previewExam = previewExam;
+      window.closePreview = closePreview;
+      window.verEvaluacion = verEvaluacion;
+
+      // Ejecutar cuando cargue la página
+      document.addEventListener("DOMContentLoaded", () => {
+        cargarFormularios();
+        cargarImagenes('especialidades', 'selectEspecialidad');
+        cargarImagenes('firmas', 'selectFirma1');
+        cargarImagenes('firmas', 'selectFirma2');
+        cargarImagenes('firmas', 'selectFirma3');
+        
+        // Configurar eventos para subir imágenes
+        document.getElementById('uploadEspecialidad').addEventListener('change', (e) => {
+          subirImagen('especialidades', e.target.files[0], 'nombreEspecialidad', 'mensajeEspecialidad', 'selectEspecialidad');
+        });
+        
+        document.getElementById('uploadFirma1').addEventListener('change', (e) => {
+          subirImagen('firmas', e.target.files[0], 'nombreFirma1', 'mensajeFirma1', 'selectFirma1');
+        });
+        
+        document.getElementById('uploadFirma2').addEventListener('change', (e) => {
+          subirImagen('firmas', e.target.files[0], 'nombreFirma2', 'mensajeFirma2', 'selectFirma2');
+        });
+        
+        document.getElementById('uploadFirma3').addEventListener('change', (e) => {
+          subirImagen('firmas', e.target.files[0], 'nombreFirma3', 'mensajeFirma3', 'selectFirma3');
+        });
       });
-      
-      document.getElementById('uploadFirma1').addEventListener('change', (e) => {
-        subirImagen('firmas', e.target.files[0], 'nombreFirma1', 'mensajeFirma1', 'selectFirma1');
-      });
-      
-      document.getElementById('uploadFirma2').addEventListener('change', (e) => {
-        subirImagen('firmas', e.target.files[0], 'nombreFirma2', 'mensajeFirma2', 'selectFirma2');
-      });
-      
-      document.getElementById('uploadFirma3').addEventListener('change', (e) => {
-        subirImagen('firmas', e.target.files[0], 'nombreFirma3', 'mensajeFirma3', 'selectFirma3');
-      });
-    });
+    })();
   </script>
 </body>
 

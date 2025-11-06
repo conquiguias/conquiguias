@@ -1734,11 +1734,11 @@
           document.getElementById('btnImprimirExamen').addEventListener('click', () => {
             imprimirExamenCompleto(examen, resultado, formulario);
           });
+          document.getElementById('btnImprimirCertificacion').addEventListener('click', () => {
+            mostrarMensaje("info", "Próximamente", "La funcionalidad de impresión de certificación estará disponible pronto.");
+          });
         }
 
-        document.getElementById('btnImprimirCertificacion').addEventListener('click', () => {
-          mostrarMensaje("info", "Próximamente", "La funcionalidad de impresión de certificación estará disponible pronto.");
-        });
       }
 
       function imprimirExamenCompleto(examen, resultado, formulario) {

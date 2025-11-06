@@ -454,8 +454,26 @@
     }
 
     /* Estilos para la sección de certificaciones */
+    /* Estilos específicos para la sección de certificaciones */
+    .card-certificaciones {
+      max-width: none !important;
+      width: calc(100% - 20px) !important;
+      margin: 10px !important;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+      background: #fff;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .card-certificaciones:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+    }
+
     #certificacionesSection {
-      animation: fadeIn 0.5s ease;
+      width: 100%;
+      padding: 0;
     }
 
     #certificacionesContadores {
@@ -727,747 +745,748 @@
     </div>
 
     <!-- 🔹 NUEVA SECCIÓN: CERTIFICACIONES -->
-    <div id="certificacionesSection" class="card hidden">
-      <h2>📜 Mis Certificaciones de Especialidades</h2>
-      <p>Aquí puedes ver todas las especialidades en las que has participado, validadas con tu correo electrónico.</p>
+    <div id="certificacionesSection" class="hidden">
+      <div class="card card-certificaciones">
+        <h2>📜 Mis Certificaciones de Especialidades</h2>
+        <p>Aquí puedes ver todas las especialidades en las que has participado, validadas con tu correo electrónico.</p>
 
-      <div id="certificacionesLoading" style="text-align: center; padding: 20px;">
-        <div class="loading" style="display: inline-block;"></div>
-        <p>Cargando tus certificaciones...</p>
-      </div>
-
-      <div id="certificacionesContent" style="display: none;">
-        <div id="certificacionesContadores">
-          <p>Total de especialidades: <span id="totalEspecialidades">0</span></p>
-          <p>Especialidades completadas: <span id="especialidadesCompletadas">0</span></p>
+        <div id="certificacionesLoading" style="text-align: center; padding: 20px;">
+          <div class="loading" style="display: inline-block;"></div>
+          <p>Cargando tus certificaciones...</p>
         </div>
 
-        <table id="tablaCertificaciones" border="1" style="border-collapse: collapse; width: 100%; margin-top: 20px;">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Especialidad</th>
-              <th>Fecha de Participación</th>
-              <th>Asistencias Completadas</th>
-              <th>Examen Realizado</th>
-              <th>Calificación</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody id="cuerpoTablaCertificaciones">
-            <!-- Las filas se llenarán dinámicamente -->
-          </tbody>
-        </table>
+        <div id="certificacionesContent" style="display: none;">
+          <div id="certificacionesContadores">
+            <p>Total de especialidades: <span id="totalEspecialidades">0</span></p>
+            <p>Especialidades completadas: <span id="especialidadesCompletadas">0</span></p>
+          </div>
 
-        <div id="sinCertificaciones" style="display: none; text-align: center; padding: 30px; color: #666;">
-          <h3>📝 Aún no tienes certificaciones</h3>
-          <p>Participa en especialidades para ver tus certificaciones aquí.</p>
+          <table id="tablaCertificaciones" border="1" style="border-collapse: collapse; width: 100%; margin-top: 20px;">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Especialidad</th>
+                <th>Fecha de Participación</th>
+                <th>Asistencias Completadas</th>
+                <th>Examen Realizado</th>
+                <th>Calificación</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="cuerpoTablaCertificaciones">
+              <!-- Las filas se llenarán dinámicamente -->
+            </tbody>
+          </table>
+
+          <div id="sinCertificaciones" style="display: none; text-align: center; padding: 30px; color: #666;">
+            <h3>📝 Aún no tienes certificaciones</h3>
+            <p>Participa en especialidades para ver tus certificaciones aquí.</p>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- 🔹 Visor PDF modal -->
-  <div id="pdfViewerModal" class="hidden" style="display: none;">
-    <div class="pdf-viewer-content">
-      <button id="cerrarPDF" class="cerrar-pdf">✖</button>
-      <iframe id="pdfFrame" src="" allowfullscreen style="border:none;"></iframe>
-    </div>
-  </div>
-
-  <!-- 🔹 Contenedor general de mensajes -->
-  <div id="mensajeModal" class="hiddenX">
-    <div class="mensaje-content">
-      <h3 id="mensajeTitulo">Título</h3>
-      <p id="mensajeTexto">Texto del mensaje</p>
-      <div id="mensajeBotones">
-        <button id="mensajeAceptar">Aceptar</button>
-        <button id="mensajeCancelar" class="hiddenX">Cancelar</button>
+    <!-- 🔹 Visor PDF modal -->
+    <div id="pdfViewerModal" class="hidden" style="display: none;">
+      <div class="pdf-viewer-content">
+        <button id="cerrarPDF" class="cerrar-pdf">✖</button>
+        <iframe id="pdfFrame" src="" allowfullscreen style="border:none;"></iframe>
       </div>
     </div>
-  </div>
+
+    <!-- 🔹 Contenedor general de mensajes -->
+    <div id="mensajeModal" class="hiddenX">
+      <div class="mensaje-content">
+        <h3 id="mensajeTitulo">Título</h3>
+        <p id="mensajeTexto">Texto del mensaje</p>
+        <div id="mensajeBotones">
+          <button id="mensajeAceptar">Aceptar</button>
+          <button id="mensajeCancelar" class="hiddenX">Cancelar</button>
+        </div>
+      </div>
+    </div>
 
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
-    import {
-      getStorage, ref, uploadBytes, getDownloadURL, deleteObject, listAll, getMetadata
-    } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-storage.js";
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+      import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+      import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+      import {
+        getStorage, ref, uploadBytes, getDownloadURL, deleteObject, listAll, getMetadata
+      } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-storage.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyB1YTwZM8wKlxZ8HhXb7EUse8YyLmcfeS8",
-      authDomain: "conquiguias-world-85ccd.firebaseapp.com",
-      projectId: "conquiguias-world-85ccd",
-      storageBucket: "conquiguias-world-85ccd.firebasestorage.app",
-      messagingSenderId: "785222651205",
-      appId: "1:785222651205:web:0486c50e9d8af6bf9b022c"
-    };
+      const firebaseConfig = {
+        apiKey: "AIzaSyB1YTwZM8wKlxZ8HhXb7EUse8YyLmcfeS8",
+        authDomain: "conquiguias-world-85ccd.firebaseapp.com",
+        projectId: "conquiguias-world-85ccd",
+        storageBucket: "conquiguias-world-85ccd.firebasestorage.app",
+        messagingSenderId: "785222651205",
+        appId: "1:785222651205:web:0486c50e9d8af6bf9b022c"
+      };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const storage = getStorage(app);
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      const storage = getStorage(app);
 
-    // Elementos UI
-    const inicioNombre = document.getElementById("inicioNombre");
-    const inicioFoto = document.getElementById("inicioFoto");
-    const perfilSection = document.getElementById("perfilSection");
-    const inicioSection = document.getElementById("inicioSection");
-    const especialidadesSection = document.getElementById("especialidadesSection");
-    const menuInicio = document.getElementById("menuInicio");
-    const menuPerfil = document.getElementById("menuPerfil");
-    const menuEspecialidades = document.getElementById("menuEspecialidades");
-    const menuCertificaciones = document.getElementById("menuCertificaciones");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const editForm = document.getElementById("editForm");
-    const fotoInput = document.getElementById("foto");
-    const preview = document.getElementById("preview");
-    const removePhotoBtn = document.getElementById("removePhoto");
-    const nombreInput = document.getElementById("nombre");
-    const apellidoInput = document.getElementById("apellido");
-    const edadInput = document.getElementById("edad");
-    const sexoInput = document.getElementById("sexo");
-    const paisInput = document.getElementById("pais");
-    const listaEspecialidades = document.getElementById("listaEspecialidades");
-    const archivosContainer = document.getElementById("archivosContainer");
-    const especialidadActualH3 = document.getElementById("especialidadActual");
-    const subirArchivoInput = document.getElementById("subirArchivo");
-    const subirArchivoBtn = document.getElementById("subirArchivoBtn");
-    const listaArchivos = document.getElementById("listaArchivos");
-    const cerrarEspecialidadBtn = document.getElementById("cerrarEspecialidad");
+      // Elementos UI
+      const inicioNombre = document.getElementById("inicioNombre");
+      const inicioFoto = document.getElementById("inicioFoto");
+      const perfilSection = document.getElementById("perfilSection");
+      const inicioSection = document.getElementById("inicioSection");
+      const especialidadesSection = document.getElementById("especialidadesSection");
+      const menuInicio = document.getElementById("menuInicio");
+      const menuPerfil = document.getElementById("menuPerfil");
+      const menuEspecialidades = document.getElementById("menuEspecialidades");
+      const menuCertificaciones = document.getElementById("menuCertificaciones");
+      const logoutBtn = document.getElementById("logoutBtn");
+      const editForm = document.getElementById("editForm");
+      const fotoInput = document.getElementById("foto");
+      const preview = document.getElementById("preview");
+      const removePhotoBtn = document.getElementById("removePhoto");
+      const nombreInput = document.getElementById("nombre");
+      const apellidoInput = document.getElementById("apellido");
+      const edadInput = document.getElementById("edad");
+      const sexoInput = document.getElementById("sexo");
+      const paisInput = document.getElementById("pais");
+      const listaEspecialidades = document.getElementById("listaEspecialidades");
+      const archivosContainer = document.getElementById("archivosContainer");
+      const especialidadActualH3 = document.getElementById("especialidadActual");
+      const subirArchivoInput = document.getElementById("subirArchivo");
+      const subirArchivoBtn = document.getElementById("subirArchivoBtn");
+      const listaArchivos = document.getElementById("listaArchivos");
+      const cerrarEspecialidadBtn = document.getElementById("cerrarEspecialidad");
 
-    // Elementos de Certificaciones
-    const certificacionesSection = document.getElementById("certificacionesSection");
-    const certificacionesLoading = document.getElementById("certificacionesLoading");
-    const certificacionesContent = document.getElementById("certificacionesContent");
-    const sinCertificaciones = document.getElementById("sinCertificaciones");
-    const cuerpoTablaCertificaciones = document.getElementById("cuerpoTablaCertificaciones");
-    const totalEspecialidades = document.getElementById("totalEspecialidades");
-    const especialidadesCompletadas = document.getElementById("especialidadesCompletadas");
+      // Elementos de Certificaciones
+      const certificacionesSection = document.getElementById("certificacionesSection");
+      const certificacionesLoading = document.getElementById("certificacionesLoading");
+      const certificacionesContent = document.getElementById("certificacionesContent");
+      const sinCertificaciones = document.getElementById("sinCertificaciones");
+      const cuerpoTablaCertificaciones = document.getElementById("cuerpoTablaCertificaciones");
+      const totalEspecialidades = document.getElementById("totalEspecialidades");
+      const especialidadesCompletadas = document.getElementById("especialidadesCompletadas");
 
-    let especialidadSeleccionada = "";
-    let currentUserId = null;
-    let currentPhotoURL = "";
-    const placeholderURL = "https://dummyimage.com/120x120/ccc/fff";
+      let especialidadSeleccionada = "";
+      let currentUserId = null;
+      let currentPhotoURL = "";
+      const placeholderURL = "https://dummyimage.com/120x120/ccc/fff";
 
-    // Variable global para guardar si el usuario puede acceder o no
-    let puedeEntrarEspecialidades = false;
+      // Variable global para guardar si el usuario puede acceder o no
+      let puedeEntrarEspecialidades = false;
 
-    // 🔹 Detectar usuario logueado
-    // 🔹 Detectar usuario logueado
-    onAuthStateChanged(auth, async (user) => {
-      // 🔒 Lista de correos permitidos para entrar a Especialidades
-      const correosAutorizados = [
-        "kendall.torres.17@gmail.com",
-        "lunabecky026@gmail.com"
-      ];
+      // 🔹 Detectar usuario logueado
+      // 🔹 Detectar usuario logueado
+      onAuthStateChanged(auth, async (user) => {
+        // 🔒 Lista de correos permitidos para entrar a Especialidades
+        const correosAutorizados = [
+          "kendall.torres.17@gmail.com",
+          "lunabecky026@gmail.com"
+        ];
 
-      // Obtener elementos del header
-      const headerUserPhoto = document.getElementById("headerUserPhoto");
-      const headerUserName = document.getElementById("headerUserName");
+        // Obtener elementos del header
+        const headerUserPhoto = document.getElementById("headerUserPhoto");
+        const headerUserName = document.getElementById("headerUserName");
 
-      // Obtener el campo de correo del perfil
-      const correoInput = document.getElementById("correo");
+        // Obtener el campo de correo del perfil
+        const correoInput = document.getElementById("correo");
 
-      // Dentro del onAuthStateChanged (después de obtener el usuario)
-      if (user) {
-        const email = user.email;
-        puedeEntrarEspecialidades = correosAutorizados.includes(email);
-      }
+        // Dentro del onAuthStateChanged (después de obtener el usuario)
+        if (user) {
+          const email = user.email;
+          puedeEntrarEspecialidades = correosAutorizados.includes(email);
+        }
 
-      if (!user) {
-        window.location.href = "index.html";
-        return;
-      }
-
-      currentUserId = user.uid;
-
-      const docRef = doc(db, "usuarios", currentUserId);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        currentPhotoURL = data.fotoURL || placeholderURL;
-
-        // Actualizar header del usuario
-        headerUserPhoto.src = currentPhotoURL;
-        headerUserName.textContent = `${data.nombre || ''} ${data.apellido || ''}`;
-
-        // Actualizar los campos del perfil
-        nombreInput.value = data.nombre || '';
-        apellidoInput.value = data.apellido || '';
-        edadInput.value = data.edad || '';
-        sexoInput.value = data.sexo || '';
-        paisInput.value = data.pais || '';
-        preview.src = currentPhotoURL;
-
-        // Establecer el correo (solo lectura)
-        correoInput.value = user.email || '';
-      }
-
-      cargarEspecialidadesFijas();
-    });
-
-    // 🔹 Navegación
-    menuInicio.addEventListener("click", () => mostrarSeccion(inicioSection, menuInicio));
-    menuPerfil.addEventListener("click", () => mostrarSeccion(perfilSection, menuPerfil));
-    menuCertificaciones.addEventListener("click", () => {
-      mostrarSeccion(certificacionesSection, menuCertificaciones);
-      cargarCertificaciones();
-    });
-
-    // 🔹 Menú Especialidades con bloqueo si no es autorizado
-    menuEspecialidades.addEventListener("click", () => {
-      if (!puedeEntrarEspecialidades) {
-        mostrarMensaje("error", "Acceso restringido", "🚫 Solo personal Premium puede ingresar a esta sección.");
-        return;
-      }
-
-      mostrarSeccion(especialidadesSection, menuEspecialidades);
-      cargarEspecialidadesFijas();
-    });
-
-    // 🔹 Foto de perfil
-    fotoInput.addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = () => preview.src = reader.result;
-        reader.readAsDataURL(file);
-      }
-    });
-
-    // 🔹 Guardar perfil (versión con eliminación de foto anterior)
-    editForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      if (!currentUserId) return;
-
-      let newPhotoURL = currentPhotoURL;
-      const file = fotoInput.files[0];
-
-      try {
-        // ✅ Validar tamaño antes de subir
-        if (file && file.size > 1024 * 1024) {
-          mostrarMensaje("info", "⚠️ La imagen no debe superar 1 MB.", "");
+        if (!user) {
+          window.location.href = "index.html";
           return;
         }
 
-        // ✅ Si hay un archivo nuevo, eliminar el anterior
-        if (file && currentPhotoURL) {
-          try {
-            // Buscar y eliminar foto anterior
-            const oldRef = ref(storage, currentPhotoURL);
-            await deleteObject(oldRef);
-            console.log("🗑️ Foto anterior eliminada del servidor");
-          } catch (err) {
-            console.warn("⚠️ No se pudo eliminar la foto anterior:", err.message);
-          }
-        }
+        currentUserId = user.uid;
 
-        // ✅ Subir la nueva imagen (si existe)
-        if (file) {
-          const storageRef = ref(storage, `usuarios/${currentUserId}/${file.name}`);
-          await uploadBytes(storageRef, file);
-          newPhotoURL = await getDownloadURL(storageRef);
-        }
-
-        // ✅ Actualizar datos en Firestore
         const docRef = doc(db, "usuarios", currentUserId);
-        await updateDoc(docRef, {
-          nombre: nombreInput.value,
-          apellido: apellidoInput.value,
-          edad: edadInput.value,
-          sexo: sexoInput.value,
-          pais: paisInput.value,
-          fotoURL: newPhotoURL
-        });
+        const docSnap = await getDoc(docRef);
 
-        mostrarMensaje("info", "✅ Información actualizada correctamente.", "", () => {
-          window.location.reload();
-        });
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          currentPhotoURL = data.fotoURL || placeholderURL;
 
-      } catch (error) {
-        console.error(error);
-        mostrarMensaje("error", "❌ Error al actualizar", "");
-      }
-    });
+          // Actualizar header del usuario
+          headerUserPhoto.src = currentPhotoURL;
+          headerUserName.textContent = `${data.nombre || ''} ${data.apellido || ''}`;
 
-    logoutBtn.addEventListener("click", async () => {
-      await signOut(auth);
-      window.location.href = "index.html";
-    });
+          // Actualizar los campos del perfil
+          nombreInput.value = data.nombre || '';
+          apellidoInput.value = data.apellido || '';
+          edadInput.value = data.edad || '';
+          sexoInput.value = data.sexo || '';
+          paisInput.value = data.pais || '';
+          preview.src = currentPhotoURL;
 
-    ////////////////////////
-    // 📁 ESPECIALIDADES STORAGE
-    ////////////////////////
-    const especialidadesFijas = ["Especialidades Completadas", "Certificaciones", "Carpeta Guía Mayor", "Otros"];
+          // Establecer el correo (solo lectura)
+          correoInput.value = user.email || '';
+        }
 
-    function cargarEspecialidadesFijas() {
-      listaEspecialidades.innerHTML = "";
-      especialidadesFijas.forEach(nombre => {
-        const li = document.createElement("li");
-        li.textContent = nombre;
-        li.classList.add("carpeta-item");
-        listaEspecialidades.appendChild(li);
+        cargarEspecialidadesFijas();
       });
-    }
 
-    listaEspecialidades.addEventListener("click", (e) => {
-      if (e.target.tagName !== "LI") return;
-      especialidadSeleccionada = e.target.textContent;
-      especialidadActualH3.textContent = `📂 ${especialidadSeleccionada}`;
-      archivosContainer.classList.remove("hidden");
-      cargarArchivos(especialidadSeleccionada);
-    });
+      // 🔹 Navegación
+      menuInicio.addEventListener("click", () => mostrarSeccion(inicioSection, menuInicio));
+      menuPerfil.addEventListener("click", () => mostrarSeccion(perfilSection, menuPerfil));
+      menuCertificaciones.addEventListener("click", () => {
+        mostrarSeccion(certificacionesSection, menuCertificaciones);
+        cargarCertificaciones();
+      });
 
-    subirArchivoBtn.addEventListener("click", async () => {
-      if (!especialidadSeleccionada || !subirArchivoInput.files[0])
-        return mostrarMensaje("info", "Selecciona un archivo válido", "");
-
-      const file = subirArchivoInput.files[0];
-      const ext = file.name.split(".").pop().toLowerCase();
-      if (!["pdf", "jpg", "jpeg", "png"].includes(ext))
-        return mostrarMensaje("error", "❌ Solo se permiten archivos PDF o imágenes (JPG, JPEG, PNG)", "No se aceptan extensiones diferentes que no sean archivos de pdf o imágenes.");
-
-      const storageRefFile = ref(storage, `usuarios/${currentUserId}/carpetas/${especialidadSeleccionada}/${file.name}`);
-      await uploadBytes(storageRefFile, file);
-      mostrarMensaje("info", `📄 Archivo "${file.name}" subido correctamente`, "");
-      subirArchivoInput.value = "";
-      cargarArchivos(especialidadSeleccionada);
-    });
-
-    async function cargarArchivos(especialidad, orden = "nombreDesc") {
-      listaArchivos.innerHTML = "";
-      const folderRef = ref(storage, `usuarios/${currentUserId}/carpetas/${especialidad}/`);
-      try {
-        const result = await listAll(folderRef);
-        if (result.items.length === 0) {
-          listaArchivos.innerHTML = "<li>No hay archivos aún.</li>";
+      // 🔹 Menú Especialidades con bloqueo si no es autorizado
+      menuEspecialidades.addEventListener("click", () => {
+        if (!puedeEntrarEspecialidades) {
+          mostrarMensaje("error", "Acceso restringido", "🚫 Solo personal Premium puede ingresar a esta sección.");
           return;
         }
 
-        const archivos = [];
-        for (const fileRef of result.items) {
-          const url = await getDownloadURL(fileRef);
-          const meta = await getMetadata(fileRef);
+        mostrarSeccion(especialidadesSection, menuEspecialidades);
+        cargarEspecialidadesFijas();
+      });
 
-          archivos.push({
-            ref: fileRef,
-            url,
-            nombre: fileRef.name,
-            fecha: new Date(meta.timeCreated),
-            size: meta.size
+      // 🔹 Foto de perfil
+      fotoInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = () => preview.src = reader.result;
+          reader.readAsDataURL(file);
+        }
+      });
+
+      // 🔹 Guardar perfil (versión con eliminación de foto anterior)
+      editForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!currentUserId) return;
+
+        let newPhotoURL = currentPhotoURL;
+        const file = fotoInput.files[0];
+
+        try {
+          // ✅ Validar tamaño antes de subir
+          if (file && file.size > 1024 * 1024) {
+            mostrarMensaje("info", "⚠️ La imagen no debe superar 1 MB.", "");
+            return;
+          }
+
+          // ✅ Si hay un archivo nuevo, eliminar el anterior
+          if (file && currentPhotoURL) {
+            try {
+              // Buscar y eliminar foto anterior
+              const oldRef = ref(storage, currentPhotoURL);
+              await deleteObject(oldRef);
+              console.log("🗑️ Foto anterior eliminada del servidor");
+            } catch (err) {
+              console.warn("⚠️ No se pudo eliminar la foto anterior:", err.message);
+            }
+          }
+
+          // ✅ Subir la nueva imagen (si existe)
+          if (file) {
+            const storageRef = ref(storage, `usuarios/${currentUserId}/${file.name}`);
+            await uploadBytes(storageRef, file);
+            newPhotoURL = await getDownloadURL(storageRef);
+          }
+
+          // ✅ Actualizar datos en Firestore
+          const docRef = doc(db, "usuarios", currentUserId);
+          await updateDoc(docRef, {
+            nombre: nombreInput.value,
+            apellido: apellidoInput.value,
+            edad: edadInput.value,
+            sexo: sexoInput.value,
+            pais: paisInput.value,
+            fotoURL: newPhotoURL
           });
-        }
 
-        // 🔹 Orden según selección
-        switch (orden) {
-          case "nombreAsc":
-            archivos.sort((a, b) => a.nombre.localeCompare(b.nombre));
-            break;
-          case "nombreDesc":
-            archivos.sort((a, b) => b.nombre.localeCompare(a.nombre));
-            break;
-          case "fechaAsc":
-            archivos.sort((a, b) => a.fecha - b.fecha);
-            break;
-          case "fechaDesc":
-            archivos.sort((a, b) => b.fecha - a.fecha);
-            break;
-          case "sizeAsc":
-            archivos.sort((a, b) => a.size - b.size);
-            break;
-          case "sizeDesc":
-            archivos.sort((a, b) => b.size - a.size);
-            break;
-        }
+          mostrarMensaje("info", "✅ Información actualizada correctamente.", "", () => {
+            window.location.reload();
+          });
 
-        // 🔹 Crear elementos en la lista (igual que antes)
-        archivos.forEach(file => {
+        } catch (error) {
+          console.error(error);
+          mostrarMensaje("error", "❌ Error al actualizar", "");
+        }
+      });
+
+      logoutBtn.addEventListener("click", async () => {
+        await signOut(auth);
+        window.location.href = "index.html";
+      });
+
+      ////////////////////////
+      // 📁 ESPECIALIDADES STORAGE
+      ////////////////////////
+      const especialidadesFijas = ["Especialidades Completadas", "Certificaciones", "Carpeta Guía Mayor", "Otros"];
+
+      function cargarEspecialidadesFijas() {
+        listaEspecialidades.innerHTML = "";
+        especialidadesFijas.forEach(nombre => {
           const li = document.createElement("li");
-          li.classList.add("archivo-item");
-          li.style.display = "flex";
-          li.style.justifyContent = "space-between";
-          li.style.alignItems = "center";
+          li.textContent = nombre;
+          li.classList.add("carpeta-item");
+          listaEspecialidades.appendChild(li);
+        });
+      }
 
-          const nombreSpan = document.createElement("span");
-          nombreSpan.textContent = file.nombre;
-          nombreSpan.classList.add("archivo-link");
-          nombreSpan.style.cursor = "pointer";
-          nombreSpan.addEventListener("click", () => {
-            const ext = file.nombre.split('.').pop().toLowerCase();
-            if (ext === "pdf") abrirVisorPDF(file.url);
-            else window.open(file.url, "_blank");
-          });
+      listaEspecialidades.addEventListener("click", (e) => {
+        if (e.target.tagName !== "LI") return;
+        especialidadSeleccionada = e.target.textContent;
+        especialidadActualH3.textContent = `📂 ${especialidadSeleccionada}`;
+        archivosContainer.classList.remove("hidden");
+        cargarArchivos(especialidadSeleccionada);
+      });
 
-          const infoSpan = document.createElement("span");
-          infoSpan.textContent = `${file.fecha.toLocaleDateString()} ${file.fecha.toLocaleTimeString()} • ${(file.size / 1024).toFixed(2)} KB`;
-          infoSpan.style.color = "#555";
-          infoSpan.style.fontSize = "13px";
+      subirArchivoBtn.addEventListener("click", async () => {
+        if (!especialidadSeleccionada || !subirArchivoInput.files[0])
+          return mostrarMensaje("info", "Selecciona un archivo válido", "");
 
-          const eliminarBtn = document.createElement("button");
-          eliminarBtn.textContent = "🗑️";
-          eliminarBtn.classList.add("delete-btn");
-          eliminarBtn.addEventListener("click", async () => {
-            mostrarMensaje("confirm", "Confirmar eliminación", `¿Eliminar "${file.nombre}"?`, async () => {
-              await deleteObject(file.ref);
-              cargarArchivos(especialidad, orden);
+        const file = subirArchivoInput.files[0];
+        const ext = file.name.split(".").pop().toLowerCase();
+        if (!["pdf", "jpg", "jpeg", "png"].includes(ext))
+          return mostrarMensaje("error", "❌ Solo se permiten archivos PDF o imágenes (JPG, JPEG, PNG)", "No se aceptan extensiones diferentes que no sean archivos de pdf o imágenes.");
+
+        const storageRefFile = ref(storage, `usuarios/${currentUserId}/carpetas/${especialidadSeleccionada}/${file.name}`);
+        await uploadBytes(storageRefFile, file);
+        mostrarMensaje("info", `📄 Archivo "${file.name}" subido correctamente`, "");
+        subirArchivoInput.value = "";
+        cargarArchivos(especialidadSeleccionada);
+      });
+
+      async function cargarArchivos(especialidad, orden = "nombreDesc") {
+        listaArchivos.innerHTML = "";
+        const folderRef = ref(storage, `usuarios/${currentUserId}/carpetas/${especialidad}/`);
+        try {
+          const result = await listAll(folderRef);
+          if (result.items.length === 0) {
+            listaArchivos.innerHTML = "<li>No hay archivos aún.</li>";
+            return;
+          }
+
+          const archivos = [];
+          for (const fileRef of result.items) {
+            const url = await getDownloadURL(fileRef);
+            const meta = await getMetadata(fileRef);
+
+            archivos.push({
+              ref: fileRef,
+              url,
+              nombre: fileRef.name,
+              fecha: new Date(meta.timeCreated),
+              size: meta.size
+            });
+          }
+
+          // 🔹 Orden según selección
+          switch (orden) {
+            case "nombreAsc":
+              archivos.sort((a, b) => a.nombre.localeCompare(b.nombre));
+              break;
+            case "nombreDesc":
+              archivos.sort((a, b) => b.nombre.localeCompare(a.nombre));
+              break;
+            case "fechaAsc":
+              archivos.sort((a, b) => a.fecha - b.fecha);
+              break;
+            case "fechaDesc":
+              archivos.sort((a, b) => b.fecha - a.fecha);
+              break;
+            case "sizeAsc":
+              archivos.sort((a, b) => a.size - b.size);
+              break;
+            case "sizeDesc":
+              archivos.sort((a, b) => b.size - a.size);
+              break;
+          }
+
+          // 🔹 Crear elementos en la lista (igual que antes)
+          archivos.forEach(file => {
+            const li = document.createElement("li");
+            li.classList.add("archivo-item");
+            li.style.display = "flex";
+            li.style.justifyContent = "space-between";
+            li.style.alignItems = "center";
+
+            const nombreSpan = document.createElement("span");
+            nombreSpan.textContent = file.nombre;
+            nombreSpan.classList.add("archivo-link");
+            nombreSpan.style.cursor = "pointer";
+            nombreSpan.addEventListener("click", () => {
+              const ext = file.nombre.split('.').pop().toLowerCase();
+              if (ext === "pdf") abrirVisorPDF(file.url);
+              else window.open(file.url, "_blank");
             });
 
+            const infoSpan = document.createElement("span");
+            infoSpan.textContent = `${file.fecha.toLocaleDateString()} ${file.fecha.toLocaleTimeString()} • ${(file.size / 1024).toFixed(2)} KB`;
+            infoSpan.style.color = "#555";
+            infoSpan.style.fontSize = "13px";
+
+            const eliminarBtn = document.createElement("button");
+            eliminarBtn.textContent = "🗑️";
+            eliminarBtn.classList.add("delete-btn");
+            eliminarBtn.addEventListener("click", async () => {
+              mostrarMensaje("confirm", "Confirmar eliminación", `¿Eliminar "${file.nombre}"?`, async () => {
+                await deleteObject(file.ref);
+                cargarArchivos(especialidad, orden);
+              });
+
+            });
+
+            const infoContainer = document.createElement("div");
+            infoContainer.style.display = "flex";
+            infoContainer.style.gap = "10px";
+            infoContainer.appendChild(infoSpan);
+            infoContainer.appendChild(eliminarBtn);
+
+            li.appendChild(nombreSpan);
+            li.appendChild(infoContainer);
+            listaArchivos.appendChild(li);
           });
 
-          const infoContainer = document.createElement("div");
-          infoContainer.style.display = "flex";
-          infoContainer.style.gap = "10px";
-          infoContainer.appendChild(infoSpan);
-          infoContainer.appendChild(eliminarBtn);
-
-          li.appendChild(nombreSpan);
-          li.appendChild(infoContainer);
-          listaArchivos.appendChild(li);
-        });
-
-      } catch (err) {
-        console.error("Error al cargar archivos:", err);
-        mostrarMensaje("error", "Error al cargar archivos", "");
+        } catch (err) {
+          console.error("Error al cargar archivos:", err);
+          mostrarMensaje("error", "Error al cargar archivos", "");
+        }
       }
-    }
-    const ordenSelect = document.getElementById("ordenArchivos");
+      const ordenSelect = document.getElementById("ordenArchivos");
 
-    ordenSelect.addEventListener("change", () => {
-      if (especialidadSeleccionada) {
-        cargarArchivos(especialidadSeleccionada, ordenSelect.value);
+      ordenSelect.addEventListener("change", () => {
+        if (especialidadSeleccionada) {
+          cargarArchivos(especialidadSeleccionada, ordenSelect.value);
+        }
+      });
+
+      cerrarEspecialidadBtn.addEventListener("click", () => {
+        archivosContainer.classList.add("hidden");
+        especialidadSeleccionada = "";
+      });
+
+      function mostrarSeccion(seccion, botonActivo) {
+        [inicioSection, perfilSection, especialidadesSection, clubesSection, certificacionesSection].forEach(sec => sec.classList.add("hidden"));
+        [menuInicio, menuPerfil, menuEspecialidades, menuClubes, menuCertificaciones].forEach(btn => btn.classList.remove("active"));
+
+        seccion.classList.remove("hidden");
+        botonActivo.classList.add("active");
       }
-    });
 
-    cerrarEspecialidadBtn.addEventListener("click", () => {
-      archivosContainer.classList.add("hidden");
-      especialidadSeleccionada = "";
-    });
+      ////////////////////////////////////////////
+      // 🔹 VISOR PDF
+      const pdfViewerModal = document.getElementById("pdfViewerModal");
+      const pdfFrame = document.getElementById("pdfFrame");
+      const cerrarPDF = document.getElementById("cerrarPDF");
 
-    function mostrarSeccion(seccion, botonActivo) {
-      [inicioSection, perfilSection, especialidadesSection, clubesSection, certificacionesSection].forEach(sec => sec.classList.add("hidden"));
-      [menuInicio, menuPerfil, menuEspecialidades, menuClubes, menuCertificaciones].forEach(btn => btn.classList.remove("active"));
+      function abrirVisorPDF(url) {
+        pdfFrame.src = url;
+        pdfViewerModal.style.display = "flex";
+      }
 
-      seccion.classList.remove("hidden");
-      botonActivo.classList.add("active");
-    }
-
-    ////////////////////////////////////////////
-    // 🔹 VISOR PDF
-    const pdfViewerModal = document.getElementById("pdfViewerModal");
-    const pdfFrame = document.getElementById("pdfFrame");
-    const cerrarPDF = document.getElementById("cerrarPDF");
-
-    function abrirVisorPDF(url) {
-      pdfFrame.src = url;
-      pdfViewerModal.style.display = "flex";
-    }
-
-    cerrarPDF.addEventListener("click", () => {
-      pdfViewerModal.style.display = "none";
-      pdfFrame.src = "";
-    });
-
-    pdfViewerModal.addEventListener("click", (e) => {
-      if (e.target === pdfViewerModal) {
+      cerrarPDF.addEventListener("click", () => {
         pdfViewerModal.style.display = "none";
         pdfFrame.src = "";
-      }
-    });
-
-    ////////////////////////////////////////
-    /**
-     * 🔹 Mostrar mensaje dinámico
-     * @param {string} tipo - "info" | "error" | "confirm"
-     * @param {string} titulo - Texto del título
-     * @param {string} mensaje - Texto del cuerpo
-     * @param {function} onConfirm - (Opcional) callback si se presiona "Aceptar" en tipo confirm
-     */
-    function mostrarMensaje(tipo, titulo, mensaje, onConfirm = null) {
-      const modal = document.getElementById("mensajeModal");
-      const tituloEl = document.getElementById("mensajeTitulo");
-      const textoEl = document.getElementById("mensajeTexto");
-      const btnAceptar = document.getElementById("mensajeAceptar");
-      const btnCancelar = document.getElementById("mensajeCancelar");
-
-      tituloEl.textContent = titulo;
-      textoEl.textContent = mensaje;
-      modal.classList.remove("hiddenX");
-
-      // Configurar botones
-      btnCancelar.classList.toggle("hiddenX", tipo !== "confirm");
-
-      const cerrar = () => {
-        modal.classList.add("hiddenX");
-        btnAceptar.onclick = null;
-        btnCancelar.onclick = null;
-      };
-
-      btnAceptar.onclick = () => {
-        cerrar();
-        if (onConfirm && (tipo === "confirm" || tipo === "info")) onConfirm();
-      };
-
-      btnCancelar.onclick = cerrar;
-    }
-
-    ////////////////////////////////////////////
-    const menuClubes = document.getElementById("menuClubes");
-    const clubesSection = document.getElementById("clubesSection");
-
-    menuClubes.addEventListener("click", () => {
-      mostrarSeccion(clubesSection, menuClubes);
-    });
-    ///////////////////////////////////////////
-
-    const clubBtns = document.querySelectorAll(".clubBtn");
-    const clubesPanel = document.getElementById("clubesPanel");
-
-    // Datos de cada club
-    const clubesData = {
-      aventureros: {
-        niveles: ["Amigo", "Compañero", "Explorador"],
-        carpetas: ["Voto y Ley", "Bandera de Aventureros", "Himno del Club"]
-      },
-      conquistadores: {
-        niveles: ["Amigo", "Compañero", "Explorador", "Orientador", "Viajero", "Guía"],
-        carpetas: [
-          "Voto y Ley",
-          "Especialidades Ja",
-          "Bandera de Conquistadores",
-          "Himno del Conquistador",
-          "Manual de Nudos",
-          "Formularios y Permisos",
-          "Manual del Uniforme",
-          "Uso del Hacha y Cuchillo",
-          "Registros",
-          "Guía para el Director",
-          "Guía Rápida para el Director del Club de Conquistadores",
-          "Logos e Imágenes",
-          "Lista de Especialidades para Cada Nivel Progresivo"
-        ]
-      },
-      guias: {
-        niveles: ["Explorador", "Guía", "Coordinador"],
-        carpetas: ["Voto y Ley", "Manual de Guías", "Registros"]
-      }
-    };
-
-    // Click en club
-    clubBtns.forEach(btn => {
-      btn.addEventListener("click", () => {
-        const clubKey = btn.dataset.club;
-
-        // Limpiar panel
-        clubesPanel.innerHTML = "";
-
-        const clubData = clubesData[clubKey] || { niveles: [], carpetas: [] };
-
-        const clubContainer = document.createElement("div");
-        clubContainer.dataset.panel = clubKey;
-
-        // 🔹 Niveles
-        if (clubData.niveles.length > 0) {
-          const nivelesContainer = document.createElement("div");
-          nivelesContainer.style.display = "grid";
-          nivelesContainer.style.gridTemplateColumns = "repeat(3, 1fr)";
-          nivelesContainer.style.gap = "10px";
-          nivelesContainer.style.marginBottom = "15px";
-
-          const nivelesContenidoContainer = document.createElement("div");
-
-          clubData.niveles.forEach(nivel => {
-            const btnNivel = document.createElement("div");
-            btnNivel.classList.add("carpeta-item");
-            btnNivel.textContent = nivel;
-
-            const contenido = document.createElement("div");
-            contenido.classList.add("hidden");
-            contenido.style.marginTop = "5px";
-            contenido.textContent = "Contenido de " + nivel;
-
-            btnNivel.addEventListener("click", () => {
-              contenido.classList.toggle("hidden");
-            });
-
-            nivelesContainer.appendChild(btnNivel);
-            nivelesContenidoContainer.appendChild(contenido);
-          });
-
-          clubContainer.appendChild(nivelesContainer);
-          clubContainer.appendChild(nivelesContenidoContainer);
-        }
-
-        // 🔹 Carpetas
-        if (clubData.carpetas.length > 0) {
-          const carpetasContainer = document.createElement("div");
-          clubData.carpetas.forEach(carpetaName => {
-            const carpeta = document.createElement("div");
-            carpeta.classList.add("carpeta-item");
-            carpeta.textContent = carpetaName;
-
-            const contenido = document.createElement("div");
-            contenido.classList.add("hidden");
-            contenido.style.marginLeft = "20px";
-            contenido.style.marginBottom = "5px";
-
-            const archivo = document.createElement("div");
-            archivo.textContent = "Contenido de " + carpetaName;
-            contenido.appendChild(archivo);
-
-            carpeta.addEventListener("click", () => {
-              contenido.classList.toggle("hidden");
-            });
-
-            carpetasContainer.appendChild(carpeta);
-            carpetasContainer.appendChild(contenido);
-          });
-
-          clubContainer.appendChild(carpetasContainer);
-        }
-
-        clubesPanel.appendChild(clubContainer);
       });
-    });
 
-    // 🔹 NUEVAS FUNCIONES PARA CERTIFICACIONES - DENTRO DEL MÓDULO
-
-    // Función para cargar las certificaciones del usuario
-    async function cargarCertificaciones() {
-      // Mostrar loading
-      certificacionesLoading.style.display = "block";
-      certificacionesContent.style.display = "none";
-      sinCertificaciones.style.display = "none";
-
-      try {
-        // Obtener el usuario actual
-        const user = auth.currentUser;
-        if (!user || !user.email) {
-          throw new Error("No se pudo obtener la información del usuario");
+      pdfViewerModal.addEventListener("click", (e) => {
+        if (e.target === pdfViewerModal) {
+          pdfViewerModal.style.display = "none";
+          pdfFrame.src = "";
         }
+      });
 
-        const userEmail = user.email;
+      ////////////////////////////////////////
+      /**
+       * 🔹 Mostrar mensaje dinámico
+       * @param {string} tipo - "info" | "error" | "confirm"
+       * @param {string} titulo - Texto del título
+       * @param {string} mensaje - Texto del cuerpo
+       * @param {function} onConfirm - (Opcional) callback si se presiona "Aceptar" en tipo confirm
+       */
+      function mostrarMensaje(tipo, titulo, mensaje, onConfirm = null) {
+        const modal = document.getElementById("mensajeModal");
+        const tituloEl = document.getElementById("mensajeTitulo");
+        const textoEl = document.getElementById("mensajeTexto");
+        const btnAceptar = document.getElementById("mensajeAceptar");
+        const btnCancelar = document.getElementById("mensajeCancelar");
 
-        // Obtener todos los formularios
-        const formulariosRes = await fetch("/api/listarFormularios");
-        if (!formulariosRes.ok) {
-          throw new Error("No se pudieron cargar los formularios");
+        tituloEl.textContent = titulo;
+        textoEl.textContent = mensaje;
+        modal.classList.remove("hiddenX");
+
+        // Configurar botones
+        btnCancelar.classList.toggle("hiddenX", tipo !== "confirm");
+
+        const cerrar = () => {
+          modal.classList.add("hiddenX");
+          btnAceptar.onclick = null;
+          btnCancelar.onclick = null;
+        };
+
+        btnAceptar.onclick = () => {
+          cerrar();
+          if (onConfirm && (tipo === "confirm" || tipo === "info")) onConfirm();
+        };
+
+        btnCancelar.onclick = cerrar;
+      }
+
+      ////////////////////////////////////////////
+      const menuClubes = document.getElementById("menuClubes");
+      const clubesSection = document.getElementById("clubesSection");
+
+      menuClubes.addEventListener("click", () => {
+        mostrarSeccion(clubesSection, menuClubes);
+      });
+      ///////////////////////////////////////////
+
+      const clubBtns = document.querySelectorAll(".clubBtn");
+      const clubesPanel = document.getElementById("clubesPanel");
+
+      // Datos de cada club
+      const clubesData = {
+        aventureros: {
+          niveles: ["Amigo", "Compañero", "Explorador"],
+          carpetas: ["Voto y Ley", "Bandera de Aventureros", "Himno del Club"]
+        },
+        conquistadores: {
+          niveles: ["Amigo", "Compañero", "Explorador", "Orientador", "Viajero", "Guía"],
+          carpetas: [
+            "Voto y Ley",
+            "Especialidades Ja",
+            "Bandera de Conquistadores",
+            "Himno del Conquistador",
+            "Manual de Nudos",
+            "Formularios y Permisos",
+            "Manual del Uniforme",
+            "Uso del Hacha y Cuchillo",
+            "Registros",
+            "Guía para el Director",
+            "Guía Rápida para el Director del Club de Conquistadores",
+            "Logos e Imágenes",
+            "Lista de Especialidades para Cada Nivel Progresivo"
+          ]
+        },
+        guias: {
+          niveles: ["Explorador", "Guía", "Coordinador"],
+          carpetas: ["Voto y Ley", "Manual de Guías", "Registros"]
         }
+      };
 
-        const formularios = await formulariosRes.json();
-        const formulariosIds = Object.keys(formularios);
+      // Click en club
+      clubBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+          const clubKey = btn.dataset.club;
 
-        // Array para almacenar las certificaciones
-        const certificaciones = [];
+          // Limpiar panel
+          clubesPanel.innerHTML = "";
 
-        // Para cada formulario, buscar si el usuario participó
-        for (const formularioId of formulariosIds) {
-          try {
-            const respuestasRes = await fetch(`/api/verRespuestas?id=${formularioId}`);
-            if (respuestasRes.ok) {
-              const data = await respuestasRes.json();
-              const respuestas = data.asistencias || [];
-              const examenes = data.examenes || [];
+          const clubData = clubesData[clubKey] || { niveles: [], carpetas: [] };
 
-              // Buscar respuestas del usuario por correo
-              const respuestasUsuario = respuestas.filter(r => r.correo === userEmail);
+          const clubContainer = document.createElement("div");
+          clubContainer.dataset.panel = clubKey;
 
-              if (respuestasUsuario.length > 0) {
-                // Encontrar el examen del usuario si existe
-                const examenUsuario = examenes.find(e => {
-                  // Buscar por visitanteId si está disponible
-                  const respuestaUsuario = respuestasUsuario.find(r => r.visitanteId === e.visitanteId);
-                  return respuestaUsuario !== undefined;
-                });
+          // 🔹 Niveles
+          if (clubData.niveles.length > 0) {
+            const nivelesContainer = document.createElement("div");
+            nivelesContainer.style.display = "grid";
+            nivelesContainer.style.gridTemplateColumns = "repeat(3, 1fr)";
+            nivelesContainer.style.gap = "10px";
+            nivelesContainer.style.marginBottom = "15px";
 
-                // Determinar estado
-                const maxAsistencia = Math.max(...respuestasUsuario.map(r => r.asistenciaNumero || 0));
-                const completado = maxAsistencia >= 3;
-                const examenRealizado = examenUsuario !== undefined;
-                const calificacion = examenRealizado ? examenUsuario.puntaje : null;
+            const nivelesContenidoContainer = document.createElement("div");
 
-                // Obtener la fecha más reciente
-                const fechaMasReciente = new Date(Math.max(...respuestasUsuario.map(r => new Date(r.fecha))));
+            clubData.niveles.forEach(nivel => {
+              const btnNivel = document.createElement("div");
+              btnNivel.classList.add("carpeta-item");
+              btnNivel.textContent = nivel;
 
-                certificaciones.push({
-                  formularioId: formularioId,
-                  titulo: formularios[formularioId].titulo,
-                  fecha: fechaMasReciente,
-                  asistenciasCompletadas: maxAsistencia,
-                  examenRealizado: examenRealizado,
-                  calificacion: calificacion,
-                  completado: completado
-                });
-              }
-            }
-          } catch (error) {
-            console.error(`Error al cargar respuestas para ${formularioId}:`, error);
+              const contenido = document.createElement("div");
+              contenido.classList.add("hidden");
+              contenido.style.marginTop = "5px";
+              contenido.textContent = "Contenido de " + nivel;
+
+              btnNivel.addEventListener("click", () => {
+                contenido.classList.toggle("hidden");
+              });
+
+              nivelesContainer.appendChild(btnNivel);
+              nivelesContenidoContainer.appendChild(contenido);
+            });
+
+            clubContainer.appendChild(nivelesContainer);
+            clubContainer.appendChild(nivelesContenidoContainer);
           }
-        }
 
-        // Actualizar la interfaz con las certificaciones
-        actualizarInterfazCertificaciones(certificaciones);
+          // 🔹 Carpetas
+          if (clubData.carpetas.length > 0) {
+            const carpetasContainer = document.createElement("div");
+            clubData.carpetas.forEach(carpetaName => {
+              const carpeta = document.createElement("div");
+              carpeta.classList.add("carpeta-item");
+              carpeta.textContent = carpetaName;
 
-      } catch (error) {
-        console.error("Error al cargar certificaciones:", error);
-        mostrarMensaje("error", "Error al cargar certificaciones", "No se pudieron cargar tus certificaciones. Intenta nuevamente.");
+              const contenido = document.createElement("div");
+              contenido.classList.add("hidden");
+              contenido.style.marginLeft = "20px";
+              contenido.style.marginBottom = "5px";
 
-        // Mostrar estado de error
-        certificacionesLoading.style.display = "none";
-        sinCertificaciones.style.display = "block";
-        sinCertificaciones.innerHTML = `
+              const archivo = document.createElement("div");
+              archivo.textContent = "Contenido de " + carpetaName;
+              contenido.appendChild(archivo);
+
+              carpeta.addEventListener("click", () => {
+                contenido.classList.toggle("hidden");
+              });
+
+              carpetasContainer.appendChild(carpeta);
+              carpetasContainer.appendChild(contenido);
+            });
+
+            clubContainer.appendChild(carpetasContainer);
+          }
+
+          clubesPanel.appendChild(clubContainer);
+        });
+      });
+
+      // 🔹 NUEVAS FUNCIONES PARA CERTIFICACIONES - DENTRO DEL MÓDULO
+
+      // Función para cargar las certificaciones del usuario
+      async function cargarCertificaciones() {
+        // Mostrar loading
+        certificacionesLoading.style.display = "block";
+        certificacionesContent.style.display = "none";
+        sinCertificaciones.style.display = "none";
+
+        try {
+          // Obtener el usuario actual
+          const user = auth.currentUser;
+          if (!user || !user.email) {
+            throw new Error("No se pudo obtener la información del usuario");
+          }
+
+          const userEmail = user.email;
+
+          // Obtener todos los formularios
+          const formulariosRes = await fetch("/api/listarFormularios");
+          if (!formulariosRes.ok) {
+            throw new Error("No se pudieron cargar los formularios");
+          }
+
+          const formularios = await formulariosRes.json();
+          const formulariosIds = Object.keys(formularios);
+
+          // Array para almacenar las certificaciones
+          const certificaciones = [];
+
+          // Para cada formulario, buscar si el usuario participó
+          for (const formularioId of formulariosIds) {
+            try {
+              const respuestasRes = await fetch(`/api/verRespuestas?id=${formularioId}`);
+              if (respuestasRes.ok) {
+                const data = await respuestasRes.json();
+                const respuestas = data.asistencias || [];
+                const examenes = data.examenes || [];
+
+                // Buscar respuestas del usuario por correo
+                const respuestasUsuario = respuestas.filter(r => r.correo === userEmail);
+
+                if (respuestasUsuario.length > 0) {
+                  // Encontrar el examen del usuario si existe
+                  const examenUsuario = examenes.find(e => {
+                    // Buscar por visitanteId si está disponible
+                    const respuestaUsuario = respuestasUsuario.find(r => r.visitanteId === e.visitanteId);
+                    return respuestaUsuario !== undefined;
+                  });
+
+                  // Determinar estado
+                  const maxAsistencia = Math.max(...respuestasUsuario.map(r => r.asistenciaNumero || 0));
+                  const completado = maxAsistencia >= 3;
+                  const examenRealizado = examenUsuario !== undefined;
+                  const calificacion = examenRealizado ? examenUsuario.puntaje : null;
+
+                  // Obtener la fecha más reciente
+                  const fechaMasReciente = new Date(Math.max(...respuestasUsuario.map(r => new Date(r.fecha))));
+
+                  certificaciones.push({
+                    formularioId: formularioId,
+                    titulo: formularios[formularioId].titulo,
+                    fecha: fechaMasReciente,
+                    asistenciasCompletadas: maxAsistencia,
+                    examenRealizado: examenRealizado,
+                    calificacion: calificacion,
+                    completado: completado
+                  });
+                }
+              }
+            } catch (error) {
+              console.error(`Error al cargar respuestas para ${formularioId}:`, error);
+            }
+          }
+
+          // Actualizar la interfaz con las certificaciones
+          actualizarInterfazCertificaciones(certificaciones);
+
+        } catch (error) {
+          console.error("Error al cargar certificaciones:", error);
+          mostrarMensaje("error", "Error al cargar certificaciones", "No se pudieron cargar tus certificaciones. Intenta nuevamente.");
+
+          // Mostrar estado de error
+          certificacionesLoading.style.display = "none";
+          sinCertificaciones.style.display = "block";
+          sinCertificaciones.innerHTML = `
           <h3>❌ Error al cargar certificaciones</h3>
           <p>No se pudieron cargar tus certificaciones. Intenta nuevamente.</p>
         `;
-      }
-    }
-
-    // Función para actualizar la interfaz con las certificaciones
-    function actualizarInterfazCertificaciones(certificaciones) {
-      // Ocultar loading
-      certificacionesLoading.style.display = "none";
-
-      if (certificaciones.length === 0) {
-        sinCertificaciones.style.display = "block";
-        certificacionesContent.style.display = "none";
-        return;
+        }
       }
 
-      // Mostrar contenido
-      sinCertificaciones.style.display = "none";
-      certificacionesContent.style.display = "block";
+      // Función para actualizar la interfaz con las certificaciones
+      function actualizarInterfazCertificaciones(certificaciones) {
+        // Ocultar loading
+        certificacionesLoading.style.display = "none";
 
-      // Actualizar contadores
-      totalEspecialidades.textContent = certificaciones.length;
-      const completadas = certificaciones.filter(c => c.completado).length;
-      especialidadesCompletadas.textContent = completadas;
-
-      // Limpiar tabla
-      cuerpoTablaCertificaciones.innerHTML = "";
-
-      // Ordenar certificaciones por fecha (más reciente primero)
-      certificaciones.sort((a, b) => b.fecha - a.fecha);
-
-      // Llenar tabla
-      certificaciones.forEach((cert, index) => {
-        const fila = document.createElement("tr");
-
-        // Determinar clases de estado y calificación
-        const estadoClase = cert.completado ? "estado-completado" : "estado-pendiente";
-        const estadoTexto = cert.completado ? "Completado" : "En progreso";
-
-        let calificacionTexto = "No realizado";
-        let calificacionClase = "";
-
-        if (cert.examenRealizado) {
-          calificacionClase = cert.calificacion >= 70 ? "calificacion-aprobada" : "calificacion-reprobada";
-          calificacionTexto = `${cert.calificacion.toFixed(1)}%`;
+        if (certificaciones.length === 0) {
+          sinCertificaciones.style.display = "block";
+          certificacionesContent.style.display = "none";
+          return;
         }
 
-        fila.innerHTML = `
+        // Mostrar contenido
+        sinCertificaciones.style.display = "none";
+        certificacionesContent.style.display = "block";
+
+        // Actualizar contadores
+        totalEspecialidades.textContent = certificaciones.length;
+        const completadas = certificaciones.filter(c => c.completado).length;
+        especialidadesCompletadas.textContent = completadas;
+
+        // Limpiar tabla
+        cuerpoTablaCertificaciones.innerHTML = "";
+
+        // Ordenar certificaciones por fecha (más reciente primero)
+        certificaciones.sort((a, b) => b.fecha - a.fecha);
+
+        // Llenar tabla
+        certificaciones.forEach((cert, index) => {
+          const fila = document.createElement("tr");
+
+          // Determinar clases de estado y calificación
+          const estadoClase = cert.completado ? "estado-completado" : "estado-pendiente";
+          const estadoTexto = cert.completado ? "Completado" : "En progreso";
+
+          let calificacionTexto = "No realizado";
+          let calificacionClase = "";
+
+          if (cert.examenRealizado) {
+            calificacionClase = cert.calificacion >= 70 ? "calificacion-aprobada" : "calificacion-reprobada";
+            calificacionTexto = `${cert.calificacion.toFixed(1)}%`;
+          }
+
+          fila.innerHTML = `
           <td>${index + 1}</td>
           <td>${cert.titulo}</td>
           <td>${cert.fecha.toLocaleDateString()}</td>
@@ -1477,11 +1496,11 @@
           <td class="${estadoClase}">${estadoTexto}</td>
         `;
 
-        cuerpoTablaCertificaciones.appendChild(fila);
-      });
-    }
+          cuerpoTablaCertificaciones.appendChild(fila);
+        });
+      }
 
-  </script>
+    </script>
 
 </body>
 

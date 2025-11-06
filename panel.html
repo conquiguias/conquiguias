@@ -1710,20 +1710,7 @@
             `;
         }
 
-        contenidoHTML += `
-                <button id="btnImprimirCertificacion" style="
-                    background: #6c757d;
-                    color: white;
-                    border: none;
-                    padding: 12px 25px;
-                    font-size: 16px;
-                    border-radius: 6px;
-                    cursor: pointer;
-                    margin: 0 10px;
-                " disabled>📜 Solo Certificación (Próximamente)</button>
-            </div>
-        </div>
-    `;
+        
 
         certContainer.innerHTML = contenidoHTML;
         modal.style.display = 'flex';
@@ -1733,9 +1720,7 @@
           document.getElementById('btnImprimirExamen').addEventListener('click', () => {
             imprimirExamenCompleto(examen, resultado, formulario);
           });
-          document.getElementById('btnImprimirCertificacion').addEventListener('click', () => {
-            mostrarMensaje("info", "Próximamente", "La funcionalidad de impresión de certificación estará disponible pronto.");
-          });
+          
         }
 
       }

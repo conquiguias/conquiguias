@@ -1792,6 +1792,14 @@
                             max-width: 80px;
                             max-height: 80px;
                         }
+                            .resumen-examen {
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            color: white;
+                            padding: 25px;
+                            border-radius: 12px;
+                            margin-bottom: 30px;
+                            text-align: center;
+                        }
                         .pregunta {
                             margin-bottom: 20px;
                             padding: 15px;
@@ -1946,6 +1954,24 @@
                 : ''
               }
                         </div>
+
+                        <!-- RESUMEN DEL EXAMEN -->
+                        <div class="resumen-examen">
+                            <h2 style="margin: 0 0 15px 0; font-size: 24px;">📊 Resultados del Examen</h2>
+                            <p style="margin: 8px 0; font-size: 18px;">
+                                <strong>Resumen:</strong> ${correctas} de ${total} preguntas correctas (${porcentaje.toFixed(1)}%)
+                            </p>
+                            <p style="margin: 8px 0; font-size: 18px;">
+                                <strong>Estado:</strong> ${aprobado ? '✅ Aprobado' : '❌ Reprobado'}
+                            </p>
+                            ${aprobado ?
+                '<p style="margin: 15px 0 0 0; font-size: 16px; font-weight: bold;">🎉 ¡Felicidades! Has aprobado el examen.</p>' :
+                '<p style="margin: 15px 0 0 0; font-size: 16px;">💡 Sigue estudiando para mejorar tus resultados.</p>'
+              }
+                        </div>
+
+                        <div style="margin: 30px 0; border-top: 2px dashed #ccc; padding-top: 20px;">
+                            <h3 style="color: #2c3e50; margin-bottom: 20px; text-align: center;">📝 Detalle de Preguntas</h3>
             `;
 
             // Agregar preguntas del examen

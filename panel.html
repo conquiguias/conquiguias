@@ -500,7 +500,9 @@
     #tablaCertificaciones {
       background: white;
       border-radius: 8px;
-      overflow: hidden;
+      overflow-x: auto;
+    max-width: 100%;
+    margin-top: 20px;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
 
@@ -532,12 +534,7 @@
       padding: 10px 15px;
     }
 
-    /* 🔹 CONTENEDOR DE LA TABLA CON SCROLL HORIZONTAL */
-#certificacionesContent {
-    overflow-x: auto;
-    max-width: 100%;
-    margin-top: 20px;
-}
+   
 
     .estado-completado {
       color: #27ae60;

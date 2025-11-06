@@ -1729,7 +1729,6 @@
         btnImprimir.disabled = true;
 
         // Obtener el nombre del usuario desde las asistencias
-        // Obtener el nombre del usuario desde las asistencias
         fetch(`/api/verRespuestas?id=${formulario.id}`)
           .then(res => res.json())
           .then(data => {
@@ -1786,14 +1785,12 @@
                             padding-bottom: 20px;
                             position: relative;
                         }
-                        .imagen-especialidad {
+                        .imagen-especialidad-examen {
                             position: absolute;
-                            top: 0;
-                            right: 0;
-                            max-width: 200px;
-                            max-height: 200px;
-                            border-radius: 10px;
-                            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                            top: 10px;
+                            right: 10px;
+                            max-width: 100px;
+                            max-height: 100px;
                         }
                         .pregunta { 
                             margin-bottom: 25px; 
@@ -1805,72 +1802,74 @@
                         .incorrecta { border-left-color: #dc3545; }
                         .certificacion {
                             page-break-before: always;
-                            margin-top: 50px;
-                            padding: 40px;
-                            border: 3px solid #2c3e50;
-                            border-radius: 15px;
-                            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                            min-height: 100vh;
+                            padding: 60px 40px;
+                            background: white;
                             position: relative;
-                            min-height: 800px;
                         }
                         .certificacion-header {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-.certificacion-titulo {
-    text-align: center;
-    margin-bottom: 10px;
-}
-
-.certificacion-cuerpo {
-    text-align: center;
-    margin: 30px 0;
-}
-
-.certificacion-nombre {
-    text-align: center;
-    font-size: 28px;
-    font-weight: bold;
-    margin: 20px 0;
-    padding: 10px;
-    border-bottom: 2px solid #2c3e50;
-}
-
-.certificacion-texto {
-    text-align: center;
-    font-size: 18px;
-    line-height: 1.6;
-    margin: 25px 0;
-}
-                        .certificacion-firmas {
+                            text-align: center;
+                            margin-bottom: 60px;
+                        }
+                        .imagen-especialidad-certificado {
+                            position: absolute;
+                            top: 40px;
+                            right: 40px;
+                            max-width: 150px;
+                            max-height: 150px;
+                            z-index: 10;
+                        }
+                        .certificacion-cuerpo {
+                            text-align: center;
+                            flex-grow: 1;
                             display: flex;
-                            justify-content: space-around;
-                            margin-top: 60px;
-                            flex-wrap: wrap;
+                            flex-direction: column;
+                            justify-content: center;
+                        }
+                        .certificacion-nombre {
+                            font-size: 32px;
+                            font-weight: bold;
+                            margin: 30px 0;
+                            padding: 20px;
+                            border-bottom: 3px solid #2c3e50;
+                            display: inline-block;
+                            min-width: 400px;
+                        }
+                        .certificacion-texto {
+                            font-size: 20px;
+                            line-height: 1.8;
+                            margin: 40px 0;
+                            max-width: 600px;
+                            margin-left: auto;
+                            margin-right: auto;
+                        }
+                        .certificacion-firmas {
+                            margin-top: auto;
+                            padding-bottom: 60px;
                         }
                         .firma {
                             text-align: center;
-                            margin: 10px 20px;
+                            margin: 0 30px;
                         }
-                        .firma img { 
-                            max-width: 120px; 
-                            max-height: 60px;
+                        .firma img {
+                            max-width: 180px;
+                            max-height: 80px;
                             margin-bottom: 10px;
                         }
                         .firma-linea {
-                            width: 150px;
+                            width: 200px;
                             border-top: 1px solid #2c3e50;
                             margin: 5px auto;
                         }
                         .firma-nombre {
                             font-weight: bold;
-                            font-size: 14px;
-                            margin-top: 5px;
+                            font-size: 16px;
+                            margin-top: 8px;
                         }
                         .firma-cargo {
-                            font-size: 12px;
+                            font-size: 14px;
                             color: #666;
+                            margin-top: 5px;
                         }
                         @media print {
                             body { margin: 20px; }
@@ -1885,10 +1884,12 @@
                 <body>
                     <!-- Sección del Examen -->
                     <div class="header">
-                        <h1 style="color: #2c3e50; margin-bottom: 10px;">Conquiguias World</h1>
-                        <h2 style="color: #34495e;">${formulario.titulo}</h2>
+                        <div style="text-align: center;">
+                            <h1 style="color: #2c3e50; margin-bottom: 10px;">Conquiguias World</h1>
+                            <h2 style="color: #34495e;">${formulario.titulo}</h2>
+                        </div>
                         ${formulario.imagenEspecialidad ?
-                `<img src="${formulario.imagenEspecialidad}" class="imagen-especialidad" alt="Especialidad">`
+                `<img src="${formulario.imagenEspecialidad}" class="imagen-especialidad-examen" alt="Especialidad">`
                 : ''
               }
                     </div>
@@ -1912,70 +1913,72 @@
                 `;
             });
 
-            // Sección de Certificación (nueva página)
+            // Sección de Certificación (HOJA COMPLETA SEPARADA)
             contenidoImpresion += `
-                <!-- Certificación -->
-                <div class="certificacion-header">
-    <div class="certificacion-titulo">
-        <p style="font-size: 14px; margin-bottom: 10px;">
-            LA ACADEMIA Y PLATAFORMA ONLINE CONQUIGUIAS WORLD EXTIENDE EL SIGUIENTE
-        </p>
-        <h1 style="font-size: 48px; color: #2c3e50; margin: 20px 0;">CERTIFICADO</h1>
-    </div>
-</div>
-
-<!-- Imagen de especialidad en posición fija y centrada -->
-${formulario.imagenEspecialidad ?
-                `<div style="text-align: center; margin: 20px 0;">
-        <img src="${formulario.imagenEspecialidad}" 
-             alt="Especialidad" 
-             style="max-width: 150px; max-height: 150px; display: block; margin: 0 auto;">
-    </div>`
+                <!-- Certificación - Hoja Completa Separada -->
+                <div class="certificacion">
+                    <!-- Imagen en esquina superior derecha -->
+                    ${formulario.imagenEspecialidad ?
+                `<img src="${formulario.imagenEspecialidad}" class="imagen-especialidad-certificado" alt="Especialidad">`
                 : ''
               }
+
+                    <!-- Encabezado del certificado -->
+                    <div class="certificacion-header">
+                        <p style="font-size: 16px; margin-bottom: 15px; letter-spacing: 1px;">
+                            LA ACADEMIA Y PLATAFORMA ONLINE CONQUIGUIAS WORLD EXTIENDE EL SIGUIENTE
+                        </p>
+                        <h1 style="font-size: 52px; color: #2c3e50; margin: 0; font-weight: bold; text-transform: uppercase;">
+                            CERTIFICADO
+                        </h1>
                     </div>
 
+                    <!-- Cuerpo del certificado -->
                     <div class="certificacion-cuerpo">
-    <p style="font-size: 16px; margin-bottom: 10px; text-align: center;">OTORGADO A:</p>
-    <div class="certificacion-nombre" style="text-align: center; font-size: 28px; font-weight: bold; margin: 20px 0; padding: 10px; border-bottom: 2px solid #2c3e50;">
-        ${nombreUsuario}
-    </div>
-    
-    <div class="firma-linea" style="width: 300px; margin: 30px auto;"></div>
+                        <p style="font-size: 18px; margin-bottom: 20px; font-weight: bold;">
+                            OTORGADO A:
+                        </p>
+                        
+                        <div class="certificacion-nombre">${nombreUsuario}</div>
+                        
+                        <div style="width: 400px; border-top: 2px solid #2c3e50; margin: 40px auto;"></div>
 
-    <div class="certificacion-texto" style="text-align: center; font-size: 18px; line-height: 1.6; margin: 25px 0;">
-        Por haber participado en la especialidad: 
-        <strong style="color: #2c3e50;">"${formulario.titulo}"</strong><br>
-        impartido por <strong>${extraerNombreFirma(formulario.imagenFirma1) || 'el instructor'}</strong>,<br>
-        el ${fechaFormateada}.
-    </div>
-</div>
+                        <div class="certificacion-texto">
+                            Por haber participado en la especialidad:<br>
+                            <strong style="color: #2c3e50; font-size: 22px;">"${formulario.titulo}"</strong><br>
+                            impartido por <strong>${extraerNombreFirma(formulario.imagenFirma1) || 'el instructor'}</strong>,<br>
+                            el ${fechaFormateada}.
+                        </div>
+                    </div>
 
+                    <!-- Firmas -->
                     <div class="certificacion-firmas">
-                        ${formulario.imagenFirma1 ? `
-                            <div class="firma">
-                                <img src="${formulario.imagenFirma1}" alt="Firma Instructor">
-                                <div class="firma-linea"></div>
-                                <div class="firma-nombre">${extraerNombreFirma(formulario.imagenFirma1)}</div>
-                                <div class="firma-cargo"><strong>INSTRUCTOR</strong></div>
-                            </div>
-                        ` : ''}
-                        
-                        ${formulario.imagenFirma2 ? `
-                            <div class="firma">
-                                <img src="${formulario.imagenFirma2}" alt="Firma Director">
-                                <div class="firma-linea"></div>
-                                <div class="firma-nombre">${extraerNombreFirma(formulario.imagenFirma2)}</div>
-                            </div>
-                        ` : ''}
-                        
-                        ${formulario.imagenFirma3 ? `
-                            <div class="firma">
-                                <img src="${formulario.imagenFirma3}" alt="Firma Coordinador">
-                                <div class="firma-linea"></div>
-                                <div class="firma-nombre">${extraerNombreFirma(formulario.imagenFirma3)}</div>
-                            </div>
-                        ` : ''}
+                        <div style="display: flex; justify-content: space-around; align-items: flex-start; flex-wrap: wrap; margin-top: 80px;">
+                            ${formulario.imagenFirma1 ? `
+                                <div class="firma">
+                                    <img src="${formulario.imagenFirma1}" alt="Firma Instructor">
+                                    <div class="firma-linea"></div>
+                                    <div class="firma-nombre">${extraerNombreFirma(formulario.imagenFirma1)}</div>
+                                    <div class="firma-cargo"><strong>INSTRUCTOR</strong></div>
+                                </div>
+                            ` : ''}
+                            
+                            ${formulario.imagenFirma2 ? `
+                                <div class="firma">
+                                    <img src="${formulario.imagenFirma2}" alt="Firma Director">
+                                    <div class="firma-linea"></div>
+                                    <div class="firma-nombre">${extraerNombreFirma(formulario.imagenFirma2)}</div>
+                                </div>
+                            ` : ''}
+                            
+                            ${formulario.imagenFirma3 ? `
+                                <div class="firma">
+                                    <img src="${formulario.imagenFirma3}" alt="Firma Coordinador">
+                                    <div class="firma-linea"></div>
+                                    <div class="firma-nombre">${extraerNombreFirma(formulario.imagenFirma3)}</div>
+                                </div>
+                            ` : ''}
+                        </div>
                     </div>
                 </div>
 

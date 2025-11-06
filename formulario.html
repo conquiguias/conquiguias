@@ -508,6 +508,23 @@
       localStorage.setItem("visitanteId", visitanteId);
     }
 
+    // === FUNCIONES PARA OCULTAR DATOS SENSIBLES ===
+    function ocultarEmail(email) {
+      if (!email || email === 'N/A') return '***@***.***';
+      const [usuario, dominio] = email.split('@');
+      if (!usuario || !dominio) return '***@***.***';
+
+      const parteVisible = usuario.substring(0, 2);
+      return parteVisible + '***@' + dominio;
+    }
+
+    function ocultarTelefono(telefono) {
+      if (!telefono || telefono === 'N/A') return '***-***-****';
+      if (telefono.length <= 4) return '***-***-****';
+      return '***-***-' + telefono.slice(-4);
+    }
+    // === FIN FUNCIONES OCULTACIÓN ===
+
     // Variables para control de asistencias
     let primeraAsistenciaCompletada = false;
     let segundaAsistenciaCompletada = false;
@@ -961,9 +978,9 @@
   <tr>
     <td>${index + 1}</td>
     <td>${r.nombre}</td>
-    <td>${r.correo}</td>
+    <td>${esUsuarioActual ? r.correo : ocultarEmail(r.correo)}</td>
     <td>${r.edad}</td>
-    <td>${r.telefono}</td>
+    <td>${esUsuarioActual ? r.telefono : ocultarTelefono(r.telefono)}</td>
     <td>${r.asociacion}</td>
     <td>${new Date(r.fecha).toLocaleString()}</td>
     <td>${r.maxAsistencia}</td>
@@ -1591,6 +1608,21 @@
       }
     }
 
+    // Funciones para ocultar datos sensibles
+    function ocultarEmail(email) {
+      if (!email || email === 'N/A') return '***@***.***';
+      const [usuario, dominio] = email.split('@');
+      if (!usuario || !dominio) return '***@***.***';
+
+      const parteVisible = usuario.substring(0, 2);
+      return parteVisible + '***@' + dominio;
+    }
+
+    function ocultarTelefono(telefono) {
+      if (!telefono || telefono === 'N/A') return '***-***-****';
+      if (telefono.length <= 4) return '***-***-****';
+      return '***-***-' + telefono.slice(-4);
+    }
   </script>
 </body>
 

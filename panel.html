@@ -1773,15 +1773,15 @@
                 <head>
                     <title>Examen y Certificación - ${formulario.titulo}</title>
                     <style>
-                        body { 
-                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-                            margin: 40px; 
-                            color: #333;
+                        /* ESTILOS PARA EL EXAMEN */
+                        .examen-section {
+                            margin: 20px;
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                         }
-                        .header { 
-                            text-align: center; 
+                        .header-examen {
+                            text-align: center;
                             margin-bottom: 30px;
-                            border-bottom: 3px solid #2c3e50;
+                            border-bottom: 2px solid #2c3e50;
                             padding-bottom: 20px;
                             position: relative;
                         }
@@ -1789,44 +1789,67 @@
                             position: absolute;
                             top: 10px;
                             right: 10px;
-                            max-width: 100px;
-                            max-height: 100px;
+                            max-width: 80px;
+                            max-height: 80px;
                         }
-                        .pregunta { 
-                            margin-bottom: 25px; 
+                        .pregunta {
+                            margin-bottom: 20px;
                             padding: 15px;
                             border-left: 4px solid #3498db;
                             background: #f8f9fa;
+                            page-break-inside: avoid;
                         }
                         .correcta { border-left-color: #28a745; }
                         .incorrecta { border-left-color: #dc3545; }
-                        .certificacion {
+                        
+                        /* ESTILOS PARA EL CERTIFICADO (HOJA COMPLETA SEPARADA) */
+                        .certificacion-page {
                             page-break-before: always;
+                            width: 100%;
                             min-height: 100vh;
-                            padding: 60px 40px;
-                            background: white;
-                            position: relative;
-                        }
-                        .certificacion-header {
-                            text-align: center;
-                            margin-bottom: 60px;
-                        }
-                        .imagen-especialidad-certificado {
-                            position: absolute;
-                            top: 40px;
-                            right: 40px;
-                            max-width: 150px;
-                            max-height: 150px;
-                            z-index: 10;
-                        }
-                        .certificacion-cuerpo {
-                            text-align: center;
-                            flex-grow: 1;
+                            margin: 0;
+                            padding: 40px;
                             display: flex;
                             flex-direction: column;
                             justify-content: center;
+                            align-items: center;
+                            position: relative;
+                            box-sizing: border-box;
                         }
-                        .certificacion-nombre {
+                        .imagen-especialidad-certificado {
+                            position: absolute;
+                            top: 30px;
+                            right: 30px;
+                            max-width: 120px;
+                            max-height: 120px;
+                        }
+                        .certificacion-contenido {
+                            text-align: center;
+                            width: 100%;
+                            max-width: 800px;
+                            margin: 0 auto;
+                        }
+                        .certificacion-header {
+                            margin-bottom: 40px;
+                        }
+                        .certificacion-titulo {
+                            font-size: 14px;
+                            margin-bottom: 10px;
+                            letter-spacing: 1px;
+                        }
+                        .certificado-texto {
+                            font-size: 48px;
+                            color: #2c3e50;
+                            font-weight: bold;
+                            margin: 20px 0;
+                            text-transform: uppercase;
+                        }
+                        .otorgado-a {
+                            font-size: 18px;
+                            margin-bottom: 20px;
+                            font-weight: bold;
+                        }
+                        .nombre-usuario {
                             font-size: 32px;
                             font-weight: bold;
                             margin: 30px 0;
@@ -1834,8 +1857,15 @@
                             border-bottom: 3px solid #2c3e50;
                             display: inline-block;
                             min-width: 400px;
+                            max-width: 600px;
+                            word-wrap: break-word;
                         }
-                        .certificacion-texto {
+                        .linea-separadora {
+                            width: 400px;
+                            border-top: 2px solid #2c3e50;
+                            margin: 30px auto;
+                        }
+                        .texto-certificacion {
                             font-size: 20px;
                             line-height: 1.8;
                             margin: 40px 0;
@@ -1843,56 +1873,78 @@
                             margin-left: auto;
                             margin-right: auto;
                         }
-                        .certificacion-firmas {
-                            margin-top: auto;
-                            padding-bottom: 60px;
+                        .firmas-container {
+                            margin-top: 80px;
+                            display: flex;
+                            justify-content: space-around;
+                            align-items: flex-start;
+                            flex-wrap: wrap;
+                            width: 100%;
                         }
                         .firma {
                             text-align: center;
-                            margin: 0 30px;
+                            margin: 10px 20px;
+                            min-width: 200px;
                         }
                         .firma img {
                             max-width: 180px;
                             max-height: 80px;
                             margin-bottom: 10px;
                         }
-                        .firma-linea {
-                            width: 200px;
+                        .linea-firma {
+                            width: 180px;
                             border-top: 1px solid #2c3e50;
                             margin: 5px auto;
                         }
-                        .firma-nombre {
+                        .nombre-firma {
                             font-weight: bold;
                             font-size: 16px;
                             margin-top: 8px;
                         }
-                        .firma-cargo {
+                        .cargo-firma {
                             font-size: 14px;
                             color: #666;
                             margin-top: 5px;
                         }
+                        
+                        /* ESTILOS GENERALES DE IMPRESIÓN */
                         @media print {
-                            body { margin: 20px; }
-                            .no-print { display: none; }
-                            .certificacion { 
-                                border: 3px solid #2c3e50 !important;
-                                background: white !important;
+                            body {
+                                margin: 0;
+                                padding: 0;
                             }
+                            .examen-section {
+                                margin: 15px;
+                            }
+                            .certificacion-page {
+                                margin: 0;
+                                padding: 50px;
+                                border: none;
+                            }
+                            .no-print {
+                                display: none !important;
+                            }
+                        }
+                        
+                        body {
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            margin: 0;
+                            padding: 0;
+                            color: #333;
                         }
                     </style>
                 </head>
                 <body>
-                    <!-- Sección del Examen -->
-                    <div class="header">
-                        <div style="text-align: center;">
-                            <h1 style="color: #2c3e50; margin-bottom: 10px;">Conquiguias World</h1>
-                            <h2 style="color: #34495e;">${formulario.titulo}</h2>
-                        </div>
-                        ${formulario.imagenEspecialidad ?
+                    <!-- SECCIÓN DEL EXAMEN -->
+                    <div class="examen-section">
+                        <div class="header-examen">
+                            <h1 style="color: #2c3e50; margin-bottom: 10px; font-size: 28px;">Conquiguias World</h1>
+                            <h2 style="color: #34495e; margin-bottom: 10px; font-size: 22px;">${formulario.titulo}</h2>
+                            ${formulario.imagenEspecialidad ?
                 `<img src="${formulario.imagenEspecialidad}" class="imagen-especialidad-examen" alt="Especialidad">`
                 : ''
               }
-                    </div>
+                        </div>
             `;
 
             // Agregar preguntas del examen
@@ -1904,92 +1956,112 @@
 
               contenidoImpresion += `
                     <div class="pregunta ${esCorrecta ? 'correcta' : 'incorrecta'}">
-                        <p><strong>Pregunta ${index + 1}:</strong> ${pregunta.text}</p>
-                        <p><strong>Tu respuesta:</strong> ${opcionUsuario ? opcionUsuario.text : 'No respondida'}</p>
+                        <p style="margin: 0 0 10px 0; font-weight: bold; font-size: 16px;">
+                            <strong>Pregunta ${index + 1}:</strong> ${pregunta.text}
+                        </p>
+                        <p style="margin: 0 0 8px 0; font-size: 14px;">
+                            <strong>Tu respuesta:</strong> ${opcionUsuario ? opcionUsuario.text : 'No respondida'}
+                        </p>
                         ${!esCorrecta && respuestaCorrecta ?
-                  `<p><strong>Respuesta correcta:</strong> ${respuestaCorrecta.text}</p>` : ''}
-                        <p><strong>Resultado:</strong> ${esCorrecta ? '✅ Correcta' : '❌ Incorrecta'}</p>
+                  `<p style="margin: 0 0 5px 0; font-size: 14px; color: #28a745;">
+                                <strong>Respuesta correcta:</strong> ${respuestaCorrecta.text}
+                            </p>` : ''}
+                        <p style="margin: 0; font-size: 14px; font-weight: bold;">
+                            <strong>Resultado:</strong> ${esCorrecta ? '✅ Correcta' : '❌ Incorrecta'}
+                        </p>
                     </div>
                 `;
             });
 
-            // Sección de Certificación (HOJA COMPLETA SEPARADA)
+            // SECCIÓN DEL CERTIFICADO (HOJA COMPLETA SEPARADA)
             contenidoImpresion += `
-                <!-- Certificación - Hoja Completa Separada -->
-                <div class="certificacion">
-                    <!-- Imagen en esquina superior derecha -->
-                    ${formulario.imagenEspecialidad ?
+                    </div> <!-- Cierre de examen-section -->
+
+                    <!-- CERTIFICADO - HOJA COMPLETA SEPARADA -->
+                    <div class="certificacion-page">
+                        ${formulario.imagenEspecialidad ?
                 `<img src="${formulario.imagenEspecialidad}" class="imagen-especialidad-certificado" alt="Especialidad">`
                 : ''
               }
-
-                    <!-- Encabezado del certificado -->
-                    <div class="certificacion-header">
-                        <p style="font-size: 16px; margin-bottom: 15px; letter-spacing: 1px;">
-                            LA ACADEMIA Y PLATAFORMA ONLINE CONQUIGUIAS WORLD EXTIENDE EL SIGUIENTE
-                        </p>
-                        <h1 style="font-size: 52px; color: #2c3e50; margin: 0; font-weight: bold; text-transform: uppercase;">
-                            CERTIFICADO
-                        </h1>
-                    </div>
-
-                    <!-- Cuerpo del certificado -->
-                    <div class="certificacion-cuerpo">
-                        <p style="font-size: 18px; margin-bottom: 20px; font-weight: bold;">
-                            OTORGADO A:
-                        </p>
                         
-                        <div class="certificacion-nombre">${nombreUsuario}</div>
-                        
-                        <div style="width: 400px; border-top: 2px solid #2c3e50; margin: 40px auto;"></div>
+                        <div class="certificacion-contenido">
+                            <div class="certificacion-header">
+                                <p class="certificacion-titulo">
+                                    LA ACADEMIA Y PLATAFORMA ONLINE CONQUIGUIAS WORLD EXTIENDE EL SIGUIENTE
+                                </p>
+                                <h1 class="certificado-texto">CERTIFICADO</h1>
+                            </div>
 
-                        <div class="certificacion-texto">
-                            Por haber participado en la especialidad:<br>
-                            <strong style="color: #2c3e50; font-size: 22px;">"${formulario.titulo}"</strong><br>
-                            impartido por <strong>${extraerNombreFirma(formulario.imagenFirma1) || 'el instructor'}</strong>,<br>
-                            el ${fechaFormateada}.
+                            <div class="certificacion-cuerpo">
+                                <p class="otorgado-a">OTORGADO A:</p>
+                                
+                                <div class="nombre-usuario">${nombreUsuario}</div>
+                                
+                                <div class="linea-separadora"></div>
+
+                                <div class="texto-certificacion">
+                                    Por haber participado en la especialidad:<br>
+                                    <strong style="color: #2c3e50; font-size: 22px;">"${formulario.titulo}"</strong><br>
+                                    impartido por <strong>${extraerNombreFirma(formulario.imagenFirma1) || 'el instructor'}</strong>,<br>
+                                    el ${fechaFormateada}.
+                                </div>
+                            </div>
+
+                            <div class="firmas-container">
+                                ${formulario.imagenFirma1 ? `
+                                    <div class="firma">
+                                        <img src="${formulario.imagenFirma1}" alt="Firma Instructor">
+                                        <div class="linea-firma"></div>
+                                        <div class="nombre-firma">${extraerNombreFirma(formulario.imagenFirma1)}</div>
+                                        <div class="cargo-firma"><strong>INSTRUCTOR</strong></div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${formulario.imagenFirma2 ? `
+                                    <div class="firma">
+                                        <img src="${formulario.imagenFirma2}" alt="Firma Director">
+                                        <div class="linea-firma"></div>
+                                        <div class="nombre-firma">${extraerNombreFirma(formulario.imagenFirma2)}</div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${formulario.imagenFirma3 ? `
+                                    <div class="firma">
+                                        <img src="${formulario.imagenFirma3}" alt="Firma Coordinador">
+                                        <div class="linea-firma"></div>
+                                        <div class="nombre-firma">${extraerNombreFirma(formulario.imagenFirma3)}</div>
+                                    </div>
+                                ` : ''}
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Firmas -->
-                    <div class="certificacion-firmas">
-                        <div style="display: flex; justify-content: space-around; align-items: flex-start; flex-wrap: wrap; margin-top: 80px;">
-                            ${formulario.imagenFirma1 ? `
-                                <div class="firma">
-                                    <img src="${formulario.imagenFirma1}" alt="Firma Instructor">
-                                    <div class="firma-linea"></div>
-                                    <div class="firma-nombre">${extraerNombreFirma(formulario.imagenFirma1)}</div>
-                                    <div class="firma-cargo"><strong>INSTRUCTOR</strong></div>
-                                </div>
-                            ` : ''}
-                            
-                            ${formulario.imagenFirma2 ? `
-                                <div class="firma">
-                                    <img src="${formulario.imagenFirma2}" alt="Firma Director">
-                                    <div class="firma-linea"></div>
-                                    <div class="firma-nombre">${extraerNombreFirma(formulario.imagenFirma2)}</div>
-                                </div>
-                            ` : ''}
-                            
-                            ${formulario.imagenFirma3 ? `
-                                <div class="firma">
-                                    <img src="${formulario.imagenFirma3}" alt="Firma Coordinador">
-                                    <div class="firma-linea"></div>
-                                    <div class="firma-nombre">${extraerNombreFirma(formulario.imagenFirma3)}</div>
-                                </div>
-                            ` : ''}
-                        </div>
+                    <div class="no-print" style="text-align: center; margin: 30px; padding: 20px;">
+                        <button onclick="window.print()" style="
+                            padding: 12px 25px; 
+                            background: #007bff; 
+                            color: white; 
+                            border: none; 
+                            border-radius: 5px; 
+                            cursor: pointer;
+                            font-size: 16px;
+                            margin: 0 10px;
+                        ">
+                            🖨️ Imprimir Documento Completo
+                        </button>
+                        <button onclick="window.close()" style="
+                            padding: 12px 25px; 
+                            background: #6c757d; 
+                            color: white; 
+                            border: none; 
+                            border-radius: 5px; 
+                            cursor: pointer;
+                            font-size: 16px;
+                            margin: 0 10px;
+                        ">
+                            Cerrar Ventana
+                        </button>
                     </div>
-                </div>
-
-                <div class="no-print" style="text-align: center; margin-top: 30px;">
-                    <button onclick="window.print()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
-                        🖨️ Imprimir Documento Completo
-                    </button>
-                    <button onclick="window.close()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
-                        Cerrar
-                    </button>
-                </div>
                 </body>
                 </html>
             `;

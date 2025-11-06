@@ -534,11 +534,11 @@
     }
 
     /* 🔹 CONTENEDOR DE LA TABLA CON SCROLL HORIZONTAL */
-    #certificacionesContent {
-      overflow-x: auto;
-      max-width: 100%;
-      margin-top: 20px;
-    }
+#certificacionesContent {
+    overflow-x: auto;
+    max-width: 100%;
+    margin-top: 20px;
+}
 
     .estado-completado {
       color: #27ae60;
@@ -660,31 +660,30 @@
    RESPONSIVE DESIGN - LAPTOP, TABLET, MÓVIL
    ============================================ */
 
-    /* 🔹 LAPTOP (1024px - 1440px) */
-    @media (max-width: 1440px) {
-      #mainContent {
+/* 🔹 LAPTOP (1024px - 1440px) */
+@media (max-width: 1440px) {
+    #mainContent {
         padding: 20px;
-      }
-
-      .card {
+    }
+    
+    .card {
         max-width: 90%;
         margin: 15px auto;
         padding: 20px;
-      }
     }
+}
 
-    /* 🔹 TABLET (768px - 1023px) */
-    @media (max-width: 1023px) {
-      body {
+/* 🔹 TABLET (768px - 1023px) */
+@media (max-width: 1023px) {
+    body {
         flex-direction: column;
         height: auto;
         min-height: 100vh;
-        padding-top: 120px;
-        /* Espacio para los elementos fijos */
-      }
+        padding-top: 120px; /* Espacio para los elementos fijos */
+    }
 
-      /* Menú lateral convertido en header fijo */
-      #sidebar {
+    /* Menú lateral convertido en header fijo */
+    #sidebar {
         position: fixed;
         top: 0;
         left: 0;
@@ -699,26 +698,25 @@
         justify-content: flex-start;
         align-items: center;
         white-space: nowrap;
-        -webkit-overflow-scrolling: touch;
-        /* Scroll suave en iOS */
-      }
+        -webkit-overflow-scrolling: touch; /* Scroll suave en iOS */
+    }
 
-      /* Ocultar título del sidebar */
-      #sidebar h2 {
+    /* Ocultar título del sidebar */
+    #sidebar h2 {
         display: none;
-      }
+    }
 
-      /* Contenedor para los botones del menú (desplazable) */
-      #sidebar::before {
+    /* Contenedor para los botones del menú (desplazable) */
+    #sidebar::before {
         content: '';
         display: flex;
         flex: 1;
         overflow-x: auto;
         gap: 5px;
         padding-right: 10px;
-      }
+    }
 
-      #sidebar button {
+    #sidebar button {
         padding: 10px 15px;
         margin: 0;
         text-align: center;
@@ -726,45 +724,43 @@
         border-radius: 6px;
         font-size: 14px;
         white-space: nowrap;
-        transform: none !important;
-        /* Eliminar transformación hover */
-      }
+        transform: none !important; /* Eliminar transformación hover */
+    }
 
-      #sidebar button:hover {
+    #sidebar button:hover {
         transform: none !important;
         background: rgba(255, 255, 255, 0.2);
-      }
+    }
 
-      /* Botón de salir fijo a la derecha */
-      #sidebar #logoutBtn {
+    /* Botón de salir fijo a la derecha */
+    #sidebar #logoutBtn {
         margin-left: auto;
         flex-shrink: 0;
         position: sticky;
         right: 0;
         background: #e53935;
-      }
+    }
 
-      #sidebar #logoutBtn:hover {
+    #sidebar #logoutBtn:hover {
         background: #b71c1c;
-      }
+    }
 
-      #mainContent {
+    #mainContent {
         padding: 15px;
         margin-top: 0;
         width: 100%;
-      }
+    }
 
-      .card {
+    .card {
         max-width: 95%;
         margin: 10px auto;
         padding: 15px;
-      }
+    }
 
-      /* Header del usuario fijo */
-      #userHeader {
+    /* Header del usuario fijo */
+    #userHeader {
         position: fixed;
-        top: 60px;
-        /* Debajo del menú */
+        top: 60px; /* Debajo del menú */
         right: 0;
         left: 0;
         margin: 0;
@@ -775,137 +771,116 @@
         background: rgba(255, 255, 255, 0.95);
         justify-content: center;
         width: 100%;
-      }
+    }
+}
+
+/* 🔹 MÓVIL GRANDE (576px - 767px) */
+@media (max-width: 767px) {
+    body {
+        padding-top: 110px; /* Ajuste para móvil */
     }
 
-    /* 🔹 MÓVIL GRANDE (576px - 767px) */
-    @media (max-width: 767px) {
-      body {
-        padding-top: 110px;
-        /* Ajuste para móvil */
-      }
-
-      #sidebar {
+    #sidebar {
         padding: 8px 10px;
-      }
+    }
 
-      #sidebar button {
+    #sidebar button {
         padding: 8px 12px;
         font-size: 13px;
-      }
+    }
 
-      #userHeader {
-        top: 50px;
-        /* Ajuste para móvil */
+    #userHeader {
+        top: 50px; /* Ajuste para móvil */
         padding: 8px 10px;
-      }
+    }
 
-      #userHeader img {
+    #userHeader img {
         width: 35px;
         height: 35px;
-      }
+    }
 
-      #userHeader span {
+    #userHeader span {
         font-size: 14px;
-      }
+    }
 
-      /* Mejorar scroll del menú */
-      #sidebar {
+    /* Mejorar scroll del menú */
+    #sidebar {
         scrollbar-width: thin;
         scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
-      }
+    }
 
-      #sidebar::-webkit-scrollbar {
+    #sidebar::-webkit-scrollbar {
         height: 4px;
-      }
+    }
 
-      #sidebar::-webkit-scrollbar-track {
+    #sidebar::-webkit-scrollbar-track {
         background: transparent;
-      }
+    }
 
-      #sidebar::-webkit-scrollbar-thumb {
+    #sidebar::-webkit-scrollbar-thumb {
         background: rgba(255, 255, 255, 0.3);
         border-radius: 2px;
-      }
+    }
+}
+
+/* 🔹 MÓVIL PEQUEÑO (375px - 575px) */
+@media (max-width: 575px) {
+    body {
+        padding-top: 100px; /* Ajuste para móvil pequeño */
     }
 
-    /* 🔹 MÓVIL PEQUEÑO (375px - 575px) */
-    @media (max-width: 575px) {
-      body {
-        padding-top: 100px;
-        /* Ajuste para móvil pequeño */
-      }
-
-      #sidebar {
+    #sidebar {
         padding: 5px 8px;
-      }
+    }
 
-      #sidebar button {
+    #sidebar button {
         padding: 6px 10px;
         font-size: 12px;
-      }
-
-      #userHeader {
-        top: 40px;
-        /* Ajuste para móvil pequeño */
-        padding: 5px 8px;
-      }
-
-      #userHeader img {
-        width: 30px;
-        height: 30px;
-      }
-
-      #userHeader span {
-        font-size: 12px;
-      }
     }
 
-    /* 🔹 MEJORAS DE SCROLL PARA EL MENÚ */
-    @media (max-width: 1023px) {
-      #sidebar {
+    #userHeader {
+        top: 40px; /* Ajuste para móvil pequeño */
+        padding: 5px 8px;
+    }
+
+    #userHeader img {
+        width: 30px;
+        height: 30px;
+    }
+
+    #userHeader span {
+        font-size: 12px;
+    }
+}
+
+/* 🔹 MEJORAS DE SCROLL PARA EL MENÚ */
+@media (max-width: 1023px) {
+    #sidebar {
         /* Permitir scroll horizontal */
         overflow-x: auto;
         overflow-y: hidden;
-
+        
         /* Ocultar scrollbar en algunos navegadores */
-        -ms-overflow-style: none;
-        /* IE and Edge */
-        scrollbar-width: none;
-        /* Firefox */
-      }
-
-      /* Ocultar scrollbar en Chrome, Safari y Opera */
-      #sidebar::-webkit-scrollbar {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+    }
+    
+    /* Ocultar scrollbar en Chrome, Safari y Opera */
+    #sidebar::-webkit-scrollbar {
         display: none;
-      }
-
-      /* Efecto visual para indicar que hay más contenido */
-      #sidebar {
-        mask-image: linear-gradient(to right,
+    }
+    
+    /* Efecto visual para indicar que hay más contenido */
+    #sidebar {
+        mask-image: linear-gradient(
+            to right,
             transparent,
             black 20px,
             black calc(100% - 60px),
-            transparent);
-      }
+            transparent
+        );
     }
-
-    /* Estilos para el contenedor desplazable (si usas la estructura HTML modificada) */
-    .menu-scroll-container {
-      display: flex;
-      overflow-x: auto;
-      flex: 1;
-      gap: 5px;
-      padding-right: 10px;
-
-      /* Ocultar scrollbar */
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-
-    .menu-scroll-container::-webkit-scrollbar {
-      display: none;
-    }
+}
   </style>
 </head>
 
@@ -914,15 +889,11 @@
   <!-- Menú lateral -->
   <div id="sidebar">
     <h2></h2>
-    <!-- Contenedor para botones desplazables -->
-    <div class="menu-scroll-container">
-      <button id="menuInicio" class="active">Inicio</button>
-      <button id="menuClubes">Clubes</button>
-      <button id="menuCertificaciones">Certificaciones</button>
-      <button id="menuEspecialidades">Especialidades Storage</button>
-      <button id="menuPerfil">Perfil</button>
-    </div>
-    <!-- Botón de salir fijo -->
+    <button id="menuInicio" class="active">Inicio</button>
+    <button id="menuClubes">Clubes</button>
+    <button id="menuCertificaciones">Certificaciones</button>
+    <button id="menuEspecialidades">Especialidades Storage</button>
+    <button id="menuPerfil">Perfil</button>
     <button id="logoutBtn">Cerrar sesión</button>
   </div>
 
@@ -1993,7 +1964,7 @@
             `;
         }
 
-
+        
 
         certContainer.innerHTML = contenidoHTML;
         modal.style.display = 'flex';
@@ -2003,7 +1974,7 @@
           document.getElementById('btnImprimirExamen').addEventListener('click', () => {
             imprimirExamenCompleto(examen, resultado, formulario);
           });
-
+          
         }
 
       }

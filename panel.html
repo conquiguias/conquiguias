@@ -1356,6 +1356,8 @@
 
       // Función para cargar las certificaciones del usuario
       // Función para cargar las certificaciones del usuario
+      // 🔹 NUEVAS FUNCIONES PARA CERTIFICACIONES - DENTRO DEL MÓDULO
+
       // Función para cargar las certificaciones del usuario
       async function cargarCertificaciones() {
         // Mostrar loading
@@ -1395,7 +1397,10 @@
                 const data = await respuestasRes.json();
                 const respuestas = data.asistencias || [];
                 const examenes = data.examenes || [];
-                const fechaFin = data.fechaFin ? new Date(data.fechaFin) : null;
+
+                // Obtener la fecha de cierre del formulario desde la lista de formularios
+                const fechaCierreFormulario = formularios[formularioId].fechaCierre;
+                const fechaFin = fechaCierreFormulario ? new Date(fechaCierreFormulario) : null;
                 const hoy = new Date();
 
                 // Buscar respuestas del usuario por correo O por visitanteId
@@ -1414,10 +1419,11 @@
                     return respuestaUsuario !== undefined;
                   });
 
-                  // 🔹 CORRECCIÓN: Contar asistencias únicas completadas
-                  const asistenciasCompletadas = new Set(
-                    respuestasUsuario.map(r => r.asistenciaNumero)
-                  ).size;
+                  // 🔹 CORRECCIÓN: Contar asistencias completadas correctamente
+                  const numerosAsistencia = respuestasUsuario.map(r => r.asistenciaNumero);
+                  const asistenciasCompletadas = [1, 2, 3].filter(num =>
+                    numerosAsistencia.includes(num)
+                  ).length;
 
                   const examenRealizado = examenUsuario !== undefined;
                   const calificacion = examenRealizado ? examenUsuario.puntaje : null;
@@ -1490,9 +1496,9 @@
           certificacionesLoading.style.display = "none";
           sinCertificaciones.style.display = "block";
           sinCertificaciones.innerHTML = `
-      <h3>❌ Error al cargar certificaciones</h3>
-      <p>No se pudieron cargar tus certificaciones. Intenta nuevamente.</p>
-    `;
+            <h3>❌ Error al cargar certificaciones</h3>
+            <p>No se pudieron cargar tus certificaciones. Intenta nuevamente.</p>
+        `;
         }
       }
 

@@ -1729,15 +1729,35 @@
         btnImprimir.disabled = true;
 
         // Obtener el nombre del usuario desde las asistencias
+        // Obtener el nombre del usuario desde las asistencias
         fetch(`/api/verRespuestas?id=${formulario.id}`)
           .then(res => res.json())
           .then(data => {
             const asistencias = data.asistencias || [];
-            // Buscar la primera asistencia del usuario para obtener su nombre
+            // Buscar CUALQUIER asistencia del usuario para obtener su nombre
             const asistenciaUsuario = asistencias.find(a =>
-              a.visitanteId === resultado.visitanteId && a.asistenciaNumero === 1
+              a.visitanteId === resultado.visitanteId && a.nombre && a.nombre.trim() !== ''
             );
-            const nombreUsuario = asistenciaUsuario ? asistenciaUsuario.nombre : 'Nombre no encontrado';
+
+            let nombreUsuario = 'Nombre no encontrado';
+            if (asistenciaUsuario && asistenciaUsuario.nombre) {
+              nombreUsuario = asistenciaUsuario.nombre.trim();
+            } else {
+              // Si no se encuentra en asistencias, intentar obtener del perfil del usuario
+              const user = auth.currentUser;
+              if (user && user.displayName) {
+                nombreUsuario = user.displayName;
+              } else {
+                // Último recurso: usar el correo sin el dominio
+                const email = user.email;
+                if (email) {
+                  nombreUsuario = email.split('@')[0];
+                  nombreUsuario = nombreUsuario.split('.').map(word =>
+                    word.charAt(0).toUpperCase() + word.slice(1)
+                  ).join(' ');
+                }
+              }
+            }
 
             // Crear ventana de impresión
             const ventanaImpresion = window.open('', '_blank');
@@ -1794,35 +1814,35 @@
                             min-height: 800px;
                         }
                         .certificacion-header {
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: flex-start;
-                            margin-bottom: 30px;
-                        }
-                        .certificacion-logo {
-                            max-width: 150px;
-                            height: auto;
-                        }
-                        .certificacion-titulo {
-                            text-align: center;
-                            flex: 1;
-                        }
-                        .certificacion-cuerpo {
-                            text-align: center;
-                            margin: 40px 0;
-                        }
-                        .certificacion-nombre {
-                            font-size: 28px;
-                            font-weight: bold;
-                            margin: 20px 0;
-                            padding: 10px;
-                            border-bottom: 2px solid #2c3e50;
-                        }
-                        .certificacion-texto {
-                            font-size: 18px;
-                            line-height: 1.6;
-                            margin: 25px 0;
-                        }
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.certificacion-titulo {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.certificacion-cuerpo {
+    text-align: center;
+    margin: 30px 0;
+}
+
+.certificacion-nombre {
+    text-align: center;
+    font-size: 28px;
+    font-weight: bold;
+    margin: 20px 0;
+    padding: 10px;
+    border-bottom: 2px solid #2c3e50;
+}
+
+.certificacion-texto {
+    text-align: center;
+    font-size: 18px;
+    line-height: 1.6;
+    margin: 25px 0;
+}
                         .certificacion-firmas {
                             display: flex;
                             justify-content: space-around;
@@ -1895,39 +1915,41 @@
             // Sección de Certificación (nueva página)
             contenidoImpresion += `
                 <!-- Certificación -->
-                <div class="certificacion">
-                    <div class="certificacion-header">
-                        <!-- Espacio para logo futuro a la izquierda -->
-                        <div style="width: 150px;"></div>
-                        
-                        <div class="certificacion-titulo">
-                            <p style="font-size: 14px; margin-bottom: 10px;">
-                                LA ACADEMIA Y PLATAFORMA ONLINE CONQUIGUIAS WORLD EXTIENDE EL SIGUIENTE
-                            </p>
-                            <h1 style="font-size: 48px; color: #2c3e50; margin: 20px 0;">CERTIFICADO</h1>
-                        </div>
+                <div class="certificacion-header">
+    <div class="certificacion-titulo">
+        <p style="font-size: 14px; margin-bottom: 10px;">
+            LA ACADEMIA Y PLATAFORMA ONLINE CONQUIGUIAS WORLD EXTIENDE EL SIGUIENTE
+        </p>
+        <h1 style="font-size: 48px; color: #2c3e50; margin: 20px 0;">CERTIFICADO</h1>
+    </div>
+</div>
 
-                        <!-- Imagen de la especialidad a la derecha -->
-                        ${formulario.imagenEspecialidad ?
-                `<img src="${formulario.imagenEspecialidad}" class="imagen-especialidad" alt="Especialidad" 
-                                 style="max-width: 120px; max-height: 120px;">`
+<!-- Imagen de especialidad en posición fija y centrada -->
+${formulario.imagenEspecialidad ?
+                `<div style="text-align: center; margin: 20px 0;">
+        <img src="${formulario.imagenEspecialidad}" 
+             alt="Especialidad" 
+             style="max-width: 150px; max-height: 150px; display: block; margin: 0 auto;">
+    </div>`
                 : ''
               }
                     </div>
 
                     <div class="certificacion-cuerpo">
-                        <p style="font-size: 16px; margin-bottom: 10px;">OTORGADO A:</p>
-                        <div class="certificacion-nombre">${nombreUsuario}</div>
-                        
-                        <div class="firma-linea" style="width: 300px; margin: 30px auto;"></div>
+    <p style="font-size: 16px; margin-bottom: 10px; text-align: center;">OTORGADO A:</p>
+    <div class="certificacion-nombre" style="text-align: center; font-size: 28px; font-weight: bold; margin: 20px 0; padding: 10px; border-bottom: 2px solid #2c3e50;">
+        ${nombreUsuario}
+    </div>
+    
+    <div class="firma-linea" style="width: 300px; margin: 30px auto;"></div>
 
-                        <div class="certificacion-texto">
-                            Por haber participado en la especialidad: 
-                            <strong style="color: #2c3e50;">"${formulario.titulo}"</strong> 
-                            impartido por <strong>${extraerNombreFirma(formulario.imagenFirma1) || 'el instructor'}</strong>, 
-                            el ${fechaFormateada}.
-                        </div>
-                    </div>
+    <div class="certificacion-texto" style="text-align: center; font-size: 18px; line-height: 1.6; margin: 25px 0;">
+        Por haber participado en la especialidad: 
+        <strong style="color: #2c3e50;">"${formulario.titulo}"</strong><br>
+        impartido por <strong>${extraerNombreFirma(formulario.imagenFirma1) || 'el instructor'}</strong>,<br>
+        el ${fechaFormateada}.
+    </div>
+</div>
 
                     <div class="certificacion-firmas">
                         ${formulario.imagenFirma1 ? `
@@ -2004,67 +2026,67 @@
 
       // Función para actualizar la interfaz con las certificaciones
       // Función para actualizar la interfaz con las certificaciones
-function actualizarInterfazCertificaciones(certificaciones) {
-    // Ocultar loading
-    certificacionesLoading.style.display = "none";
+      function actualizarInterfazCertificaciones(certificaciones) {
+        // Ocultar loading
+        certificacionesLoading.style.display = "none";
 
-    if (certificaciones.length === 0) {
-        sinCertificaciones.style.display = "block";
-        certificacionesContent.style.display = "none";
-        return;
-    }
-
-    // Mostrar contenido
-    sinCertificaciones.style.display = "none";
-    certificacionesContent.style.display = "block";
-
-    // Agrupar certificaciones por formularioId para evitar duplicados
-    const certificacionesAgrupadas = {};
-    certificaciones.forEach(cert => {
-        if (!certificacionesAgrupadas[cert.formularioId]) {
-            certificacionesAgrupadas[cert.formularioId] = [];
+        if (certificaciones.length === 0) {
+          sinCertificaciones.style.display = "block";
+          certificacionesContent.style.display = "none";
+          return;
         }
-        certificacionesAgrupadas[cert.formularioId].push(cert);
-    });
 
-    // Tomar la mejor certificación de cada formulario (la que tenga más asistencias completadas)
-    const certificacionesUnicas = [];
-    Object.values(certificacionesAgrupadas).forEach(grupo => {
-        // Ordenar por asistencias completadas (mayor a menor) y luego por fecha (más reciente primero)
-        grupo.sort((a, b) => {
+        // Mostrar contenido
+        sinCertificaciones.style.display = "none";
+        certificacionesContent.style.display = "block";
+
+        // Agrupar certificaciones por formularioId para evitar duplicados
+        const certificacionesAgrupadas = {};
+        certificaciones.forEach(cert => {
+          if (!certificacionesAgrupadas[cert.formularioId]) {
+            certificacionesAgrupadas[cert.formularioId] = [];
+          }
+          certificacionesAgrupadas[cert.formularioId].push(cert);
+        });
+
+        // Tomar la mejor certificación de cada formulario (la que tenga más asistencias completadas)
+        const certificacionesUnicas = [];
+        Object.values(certificacionesAgrupadas).forEach(grupo => {
+          // Ordenar por asistencias completadas (mayor a menor) y luego por fecha (más reciente primero)
+          grupo.sort((a, b) => {
             if (b.asistenciasCompletadas !== a.asistenciasCompletadas) {
-                return b.asistenciasCompletadas - a.asistenciasCompletadas;
+              return b.asistenciasCompletadas - a.asistenciasCompletadas;
             }
             return new Date(b.fecha) - new Date(a.fecha);
+          });
+          // Tomar la primera (mejor) certificación del grupo
+          certificacionesUnicas.push(grupo[0]);
         });
-        // Tomar la primera (mejor) certificación del grupo
-        certificacionesUnicas.push(grupo[0]);
-    });
 
-    // Actualizar contadores
-    const completadas = certificacionesUnicas.filter(c => c.estado === "Completado").length;
-    totalEspecialidades.textContent = certificacionesUnicas.length;
-    especialidadesCompletadas.textContent = completadas;
+        // Actualizar contadores
+        const completadas = certificacionesUnicas.filter(c => c.estado === "Completado").length;
+        totalEspecialidades.textContent = certificacionesUnicas.length;
+        especialidadesCompletadas.textContent = completadas;
 
-    // Limpiar tabla
-    cuerpoTablaCertificaciones.innerHTML = "";
+        // Limpiar tabla
+        cuerpoTablaCertificaciones.innerHTML = "";
 
-    // Ordenar certificaciones por fecha (más reciente primero)
-    certificacionesUnicas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        // Ordenar certificaciones por fecha (más reciente primero)
+        certificacionesUnicas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
-    // Llenar tabla
-    certificacionesUnicas.forEach((cert, index) => {
-        const fila = document.createElement("tr");
+        // Llenar tabla
+        certificacionesUnicas.forEach((cert, index) => {
+          const fila = document.createElement("tr");
 
-        let calificacionTexto = "No realizado";
-        let calificacionClase = "";
+          let calificacionTexto = "No realizado";
+          let calificacionClase = "";
 
-        if (cert.examenRealizado) {
+          if (cert.examenRealizado) {
             calificacionClase = cert.aprobado ? "calificacion-aprobada" : "calificacion-reprobada";
             calificacionTexto = `${cert.calificacion.toFixed(1)}%`;
-        }
+          }
 
-        fila.innerHTML = `
+          fila.innerHTML = `
             <td>${index + 1}</td>
             <td>${cert.titulo}</td>
             <td>${cert.fecha.toLocaleDateString()}</td>
@@ -2073,19 +2095,19 @@ function actualizarInterfazCertificaciones(certificaciones) {
             <td class="${calificacionClase}">${calificacionTexto}</td>
             <td class="${cert.estadoClase}">${cert.estado}</td>
             <td>
-                ${cert.examenRealizado ? 
-                    `<button onclick="verCertificacionCompleta('${cert.formularioId}', '${cert.visitanteId}')" 
+                ${cert.examenRealizado ?
+              `<button onclick="verCertificacionCompleta('${cert.formularioId}', '${cert.visitanteId}')" 
                              style="background: #17a2b8; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">
                         Ver Examen
-                    </button>` 
-                    : 'No disponible'
-                }
+                    </button>`
+              : 'No disponible'
+            }
             </td>
         `;
 
-        cuerpoTablaCertificaciones.appendChild(fila);
-    });
-}
+          cuerpoTablaCertificaciones.appendChild(fila);
+        });
+      }
       const tabla = document.getElementById('tablaCertificaciones');
       tabla.querySelector('thead').innerHTML = `
     <tr>

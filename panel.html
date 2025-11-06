@@ -534,11 +534,11 @@
     }
 
     /* 🔹 CONTENEDOR DE LA TABLA CON SCROLL HORIZONTAL */
-#certificacionesContent {
-    overflow-x: auto;
-    max-width: 100%;
-    margin-top: 20px;
-}
+    #certificacionesContent {
+      overflow-x: auto;
+      max-width: 100%;
+      margin-top: 20px;
+    }
 
     .estado-completado {
       color: #27ae60;
@@ -660,335 +660,252 @@
    RESPONSIVE DESIGN - LAPTOP, TABLET, MÓVIL
    ============================================ */
 
-/* 🔹 LAPTOP (1024px - 1440px) */
-@media (max-width: 1440px) {
-    #mainContent {
+    /* 🔹 LAPTOP (1024px - 1440px) */
+    @media (max-width: 1440px) {
+      #mainContent {
         padding: 20px;
-    }
-    
-    .card {
+      }
+
+      .card {
         max-width: 90%;
         margin: 15px auto;
         padding: 20px;
+      }
     }
-}
 
-/* 🔹 TABLET (768px - 1023px) */
-@media (max-width: 1023px) {
-    body {
+    /* 🔹 TABLET (768px - 1023px) */
+    @media (max-width: 1023px) {
+      body {
         flex-direction: column;
         height: auto;
         min-height: 100vh;
-    }
+        padding-top: 120px;
+        /* Espacio para los elementos fijos */
+      }
 
-    #sidebar {
+      /* Menú lateral convertido en header fijo */
+      #sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
         width: 100%;
         height: auto;
         flex-direction: row;
         overflow-x: auto;
-        padding: 15px 0;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    }
-
-    #sidebar h2 {
-        margin-bottom: 0;
-        margin-right: 20px;
-        font-size: 18px;
-        white-space: nowrap;
-    }
-
-    #sidebar button {
         padding: 10px 15px;
-        margin: 0 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        background: linear-gradient(180deg, #1976d2, #1565c0);
+        justify-content: flex-start;
+        align-items: center;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        /* Scroll suave en iOS */
+      }
+
+      /* Ocultar título del sidebar */
+      #sidebar h2 {
+        display: none;
+      }
+
+      /* Contenedor para los botones del menú (desplazable) */
+      #sidebar::before {
+        content: '';
+        display: flex;
+        flex: 1;
+        overflow-x: auto;
+        gap: 5px;
+        padding-right: 10px;
+      }
+
+      #sidebar button {
+        padding: 10px 15px;
+        margin: 0;
         text-align: center;
         flex-shrink: 0;
         border-radius: 6px;
         font-size: 14px;
-    }
+        white-space: nowrap;
+        transform: none !important;
+        /* Eliminar transformación hover */
+      }
 
-    #sidebar #logoutBtn {
-        margin-top: 0;
+      #sidebar button:hover {
+        transform: none !important;
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      /* Botón de salir fijo a la derecha */
+      #sidebar #logoutBtn {
         margin-left: auto;
-    }
+        flex-shrink: 0;
+        position: sticky;
+        right: 0;
+        background: #e53935;
+      }
 
-    #mainContent {
+      #sidebar #logoutBtn:hover {
+        background: #b71c1c;
+      }
+
+      #mainContent {
         padding: 15px;
         margin-top: 0;
-    }
+        width: 100%;
+      }
 
-    .card {
+      .card {
         max-width: 95%;
         margin: 10px auto;
         padding: 15px;
-    }
+      }
 
-    /* Header del usuario en tablet */
-    #userHeader {
-        position: relative;
-        top: auto;
-        right: auto;
-        margin-bottom: 20px;
+      /* Header del usuario fijo */
+      #userHeader {
+        position: fixed;
+        top: 60px;
+        /* Debajo del menú */
+        right: 0;
+        left: 0;
+        margin: 0;
+        padding: 10px 15px;
+        border-radius: 0;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        z-index: 999;
+        background: rgba(255, 255, 255, 0.95);
         justify-content: center;
         width: 100%;
-        border-radius: 12px;
-    }
-}
-
-/* 🔹 MÓVIL GRANDE (576px - 767px) */
-@media (max-width: 767px) {
-    #sidebar {
-        flex-wrap: wrap;
-        justify-content: center;
-        padding: 10px;
+      }
     }
 
-    #sidebar h2 {
-        width: 100%;
-        text-align: center;
-        margin-right: 0;
-        margin-bottom: 10px;
-        font-size: 16px;
-    }
+    /* 🔹 MÓVIL GRANDE (576px - 767px) */
+    @media (max-width: 767px) {
+      body {
+        padding-top: 110px;
+        /* Ajuste para móvil */
+      }
 
-    #sidebar button {
+      #sidebar {
+        padding: 8px 10px;
+      }
+
+      #sidebar button {
         padding: 8px 12px;
         font-size: 13px;
-        margin: 2px;
-        flex: 1;
-        min-width: 120px;
-        text-align: center;
-    }
+      }
 
-    #sidebar #logoutBtn {
-        margin-left: 0;
-        flex: none;
-        min-width: 140px;
-    }
-
-    #mainContent {
-        padding: 10px;
-    }
-
-    .card {
-        max-width: 100%;
-        margin: 8px 0;
-        padding: 12px;
-        border-radius: 8px;
-    }
-
-    /* Ajustes para formularios en móvil */
-    input, select {
-        padding: 10px;
-        font-size: 16px; /* Previene zoom en iOS */
-    }
-
-    button.saveBtn, button#crearEspecialidad, button#subirArchivoBtn {
-        padding: 12px;
-        font-size: 14px;
-        width: 100%;
-    }
-
-    /* Clubes en móvil */
-    #clubesContainer {
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .clubBtn {
-        width: 100%;
-        padding: 12px;
-    }
-
-    .niveles {
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    /* Certificaciones en móvil */
-    .card-certificaciones {
-        padding: 15px;
-        margin: 8px 0 !important;
-    }
-
-    #certificacionesContadores {
-        flex-direction: column;
-        gap: 10px;
-        text-align: center;
-    }
-
-    #tablaCertificaciones {
-        min-width: 600px;
-        font-size: 12px;
-    }
-
-    #tablaCertificaciones th,
-    #tablaCertificaciones td {
-        padding: 6px 8px;
-        font-size: 11px;
-    }
-
-    #tablaCertificaciones button {
-        padding: 4px 8px;
-        font-size: 10px;
-    }
-}
-
-/* 🔹 MÓVIL PEQUEÑO (375px - 575px) */
-@media (max-width: 575px) {
-    #sidebar {
-        padding: 8px 5px;
-    }
-
-    #sidebar button {
-        padding: 6px 8px;
-        font-size: 12px;
-        min-width: 100px;
-        margin: 1px;
-    }
-
-    #sidebar #logoutBtn {
-        min-width: 120px;
-    }
-
-    #mainContent {
-        padding: 8px;
-    }
-
-    .card {
-        padding: 10px;
-        margin: 5px 0;
-    }
-
-    h1 {
-        font-size: 24px !important;
-    }
-
-    h2 {
-        font-size: 20px !important;
-    }
-
-    h3 {
-        font-size: 18px !important;
-    }
-
-    h4 {
-        font-size: 16px !important;
-    }
-
-    /* Perfil en móvil pequeño */
-    #preview {
-        width: 150px !important;
-        height: 150px !important;
-    }
-
-    /* Especialidades Storage en móvil */
-    #listaEspecialidades li {
+      #userHeader {
+        top: 50px;
+        /* Ajuste para móvil */
         padding: 8px 10px;
+      }
+
+      #userHeader img {
+        width: 35px;
+        height: 35px;
+      }
+
+      #userHeader span {
         font-size: 14px;
+      }
+
+      /* Mejorar scroll del menú */
+      #sidebar {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+      }
+
+      #sidebar::-webkit-scrollbar {
+        height: 4px;
+      }
+
+      #sidebar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      #sidebar::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 2px;
+      }
     }
 
-    .archivo-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
+    /* 🔹 MÓVIL PEQUEÑO (375px - 575px) */
+    @media (max-width: 575px) {
+      body {
+        padding-top: 100px;
+        /* Ajuste para móvil pequeño */
+      }
+
+      #sidebar {
+        padding: 5px 8px;
+      }
+
+      #sidebar button {
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+
+      #userHeader {
+        top: 40px;
+        /* Ajuste para móvil pequeño */
+        padding: 5px 8px;
+      }
+
+      #userHeader img {
+        width: 30px;
+        height: 30px;
+      }
+
+      #userHeader span {
+        font-size: 12px;
+      }
     }
 
-    .archivo-item > div {
-        width: 100%;
-        justify-content: space-between;
+    /* 🔹 MEJORAS DE SCROLL PARA EL MENÚ */
+    @media (max-width: 1023px) {
+      #sidebar {
+        /* Permitir scroll horizontal */
+        overflow-x: auto;
+        overflow-y: hidden;
+
+        /* Ocultar scrollbar en algunos navegadores */
+        -ms-overflow-style: none;
+        /* IE and Edge */
+        scrollbar-width: none;
+        /* Firefox */
+      }
+
+      /* Ocultar scrollbar en Chrome, Safari y Opera */
+      #sidebar::-webkit-scrollbar {
+        display: none;
+      }
+
+      /* Efecto visual para indicar que hay más contenido */
+      #sidebar {
+        mask-image: linear-gradient(to right,
+            transparent,
+            black 20px,
+            black calc(100% - 60px),
+            transparent);
+      }
     }
 
-    /* Modal de mensajes en móvil */
-    .mensaje-content {
-        padding: 20px;
-        margin: 20px;
-        width: calc(100% - 40px);
+    /* Estilos para el contenedor desplazable (si usas la estructura HTML modificada) */
+    .menu-scroll-container {
+      display: flex;
+      overflow-x: auto;
+      flex: 1;
+      gap: 5px;
+      padding-right: 10px;
+
+      /* Ocultar scrollbar */
+      -ms-overflow-style: none;
+      scrollbar-width: none;
     }
 
-    /* Visor PDF en móvil */
-    .pdf-viewer-content {
-        width: 95%;
-        height: 95%;
+    .menu-scroll-container::-webkit-scrollbar {
+      display: none;
     }
-}
-
-/* 🔹 MÓVIL MUY PEQUEÑO (hasta 374px) */
-@media (max-width: 374px) {
-    #sidebar button {
-        font-size: 11px;
-        padding: 5px 6px;
-        min-width: 90px;
-    }
-
-    #sidebar #logoutBtn {
-        min-width: 100px;
-    }
-
-    #mainContent {
-        padding: 5px;
-    }
-
-    .card {
-        padding: 8px;
-    }
-
-    #tablaCertificaciones {
-        min-width: 500px;
-    }
-
-    #tablaCertificaciones th,
-    #tablaCertificaciones td {
-        padding: 4px 6px;
-        font-size: 10px;
-    }
-}
-
-/* 🔹 MEJORAS GENERALES DE USABILIDAD */
-@media (max-width: 1023px) {
-    /* Mejorar contraste y tamaño de texto */
-    body {
-        font-size: 14px;
-    }
-    
-    /* Botones más grandes para touch */
-    button, .carpeta-item, .archivo-item {
-        min-height: 44px; /* Tamaño mínimo recomendado para touch */
-    }
-    
-    /* Espaciado mejorado para touch */
-    input, select, button {
-        margin: 10px 0;
-    }
-    
-    /* Ocultar elementos menos importantes en móvil */
-    .hidden-on-mobile {
-        display: none !important;
-    }
-}
-
-/* 🔹 ORIENTACIÓN HORIZONTAL EN MÓVIL */
-@media (max-width: 767px) and (orientation: landscape) {
-    #sidebar {
-        flex-wrap: nowrap;
-        padding: 5px;
-    }
-    
-    #sidebar button {
-        min-width: auto;
-        flex: 1;
-    }
-    
-    .card {
-        padding: 10px;
-    }
-}
-
-/* 🔹 ALTA DENSIDAD DE PIXELES */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-    button, input, select {
-        border-width: 0.5px;
-    }
-}
   </style>
 </head>
 
@@ -997,11 +914,15 @@
   <!-- Menú lateral -->
   <div id="sidebar">
     <h2></h2>
-    <button id="menuInicio" class="active">Inicio</button>
-    <button id="menuClubes">Clubes</button>
-    <button id="menuCertificaciones">Certificaciones</button>
-    <button id="menuEspecialidades">Especialidades Storage</button>
-    <button id="menuPerfil">Perfil</button>
+    <!-- Contenedor para botones desplazables -->
+    <div class="menu-scroll-container">
+      <button id="menuInicio" class="active">Inicio</button>
+      <button id="menuClubes">Clubes</button>
+      <button id="menuCertificaciones">Certificaciones</button>
+      <button id="menuEspecialidades">Especialidades Storage</button>
+      <button id="menuPerfil">Perfil</button>
+    </div>
+    <!-- Botón de salir fijo -->
     <button id="logoutBtn">Cerrar sesión</button>
   </div>
 
@@ -2072,7 +1993,7 @@
             `;
         }
 
-        
+
 
         certContainer.innerHTML = contenidoHTML;
         modal.style.display = 'flex';
@@ -2082,7 +2003,7 @@
           document.getElementById('btnImprimirExamen').addEventListener('click', () => {
             imprimirExamenCompleto(examen, resultado, formulario);
           });
-          
+
         }
 
       }

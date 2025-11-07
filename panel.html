@@ -534,11 +534,11 @@
     }
 
     /* 🔹 CONTENEDOR DE LA TABLA CON SCROLL HORIZONTAL */
-#certificacionesContent {
-    overflow-x: auto;
-    max-width: 100%;
-    margin-top: 20px;
-}
+    #certificacionesContent {
+      overflow-x: auto;
+      max-width: 100%;
+      margin-top: 20px;
+    }
 
     .estado-completado {
       color: #27ae60;
@@ -660,30 +660,31 @@
    RESPONSIVE DESIGN - LAPTOP, TABLET, MÓVIL
    ============================================ */
 
-/* 🔹 LAPTOP (1024px - 1440px) */
-@media (max-width: 1440px) {
-    #mainContent {
+    /* 🔹 LAPTOP (1024px - 1440px) */
+    @media (max-width: 1440px) {
+      #mainContent {
         padding: 20px;
-    }
-    
-    .card {
+      }
+
+      .card {
         max-width: 90%;
         margin: 15px auto;
         padding: 20px;
+      }
     }
-}
 
-/* 🔹 TABLET (768px - 1023px) */
-@media (max-width: 1023px) {
-    body {
+    /* 🔹 TABLET (768px - 1023px) */
+    @media (max-width: 1023px) {
+      body {
         flex-direction: column;
         height: auto;
         min-height: 100vh;
-        padding-top: 120px; /* Espacio para los elementos fijos */
-    }
+        padding-top: 120px;
+        /* Espacio para los elementos fijos */
+      }
 
-    /* Menú lateral convertido en header fijo */
-    #sidebar {
+      /* Menú lateral convertido en header fijo */
+      #sidebar {
         position: fixed;
         top: 0;
         left: 0;
@@ -698,25 +699,26 @@
         justify-content: flex-start;
         align-items: center;
         white-space: nowrap;
-        -webkit-overflow-scrolling: touch; /* Scroll suave en iOS */
-    }
+        -webkit-overflow-scrolling: touch;
+        /* Scroll suave en iOS */
+      }
 
-    /* Ocultar título del sidebar */
-    #sidebar h2 {
+      /* Ocultar título del sidebar */
+      #sidebar h2 {
         display: none;
-    }
+      }
 
-    /* Contenedor para los botones del menú (desplazable) */
-    #sidebar::before {
+      /* Contenedor para los botones del menú (desplazable) */
+      #sidebar::before {
         content: '';
         display: flex;
         flex: 1;
         overflow-x: auto;
         gap: 5px;
         padding-right: 10px;
-    }
+      }
 
-    #sidebar button {
+      #sidebar button {
         padding: 10px 15px;
         margin: 0;
         margin-left: 5px;
@@ -726,43 +728,45 @@
         border-radius: 6px;
         font-size: 14px;
         white-space: nowrap;
-        transform: none !important; /* Eliminar transformación hover */
-    }
+        transform: none !important;
+        /* Eliminar transformación hover */
+      }
 
-    #sidebar button:hover {
+      #sidebar button:hover {
         transform: none !important;
         background: rgba(255, 255, 255, 0.2);
-    }
+      }
 
-    /* Botón de salir fijo a la derecha */
-    #sidebar #logoutBtn {
+      /* Botón de salir fijo a la derecha */
+      #sidebar #logoutBtn {
         margin-left: 10px;
         flex-shrink: 0;
         position: sticky;
         right: 0;
         background: #e53935;
-    }
+      }
 
-    #sidebar #logoutBtn:hover {
+      #sidebar #logoutBtn:hover {
         background: #b71c1c;
-    }
+      }
 
-    #mainContent {
+      #mainContent {
         padding: 15px;
         margin-top: 0;
         width: 100%;
-    }
+      }
 
-    .card {
+      .card {
         max-width: 95%;
         margin: 10px auto;
         padding: 15px;
-    }
+      }
 
-    /* Header del usuario fijo */
-    #userHeader {
+      /* Header del usuario fijo */
+      #userHeader {
         position: fixed;
-        top: 60px; /* Debajo del menú */
+        top: 60px;
+        /* Debajo del menú */
         right: 0;
         left: 0;
         margin: 0;
@@ -773,107 +777,208 @@
         background: rgba(255, 255, 255, 0.95);
         justify-content: center;
         width: 100%;
-    }
-}
-
-/* 🔹 MÓVIL GRANDE (576px - 767px) */
-@media (max-width: 767px) {
-    body {
-        padding-top: 110px; /* Ajuste para móvil */
+      }
     }
 
-    #sidebar {
+    /* 🔹 MÓVIL GRANDE (576px - 767px) */
+    @media (max-width: 767px) {
+      body {
+        padding-top: 110px;
+        /* Ajuste para móvil */
+      }
+
+      #sidebar {
         padding: 8px 10px;
-    }
+      }
 
-    #sidebar button {
+      #sidebar button {
         padding: 8px 12px;
         font-size: 13px;
-    }
+      }
 
-    #userHeader {
-        top: 50px; /* Ajuste para móvil */
+      #userHeader {
+        top: 50px;
+        /* Ajuste para móvil */
         padding: 8px 10px;
-    }
+      }
 
-    #userHeader img {
+      #userHeader img {
         width: 35px;
         height: 35px;
-    }
+      }
 
-    #userHeader span {
+      #userHeader span {
         font-size: 14px;
-    }
+      }
 
-    /* Mejorar scroll del menú */
-    #sidebar {
+      /* Mejorar scroll del menú */
+      #sidebar {
         scrollbar-width: thin;
         scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
-    }
+      }
 
-    #sidebar::-webkit-scrollbar {
+      #sidebar::-webkit-scrollbar {
         height: 4px;
-    }
+      }
 
-    #sidebar::-webkit-scrollbar-track {
+      #sidebar::-webkit-scrollbar-track {
         background: transparent;
-    }
+      }
 
-    #sidebar::-webkit-scrollbar-thumb {
+      #sidebar::-webkit-scrollbar-thumb {
         background: rgba(255, 255, 255, 0.3);
         border-radius: 2px;
-    }
-}
-
-/* 🔹 MÓVIL PEQUEÑO (375px - 575px) */
-@media (max-width: 575px) {
-    body {
-        padding-top: 100px; /* Ajuste para móvil pequeño */
+      }
     }
 
-    #sidebar {
+    /* 🔹 MÓVIL PEQUEÑO (375px - 575px) */
+    @media (max-width: 575px) {
+      body {
+        padding-top: 100px;
+        /* Ajuste para móvil pequeño */
+      }
+
+      #sidebar {
         padding: 5px 8px;
-    }
+      }
 
-    #sidebar button {
+      #sidebar button {
         padding: 6px 10px;
         font-size: 12px;
-    }
+      }
 
-    #userHeader {
-        top: 40px; /* Ajuste para móvil pequeño */
+      #userHeader {
+        top: 40px;
+        /* Ajuste para móvil pequeño */
         padding: 5px 8px;
-    }
+      }
 
-    #userHeader img {
+      #userHeader img {
         width: 30px;
         height: 30px;
-    }
+      }
 
-    #userHeader span {
+      #userHeader span {
         font-size: 12px;
+      }
     }
-}
 
-/* 🔹 MEJORAS DE SCROLL PARA EL MENÚ */
-@media (max-width: 1023px) {
-    #sidebar {
+    /* 🔹 MEJORAS DE SCROLL PARA EL MENÚ */
+    @media (max-width: 1023px) {
+      #sidebar {
         /* Permitir scroll horizontal */
         overflow-x: auto;
         overflow-y: hidden;
-        
-        /* Ocultar scrollbar en algunos navegadores */
-        -ms-overflow-style: none;  /* IE and Edge */
-        scrollbar-width: none;  /* Firefox */
-    }
-    
-    /* Ocultar scrollbar en Chrome, Safari y Opera */
-    #sidebar::-webkit-scrollbar {
-        display: none;
-    }
-    
 
-}
+        /* Ocultar scrollbar en algunos navegadores */
+        -ms-overflow-style: none;
+        /* IE and Edge */
+        scrollbar-width: none;
+        /* Firefox */
+      }
+
+      /* Ocultar scrollbar en Chrome, Safari y Opera */
+      #sidebar::-webkit-scrollbar {
+        display: none;
+      }
+
+
+    }
+
+    /* Estilos para la red social */
+    #uploadContainer {
+      position: sticky;
+      top: 80px;
+      z-index: 90;
+      background: white;
+    }
+
+    .post-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .post-header {
+      display: flex;
+      align-items: center;
+      padding: 15px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .post-user-img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-right: 12px;
+    }
+
+    .post-user-name {
+      font-weight: bold;
+      color: #333;
+    }
+
+    .post-content {
+      width: 100%;
+    }
+
+    .post-content img,
+    .post-content video {
+      width: 100%;
+      max-height: 500px;
+      object-fit: contain;
+      background: #000;
+    }
+
+    .post-description {
+      padding: 15px;
+      color: #333;
+      line-height: 1.4;
+    }
+
+    .post-actions {
+      padding: 10px 15px;
+      display: flex;
+      gap: 15px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .reaction-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 50%;
+      transition: transform 0.2s, background-color 0.2s;
+    }
+
+    .reaction-btn:hover {
+      background-color: #f0f0f0;
+      transform: scale(1.1);
+    }
+
+    .reaction-count {
+      font-size: 14px;
+      color: #666;
+      margin-left: 5px;
+    }
+
+    #previewContainer img,
+    #previewContainer video {
+      max-width: 200px;
+      max-height: 200px;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+
+    .upload-disabled {
+      opacity: 0.6;
+      cursor: not-allowed !important;
+    }
   </style>
 </head>
 
@@ -898,10 +1003,32 @@
       <span id="headerUserName">Cargando...</span>
     </div>
 
-    <!-- Inicio -->
-    <div id="inicioSection" class="card">
-      <h2>Bienvenido</h2>
-      <p>Selecciona una opción del menú para comenzar.</p>
+    <!-- Inicio - Red Social -->
+    <div id="inicioSection" class="hidden">
+      <!-- Contenedor de publicación -->
+      <div id="uploadContainer" class="card" style="margin-bottom: 20px;">
+        <h3>Crear Publicación</h3>
+        <div id="uploadBox">
+          <input type="file" id="fileInput" accept="image/*,video/*" style="margin-bottom: 10px;">
+          <textarea id="postDescription" placeholder="Escribe una descripción..."
+            style="width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ccc;"></textarea>
+          <div id="previewContainer" style="margin-bottom: 10px;"></div>
+          <div id="uploadProgress" style="display: none; margin-bottom: 10px;">
+            <div style="background: #f0f0f0; border-radius: 10px; height: 20px;">
+              <div id="progressBar"
+                style="background: #1976d2; height: 100%; border-radius: 10px; width: 0%; transition: width 0.3s;">
+              </div>
+            </div>
+            <span id="progressText">0%</span>
+          </div>
+          <button id="uploadBtn"
+            style="padding: 8px 16px; background: #1976d2; color: white; border: none; border-radius: 6px; cursor: pointer;">Publicar</button>
+          <span id="countdownTimer" style="margin-left: 10px; color: #ff5722; display: none;"></span>
+        </div>
+      </div>
+
+      <!-- Feed de publicaciones -->
+      <div id="feed" style="display: flex; flex-direction: column; gap: 20px;"></div>
     </div>
 
     <!-- Sección Clubes -->
@@ -1059,7 +1186,13 @@
       import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
       import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
       import {
-        getStorage, ref, uploadBytes, getDownloadURL, deleteObject, listAll, getMetadata
+        getStorage, ref, uploadBytes, getDownloadURL, deleteObject, listAll, getMetadata, addDoc,
+        collection,
+        getDocs,
+        query,
+        orderBy,
+        updateDoc,
+        serverTimestamp
       } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-storage.js";
 
       const firebaseConfig = {
@@ -1957,7 +2090,7 @@
             `;
         }
 
-        
+
 
         certContainer.innerHTML = contenidoHTML;
         modal.style.display = 'flex';
@@ -1967,7 +2100,7 @@
           document.getElementById('btnImprimirExamen').addEventListener('click', () => {
             imprimirExamenCompleto(examen, resultado, formulario);
           });
-          
+
         }
 
       }
@@ -2493,6 +2626,505 @@
 `;
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      // 🔹 RED SOCIAL - Variables y configuración
+      const uploadContainer = document.getElementById('uploadContainer');
+      const fileInput = document.getElementById('fileInput');
+      const postDescription = document.getElementById('postDescription');
+      const previewContainer = document.getElementById('previewContainer');
+      const uploadProgress = document.getElementById('uploadProgress');
+      const progressBar = document.getElementById('progressBar');
+      const progressText = document.getElementById('progressText');
+      const uploadBtn = document.getElementById('uploadBtn');
+      const countdownTimer = document.getElementById('countdownTimer');
+      const feed = document.getElementById('feed');
+
+      //let currentUserId = null;
+      let userData = null;
+      let isAdmin = false;
+      let lastPostTime = null;
+      let countdownInterval = null;
+
+      // 🔹 Inicializar red social cuando se muestre la sección
+      function initializeSocialNetwork() {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        currentUserId = user.uid;
+        isAdmin = user.email === "kendall.torres.17@gmail.com"; // Tu correo de admin
+
+        loadUserData();
+        loadPosts();
+        setupUploadListeners();
+        checkPostCooldown();
+      }
+
+      // 🔹 Cargar datos del usuario
+      async function loadUserData() {
+        try {
+          const docRef = doc(db, "usuarios", currentUserId);
+          const docSnap = await getDoc(docRef);
+
+          if (docSnap.exists()) {
+            userData = docSnap.data();
+            lastPostTime = userData.lastPostTime || null;
+          }
+        } catch (error) {
+          console.error("Error cargando datos del usuario:", error);
+        }
+      }
+
+      // 🔹 Configurar listeners para la subida
+      function setupUploadListeners() {
+        fileInput.addEventListener('change', handleFileSelect);
+        uploadBtn.addEventListener('click', handleUpload);
+      }
+
+      // 🔹 Manejar selección de archivo
+      function handleFileSelect(e) {
+        const file = e.target.files[0];
+        previewContainer.innerHTML = '';
+
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            if (file.type.startsWith('image/')) {
+              const img = document.createElement('img');
+              img.src = e.target.result;
+              previewContainer.appendChild(img);
+            } else if (file.type.startsWith('video/')) {
+              const video = document.createElement('video');
+              video.src = e.target.result;
+              video.controls = true;
+              previewContainer.appendChild(video);
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+
+      // 🔹 Verificar tiempo de espera entre publicaciones
+      function checkPostCooldown() {
+        if (isAdmin) {
+          uploadBtn.disabled = false;
+          countdownTimer.style.display = 'none';
+          return;
+        }
+
+        if (lastPostTime) {
+          const now = new Date();
+          const lastPost = new Date(lastPostTime);
+          const diffMs = now - lastPost;
+          const diffMins = Math.floor(diffMs / 60000);
+
+          if (diffMins < 60) {
+            startCountdown(60 - diffMins);
+          } else {
+            uploadBtn.disabled = false;
+            countdownTimer.style.display = 'none';
+          }
+        } else {
+          uploadBtn.disabled = false;
+          countdownTimer.style.display = 'none';
+        }
+      }
+
+      // 🔹 Iniciar contador regresivo
+      function startCountdown(minutesLeft) {
+        let timeLeft = minutesLeft * 60; // Convertir a segundos
+
+        uploadBtn.disabled = true;
+        uploadBtn.classList.add('upload-disabled');
+        countdownTimer.style.display = 'inline';
+
+        updateCountdownDisplay(timeLeft);
+
+        countdownInterval = setInterval(() => {
+          timeLeft--;
+
+          if (timeLeft <= 0) {
+            clearInterval(countdownInterval);
+            uploadBtn.disabled = false;
+            uploadBtn.classList.remove('upload-disabled');
+            countdownTimer.style.display = 'none';
+            return;
+          }
+
+          updateCountdownDisplay(timeLeft);
+        }, 1000);
+      }
+
+      // 🔹 Actualizar display del contador
+      function updateCountdownDisplay(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        countdownTimer.textContent = `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+      }
+
+
+      // 🔹 Manejar subida de publicación
+      async function handleUpload() {
+        const file = fileInput.files[0];
+        const description = postDescription.value.trim();
+
+        if (!file) {
+          mostrarMensaje('info', 'Selecciona una imagen o video', 'Debes seleccionar un archivo para publicar.');
+          return;
+        }
+
+        if (!description) {
+          mostrarMensaje('info', 'Agrega una descripción', 'Escribe una descripción para tu publicación.');
+          return;
+        }
+
+        // Validar tamaño del archivo (10MB máximo)
+        if (file.size > 10 * 1024 * 1024) {
+          mostrarMensaje('error', 'Archivo muy grande', 'El archivo no debe superar los 10MB.');
+          return;
+        }
+
+        // Validar tipo de archivo
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'video/mp4', 'video/quicktime'];
+        if (!validTypes.includes(file.type)) {
+          mostrarMensaje('error', 'Tipo de archivo no válido', 'Solo se permiten imágenes (JPEG, PNG, GIF) y videos (MP4).');
+          return;
+        }
+
+        try {
+          uploadBtn.disabled = true;
+          uploadBtn.textContent = 'Subiendo...';
+
+          // Subir a través del backend
+          const mediaData = await uploadToImgur(file);
+
+          // Guardar publicación en Firestore
+          const postId = await savePost(mediaData, description, file.type);
+
+          // Actualizar último tiempo de publicación
+          if (!isAdmin) {
+            await updateDoc(doc(db, "usuarios", currentUserId), {
+              lastPostTime: new Date().toISOString()
+            });
+            lastPostTime = new Date().toISOString();
+            startCountdown(60); // 60 minutos de espera
+          }
+
+          // Limpiar formulario
+          fileInput.value = '';
+          postDescription.value = '';
+          previewContainer.innerHTML = '';
+          uploadProgress.style.display = 'none';
+          uploadBtn.disabled = false;
+          uploadBtn.textContent = 'Publicar';
+
+          // Recargar el feed
+          loadPosts();
+
+          mostrarMensaje('info', '¡Publicación exitosa!', 'Tu publicación ha sido compartida.');
+
+        } catch (error) {
+          console.error('Error al publicar:', error);
+          mostrarMensaje('error', 'Error al publicar', error.message || 'No se pudo completar la publicación.');
+          uploadBtn.disabled = false;
+          uploadBtn.textContent = 'Publicar';
+          uploadProgress.style.display = 'none';
+        }
+      }
+
+      // 🔹 Subir a Imgur a través del backend
+      async function uploadToImgur(file) {
+        try {
+          // Mostrar progreso de subida
+          uploadProgress.style.display = 'block';
+
+          const formData = new FormData();
+          formData.append('file', file);
+
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Error en la subida');
+          }
+
+          const data = await response.json();
+
+          if (!data.success) {
+            throw new Error(data.error || 'Error en la subida');
+          }
+
+          // Simular progreso (en un caso real podrías usar upload events)
+          for (let i = 0; i <= 100; i += 10) {
+            setTimeout(() => {
+              progressBar.style.width = i + '%';
+              progressText.textContent = i + '%';
+            }, i * 20);
+          }
+
+          return {
+            url: data.link,
+            deletehash: data.deletehash,
+            id: data.id
+          };
+
+        } catch (error) {
+          console.error('Error subiendo a Imgur:', error);
+          throw new Error('No se pudo subir el archivo: ' + error.message);
+        }
+      }
+
+      // 🔹 Guardar publicación en Firestore
+      async function savePost(mediaData, description, mediaType) {
+        const postData = {
+          userId: currentUserId,
+          userName: userData.nombre,
+          userPhoto: userData.fotoURL,
+          mediaUrl: mediaData.url,
+          mediaType: mediaType,
+          description: description,
+          timestamp: new Date().toISOString(),
+          imgurData: {
+            id: mediaData.id,
+            deletehash: mediaData.deletehash
+          },
+          reactions: {
+            like: [],
+            love: [],
+            laugh: [],
+            wow: [],
+            sad: [],
+            angry: [],
+            seven: []
+          },
+          comments: [],
+          status: 'active'
+        };
+
+        const docRef = await addDoc(collection(db, "posts"), postData);
+        return docRef.id;
+      }
+
+      // 🔹 Eliminar publicación (para admin o dueño del post)
+      async function deletePost(postId, imgurDeletehash) {
+        try {
+          // Eliminar de Imgur primero
+          const deleteResponse = await fetch('/api/delete-image', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ deletehash: imgurDeletehash })
+          });
+
+          if (!deleteResponse.ok) {
+            console.warn('No se pudo eliminar de Imgur, pero se continuará con Firestore');
+          }
+
+          // Eliminar de Firestore
+          await deleteDoc(doc(db, "posts", postId));
+
+          return true;
+        } catch (error) {
+          console.error('Error eliminando publicación:', error);
+          throw error;
+        }
+      }
+
+      // 🔹 Cargar publicaciones
+      async function loadPosts() {
+        try {
+          const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
+          const querySnapshot = await getDocs(q);
+
+          feed.innerHTML = '';
+
+          if (querySnapshot.empty) {
+            feed.innerHTML = '<div class="card" style="text-align: center; padding: 40px; color: #666;">No hay publicaciones aún. ¡Sé el primero en publicar!</div>';
+            return;
+          }
+
+          querySnapshot.forEach((doc) => {
+            const post = doc.data();
+            displayPost(post, doc.id);
+          });
+        } catch (error) {
+          console.error('Error cargando publicaciones:', error);
+        }
+      }
+
+      // 🔹 Mostrar publicación en el feed
+      function displayPost(post, postId) {
+        const postElement = document.createElement('div');
+        postElement.className = 'post-card';
+
+        const timeAgo = getTimeAgo(new Date(post.timestamp));
+        const isPostOwner = post.userId === currentUserId;
+
+        postElement.innerHTML = `
+    <div class="post-header">
+      <img src="${post.userPhoto}" alt="Foto de perfil" class="post-user-img">
+      <div style="flex: 1;">
+        <div class="post-user-name">${post.userName}</div>
+        <div style="font-size: 12px; color: #666;">${timeAgo}</div>
+      </div>
+      ${(isAdmin || isPostOwner) ? `
+        <button class="delete-post-btn" data-postid="${postId}" data-deletehash="${post.imgurData?.deletehash}" 
+                style="background: #e53935; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; font-size: 12px;">
+          🗑️
+        </button>
+      ` : ''}
+    </div>
+    
+    <div class="post-content">
+      ${post.mediaType.startsWith('image/')
+            ? `<img src="${post.mediaUrl}" alt="Publicación" loading="lazy">`
+            : `<video src="${post.mediaUrl}" controls></video>`
+          }
+    </div>
+    
+    <div class="post-description">
+      ${post.description}
+    </div>
+    
+    <div class="post-actions">
+      <button class="reaction-btn" data-reaction="like" data-postid="${postId}">❤️ <span class="reaction-count">${post.reactions.like.length}</span></button>
+      <button class="reaction-btn" data-reaction="love" data-postid="${postId}">😍 <span class="reaction-count">${post.reactions.love.length}</span></button>
+      <button class="reaction-btn" data-reaction="laugh" data-postid="${postId}">😂 <span class="reaction-count">${post.reactions.laugh.length}</span></button>
+      <button class="reaction-btn" data-reaction="wow" data-postid="${postId}">🤣 <span class="reaction-count">${post.reactions.wow.length}</span></button>
+      <button class="reaction-btn" data-reaction="sad" data-postid="${postId}">😲 <span class="reaction-count">${post.reactions.sad.length}</span></button>
+      <button class="reaction-btn" data-reaction="angry" data-postid="${postId}">😠 <span class="reaction-count">${post.reactions.angry.length}</span></button>
+      <button class="reaction-btn" data-reaction="seven" data-postid="${postId}">7️⃣ <span class="reaction-count">${post.reactions.seven.length}</span></button>
+    </div>
+  `;
+
+        feed.appendChild(postElement);
+      }
+
+      // 🔹 Calcular tiempo transcurrido
+      function getTimeAgo(date) {
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return 'Ahora mismo';
+        if (diffMins < 60) return `Hace ${diffMins} minuto${diffMins > 1 ? 's' : ''}`;
+        if (diffHours < 24) return `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`;
+        if (diffDays < 7) return `Hace ${diffDays} día${diffDays > 1 ? 's' : ''}`;
+
+        return date.toLocaleDateString();
+      }
+
+      // 🔹 Manejar reacciones
+      feed.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('reaction-btn') || e.target.closest('.reaction-btn')) {
+          const btn = e.target.classList.contains('reaction-btn') ? e.target : e.target.closest('.reaction-btn');
+          const reaction = btn.getAttribute('data-reaction');
+          const postId = btn.getAttribute('data-postid');
+
+          await addReaction(postId, reaction);
+        }
+      });
+
+      // 🔹 Manejar eliminación de posts
+      feed.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('delete-post-btn') || e.target.closest('.delete-post-btn')) {
+          const btn = e.target.classList.contains('delete-post-btn') ? e.target : e.target.closest('.delete-post-btn');
+          const postId = btn.getAttribute('data-postid');
+          const deletehash = btn.getAttribute('data-deletehash');
+
+          mostrarMensaje('confirm', 'Eliminar publicación', '¿Estás seguro de que quieres eliminar esta publicación?', async () => {
+            try {
+              await deletePost(postId, deletehash);
+              btn.closest('.post-card').remove();
+              mostrarMensaje('info', 'Publicación eliminada', 'La publicación ha sido eliminada correctamente.');
+            } catch (error) {
+              mostrarMensaje('error', 'Error al eliminar', 'No se pudo eliminar la publicación.');
+            }
+          });
+        }
+      });
+
+      // 🔹 Agregar reacción a publicación
+      async function addReaction(postId, reaction) {
+        try {
+          const postRef = doc(db, "posts", postId);
+          const postDoc = await getDoc(postRef);
+
+          if (postDoc.exists()) {
+            const postData = postDoc.data();
+            const reactions = postData.reactions[reaction] || [];
+
+            // Verificar si el usuario ya reaccionó
+            const userIndex = reactions.indexOf(currentUserId);
+
+            if (userIndex > -1) {
+              // Quitar reacción
+              reactions.splice(userIndex, 1);
+            } else {
+              // Agregar reacción
+              reactions.push(currentUserId);
+            }
+
+            const updatedReactions = {
+              ...postData.reactions,
+              [reaction]: reactions
+            };
+
+            await updateDoc(postRef, {
+              reactions: updatedReactions
+            });
+
+            // Actualizar visualmente
+            const countElement = document.querySelector(`[data-postid="${postId}"][data-reaction="${reaction}"] .reaction-count`);
+            if (countElement) {
+              countElement.textContent = reactions.length;
+
+              // Resaltar si el usuario reaccionó
+              const btn = countElement.closest('.reaction-btn');
+              if (reactions.includes(currentUserId)) {
+                btn.style.backgroundColor = '#e3f2fd';
+              } else {
+                btn.style.backgroundColor = 'transparent';
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error agregando reacción:', error);
+        }
+      }
+
+      // 🔹 Inicializar cuando se muestre la sección de inicio
+      // Modificar la función mostrarSeccion para inicializar la red social
+      const originalMostrarSeccion = mostrarSeccion;
+      mostrarSeccion = function (seccion, botonActivo) {
+        originalMostrarSeccion(seccion, botonActivo);
+
+        if (seccion.id === "inicioSection") {
+          setTimeout(() => {
+            initializeSocialNetwork();
+          }, 100);
+        }
+      };
 
     </script>
 

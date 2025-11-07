@@ -1000,8 +1000,21 @@
 
     /* Estados de botones */
     .upload-disabled {
-      opacity: 0.6;
+      opacity: 0.6 !important;
       cursor: not-allowed !important;
+      pointer-events: none !important;
+    }
+
+    #uploadBtn:disabled {
+      background: #cccccc !important;
+      cursor: not-allowed !important;
+      pointer-events: none !important;
+      transform: none !important;
+    }
+
+    #uploadBtn:disabled:hover {
+      background: #cccccc !important;
+      transform: none !important;
     }
 
     /* Botón eliminar post */
@@ -2835,6 +2848,8 @@
       function checkPostCooldown() {
         if (isAdmin) {
           uploadBtn.disabled = false;
+          uploadBtn.style.pointerEvents = 'auto';
+          uploadBtn.style.opacity = '1';
           countdownTimer.style.display = 'none';
           return;
         }
@@ -2849,20 +2864,27 @@
             startCountdown(60 - diffMins);
           } else {
             uploadBtn.disabled = false;
+            uploadBtn.style.pointerEvents = 'auto';
+            uploadBtn.style.opacity = '1';
             countdownTimer.style.display = 'none';
           }
         } else {
           uploadBtn.disabled = false;
+          uploadBtn.style.pointerEvents = 'auto';
+          uploadBtn.style.opacity = '1';
           countdownTimer.style.display = 'none';
         }
       }
 
       // 🔹 Iniciar contador regresivo
       function startCountdown(minutesLeft) {
-        let timeLeft = minutesLeft * 60; // Convertir a segundos
+        let timeLeft = minutesLeft * 60;
 
+        // Deshabilitar completamente el botón
         uploadBtn.disabled = true;
         uploadBtn.classList.add('upload-disabled');
+        uploadBtn.style.pointerEvents = 'none'; // 🔒 Esto previene cualquier clic
+        uploadBtn.style.opacity = '0.6';
         countdownTimer.style.display = 'inline';
 
         updateCountdownDisplay(timeLeft);
@@ -2872,8 +2894,11 @@
 
           if (timeLeft <= 0) {
             clearInterval(countdownInterval);
+            // Rehabilitar el botón
             uploadBtn.disabled = false;
             uploadBtn.classList.remove('upload-disabled');
+            uploadBtn.style.pointerEvents = 'auto';
+            uploadBtn.style.opacity = '1';
             countdownTimer.style.display = 'none';
             return;
           }
@@ -3017,6 +3042,12 @@
       async function handleUpload() {
         console.log('🔄 handleUpload iniciado');
 
+        // 🔒 VALIDACIÓN CRÍTICA: Verificar si el botón está deshabilitado
+        if (uploadBtn.disabled) {
+          console.log('❌ Botón deshabilitado, publicación bloqueada');
+          return;
+        }
+
         const file = fileInput.files[0];
         const description = postDescription.value.trim();
 
@@ -3109,11 +3140,23 @@
           fileInput.value = '';
           postDescription.value = '';
           previewContainer.innerHTML = '';
-          uploadBtn.disabled = false;
-          uploadBtn.textContent = 'Publicar';
 
-          await loadPosts(); // Esta función ahora cargará de ambas fuentes
+          // Solo deshabilitar si NO es admin
+          if (!isAdmin) {
+            uploadBtn.disabled = true;
+            uploadBtn.style.pointerEvents = 'none';
+            uploadBtn.style.opacity = '0.6';
+            uploadBtn.textContent = 'Publicar';
+            startCountdown(60); // Iniciar el contador de 60 minutos
+          } else {
+            // Admin puede publicar inmediatamente
+            uploadBtn.disabled = false;
+            uploadBtn.style.pointerEvents = 'auto';
+            uploadBtn.style.opacity = '1';
+            uploadBtn.textContent = 'Publicar';
+          }
 
+          await loadPosts();
           mostrarMensaje('info', '¡Publicación exitosa!', 'Tu publicación ha sido compartida.');
 
         } catch (error) {

@@ -3041,13 +3041,17 @@
           console.log('📤 Subiendo directamente a Imgur...');
           uploadProgress.style.display = 'block';
 
+          // Primero obtener el Client-ID del servidor
+          const clientIdResponse = await fetch('/api/social?action=get-client-id');
+          const { clientId } = await clientIdResponse.json();
+
           const formData = new FormData();
           formData.append('image', file);
 
           const response = await fetch('https://api.imgur.com/3/upload', {
             method: 'POST',
             headers: {
-              'Authorization': `Client-ID ${IMGUR_CLIENT_ID}`, // Usa tu Client-ID directamente
+              'Authorization': `Client-ID ${clientId}`,
             },
             body: formData
           });

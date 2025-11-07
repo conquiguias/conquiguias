@@ -3286,20 +3286,19 @@
       }
 
       // 🔹 Cargar publicaciones - VERSIÓN MEJORADA CON FALLBACK
-      // 🔒 CARGAR SOLO PUBLICACIONES APROBADAS PARA USUARIOS NORMALES
+      // 🔧 VERSIÓN TEMPORAL - PEGAR ESTO
       async function loadPosts() {
         try {
-          console.log('📥 Cargando publicaciones APROBADAS...');
+          console.log('📥 Cargando TODAS las publicaciones (modo temporal)...');
 
-          // Solo cargar publicaciones aprobadas
+          // Consulta temporal sin where - no necesita índice compuesto
           const q = query(
             collection(db, "posts"),
-            where("status", "==", "approved"),
             orderBy("timestamp", "desc")
           );
 
           const querySnapshot = await getDocs(q);
-          console.log(`📊 Se encontraron ${querySnapshot.size} publicaciones aprobadas`);
+          console.log(`📊 Se encontraron ${querySnapshot.size} publicaciones`);
 
           feed.innerHTML = '';
 
@@ -3307,15 +3306,35 @@
             feed.innerHTML = `
         <div class="empty-feed">
           <h3>📷 No hay publicaciones aún</h3>
-          <p>¡Sé el primero en compartir algo! Recuerda que todas las publicaciones requieren aprobación.</p>
+          <p>¡Sé el primero en compartir algo!</p>
         </div>
       `;
             return;
           }
 
+          // Filtrar solo publicaciones aprobadas en el cliente
+          const approvedPosts = [];
           querySnapshot.forEach((doc) => {
             const post = doc.data();
-            displayPost(post, doc.id);
+            if (post.status === 'approved') {
+              approvedPosts.push({ ...post, id: doc.id });
+            }
+          });
+
+          console.log(`📊 Publicaciones aprobadas: ${approvedPosts.length}`);
+
+          if (approvedPosts.length === 0) {
+            feed.innerHTML = `
+        <div class="empty-feed">
+          <h3>📷 No hay publicaciones aprobadas</h3>
+          <p>Espera a que el administrador apruebe las publicaciones.</p>
+        </div>
+      `;
+            return;
+          }
+
+          approvedPosts.forEach((post) => {
+            displayPost(post, post.id);
           });
 
         } catch (error) {
@@ -3324,6 +3343,9 @@
       <div class="empty-feed">
         <h3>❌ Error al cargar publicaciones</h3>
         <p>${error.message || 'Intenta recargar la página'}</p>
+        <button onclick="loadPosts()" style="margin-top: 10px; padding: 8px 16px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer;">
+          Reintentar
+        </button>
       </div>
     `;
         }
@@ -3662,6 +3684,7 @@
       }
 
       // Cargar publicaciones pendientes
+      // 🔧 VERSIÓN TEMPORAL - PEGAR ESTO
       async function loadPendingPosts() {
         try {
           const adminLoading = document.getElementById('adminLoading');
@@ -3672,28 +3695,36 @@
           adminPostsContainer.innerHTML = '';
           noPendingPosts.style.display = 'none';
 
-          console.log('🔧 Cargando publicaciones pendientes...');
+          console.log('🔧 Cargando publicaciones pendientes (modo temporal)...');
 
+          // Consulta temporal sin where
           const q = query(
             collection(db, "posts"),
-            where("status", "==", "pending"),
-            orderBy("timestamp", "asc") // Más antiguas primero
+            orderBy("timestamp", "asc")
           );
 
           const querySnapshot = await getDocs(q);
-
           adminLoading.style.display = 'none';
 
-          if (querySnapshot.empty) {
+          // Filtrar pendientes en el cliente
+          const pendingPosts = [];
+          querySnapshot.forEach((doc) => {
+            const post = doc.data();
+            if (post.status === 'pending') {
+              pendingPosts.push({ ...post, id: doc.id });
+            }
+          });
+
+          if (pendingPosts.length === 0) {
             noPendingPosts.style.display = 'block';
             updateAdminStats();
             return;
           }
 
-          console.log(`🔧 Se encontraron ${querySnapshot.size} publicaciones pendientes`);
+          console.log(`🔧 Publicaciones pendientes: ${pendingPosts.length}`);
 
-          querySnapshot.forEach((doc) => {
-            displayPendingPost(doc.data(), doc.id);
+          pendingPosts.forEach((post) => {
+            displayPendingPost(post, post.id);
           });
 
           updateAdminStats();
@@ -3867,24 +3898,42 @@
       }
 
       // Actualizar estadísticas del panel admin
+      // 🔧 VERSIÓN TEMPORAL - PEGAR ESTO
       async function updateAdminStats() {
         try {
-          const pendingQuery = query(collection(db, "posts"), where("status", "==", "pending"));
-          const approvedQuery = query(collection(db, "posts"), where("status", "==", "approved"));
-          const rejectedQuery = query(collection(db, "posts"), where("status", "==", "rejected"));
+          // Consulta temporal para contar todos los posts
+          const allPostsQuery = query(collection(db, "posts"));
+          const snapshot = await getDocs(allPostsQuery);
 
-          const [pendingSnapshot, approvedSnapshot, rejectedSnapshot] = await Promise.all([
-            getDocs(pendingQuery),
-            getDocs(approvedQuery),
-            getDocs(rejectedQuery)
-          ]);
+          let pendingCount = 0;
+          let approvedCount = 0;
+          let rejectedCount = 0;
 
-          document.getElementById('pendingCount').textContent = pendingSnapshot.size;
-          document.getElementById('approvedCount').textContent = approvedSnapshot.size;
-          document.getElementById('rejectedCount').textContent = rejectedSnapshot.size;
+          snapshot.forEach((doc) => {
+            const post = doc.data();
+            switch (post.status) {
+              case 'pending':
+                pendingCount++;
+                break;
+              case 'approved':
+                approvedCount++;
+                break;
+              case 'rejected':
+                rejectedCount++;
+                break;
+            }
+          });
+
+          document.getElementById('pendingCount').textContent = pendingCount;
+          document.getElementById('approvedCount').textContent = approvedCount;
+          document.getElementById('rejectedCount').textContent = rejectedCount;
 
         } catch (error) {
           console.error('Error actualizando estadísticas:', error);
+          // Valores por defecto
+          document.getElementById('pendingCount').textContent = '0';
+          document.getElementById('approvedCount').textContent = '0';
+          document.getElementById('rejectedCount').textContent = '0';
         }
       }
 

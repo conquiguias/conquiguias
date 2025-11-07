@@ -3467,8 +3467,7 @@
         <div class="post-time">
           ${timeAgo}
           ${isLocalPost ? ' (Guardado localmente)' : ''}
-          ${post.status === 'pending' ? '<span class="status-pending post-status-indicator">⏳ Pendiente</span>' : ''}
-          ${post.status === 'approved' ? '<span class="status-approved post-status-indicator">✅ Aprobada</span>' : ''}
+          ${isAdmin ? '<span class="status-approved post-status-indicator">Admin</span>' : ''}
         </div>
       </div>
       ${(isAdmin || isPostOwner) ? `

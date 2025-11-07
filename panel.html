@@ -1466,6 +1466,7 @@
       const menuPerfil = document.getElementById("menuPerfil");
       const menuEspecialidades = document.getElementById("menuEspecialidades");
       const menuCertificaciones = document.getElementById("menuCertificaciones");
+      const menuAdmin = document.getElementById("menuAdmin");
       const logoutBtn = document.getElementById("logoutBtn");
       const editForm = document.getElementById("editForm");
       const fotoInput = document.getElementById("foto");
@@ -1820,8 +1821,8 @@
       });
 
       function mostrarSeccion(seccion, botonActivo) {
-        [inicioSection, perfilSection, especialidadesSection, clubesSection, certificacionesSection].forEach(sec => sec.classList.add("hidden"));
-        [menuInicio, menuPerfil, menuEspecialidades, menuClubes, menuCertificaciones].forEach(btn => btn.classList.remove("active"));
+        [inicioSection, perfilSection, especialidadesSection, clubesSection, certificacionesSection, adminSectio].forEach(sec => sec.classList.add("hidden"));
+        [menuInicio, menuPerfil, menuEspecialidades, menuClubes, menuCertificaciones, menuAdmin].forEach(btn => btn.classList.remove("active"));
 
         seccion.classList.remove("hidden");
         botonActivo.classList.add("active");

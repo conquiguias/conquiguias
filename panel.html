@@ -1564,6 +1564,7 @@
 
           // 🔹 INICIALIZAR DATOS DE RED SOCIAL
           userData = data;
+          userData.email = user.email;
           lastPostTime = data.lastPostTime || null;
 
           // 🔹 INICIALIZAR RED SOCIAL INMEDIATAMENTE SI ESTAMOS EN INICIO
@@ -3167,7 +3168,7 @@
             userId: currentUserId,
             userName: userData.nombre || 'Usuario',
             userPhoto: userData.fotoURL || 'https://dummyimage.com/40x40/ccc/fff&text=User',
-            userEmail: user.email,
+            userEmail: userData.email,
             mediaUrl: mediaData.url,
             mediaType: mediaType,
             description: description.trim(),
@@ -3276,7 +3277,7 @@
             userId: currentUserId,
             userName: userData.nombre || 'Usuario',
             userPhoto: userData.fotoURL || 'https://dummyimage.com/40x40/ccc/fff&text=User',
-            userEmail: user.email,
+            userEmail: userData.email,
             mediaUrl: mediaData.url,
             mediaType: file.type,
             description: description,
@@ -4267,7 +4268,7 @@
 
 
       // 🔹 Lista global de administradores (se llena automáticamente)
-let ADMIN_EMAILS = [];
+      let ADMIN_EMAILS = [];
       // 🔹 Obtener lista de administradores desde el backend
       async function getAdminEmails() {
         try {
@@ -4279,9 +4280,9 @@ let ADMIN_EMAILS = [];
           const data = await response.json();
           if (data.success) {
             if (data.success) {
-        ADMIN_EMAILS = data.admins;
-        console.log('✅ Administradores cargados:', ADMIN_EMAILS);
-      }
+              ADMIN_EMAILS = data.admins;
+              console.log('✅ Administradores cargados:', ADMIN_EMAILS);
+            }
             return data.admins;
           } else {
             throw new Error(data.error);

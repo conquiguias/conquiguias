@@ -1,3 +1,4 @@
+setupU
 <!DOCTYPE html>
 <html lang="es">
 
@@ -2750,16 +2751,30 @@
 
       // 🔹 RED SOCIAL - Funciones principales
 
-      // 🔹 Inicializar red social cuando se muestre la sección - VERSIÓN CORREGIDA
+      // 🔹 Inicializar red social - VERSIÓN MEJORADA
       async function initializeSocialNetwork() {
         console.log('🚀 Inicializando red social...');
         console.log('👤 User ID:', currentUserId);
         console.log('👑 Es admin:', isAdmin);
-        console.log('🕐 Última publicación:', lastPostTime);
+        console.log('📝 User Data:', userData);
 
         // Verificar que tenemos los datos necesarios
-        if (!currentUserId || !userData) {
-          console.error('❌ No se pueden inicializar datos de red social: currentUserId o userData no están definidos');
+        if (!currentUserId) {
+          console.error('❌ currentUserId no está definido');
+          mostrarMensaje('error', 'Error de sesión', 'Por favor, inicia sesión nuevamente.');
+          return;
+        }
+
+        if (!userData) {
+          console.error('❌ userData no está definido');
+          mostrarMensaje('error', 'Error de datos', 'No se pudieron cargar los datos del usuario.');
+          return;
+        }
+
+        // Verificar Firestore
+        const firestoreReady = await initializeFirestore();
+        if (!firestoreReady) {
+          mostrarMensaje('error', 'Error de conexión', 'No se pudo conectar con la base de datos.');
           return;
         }
 
@@ -2790,27 +2805,114 @@
         console.log('✅ Listeners configurados correctamente');
       }
 
-      // 🔹 Manejar selección de archivo
-      function handleFileSelect(e) {
-        const file = e.target.files[0];
-        previewContainer.innerHTML = '';
+      // 🔹 Manejar subida de publicación - VERSIÓN FINAL CON FALLBACK
+      async function handleUpload() {
+        console.log('🔄 handleUpload iniciado');
 
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = function (e) {
-            if (file.type.startsWith('image/')) {
-              const img = document.createElement('img');
-              img.src = e.target.result;
-              previewContainer.appendChild(img);
-            } else if (file.type.startsWith('video/')) {
-              const video = document.createElement('video');
-              video.src = e.target.result;
-              video.controls = true;
-              video.style.maxWidth = '200px';
-              previewContainer.appendChild(video);
-            }
+        const file = fileInput.files[0];
+        const description = postDescription.value.trim();
+
+        console.log('📁 Archivo:', file);
+        console.log('📝 Descripción:', description);
+
+        if (!file) {
+          console.log('❌ No hay archivo');
+          mostrarMensaje('info', 'Selecciona una imagen o video', 'Debes seleccionar un archivo para publicar.');
+          return;
+        }
+
+        if (!description) {
+          console.log('❌ No hay descripción');
+          mostrarMensaje('info', 'Agrega una descripción', 'Escribe una descripción para tu publicación.');
+          return;
+        }
+
+        // Validaciones de archivo
+        if (file.size > 10 * 1024 * 1024) {
+          mostrarMensaje('error', 'Archivo muy grande', 'El archivo no debe superar los 10MB.');
+          return;
+        }
+
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'video/mp4', 'video/quicktime'];
+        if (!validTypes.includes(file.type)) {
+          mostrarMensaje('error', 'Tipo de archivo no válido', 'Solo se permiten imágenes (JPEG, PNG, GIF) y videos (MP4).');
+          return;
+        }
+
+        try {
+          uploadBtn.disabled = true;
+          uploadBtn.textContent = 'Subiendo...';
+
+          // 1. Subir a Imgur
+          console.log('📤 Subiendo a Imgur...');
+          const mediaData = await uploadToImgur(file);
+
+          // 2. Preparar datos de la publicación
+          const postData = {
+            userId: currentUserId,
+            userName: userData.nombre || 'Usuario',
+            userPhoto: userData.fotoURL || 'https://dummyimage.com/40x40/ccc/fff&text=User',
+            mediaUrl: mediaData.url,
+            mediaType: file.type,
+            description: description,
+            timestamp: new Date().toISOString(),
+            imgurData: mediaData,
+            reactions: { like: [], love: [], laugh: [], wow: [], sad: [], angry: [], seven: [] },
+            comments: [],
+            status: 'active'
           };
-          reader.readAsDataURL(file);
+
+          let postId;
+
+          // 3. Intentar guardar en Firestore primero
+          try {
+            console.log('💾 Intentando guardar en Firestore...');
+            const docRef = await addDoc(collection(db, "posts"), postData);
+            postId = docRef.id;
+            console.log('✅ Guardado en Firestore, ID:', postId);
+          } catch (firestoreError) {
+            console.warn('⚠️ Falló Firestore, usando localStorage:', firestoreError);
+
+            // Fallback a localStorage
+            const saved = savePostToLocalStorage(postData);
+            if (saved) {
+              postId = 'local_' + Date.now();
+              console.log('✅ Guardado en localStorage');
+              mostrarMensaje('info', 'Publicación guardada localmente', 'La publicación se guardó localmente debido a problemas de conexión.');
+            } else {
+              throw new Error('No se pudo guardar la publicación en ningún almacenamiento');
+            }
+          }
+
+          // 4. Actualizar tiempo de publicación
+          if (!isAdmin) {
+            try {
+              await updateDoc(doc(db, "usuarios", currentUserId), {
+                lastPostTime: new Date().toISOString()
+              });
+              lastPostTime = new Date().toISOString();
+              startCountdown(60);
+            } catch (error) {
+              console.warn('⚠️ No se pudo actualizar lastPostTime:', error);
+            }
+          }
+
+          // 5. Limpiar y recargar
+          fileInput.value = '';
+          postDescription.value = '';
+          previewContainer.innerHTML = '';
+          uploadBtn.disabled = false;
+          uploadBtn.textContent = 'Publicar';
+
+          await loadPosts(); // Esta función ahora cargará de ambas fuentes
+
+          mostrarMensaje('info', '¡Publicación exitosa!', 'Tu publicación ha sido compartida.');
+
+        } catch (error) {
+          console.error('❌ Error al publicar:', error);
+          mostrarMensaje('error', 'Error al publicar', error.message || 'No se pudo completar la publicación.');
+          uploadBtn.disabled = false;
+          uploadBtn.textContent = 'Publicar';
         }
       }
 
@@ -2948,18 +3050,23 @@
         }
       }
 
-      // 🔹 Guardar publicación en Firestore - VERSIÓN CON MANEJO DE ERRORES
+      // 🔹 Guardar publicación en Firestore - VERSIÓN CORREGIDA
       async function savePost(mediaData, description, mediaType) {
         try {
           console.log('💾 Guardando publicación en Firestore...');
 
+          // Asegurarnos de que tenemos todos los datos necesarios
+          if (!userData || !userData.nombre) {
+            throw new Error('Datos de usuario incompletos');
+          }
+
           const postData = {
             userId: currentUserId,
-            userName: userData.nombre,
-            userPhoto: userData.fotoURL || 'https://dummyimage.com/40x40/ccc/fff',
+            userName: userData.nombre.trim() || 'Usuario',
+            userPhoto: userData.fotoURL || 'https://dummyimage.com/40x40/ccc/fff&text=User',
             mediaUrl: mediaData.url,
             mediaType: mediaType,
-            description: description,
+            description: description.trim(),
             timestamp: new Date().toISOString(),
             imgurData: {
               id: mediaData.id,
@@ -2986,6 +3093,7 @@
           return docRef.id;
         } catch (error) {
           console.error('❌ Error guardando en Firestore:', error);
+          console.error('Detalles del error:', error.message, error.code);
           throw new Error('No se pudo guardar la publicación: ' + error.message);
         }
       }
@@ -3075,36 +3183,48 @@
         }
       }
 
-      // 🔹 Cargar publicaciones
+      // 🔹 Cargar publicaciones - VERSIÓN MEJORADA
       async function loadPosts() {
         try {
+          console.log('📥 Cargando publicaciones...');
+
           const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
           const querySnapshot = await getDocs(q);
+
+          console.log(`📊 Se encontraron ${querySnapshot.size} publicaciones`);
 
           feed.innerHTML = '';
 
           if (querySnapshot.empty) {
             feed.innerHTML = `
-              <div class="empty-feed">
-                <h3>📷 No hay publicaciones aún</h3>
-                <p>¡Sé el primero en compartir algo!</p>
-              </div>
-            `;
+        <div class="empty-feed">
+          <h3>📷 No hay publicaciones aún</h3>
+          <p>¡Sé el primero en compartir algo!</p>
+        </div>
+      `;
             return;
           }
 
           querySnapshot.forEach((doc) => {
             const post = doc.data();
+            console.log('📄 Publicación cargada:', post);
             displayPost(post, doc.id);
           });
+
         } catch (error) {
-          console.error('Error cargando publicaciones:', error);
+          console.error('❌ Error cargando publicaciones:', error);
+          console.error('Código de error:', error.code);
+          console.error('Mensaje de error:', error.message);
+
           feed.innerHTML = `
-            <div class="empty-feed">
-              <h3>❌ Error al cargar publicaciones</h3>
-              <p>Intenta recargar la página</p>
-            </div>
-          `;
+      <div class="empty-feed">
+        <h3>❌ Error al cargar publicaciones</h3>
+        <p>${error.message || 'Intenta recargar la página'}</p>
+        <button onclick="loadPosts()" style="margin-top: 10px; padding: 8px 16px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer;">
+          Reintentar
+        </button>
+      </div>
+    `;
         }
       }
 
@@ -3312,8 +3432,49 @@
         }
       }, 2000);
 
+      // 🔹 Función para verificar y configurar Firestore
+      async function initializeFirestore() {
+        try {
+          console.log('🔥 Inicializando Firestore...');
 
+          // Verificar que podemos acceder a Firestore
+          const testQuery = query(collection(db, "posts"), limit(1));
+          const testSnapshot = await getDocs(testQuery);
+          console.log('✅ Firestore accesible');
 
+          return true;
+        } catch (error) {
+          console.error('❌ Error accediendo a Firestore:', error);
+          return false;
+        }
+      }
+
+      // 🔹 Probar permisos de Firestore
+      async function testFirestorePermissions() {
+        try {
+          console.log('🔐 Probando permisos de Firestore...');
+
+          // Intentar escribir un documento de prueba
+          const testDocRef = doc(collection(db, "test_permissions"));
+          await setDoc(testDocRef, {
+            test: true,
+            timestamp: new Date().toISOString(),
+            userId: currentUserId
+          });
+
+          // Intentar leerlo
+          const testDoc = await getDoc(testDocRef);
+          console.log('✅ Permisos de escritura/lectura OK');
+
+          // Limpiar el documento de prueba
+          await deleteDoc(testDocRef);
+
+          return true;
+        } catch (error) {
+          console.error('❌ Error en permisos:', error);
+          return false;
+        }
+      }
 
 
     </script>

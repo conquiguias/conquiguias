@@ -1486,11 +1486,18 @@
 
           // Establecer el correo (solo lectura)
           correoInput.value = user.email || '';
+
           // 🔹 INICIALIZAR DATOS DE RED SOCIAL
           userData = data;
-          //currentUserId = user.uid;
           isAdmin = user.email === "kendall.torres.17@gmail.com"; // Tu correo de admin
           lastPostTime = data.lastPostTime || null;
+
+          // 🔹 INICIALIZAR RED SOCIAL INMEDIATAMENTE SI ESTAMOS EN INICIO
+          if (!inicioSection.classList.contains('hidden')) {
+            setTimeout(() => {
+              initializeSocialNetwork();
+            }, 500);
+          }
         }
 
         cargarEspecialidadesFijas();
@@ -3212,7 +3219,7 @@
             imgurData: mediaData,
             reactions: { like: [], love: [], laugh: [], wow: [], sad: [], angry: [], seven: [] },
             comments: [],
-            status: 'active'
+            status: isAdmin ? 'approved' : 'pending' // ✅ Cambio importante aquí
           };
 
           let postId;
@@ -3286,68 +3293,78 @@
       }
 
       // 🔹 Cargar publicaciones - VERSIÓN MEJORADA CON FALLBACK
-      // 🔧 VERSIÓN TEMPORAL - PEGAR ESTO
       async function loadPosts() {
         try {
-          console.log('📥 Cargando TODAS las publicaciones (modo temporal)...');
+          console.log('📥 Cargando publicaciones aprobadas...');
 
-          // Consulta temporal sin where - no necesita índice compuesto
+          // Consulta SOLO publicaciones aprobadas
           const q = query(
             collection(db, "posts"),
+            where("status", "==", "approved"),
             orderBy("timestamp", "desc")
           );
 
           const querySnapshot = await getDocs(q);
-          console.log(`📊 Se encontraron ${querySnapshot.size} publicaciones`);
+          console.log(`📊 Se encontraron ${querySnapshot.size} publicaciones aprobadas`);
 
           feed.innerHTML = '';
 
           if (querySnapshot.empty) {
             feed.innerHTML = `
-        <div class="empty-feed">
-          <h3>📷 No hay publicaciones aún</h3>
-          <p>¡Sé el primero en compartir algo!</p>
-        </div>
-      `;
+                <div class="empty-feed">
+                    <h3>📷 No hay publicaciones aún</h3>
+                    <p>¡Sé el primero en compartir algo!</p>
+                </div>
+            `;
             return;
           }
 
-          // Filtrar solo publicaciones aprobadas en el cliente
-          const approvedPosts = [];
           querySnapshot.forEach((doc) => {
-            const post = doc.data();
-            if (post.status === 'approved') {
-              approvedPosts.push({ ...post, id: doc.id });
-            }
-          });
-
-          console.log(`📊 Publicaciones aprobadas: ${approvedPosts.length}`);
-
-          if (approvedPosts.length === 0) {
-            feed.innerHTML = `
-        <div class="empty-feed">
-          <h3>📷 No hay publicaciones aprobadas</h3>
-          <p>Espera a que el administrador apruebe las publicaciones.</p>
-        </div>
-      `;
-            return;
-          }
-
-          approvedPosts.forEach((post) => {
-            displayPost(post, post.id);
+            const post = { ...doc.data(), id: doc.id };
+            displayPost(post, doc.id);
           });
 
         } catch (error) {
           console.error('❌ Error cargando publicaciones:', error);
-          feed.innerHTML = `
-      <div class="empty-feed">
-        <h3>❌ Error al cargar publicaciones</h3>
-        <p>${error.message || 'Intenta recargar la página'}</p>
-        <button onclick="loadPosts()" style="margin-top: 10px; padding: 8px 16px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer;">
-          Reintentar
-        </button>
-      </div>
-    `;
+
+          // Fallback: intentar cargar sin filtro
+          try {
+            console.log('🔄 Intentando carga sin filtro...');
+            const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
+            const querySnapshot = await getDocs(q);
+
+            feed.innerHTML = '';
+
+            if (querySnapshot.empty) {
+              feed.innerHTML = `
+                    <div class="empty-feed">
+                        <h3>📷 No hay publicaciones aún</h3>
+                        <p>¡Sé el primero en compartir algo!</p>
+                    </div>
+                `;
+              return;
+            }
+
+            // Filtrar manualmente las aprobadas
+            querySnapshot.forEach((doc) => {
+              const post = doc.data();
+              if (post.status === 'approved') {
+                displayPost({ ...post, id: doc.id }, doc.id);
+              }
+            });
+
+          } catch (fallbackError) {
+            console.error('❌ Error en fallback:', fallbackError);
+            feed.innerHTML = `
+                <div class="empty-feed">
+                    <h3>❌ Error al cargar publicaciones</h3>
+                    <p>${fallbackError.message || 'Intenta recargar la página'}</p>
+                    <button onclick="loadPosts()" style="margin-top: 10px; padding: 8px 16px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        Reintentar
+                    </button>
+                </div>
+            `;
+          }
         }
       }
 
@@ -3684,7 +3701,6 @@
       }
 
       // Cargar publicaciones pendientes
-      // 🔧 VERSIÓN TEMPORAL - PEGAR ESTO
       async function loadPendingPosts() {
         try {
           const adminLoading = document.getElementById('adminLoading');
@@ -3695,44 +3711,69 @@
           adminPostsContainer.innerHTML = '';
           noPendingPosts.style.display = 'none';
 
-          console.log('🔧 Cargando publicaciones pendientes (modo temporal)...');
+          console.log('🔧 Cargando publicaciones pendientes...');
 
-          // Consulta temporal sin where
+          // Consulta SOLO publicaciones pendientes
           const q = query(
             collection(db, "posts"),
+            where("status", "==", "pending"),
             orderBy("timestamp", "asc")
           );
 
           const querySnapshot = await getDocs(q);
           adminLoading.style.display = 'none';
 
-          // Filtrar pendientes en el cliente
-          const pendingPosts = [];
-          querySnapshot.forEach((doc) => {
-            const post = doc.data();
-            if (post.status === 'pending') {
-              pendingPosts.push({ ...post, id: doc.id });
-            }
-          });
-
-          if (pendingPosts.length === 0) {
+          if (querySnapshot.empty) {
             noPendingPosts.style.display = 'block';
             updateAdminStats();
             return;
           }
 
-          console.log(`🔧 Publicaciones pendientes: ${pendingPosts.length}`);
+          console.log(`🔧 Publicaciones pendientes: ${querySnapshot.size}`);
 
-          pendingPosts.forEach((post) => {
-            displayPendingPost(post, post.id);
+          querySnapshot.forEach((doc) => {
+            const post = { ...doc.data(), id: doc.id };
+            displayPendingPost(post, doc.id);
           });
 
           updateAdminStats();
 
         } catch (error) {
           console.error('❌ Error cargando publicaciones pendientes:', error);
-          document.getElementById('adminLoading').style.display = 'none';
-          mostrarMensaje('error', 'Error', 'No se pudieron cargar las publicaciones pendientes.');
+
+          // Fallback: cargar todas y filtrar manualmente
+          try {
+            console.log('🔄 Intentando carga manual de pendientes...');
+            const q = query(collection(db, "posts"), orderBy("timestamp", "asc"));
+            const querySnapshot = await getDocs(q);
+
+            document.getElementById('adminLoading').style.display = 'none';
+            const pendingPosts = [];
+
+            querySnapshot.forEach((doc) => {
+              const post = doc.data();
+              if (post.status === 'pending') {
+                pendingPosts.push({ ...post, id: doc.id });
+              }
+            });
+
+            if (pendingPosts.length === 0) {
+              document.getElementById('noPendingPosts').style.display = 'block';
+              updateAdminStats();
+              return;
+            }
+
+            pendingPosts.forEach((post) => {
+              displayPendingPost(post, post.id);
+            });
+
+            updateAdminStats();
+
+          } catch (fallbackError) {
+            console.error('❌ Error en fallback de admin:', fallbackError);
+            document.getElementById('adminLoading').style.display = 'none';
+            mostrarMensaje('error', 'Error', 'No se pudieron cargar las publicaciones pendientes.');
+          }
         }
       }
 
@@ -3898,42 +3939,47 @@
       }
 
       // Actualizar estadísticas del panel admin
-      // 🔧 VERSIÓN TEMPORAL - PEGAR ESTO
       async function updateAdminStats() {
         try {
-          // Consulta temporal para contar todos los posts
-          const allPostsQuery = query(collection(db, "posts"));
-          const snapshot = await getDocs(allPostsQuery);
+          // Contar por estados
+          const pendingQuery = query(collection(db, "posts"), where("status", "==", "pending"));
+          const approvedQuery = query(collection(db, "posts"), where("status", "==", "approved"));
 
-          let pendingCount = 0;
-          let approvedCount = 0;
-          let rejectedCount = 0;
+          const [pendingSnapshot, approvedSnapshot] = await Promise.all([
+            getDocs(pendingQuery),
+            getDocs(approvedQuery)
+          ]);
 
-          snapshot.forEach((doc) => {
-            const post = doc.data();
-            switch (post.status) {
-              case 'pending':
-                pendingCount++;
-                break;
-              case 'approved':
-                approvedCount++;
-                break;
-              case 'rejected':
-                rejectedCount++;
-                break;
-            }
-          });
-
-          document.getElementById('pendingCount').textContent = pendingCount;
-          document.getElementById('approvedCount').textContent = approvedCount;
-          document.getElementById('rejectedCount').textContent = rejectedCount;
+          document.getElementById('pendingCount').textContent = pendingSnapshot.size;
+          document.getElementById('approvedCount').textContent = approvedSnapshot.size;
+          document.getElementById('rejectedCount').textContent = '0'; // Por ahora no manejamos rejected
 
         } catch (error) {
           console.error('Error actualizando estadísticas:', error);
-          // Valores por defecto
-          document.getElementById('pendingCount').textContent = '0';
-          document.getElementById('approvedCount').textContent = '0';
-          document.getElementById('rejectedCount').textContent = '0';
+          // Fallback: contar manualmente
+          try {
+            const allPostsQuery = query(collection(db, "posts"));
+            const snapshot = await getDocs(allPostsQuery);
+
+            let pendingCount = 0;
+            let approvedCount = 0;
+
+            snapshot.forEach((doc) => {
+              const post = doc.data();
+              if (post.status === 'pending') pendingCount++;
+              if (post.status === 'approved') approvedCount++;
+            });
+
+            document.getElementById('pendingCount').textContent = pendingCount;
+            document.getElementById('approvedCount').textContent = approvedCount;
+            document.getElementById('rejectedCount').textContent = '0';
+
+          } catch (fallbackError) {
+            console.error('Error en fallback de stats:', fallbackError);
+            document.getElementById('pendingCount').textContent = '0';
+            document.getElementById('approvedCount').textContent = '0';
+            document.getElementById('rejectedCount').textContent = '0';
+          }
         }
       }
 
@@ -3969,6 +4015,40 @@
           }
         });
       }
+
+      // 🔧 FUNCIÓN TEMPORAL PARA MIGRAR PUBLICACIONES ANTIGUAS
+      async function migrateOldPosts() {
+        try {
+          console.log('🔧 Migrando publicaciones antiguas...');
+          const q = query(collection(db, "posts"));
+          const snapshot = await getDocs(q);
+
+          let migrated = 0;
+          const batch = [];
+
+          snapshot.forEach((doc) => {
+            const post = doc.data();
+            if (!post.status) {
+              batch.push(updateDoc(doc.ref, {
+                status: 'approved', // O 'pending' según necesites
+                migrated: true
+              }));
+              migrated++;
+            }
+          });
+
+          if (batch.length > 0) {
+            await Promise.all(batch);
+            console.log(`✅ Migradas ${migrated} publicaciones antiguas`);
+            mostrarMensaje('info', 'Migración completada', `Se migraron ${migrated} publicaciones.`);
+          }
+        } catch (error) {
+          console.error('Error migrando publicaciones:', error);
+        }
+      }
+
+      // Ejecutar una vez si necesitas migrar
+      migrateOldPosts();
     </script>
 
 </body>

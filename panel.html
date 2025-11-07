@@ -1470,6 +1470,12 @@
 
         if (docSnap.exists()) {
           const data = docSnap.data();
+          // 🔹 MIGRAR PUBLICACIONES ANTIGUAS SI ES ADMIN
+          if (isAdmin) {
+            setTimeout(() => {
+              migrateOldPosts();
+            }, 2000);
+          }
           currentPhotoURL = data.fotoURL || placeholderURL;
 
           // Actualizar header del usuario
@@ -3388,10 +3394,10 @@
         </div>
       </div>
       ${(isAdmin || isPostOwner) ? `
-        <button class="delete-post-btn" data-postid="${postId}" data-deletehash="${post.imgurData?.deletehash}" data-source="${post.source}">
-          🗑️ Eliminar
-        </button>
-      ` : ''}
+    <button class="delete-post-btn" data-postid="${postId}" data-deletehash="${post.imgurData?.deletehash}">
+        🗑️ Eliminar
+    </button>
+` : ''}
     </div>
     
     <div class="post-content">
@@ -3446,29 +3452,45 @@
         }
 
         // Manejar eliminación de posts
+        // En el evento click del feed, REEMPLAZA esta parte:
         if (e.target.classList.contains('delete-post-btn') || e.target.closest('.delete-post-btn')) {
           const btn = e.target.classList.contains('delete-post-btn') ? e.target : e.target.closest('.delete-post-btn');
           const postId = btn.getAttribute('data-postid');
           const deletehash = btn.getAttribute('data-deletehash');
-          const source = btn.getAttribute('data-source');
 
-          mostrarMensaje('confirm', 'Eliminar publicación', '¿Estás seguro de que quieres eliminar esta publicación?', async () => {
-            try {
-              if (source === 'firestore') {
+          mostrarMensaje('confirm',
+            'Eliminar publicación',
+            '¿Estás seguro de que quieres eliminar esta publicación? Esta acción no se puede deshacer.',
+            async () => {
+              try {
                 await deletePost(postId, deletehash);
-              } else {
-                // Eliminar de localStorage
-                const localPosts = JSON.parse(localStorage.getItem('localPosts') || '[]');
-                const updatedPosts = localPosts.filter(post => post.id !== postId);
-                localStorage.setItem('localPosts', JSON.stringify(updatedPosts));
-              }
 
-              btn.closest('.post-card').remove();
-              mostrarMensaje('info', 'Publicación eliminada', 'La publicación ha sido eliminada correctamente.');
-            } catch (error) {
-              mostrarMensaje('error', 'Error al eliminar', 'No se pudo eliminar la publicación.');
+                // Eliminar del DOM
+                const postElement = btn.closest('.post-card');
+                if (postElement) {
+                  postElement.style.opacity = '0.5';
+                  setTimeout(() => {
+                    postElement.remove();
+                    // Verificar si el feed quedó vacío
+                    if (feed.children.length === 0) {
+                      feed.innerHTML = `
+                                <div class="empty-feed">
+                                    <h3>📷 No hay publicaciones aún</h3>
+                                    <p>¡Sé el primero en compartir algo!</p>
+                                </div>
+                            `;
+                    }
+                  }, 300);
+                }
+
+                mostrarMensaje('success', '✅ Publicación eliminada', 'La publicación ha sido eliminada correctamente.');
+
+              } catch (error) {
+                console.error('Error al eliminar:', error);
+                mostrarMensaje('error', 'Error al eliminar', 'No se pudo eliminar la publicación: ' + error.message);
+              }
             }
-          });
+          );
         }
       });
 
@@ -3556,28 +3578,41 @@
       }
 
       // 🔹 Eliminar publicación (para admin o dueño del post)
+      // 🔹 Eliminar publicación (versión corregida)
       async function deletePost(postId, imgurDeletehash) {
         try {
-          // Eliminar de Imgur primero
-          const deleteResponse = await fetch(`/api/social?action=delete`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ deletehash: imgurDeletehash })
-          });
+          console.log(`🗑️ Eliminando publicación: ${postId}`);
 
-          if (!deleteResponse.ok) {
-            console.warn('No se pudo eliminar de Imgur, pero se continuará con Firestore');
+          // 1. Eliminar de Imgur si existe deletehash
+          if (imgurDeletehash && imgurDeletehash !== 'undefined') {
+            try {
+              const deleteResponse = await fetch(`/api/social?action=delete`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ deletehash: imgurDeletehash })
+              });
+
+              if (deleteResponse.ok) {
+                console.log('✅ Imagen eliminada de Imgur');
+              } else {
+                console.warn('⚠️ No se pudo eliminar de Imgur, continuando...');
+              }
+            } catch (imgurError) {
+              console.warn('⚠️ Error eliminando de Imgur:', imgurError);
+            }
           }
 
-          // Eliminar de Firestore
+          // 2. Eliminar de Firestore
           await deleteDoc(doc(db, "posts", postId));
+          console.log('✅ Publicación eliminada de Firestore');
 
           return true;
+
         } catch (error) {
-          console.error('Error eliminando publicación:', error);
-          throw error;
+          console.error('❌ Error eliminando publicación:', error);
+          throw new Error('No se pudo eliminar la publicación: ' + error.message);
         }
       }
 
@@ -3880,12 +3915,13 @@
       }
 
       // Rechazar publicación
+      // 🔹 Rechazar publicación (versión mejorada)
       async function rejectPost(postId, deletehash) {
         try {
           console.log(`❌ Rechazando publicación: ${postId}`);
 
-          // Eliminar de Imgur primero
-          if (deletehash) {
+          // 1. Eliminar de Imgur si existe deletehash
+          if (deletehash && deletehash !== 'undefined') {
             try {
               await fetch(`/api/social?action=delete`, {
                 method: 'POST',
@@ -3894,96 +3930,100 @@
                 },
                 body: JSON.stringify({ deletehash })
               });
+              console.log('✅ Imagen eliminada de Imgur');
             } catch (imgurError) {
               console.warn('⚠️ No se pudo eliminar de Imgur:', imgurError);
             }
           }
 
-          // Eliminar de Firestore
-          await deleteDoc(doc(db, "posts", postId));
+          // 2. Actualizar estado en Firestore a "rejected" en lugar de eliminar
+          const postRef = doc(db, "posts", postId);
+          await updateDoc(postRef, {
+            status: 'rejected',
+            moderatedBy: currentUserId,
+            moderatedAt: new Date().toISOString(),
+            moderationReason: 'Rechazada por administrador'
+          });
 
-          // Eliminar del panel admin
+          console.log('✅ Estado actualizado a "rejected"');
+
+          // 3. Eliminar del panel admin con animación
           const postElement = document.querySelector(`.reject-btn[data-postid="${postId}"]`)?.closest('.post-card');
           if (postElement) {
-            postElement.remove();
+            postElement.style.opacity = '0.5';
+            setTimeout(() => {
+              postElement.remove();
+
+              // Verificar si quedan más publicaciones pendientes
+              const remainingPosts = document.querySelectorAll('#adminPostsContainer .post-card').length;
+              if (remainingPosts === 0) {
+                document.getElementById('noPendingPosts').style.display = 'block';
+              }
+            }, 300);
           }
 
-          // Actualizar estadísticas
-          updateAdminStats();
+          // 4. Actualizar estadísticas
+          await updateAdminStats();
 
-          // Notificar al backend (opcional)
-          try {
-            await fetch(`/api/social?action=reject-post`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ postId, deletehash })
-            });
-          } catch (apiError) {
-            console.warn('⚠️ No se pudo notificar al backend:', apiError);
-          }
-
-          mostrarMensaje('info', '❌ Publicación rechazada', 'La publicación ha sido eliminada.');
-
-          // Verificar si quedan más publicaciones pendientes
-          const remainingPosts = document.querySelectorAll('.post-card').length;
-          if (remainingPosts === 0) {
-            document.getElementById('noPendingPosts').style.display = 'block';
-          }
+          mostrarMensaje('success', '❌ Publicación rechazada', 'La publicación ha sido rechazada y eliminada.');
 
         } catch (error) {
           console.error('❌ Error rechazando publicación:', error);
-          mostrarMensaje('error', 'Error', 'No se pudo rechazar la publicación.');
+          mostrarMensaje('error', 'Error', 'No se pudo rechazar la publicación: ' + error.message);
         }
       }
 
       // Actualizar estadísticas del panel admin
+      // 🔹 Actualizar estadísticas del panel admin (versión mejorada)
       async function updateAdminStats() {
         try {
+          console.log('📊 Actualizando estadísticas...');
+
           // Contar por estados
-          const pendingQuery = query(collection(db, "posts"), where("status", "==", "pending"));
-          const approvedQuery = query(collection(db, "posts"), where("status", "==", "approved"));
+          const allPostsQuery = query(collection(db, "posts"));
+          const snapshot = await getDocs(allPostsQuery);
 
-          const [pendingSnapshot, approvedSnapshot] = await Promise.all([
-            getDocs(pendingQuery),
-            getDocs(approvedQuery)
-          ]);
+          let pendingCount = 0;
+          let approvedCount = 0;
+          let rejectedCount = 0;
 
-          document.getElementById('pendingCount').textContent = pendingSnapshot.size;
-          document.getElementById('approvedCount').textContent = approvedSnapshot.size;
-          document.getElementById('rejectedCount').textContent = '0'; // Por ahora no manejamos rejected
+          snapshot.forEach((doc) => {
+            const post = doc.data();
+            switch (post.status) {
+              case 'pending':
+                pendingCount++;
+                break;
+              case 'approved':
+                approvedCount++;
+                break;
+              case 'rejected':
+                rejectedCount++;
+                break;
+              default:
+                // Para publicaciones antiguas sin estado, contar como aprobadas
+                if (!post.status) {
+                  approvedCount++;
+                }
+            }
+          });
+
+          document.getElementById('pendingCount').textContent = pendingCount;
+          document.getElementById('approvedCount').textContent = approvedCount;
+          document.getElementById('rejectedCount').textContent = rejectedCount;
+
+          console.log(`📊 Estadísticas: ${pendingCount} pendientes, ${approvedCount} aprobadas, ${rejectedCount} rechazadas`);
 
         } catch (error) {
-          console.error('Error actualizando estadísticas:', error);
-          // Fallback: contar manualmente
-          try {
-            const allPostsQuery = query(collection(db, "posts"));
-            const snapshot = await getDocs(allPostsQuery);
-
-            let pendingCount = 0;
-            let approvedCount = 0;
-
-            snapshot.forEach((doc) => {
-              const post = doc.data();
-              if (post.status === 'pending') pendingCount++;
-              if (post.status === 'approved') approvedCount++;
-            });
-
-            document.getElementById('pendingCount').textContent = pendingCount;
-            document.getElementById('approvedCount').textContent = approvedCount;
-            document.getElementById('rejectedCount').textContent = '0';
-
-          } catch (fallbackError) {
-            console.error('Error en fallback de stats:', fallbackError);
-            document.getElementById('pendingCount').textContent = '0';
-            document.getElementById('approvedCount').textContent = '0';
-            document.getElementById('rejectedCount').textContent = '0';
-          }
+          console.error('❌ Error actualizando estadísticas:', error);
+          // Valores por defecto en caso de error
+          document.getElementById('pendingCount').textContent = '0';
+          document.getElementById('approvedCount').textContent = '0';
+          document.getElementById('rejectedCount').textContent = '0';
         }
       }
 
       // Manejar eventos del panel admin
+      // 🔹 Manejar eventos del panel admin (versión mejorada)
       function setupAdminEventListeners() {
         document.addEventListener('click', async (e) => {
           // Aprobar publicación
@@ -4017,37 +4057,50 @@
       }
 
       // 🔧 FUNCIÓN TEMPORAL PARA MIGRAR PUBLICACIONES ANTIGUAS
+      // 🔹 Migrar publicaciones antiguas sin estado
       async function migrateOldPosts() {
         try {
-          console.log('🔧 Migrando publicaciones antiguas...');
+          console.log('🔄 Migrando publicaciones antiguas...');
+
           const q = query(collection(db, "posts"));
           const snapshot = await getDocs(q);
 
-          let migrated = 0;
-          const batch = [];
+          let migratedCount = 0;
+          const migrationPromises = [];
 
           snapshot.forEach((doc) => {
             const post = doc.data();
+            // Si la publicación no tiene estado, asignarle 'approved'
             if (!post.status) {
-              batch.push(updateDoc(doc.ref, {
-                status: 'approved', // O 'pending' según necesites
-                migrated: true
-              }));
-              migrated++;
+              migrationPromises.push(
+                updateDoc(doc.ref, {
+                  status: 'approved',
+                  migratedAt: new Date().toISOString()
+                })
+              );
+              migratedCount++;
             }
           });
 
-          if (batch.length > 0) {
-            await Promise.all(batch);
-            console.log(`✅ Migradas ${migrated} publicaciones antiguas`);
-            mostrarMensaje('info', 'Migración completada', `Se migraron ${migrated} publicaciones.`);
+          if (migrationPromises.length > 0) {
+            await Promise.all(migrationPromises);
+            console.log(`✅ Migradas ${migratedCount} publicaciones antiguas`);
+            mostrarMensaje('success', 'Migración completada', `Se migraron ${migratedCount} publicaciones antiguas.`);
+          } else {
+            console.log('✅ No hay publicaciones para migrar');
           }
+
+          // Recargar posts después de la migración
+          await loadPosts();
+          await updateAdminStats();
+
         } catch (error) {
-          console.error('Error migrando publicaciones:', error);
+          console.error('❌ Error en migración:', error);
+          mostrarMensaje('error', 'Error en migración', 'No se pudieron migrar las publicaciones antiguas.');
         }
       }
 
-      
+
     </script>
 
 </body>

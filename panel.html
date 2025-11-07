@@ -1821,7 +1821,7 @@
       });
 
       function mostrarSeccion(seccion, botonActivo) {
-        [inicioSection, perfilSection, especialidadesSection, clubesSection, certificacionesSection, adminSectio].forEach(sec => sec.classList.add("hidden"));
+        [inicioSection, perfilSection, especialidadesSection, clubesSection, certificacionesSection, adminSection].forEach(sec => sec.classList.add("hidden"));
         [menuInicio, menuPerfil, menuEspecialidades, menuClubes, menuCertificaciones, menuAdmin].forEach(btn => btn.classList.remove("active"));
 
         seccion.classList.remove("hidden");

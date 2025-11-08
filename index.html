@@ -60,8 +60,8 @@
             window.location.href = "panel.html";
           } else {
             // Si no está verificado, mostrar mensaje
-            mostrarMensaje("info", "📧 Verifica tu correo", 
-              "Tu cuenta ha sido creada, pero necesitas verificar tu correo electrónico antes de acceder. Revisa tu bandeja de entrada y la carpeta de spam.", 
+            mostrarMensaje("info", "📧 Verifica tu correo",
+              "Tu cuenta ha sido creada, pero necesitas verificar tu correo electrónico antes de acceder. Revisa tu bandeja de entrada y la carpeta de spam.",
               () => {
                 // Cerrar sesión hasta que verifique
                 auth.signOut();
@@ -82,25 +82,25 @@
         try {
           const userCredential = await signInWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
-          
+
           // Verificar si el correo está verificado
           if (!user.emailVerified) {
             hideLoader(loginBtn, "Entrar");
-            mostrarMensaje("confirm", "📧 Verificación requerida", 
-              "Debes verificar tu correo electrónico antes de acceder. ¿Quieres que te reenviemos el correo de verificación?", 
+            mostrarMensaje("confirm", "📧 Verificación requerida",
+              "Debes verificar tu correo electrónico antes de acceder. ¿Quieres que te reenviemos el correo de verificación?",
               () => {
                 // Reenviar verificación
                 reenviarVerificacion(user);
               });
             return;
           }
-          
+
           console.log("✅ Bienvenido de nuevo");
           showLoader(loginBtn, "✅ Redirigiendo...");
           setTimeout(() => {
             window.location.href = "panel.html";
           }, 1000);
-          
+
         } catch (error) {
           hideLoader(loginBtn, "Entrar");
           mostrarMensaje("error", "⚠️ Error al iniciar sesión", "Verifica tus credenciales e intenta nuevamente.");
@@ -134,6 +134,14 @@
           if (foto.size > 1024 * 1024) {
             hideLoader(registerBtn, "Registrar");
             mostrarMensaje("info", "⚠️ La imagen no debe superar 1 MB.");
+            return;
+          }
+
+          // ✅ VALIDAR TIPO DE ARCHIVO
+          const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+          if (!allowedTypes.includes(foto.type)) {
+            hideLoader(registerBtn, "Registrar");
+            mostrarMensaje("info", "⚠️ Formato no válido", "Solo se permiten archivos JPG, JPEG y PNG.");
             return;
           }
 
@@ -179,8 +187,8 @@
           await auth.signOut();
 
           hideLoader(registerBtn, "Registrar");
-          mostrarMensaje("info", `🎉 Registro exitoso, ¡bienvenido ${nombre}!`, 
-            "Te hemos enviado un correo de verificación. Por favor, verifica tu dirección de correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada y la carpeta de spam. Jesús te bendiga, nuestro Gran Guía Mayor.", 
+          mostrarMensaje("info", `🎉 Registro exitoso, ¡bienvenido ${nombre}!`,
+            "Te hemos enviado un correo de verificación. Por favor, verifica tu dirección de correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada y la carpeta de spam. Jesús te bendiga, nuestro Gran Guía Mayor.",
             () => {
               // Limpiar formulario
               registerForm.reset();
@@ -191,7 +199,7 @@
         } catch (error) {
           hideLoader(registerBtn, "Registrar");
           console.error("Error al registrarse:", error);
-          
+
           let errorMessage = "Revisa tus datos o el tamaño de la imagen.";
           if (error.code === 'auth/email-already-in-use') {
             errorMessage = "Este correo electrónico ya está registrado.";
@@ -200,7 +208,7 @@
           } else if (error.code === 'auth/invalid-email') {
             errorMessage = "El formato del correo electrónico no es válido.";
           }
-          
+
           mostrarMensaje("error", "❌ Error en el registro", errorMessage);
         }
       });
@@ -216,8 +224,8 @@
         try {
           await sendPasswordResetEmail(auth, email);
           hideLoader(resetPasswordBtn, "Enviar enlace de recuperación");
-          mostrarMensaje("info", "📧 Correo enviado", 
-            "Te hemos enviado un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada y la carpeta de spam.", 
+          mostrarMensaje("info", "📧 Correo enviado",
+            "Te hemos enviado un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada y la carpeta de spam.",
             () => {
               document.getElementById("resetPasswordBox").classList.add("hidden");
               document.getElementById("loginBox").classList.remove("hidden");
@@ -259,7 +267,7 @@
     async function reenviarVerificacion(user) {
       try {
         await sendEmailVerification(user);
-        mostrarMensaje("info", "📧 Correo reenviado", 
+        mostrarMensaje("info", "📧 Correo reenviado",
           "Te hemos enviado nuevamente el correo de verificación. Revisa tu bandeja de entrada y la carpeta de spam.");
       } catch (error) {
         console.error("Error al reenviar verificación:", error);
@@ -418,8 +426,13 @@
     }
 
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
     }
 
     /* 🔹 Fondo del modal */
@@ -517,7 +530,7 @@
       flex-direction: column;
       position: relative;
     }
-    
+
     .back-link {
       color: #ffdf70;
       margin-top: 8px;

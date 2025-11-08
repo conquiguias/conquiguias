@@ -1506,8 +1506,43 @@
       let puedeEntrarEspecialidades = false;
 
       // 🔹 Detectar usuario logueado
-      // 🔹 Detectar usuario logueado
       onAuthStateChanged(auth, async (user) => {
+        // 🔒 VERIFICACIÓN DE CORREO ELECTRÓNICO
+        if (user && !user.emailVerified) {
+          console.log("🚫 Acceso denegado: correo no verificado");
+
+          mostrarMensaje("confirm", "📧 Verificación requerida",
+            `Hola ${user.displayName || 'usuario'},<br><br>
+      <strong>Debes verificar tu correo electrónico antes de acceder al panel.</strong><br><br>
+      📬 Revisa tu bandeja de entrada y la carpeta de spam.<br>
+      ¿Quieres que te reenviemos el correo de verificación?`,
+            async () => {
+              // Reenviar verificación
+              try {
+                await sendEmailVerification(user);
+                mostrarMensaje("info", "📧 Correo reenviado",
+                  "Te hemos enviado nuevamente el correo de verificación. " +
+                  "Revisa tu bandeja de entrada y la carpeta de spam.");
+              } catch (error) {
+                console.error("Error reenviando verificación:", error);
+              }
+
+              // Cerrar sesión y redirigir
+              await signOut(auth);
+              window.location.href = "index.html";
+            },
+            () => {
+              // Si cancela, igualmente redirigir al login
+              signOut(auth).then(() => {
+                window.location.href = "index.html";
+              });
+            }
+          );
+          return;
+        }
+
+        console.log("✅ Usuario verificado, acceso permitido al panel");
+        currentUserId = user.uid;
 
         // Obtener elementos del header
         const headerUserPhoto = document.getElementById("headerUserPhoto");

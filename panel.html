@@ -1187,7 +1187,7 @@
       position: absolute;
       top: 0;
       height: 100%;
-      opacity: 0.15; /* Opacidad baja para que no interfiera con el contenido */
+      opacity: 1; /* Opacidad baja para que no interfiera con el contenido */
       z-index: 0; /* Detrás del contenido */
       pointer-events: none; /* No interferir con clics */
     }
@@ -1200,7 +1200,7 @@
     .decoracion-derecha {
       right: 0;
       width: 150px; /* Ajusta según el tamaño de tu imagen */
-      transform: scaleX(-1); /* Voltear horizontalmente la imagen derecha */
+      transform: scaleX(-1), scaleY(-1); /* Voltear horizontalmente la imagen derecha */
     }
     
     .certificacion-contenido {

@@ -1178,22 +1178,6 @@
       border: 1px solid #ffd700;
       font-weight: bold;
     }
-    /* Estilos para el bloqueo de nombre */
-input:disabled {
-    background-color: #f5f5f5 !important;
-    color: #666 !important;
-    cursor: not-allowed !important;
-}
-
-small {
-    display: block;
-    margin-top: 5px;
-    font-size: 12px;
-}
-
-#nextNameChangeDate {
-    font-weight: bold;
-}
   </style>
 </head>
 
@@ -1304,54 +1288,39 @@ small {
     </div>
 
     <!-- Perfil (sección corregida) -->
-<div id="perfilSection" class="card hidden">
-  <h1>Editar Información</h1>
-  <form id="editForm">
-    <div style="text-align: center; margin-bottom: 20px;">
-      <img id="preview" src="https://dummyimage.com/200x200/ccc/fff"
-        style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 3px solid #1976d2;">
+    <div id="perfilSection" class="card hidden">
+      <h1>Editar Información</h1>
+      <form id="editForm">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <img id="preview" src="https://dummyimage.com/200x200/ccc/fff"
+            style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 3px solid #1976d2;">
+        </div>
+
+        <h3>Actualizar Foto:</h3>
+        <input type="file" id="foto" accept="image/*">
+
+        <h3>Datos personales:</h3>
+
+        <!-- Correo (solo lectura) -->
+        <div style="margin-bottom: 15px;">
+          <label for="correo" style="display: block; margin-bottom: 5px; font-weight: bold;">Correo electrónico:</label>
+          <input type="email" id="correo" readonly style="background-color: #f5f5f5; color: #666;">
+        </div>
+
+        <input type="text" id="nombre" placeholder="Nombre" required>
+        <input type="text" id="apellido" placeholder="Apellido" required>
+        <input type="number" id="edad" placeholder="Edad" required>
+        <select id="sexo" required>
+          <option value="">Seleccionar sexo</option>
+          <option value="Masculino">Masculino</option>
+          <option value="Femenino">Femenino</option>
+          <option value="Otro">Otro</option>
+        </select>
+        <input type="text" id="pais" placeholder="País" required>
+
+        <button type="submit" class="saveBtn">Guardar cambios</button>
+      </form>
     </div>
-
-    <h3>Actualizar Foto:</h3>
-    <input type="file" id="foto" accept="image/*">
-
-    <h3>Datos personales:</h3>
-
-    <!-- Correo (solo lectura) -->
-    <div style="margin-bottom: 15px;">
-      <label for="correo" style="display: block; margin-bottom: 5px; font-weight: bold;">Correo electrónico:</label>
-      <input type="email" id="correo" readonly style="background-color: #f5f5f5; color: #666;">
-    </div>
-
-    <!-- Nombre (deshabilitado por 5 meses) -->
-    <div style="margin-bottom: 15px;">
-      <label for="nombre" style="display: block; margin-bottom: 5px; font-weight: bold;">Nombre:</label>
-      <input type="text" id="nombre" placeholder="Nombre" required style="background-color: #f5f5f5;">
-      <small id="nombreHelp" style="color: #666; font-size: 12px;">
-        Podrás cambiar tu nombre el <span id="nextNameChangeDate">--/--/----</span>
-      </small>
-    </div>
-
-    <!-- Apellido (deshabilitado por 5 meses) -->
-    <div style="margin-bottom: 15px;">
-      <label for="apellido" style="display: block; margin-bottom: 5px; font-weight: bold;">Apellido:</label>
-      <input type="text" id="apellido" placeholder="Apellido" required style="background-color: #f5f5f5;">
-      <small style="color: #666; font-size: 12px;">Mismo periodo de cambio que el nombre</small>
-    </div>
-
-    <!-- Campos siempre editables -->
-    <input type="number" id="edad" placeholder="Edad" required>
-    <select id="sexo" required>
-      <option value="">Seleccionar sexo</option>
-      <option value="Masculino">Masculino</option>
-      <option value="Femenino">Femenino</option>
-      <option value="Otro">Otro</option>
-    </select>
-    <input type="text" id="pais" placeholder="País" required>
-
-    <button type="submit" class="saveBtn">Guardar cambios</button>
-  </form>
-</div>
 
     <!-- 🔹 NUEVA SECCIÓN: CERTIFICACIONES -->
     <div id="certificacionesSection" class="hidden">
@@ -1535,10 +1504,6 @@ small {
 
       // Variable global para guardar si el usuario puede acceder o no
       let puedeEntrarEspecialidades = false;
-      // Constantes para bloqueo de nombre
-const NAME_CHANGE_COOLDOWN = 5 * 30 * 24 * 60 * 60 * 1000; // 5 meses en milisegundos
-let currentUserData = null;
-let nameChangeEnabled = false;
 
       // 🔹 Detectar usuario logueado
       onAuthStateChanged(auth, async (user) => {
@@ -1615,12 +1580,6 @@ let nameChangeEnabled = false;
           const data = docSnap.data();
           currentPhotoURL = data.fotoURL || placeholderURL;
 
-          // 🔥 NUEVO: Guardar datos completos del usuario
-currentUserData = data;
-
-// 🔥 NUEVO: Configurar bloqueo de nombre/apellido
-setupNameChangeLock(data);
-
           // Actualizar header del usuario
           headerUserPhoto.src = currentPhotoURL;
           headerUserName.textContent = `${data.nombre || ''} ${data.apellido || ''}`;
@@ -1692,101 +1651,59 @@ setupNameChangeLock(data);
       });
 
       // 🔹 Guardar perfil (versión con eliminación de foto anterior)
-      // 🔥 REEMPLAZAR SOLO ESTA PARTE - Guardar perfil (versión optimizada)
-editForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!currentUserId) return;
+      editForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!currentUserId) return;
 
-    let newPhotoURL = currentPhotoURL;
-    const file = fotoInput.files[0];
+        let newPhotoURL = currentPhotoURL;
+        const file = fotoInput.files[0];
 
-    try {
-        // ✅ Validar tamaño antes de subir
-        if (file && file.size > 1024 * 1024) {
+        try {
+          // ✅ Validar tamaño antes de subir
+          if (file && file.size > 1024 * 1024) {
             mostrarMensaje("info", "⚠️ La imagen no debe superar 1 MB.", "");
             return;
-        }
+          }
 
-        // ✅ Subir nueva imagen si existe
-        if (file) {
+          // ✅ Si hay un archivo nuevo, eliminar el anterior
+          if (file && currentPhotoURL) {
+            try {
+              // Buscar y eliminar foto anterior
+              const oldRef = ref(storage, currentPhotoURL);
+              await deleteObject(oldRef);
+              console.log("🗑️ Foto anterior eliminada del servidor");
+            } catch (err) {
+              console.warn("⚠️ No se pudo eliminar la foto anterior:", err.message);
+            }
+          }
+
+          // ✅ Subir la nueva imagen (si existe)
+          if (file) {
             const storageRef = ref(storage, `usuarios/${currentUserId}/${file.name}`);
             await uploadBytes(storageRef, file);
             newPhotoURL = await getDownloadURL(storageRef);
-        }
+          }
 
-        // ✅ PREPARAR DATOS PARA ACTUALIZACIÓN (SOLO 1 ESCRITURA)
-        const updateData = {
+          // ✅ Actualizar datos en Firestore
+          const docRef = doc(db, "usuarios", currentUserId);
+          await updateDoc(docRef, {
+            nombre: nombreInput.value,
+            apellido: apellidoInput.value,
             edad: edadInput.value,
             sexo: sexoInput.value,
             pais: paisInput.value,
-            fotoURL: newPhotoURL,
-            lastUpdated: new Date().toISOString()
-        };
+            fotoURL: newPhotoURL
+          });
 
-        // ✅ SOLO permitir cambiar nombre si está habilitado
-        if (nameChangeEnabled) {
-            const newNombre = nombreInput.value.trim();
-            const newApellido = apellidoInput.value.trim();
-            
-            if (newNombre && newApellido) {
-                updateData.nombre = newNombre;
-                updateData.apellido = newApellido;
-                updateData.lastNameChange = new Date().toISOString(); // Registrar fecha de cambio
-                
-                // Deshabilitar nombre nuevamente por 5 meses
-                nameChangeEnabled = false;
-                nombreInput.disabled = true;
-                apellidoInput.disabled = true;
-                nombreInput.style.backgroundColor = '#f5f5f5';
-                apellidoInput.style.backgroundColor = '#f5f5f5';
-            }
+          mostrarMensaje("info", "✅ Información actualizada correctamente.", "", () => {
+            window.location.reload();
+          });
+
+        } catch (error) {
+          console.error(error);
+          mostrarMensaje("error", "❌ Error al actualizar", "");
         }
-
-        // ✅ ACTUALIZAR SOLO 1 VEZ EN FIRESTORE
-        const docRef = doc(db, "usuarios", currentUserId);
-        await updateDoc(docRef, updateData);
-
-        // ✅ ACTUALIZAR HEADER INMEDIATAMENTE
-        const headerUserPhoto = document.getElementById("headerUserPhoto");
-        const headerUserName = document.getElementById("headerUserName");
-        
-        if (headerUserPhoto) headerUserPhoto.src = newPhotoURL;
-        if (headerUserName) {
-            const displayName = updateData.nombre ? 
-                `${updateData.nombre} ${updateData.apellido}` : 
-                `${currentUserData.nombre} ${currentUserData.apellido}`;
-            headerUserName.textContent = displayName;
-        }
-
-        // ✅ ACTUALIZAR DATOS LOCALES
-        currentUserData = { ...currentUserData, ...updateData };
-        currentPhotoURL = newPhotoURL;
-
-        // ✅ MOSTRAR MENSAJE DE ÉXITO
-        let message = "✅ Perfil actualizado correctamente.";
-        if (updateData.nombre) {
-            message += " El nombre no podrá ser cambiado nuevamente por 5 meses.";
-            
-            // Actualizar fecha de próximo cambio
-            const nextChangeDate = new Date(new Date().getTime() + NAME_CHANGE_COOLDOWN);
-            const formattedDate = nextChangeDate.toLocaleDateString('es-ES', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric'
-            });
-            document.getElementById('nextNameChangeDate').textContent = formattedDate;
-            document.getElementById('nextNameChangeDate').style.color = '#ff9800';
-        }
-
-        mostrarMensaje("info", "Éxito", message, () => {
-            fotoInput.value = ""; // Limpiar input de archivo
-        });
-
-    } catch (error) {
-        console.error("Error al actualizar perfil:", error);
-        mostrarMensaje("error", "❌ Error al actualizar", "No se pudieron guardar los cambios.");
-    }
-});
+      });
 
       logoutBtn.addEventListener("click", async () => {
         await signOut(auth);
@@ -4496,50 +4413,6 @@ editForm.addEventListener("submit", async (e) => {
           console.error('❌ Error obteniendo administradores:', error);
         }
       }
-
-      /**
- * 🔒 CONFIGURAR BLOQUEO DE CAMBIO DE NOMBRE POR 5 MESES
- */
-function setupNameChangeLock(userData) {
-    const nombreInput = document.getElementById('nombre');
-    const apellidoInput = document.getElementById('apellido');
-    const nextChangeDateElement = document.getElementById('nextNameChangeDate');
-    
-    // Verificar última vez que cambió el nombre
-    const lastNameChange = userData.lastNameChange ? new Date(userData.lastNameChange) : new Date(0);
-    const nextChangeDate = new Date(lastNameChange.getTime() + NAME_CHANGE_COOLDOWN);
-    const now = new Date();
-    
-    // Verificar si puede cambiar el nombre
-    nameChangeEnabled = now >= nextChangeDate;
-    
-    if (nameChangeEnabled) {
-        // Puede cambiar nombre ahora
-        nombreInput.disabled = false;
-        apellidoInput.disabled = false;
-        nombreInput.style.backgroundColor = '';
-        apellidoInput.style.backgroundColor = '';
-        nextChangeDateElement.textContent = 'ahora mismo';
-        nextChangeDateElement.style.color = '#4CAF50';
-    } else {
-        // No puede cambiar nombre aún
-        nombreInput.disabled = true;
-        apellidoInput.disabled = true;
-        nombreInput.style.backgroundColor = '#f5f5f5';
-        apellidoInput.style.backgroundColor = '#f5f5f5';
-        
-        // Mostrar fecha de próximo cambio
-        const formattedDate = nextChangeDate.toLocaleDateString('es-ES', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-        nextChangeDateElement.textContent = formattedDate;
-        nextChangeDateElement.style.color = '#ff9800';
-    }
-    
-    console.log(`📅 Cambio de nombre: ${nameChangeEnabled ? 'HABILITADO' : 'DESHABILITADO hasta ' + nextChangeDate.toLocaleDateString()}`);
-}
     </script>
 
 </body>

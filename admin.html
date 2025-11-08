@@ -452,7 +452,7 @@
       const select = document.getElementById(selectId);
 
       try {
-        const res = await fetch(`/api/listarImagenes?carpeta=${carpeta}`);
+        const res = await fetch(`/api/formulario?accion=listarImagenes&carpeta=${carpeta}`);
 
         if (res.ok) {
           const imagenes = await res.json();
@@ -560,7 +560,7 @@
         mensaje.innerHTML = '⏳ Subiendo imagen...';
 
         try {
-          const res = await fetch('/api/subirImagen', {
+          const res = await fetch('/api/formulario?accion=subirImagen', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -839,7 +839,7 @@
       // En la función del event listener del submit, reemplaza desde el try hasta el catch:
       try {
         // Enviar formulario y evaluación CON TODAS LAS IMÁGENES
-        const response = await fetch("/api/guardarFormulario", {
+        const response = await fetch("/api/formulario?accion=guardarFormulario", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -949,7 +949,7 @@
       pResultado.textContent = "Procesando... ⏳";
 
       try {
-        const res = await fetch("/api/limpiarFormulariosVencidos");
+        const res = await fetch("/api/formulario?accion=limpiarFormulariosVencidos");
         const data = await res.json();
 
         if (res.ok) {
@@ -968,7 +968,7 @@
       tabla.innerHTML = "<tr><td colspan='7'>Cargando formularios...</td></tr>";
 
       try {
-        const res = await fetch("/api/listarFormularios");
+        const res = await fetch("/api/formulario?accion=listarFormularios");
         if (!res.ok) throw new Error("No se pudo cargar");
 
         const data = await res.json();
@@ -1013,7 +1013,7 @@
     // Función para ver evaluación existente
     async function verEvaluacion(formId) {
       try {
-        const res = await fetch(`/api/obtenerEvaluacion?id=${formId}`);
+        const res = await fetch(`/api/formulario?accion=obtenerEvaluacion&id=${formId}`);
         if (res.ok) {
           const evaluacion = await res.json();
           if (evaluacion && evaluacion.length > 0) {

@@ -2104,7 +2104,7 @@
           let visitanteId = localStorage.getItem("visitanteId");
 
           // Obtener todos los formularios
-          const formulariosRes = await fetch("/api/listarFormularios");
+          const formulariosRes = await fetch("/api/formulario?accion=listarFormularios");
           if (!formulariosRes.ok) {
             throw new Error("No se pudieron cargar los formularios");
           }
@@ -2118,7 +2118,7 @@
           // Para cada formulario, buscar si el usuario participó
           for (const formularioId of formulariosIds) {
             try {
-              const respuestasRes = await fetch(`/api/verRespuestas?id=${formularioId}`);
+              const respuestasRes = await fetch(`/api/formulario?accion=verRespuestas&id=${formularioId}`);
               if (respuestasRes.ok) {
                 const data = await respuestasRes.json();
                 const respuestas = data.asistencias || [];
@@ -2253,14 +2253,14 @@
       async function verCertificacionCompleta(formularioId, visitanteId) {
         try {
           // Obtener la evaluación (preguntas)
-          const resExamen = await fetch(`/api/obtenerEvaluacion?id=${formularioId}`);
+          const resExamen = await fetch(`/api/formulario?accion=obtenerEvaluacion&id=${formularioId}`);
           if (!resExamen.ok) {
             throw new Error('No se pudo cargar la evaluación');
           }
           const examen = await resExamen.json();
 
           // Obtener el resultado del examen
-          const resResultados = await fetch(`/api/verRespuestas?id=${formularioId}`);
+          const resResultados = await fetch(`/api/formulario?accion=verRespuestas&id=${formularioId}`);
           if (!resResultados.ok) {
             throw new Error('No se pudo cargar los resultados');
           }
@@ -2274,7 +2274,7 @@
           }
 
           // Obtener información del formulario para el título
-          const resFormulario = await fetch(`/api/obtenerFormulario?id=${formularioId}`);
+          const resFormulario = await fetch(`/api/formulario?accion=obtenerFormulario&id=${formularioId}`);
           if (!resFormulario.ok) {
             throw new Error('No se pudo cargar la información del formulario');
           }
@@ -2436,7 +2436,7 @@
         btnImprimir.disabled = true;
 
         // Obtener el nombre del usuario desde las asistencias
-        fetch(`/api/verRespuestas?id=${formulario.id}`)
+        fetch(`/api/formulario?accion=verRespuestas&id=${formulario.id}`)
           .then(res => res.json())
           .then(data => {
             const asistencias = data.asistencias || [];

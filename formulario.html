@@ -551,7 +551,7 @@
         // Mostrar loading
         document.getElementById("tituloFormulario").innerHTML = "Cargando... <div class='loading'></div>";
 
-        const res = await fetch(`/api/obtenerFormulario?id=${id}`);
+        const res = await fetch(`/api/formulario?accion=obtenerFormulario&id=${id}`);
         if (!res.ok) {
           document.body.innerHTML = `<h2>❌ Formulario '${id}' no encontrado.</h2>`;
           return;
@@ -595,7 +595,7 @@
     // Función para verificar el estado REAL de asistencias del usuario desde la base de datos
     async function verificarEstadoRealAsistencias(idFormulario) {
       try {
-        const res = await fetch(`/api/verRespuestas?id=${idFormulario}`);
+        const res = await fetch(`/api/formulario?accion=verRespuestas&id=${idFormulario}`);
         if (res.ok) {
           const data = await res.json();
           const respuestas = data.asistencias || [];
@@ -768,7 +768,7 @@
         };
 
         try {
-          const res = await fetch("/api/guardar", {
+          const res = await fetch("/api/formulario?accion=guardar", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(datos)
@@ -866,7 +866,7 @@
         };
 
         try {
-          const res = await fetch("/api/guardar", {
+          const res = await fetch("/api/formulario?accion=guardar", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(datos)
@@ -922,7 +922,7 @@
       tablaBody.innerHTML = "<tr><td colspan='10'>Cargando respuestas...</td></tr>";
 
       try {
-        const res = await fetch(`/api/verRespuestas?id=${idFormulario}`);
+        const res = await fetch(`/api/formulario?accion=verRespuestas&id=${idFormulario}`);
         if (!res.ok) {
           tablaBody.innerHTML = "<tr><td colspan='10'>No hay respuestas aún.</td></tr>";
           return;
@@ -1031,7 +1031,7 @@
       }
 
       try {
-        const res = await fetch("/api/guardar", {
+        const res = await fetch("/api/formulario?accion=guardar", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(datos)
@@ -1072,7 +1072,7 @@
 
       // VERIFICAR PRIMERO QUE EL USUARIO TENGA DERECHO AL EXAMEN
       try {
-        const res = await fetch(`/api/verRespuestas?id=${idFormulario}`);
+        const res = await fetch(`/api/formulario?accion=verRespuestas&id=${idFormulario}`);
         if (res.ok) {
           const data = await res.json();
           const respuestas = data.asistencias || [];
@@ -1183,7 +1183,7 @@
     // Cargar evaluación desde el backend
     async function cargarEvaluacion(idFormulario) {
       try {
-        const res = await fetch(`/api/obtenerEvaluacion?id=${idFormulario}`);
+        const res = await fetch(`/api/formulario?accion=obtenerEvaluacion&id=${idFormulario}`);
 
         if (!res.ok) {
           throw new Error('No se pudo cargar la evaluación');
@@ -1300,7 +1300,7 @@
       btnEnviar.disabled = true;
 
       try {
-        const res = await fetch('/api/guardarResultadoExamen', {
+        const res = await fetch('/api/formulario?accion=guardarResultadoExamen', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1421,7 +1421,7 @@
 
       try {
         // Obtener las preguntas del examen
-        const resExamen = await fetch(`/api/obtenerEvaluacion?id=${idFormulario}`);
+        const resExamen = await fetch(`/api/formulario?accion=obtenerEvaluacion&id=${idFormulario}`);
 
         if (!resExamen.ok) {
           throw new Error('No se pudo cargar la evaluación');
@@ -1450,7 +1450,7 @@
     async function obtenerResultadoExamenLocal(idFormulario) {
       try {
         // Obtener los datos de respuestas que ya están cargados
-        const res = await fetch(`/api/verRespuestas?id=${idFormulario}`);
+        const res = await fetch(`/api/formulario?accion=verRespuestas&id=${idFormulario}`);
 
         if (!res.ok) {
           return null;

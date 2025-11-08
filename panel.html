@@ -1178,6 +1178,35 @@
       border: 1px solid #ffd700;
       font-weight: bold;
     }
+
+
+
+
+    /* 🔹 NUEVOS ESTILOS PARA LAS IMÁGENES DECORATIVAS DEL CERTIFICADO */
+    .decoracion-certificado {
+      position: absolute;
+      top: 0;
+      height: 100%;
+      opacity: 0.15; /* Opacidad baja para que no interfiera con el contenido */
+      z-index: 0; /* Detrás del contenido */
+      pointer-events: none; /* No interferir con clics */
+    }
+    
+    .decoracion-izquierda {
+      left: 0;
+      width: 150px; /* Ajusta según el tamaño de tu imagen */
+    }
+    
+    .decoracion-derecha {
+      right: 0;
+      width: 150px; /* Ajusta según el tamaño de tu imagen */
+      transform: scaleX(-1); /* Voltear horizontalmente la imagen derecha */
+    }
+    
+    .certificacion-contenido {
+      position: relative;
+      z-index: 1; /* Asegurar que el contenido esté por encima de las decoraciones */
+    }
   </style>
 </head>
 
@@ -2392,68 +2421,69 @@
       }
 
       function imprimirExamenCompleto(examen, resultado, formulario) {
-        const btnImprimir = document.getElementById('btnImprimirExamen');
-        const textoOriginal = btnImprimir.innerHTML;
+      const btnImprimir = document.getElementById('btnImprimirExamen');
+      const textoOriginal = btnImprimir.innerHTML;
 
-        // Mostrar loading
-        btnImprimir.innerHTML = '⏳ Generando PDF...';
-        btnImprimir.disabled = true;
+      // Mostrar loading
+      btnImprimir.innerHTML = '⏳ Generando PDF...';
+      btnImprimir.disabled = true;
 
-        // Obtener el nombre del usuario desde las asistencias
-        fetch(`/api/verRespuestas?id=${formulario.id}`)
-          .then(res => res.json())
-          .then(data => {
-            const asistencias = data.asistencias || [];
-            // Buscar CUALQUIER asistencia del usuario para obtener su nombre
-            const asistenciaUsuario = asistencias.find(a =>
-              a.visitanteId === resultado.visitanteId && a.nombre && a.nombre.trim() !== ''
-            );
+      // Obtener el nombre del usuario desde las asistencias
+      fetch(`/api/verRespuestas?id=${formulario.id}`)
+        .then(res => res.json())
+        .then(data => {
+          const asistencias = data.asistencias || [];
+          // Buscar CUALQUIER asistencia del usuario para obtener su nombre
+          const asistenciaUsuario = asistencias.find(a =>
+            a.visitanteId === resultado.visitanteId && a.nombre && a.nombre.trim() !== ''
+          );
 
-            let nombreUsuario = 'Nombre no encontrado';
-            if (asistenciaUsuario && asistenciaUsuario.nombre) {
-              nombreUsuario = asistenciaUsuario.nombre.trim();
+          let nombreUsuario = 'Nombre no encontrado';
+          if (asistenciaUsuario && asistenciaUsuario.nombre) {
+            nombreUsuario = asistenciaUsuario.nombre.trim();
+          } else {
+            // Si no se encuentra en asistencias, intentar obtener del perfil del usuario
+            const user = auth.currentUser;
+            if (user && user.displayName) {
+              nombreUsuario = user.displayName;
             } else {
-              // Si no se encuentra en asistencias, intentar obtener del perfil del usuario
-              const user = auth.currentUser;
-              if (user && user.displayName) {
-                nombreUsuario = user.displayName;
-              } else {
-                // Último recurso: usar el correo sin el dominio
-                const email = user.email;
-                if (email) {
-                  nombreUsuario = email.split('@')[0];
-                  nombreUsuario = nombreUsuario.split('.').map(word =>
-                    word.charAt(0).toUpperCase() + word.slice(1)
-                  ).join(' ');
-                }
+              // Último recurso: usar el correo sin el dominio
+              const email = user.email;
+              if (email) {
+                nombreUsuario = email.split('@')[0];
+                nombreUsuario = nombreUsuario.split('.').map(word =>
+                  word.charAt(0).toUpperCase() + word.slice(1)
+                ).join(' ');
               }
             }
+          }
 
-            // Crear ventana de impresión
-            const ventanaImpresion = window.open('', '_blank');
-            const respuestasUsuario = resultado.respuestas || {};
+          // Crear ventana de impresión
+          const ventanaImpresion = window.open('', '_blank');
+          const respuestasUsuario = resultado.respuestas || {};
 
-            // Calcular estadísticas del examen
-            let correctas = 0;
-            let total = examen.length;
+          // Calcular estadísticas del examen
+          let correctas = 0;
+          let total = examen.length;
 
-            examen.forEach(pregunta => {
-              const respuestaUsuario = respuestasUsuario[pregunta.id];
-              const respuestaCorrecta = pregunta.options.find(opt => opt.correct);
-              if (respuestaCorrecta && respuestaUsuario === respuestaCorrecta.id) {
-                correctas++;
-              }
-            });
+          examen.forEach(pregunta => {
+            const respuestaUsuario = respuestasUsuario[pregunta.id];
+            const respuestaCorrecta = pregunta.options.find(opt => opt.correct);
+            if (respuestaCorrecta && respuestaUsuario === respuestaCorrecta.id) {
+              correctas++;
+            }
+          });
 
-            const porcentaje = (correctas / total) * 100;
-            const aprobado = porcentaje >= 70;
+          const porcentaje = (correctas / total) * 100;
+          const aprobado = porcentaje >= 70;
 
-            // Formatear fecha
-            const fechaCreacion = new Date(formulario.creado);
-            const opcionesFecha = { year: 'numeric', month: 'long', day: 'numeric' };
-            const fechaFormateada = fechaCreacion.toLocaleDateString('es-ES', opcionesFecha);
+          // Formatear fecha
+          const fechaCreacion = new Date(formulario.creado);
+          const opcionesFecha = { year: 'numeric', month: 'long', day: 'numeric' };
+          const fechaFormateada = fechaCreacion.toLocaleDateString('es-ES', opcionesFecha);
 
-            let contenidoImpresion = `
+          // 🔹 AGREGAR LAS IMÁGENES DECORATIVAS AL CERTIFICADO
+          let contenidoImpresion = `
                 <!DOCTYPE html>
                 <html>
                 <head>
@@ -2513,18 +2543,44 @@
                             position: relative;
                             box-sizing: border-box;
                         }
+                        
+                        /* 🔹 NUEVOS ESTILOS PARA LAS IMÁGENES DECORATIVAS */
+                        .decoracion-certificado {
+                            position: absolute;
+                            top: 0;
+                            height: 100%;
+                            opacity: 0.15;
+                            z-index: 0;
+                            pointer-events: none;
+                        }
+                        
+                        .decoracion-izquierda {
+                            left: 0;
+                            width: 150px;
+                        }
+                        
+                        .decoracion-derecha {
+                            right: 0;
+                            width: 150px;
+                            transform: scaleX(-1);
+                        }
+                        
+                        .certificacion-contenido {
+                            position: relative;
+                            z-index: 1;
+                            text-align: center;
+                            width: 100%;
+                            max-width: 800px;
+                            margin: 0 auto;
+                        }
+                        
                         .imagen-especialidad-certificado {
                             position: absolute;
                             top: 150px;
                             right: 20px;
                             max-width: 150px;
                             max-height: 150px;
-                        }
-                        .certificacion-contenido {
-                            text-align: center;
-                            width: 100%;
-                            max-width: 800px;
-                            margin: 0 auto;
+                            z-index: 1;
                         }
                         .certificacion-header {
                             margin-bottom: 40px;
@@ -2664,14 +2720,14 @@
                             <h3 style="color: #2c3e50; margin-bottom: 20px; text-align: center;">📝 Detalle de Preguntas</h3>
             `;
 
-            // Agregar preguntas del examen
-            examen.forEach((pregunta, index) => {
-              const respuestaUsuario = respuestasUsuario[pregunta.id];
-              const respuestaCorrecta = pregunta.options.find(opt => opt.correct);
-              const opcionUsuario = pregunta.options.find(opt => opt.id === respuestaUsuario);
-              const esCorrecta = respuestaCorrecta && respuestaUsuario === respuestaCorrecta.id;
+          // Agregar preguntas del examen
+          examen.forEach((pregunta, index) => {
+            const respuestaUsuario = respuestasUsuario[pregunta.id];
+            const respuestaCorrecta = pregunta.options.find(opt => opt.correct);
+            const opcionUsuario = pregunta.options.find(opt => opt.id === respuestaUsuario);
+            const esCorrecta = respuestaCorrecta && respuestaUsuario === respuestaCorrecta.id;
 
-              contenidoImpresion += `
+            contenidoImpresion += `
                     <div class="pregunta ${esCorrecta ? 'correcta' : 'incorrecta'}">
                         <p style="margin: 0 0 10px 0; font-weight: bold; font-size: 16px; color: #2c3e50;">
                             <strong>Pregunta ${index + 1}:</strong> ${pregunta.text}
@@ -2688,15 +2744,19 @@
                             </p>` : ''}
                     </div>
                 `;
-            });
+          });
 
-            // SECCIÓN DEL CERTIFICADO (HOJA COMPLETA SEPARADA)
-            contenidoImpresion += `
+          // SECCIÓN DEL CERTIFICADO (HOJA COMPLETA SEPARADA)
+          contenidoImpresion += `
                         </div>
                     </div> <!-- Cierre de examen-section -->
 
                     <!-- CERTIFICADO - HOJA COMPLETA SEPARADA -->
                     <div class="certificacion-page">
+                        <!-- 🔹 AGREGAR LAS IMÁGENES DECORATIVAS -->
+                        <img src="URL_DE_TU_IMAGEN_IZQUIERDA" class="decoracion-certificado decoracion-izquierda" alt="Decoración izquierda">
+                        <img src="URL_DE_TU_IMAGEN_DERECHA" class="decoracion-certificado decoracion-derecha" alt="Decoración derecha">
+                        
                         ${formulario.imagenEspecialidad ?
                 `<img src="${formulario.imagenEspecialidad}" class="imagen-especialidad-certificado" alt="Especialidad">`
                 : ''
@@ -2784,21 +2844,21 @@
                 </html>
             `;
 
-            ventanaImpresion.document.write(contenidoImpresion);
-            ventanaImpresion.document.close();
+          ventanaImpresion.document.write(contenidoImpresion);
+          ventanaImpresion.document.close();
 
-            // Restaurar botón
-            btnImprimir.innerHTML = textoOriginal;
-            btnImprimir.disabled = false;
-          })
-          .catch(error => {
-            console.error('Error al obtener asistencias:', error);
-            // Restaurar botón en caso de error
-            btnImprimir.innerHTML = textoOriginal;
-            btnImprimir.disabled = false;
-            mostrarMensaje("error", "Error", "No se pudo generar el PDF: " + error.message);
-          });
-      }
+          // Restaurar botón
+          btnImprimir.innerHTML = textoOriginal;
+          btnImprimir.disabled = false;
+        })
+        .catch(error => {
+          console.error('Error al obtener asistencias:', error);
+          // Restaurar botón en caso de error
+          btnImprimir.innerHTML = textoOriginal;
+          btnImprimir.disabled = false;
+          mostrarMensaje("error", "Error", "No se pudo generar el PDF: " + error.message);
+        });
+    }///////////////////////
 
       // Función auxiliar para extraer nombres de las firmas desde la URL
       function extraerNombreFirma(urlFirma) {

@@ -1178,65 +1178,6 @@
       border: 1px solid #ffd700;
       font-weight: bold;
     }
-
-
-
-
-    /* 🔹 NUEVOS ESTILOS PARA LAS IMÁGENES DECORATIVAS DEL CERTIFICADO */
-    .decoracion-certificado {
-      position: absolute;
-      top: 0;
-      height: 100%;
-      z-index: 0;
-      /* Detrás del contenido */
-      pointer-events: none;
-      /* No interferir con clics */
-    }
-
-    .decoracion-izquierda {
-      left: 0;
-      width: 140px;
-      /* Ajusta según el tamaño de tu imagen */
-    }
-
-    .decoracion-derecha {
-      right: 0;
-      width: 140px;
-    }
-
-    .certificacion-contenido {
-      position: relative;
-      z-index: 1;
-      background: transparent !important;
-      /* Fondo transparente */
-    }
-
-    .certificacion-page {
-      page-break-before: always;
-      width: 100%;
-      min-height: 100vh;
-      margin: 0;
-      padding: 40px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-      box-sizing: border-box;
-      background: transparent !important;
-      /* Asegurar que la página también sea transparente */
-    }
-
-    /* Asegurar que todos los elementos internos tengan fondo transparente */
-    .certificacion-header,
-    .certificacion-cuerpo,
-    .certificado-texto,
-    .otorgado-a,
-    .nombre-usuario,
-    .texto-certificacion,
-    .firmas-container {
-      background: transparent !important;
-    }
   </style>
 </head>
 
@@ -2574,34 +2515,61 @@
                             box-sizing: border-box;
                         }
                         
-                        /* 🔹 NUEVOS ESTILOS PARA LAS IMÁGENES DECORATIVAS */
-                        .decoracion-certificado {
-                            position: absolute;
-                            top: 0;
-                            height: 100%;
-                            z-index: 0;
-                            pointer-events: none;
-                        }
-                        
-                        .decoracion-izquierda {
-                            left: 0;
-                            width: 150px;
-                        }
-                        
-                        .decoracion-derecha {
-                            right: 0;
-                            width: 150px;
-                            transform: rotate(180deg);
-                        }
-                        
-                        .certificacion-contenido {
-                            position: relative;
-                            z-index: 1;
-                            text-align: center;
-                            width: 100%;
-                            max-width: 800px;
-                            margin: 0 auto;
-                        }
+                        /* 🔹 NUEVOS ESTILOS PARA LAS IMÁGENES DECORATIVAS DEL CERTIFICADO */
+    .decoracion-certificado {
+      position: absolute;
+      top: 0;
+      height: 100%;
+      z-index: 0;
+      /* Detrás del contenido */
+      pointer-events: none;
+      /* No interferir con clics */
+    }
+
+    .decoracion-izquierda {
+      left: 0;
+      width: 140px;
+      /* Ajusta según el tamaño de tu imagen */
+    }
+
+    .decoracion-derecha {
+      right: 0;
+      width: 140px;
+    }
+
+    .certificacion-contenido {
+      position: relative;
+      z-index: 1;
+      background: transparent !important;
+      /* Fondo transparente */
+    }
+
+    .certificacion-page {
+      page-break-before: always;
+      width: 100%;
+      min-height: 100vh;
+      margin: 0;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      box-sizing: border-box;
+      background: transparent !important;
+      /* Asegurar que la página también sea transparente */
+    }
+
+    /* Asegurar que todos los elementos internos tengan fondo transparente */
+    .certificacion-header,
+    .certificacion-cuerpo,
+    .certificado-texto,
+    .otorgado-a,
+    .nombre-usuario,
+    .texto-certificacion,
+    .firmas-container {
+      background: transparent !important;
+    }
                         
                         .imagen-especialidad-certificado {
                             position: absolute;

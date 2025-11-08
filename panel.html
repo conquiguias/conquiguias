@@ -3397,7 +3397,9 @@
           // 2. Preparar datos de la publicación
           const postData = {
             userId: currentUserId,
-            userName: userData.nombre || 'Usuario',
+            userName: `${userData.nombre || ''} ${userData.apellido || ''}`.trim() || 'Usuario',
+            userNombre: userData.nombre,
+            userApellido: userData.apellido,
             userPhoto: userData.fotoURL || 'https://dummyimage.com/40x40/ccc/fff&text=User',
             userEmail: userData.email || '',
             mediaUrl: mediaData.url,
@@ -3582,6 +3584,23 @@
           seven: reactions.seven?.includes(currentUserId) || false
         };
 
+        // 🔥 NUEVO: Obtener nombre completo del post
+        // Si el post tiene nombre y apellido separados, los combinamos
+        let nombreCompleto = post.userName; // Valor por defecto
+
+        // Si tenemos datos separados, crear nombre completo
+        if (post.userNombre && post.userApellido) {
+          nombreCompleto = `${post.userNombre} ${post.userApellido}`;
+        }
+        // Si el userName ya contiene nombre y apellido (separados por espacio)
+        else if (post.userName && post.userName.includes(' ')) {
+          nombreCompleto = post.userName;
+        }
+        // Si solo tenemos userName, usarlo tal cual
+        else {
+          nombreCompleto = post.userName || 'Usuario';
+        }
+
         // Encontrar qué reacción tiene activa el usuario actual (solo debería haber una)
         const userActiveReaction = Object.keys(userReactions).find(
           reaction => userReactions[reaction]
@@ -3591,7 +3610,7 @@
     <div class="post-header">
       <img src="${post.userPhoto}" alt="Foto de perfil" class="post-user-img" onerror="this.src='https://dummyimage.com/40x40/ccc/fff'">
       <div>
-        <div class="post-user-name">${post.userName}</div>
+        <div class="post-user-name">${nombreCompleto}</div>
         <div class="post-time">
           ${timeAgo}
           ${isLocalPost ? ' (Guardado localmente)' : ''}

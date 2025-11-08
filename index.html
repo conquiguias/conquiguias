@@ -562,7 +562,7 @@
         <input class="chkShow" id="chkShowX" type="checkbox">
       </div>
       <h2 style="margin: 0%;">Subir Foto:</h2>
-      <input type="file" name="foto" accept="image/*" required>
+      <input type="file" name="foto" accept="image/jpg, image/jpeg, image/png" required>
       <button type="submit" id="registerBtn">Registrar</button>
     </form>
     <div class="toggle" onclick="toggleForms()">¿Ya tienes cuenta? Inicia sesión</div>
@@ -598,5 +598,6 @@
     document.getElementById('passwordX').type = e.target.checked ? 'text' : 'password';
   });
 </script>
+
 
 </html>

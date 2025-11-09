@@ -2420,14 +2420,14 @@
         // Configurar event listeners para los botones SOLO si aprobó
         if (aprobado) {
           document.getElementById('btnImprimirExamen').addEventListener('click', () => {
-            imprimirExamenCompleto(examen, resultado, formulario);
+            imprimirExamenCompleto(examen, resultado, formulario, formularioId, visitanteId);
           });
 
         }
 
       }
 
-      function imprimirExamenCompleto(examen, resultado, formulario) {
+      function imprimirExamenCompleto(examen, resultado, formulario, formularioId, visitanteId) {
         const btnImprimir = document.getElementById('btnImprimirExamen');
         const textoOriginal = btnImprimir.innerHTML;
 
@@ -2436,7 +2436,7 @@
         btnImprimir.disabled = true;
 
         // Obtener el nombre del usuario desde las asistencias
-        fetch(`/api/formulario?action=verRespuestas&id=${formulario.id}`)
+        fetch(`/api/formulario?action=verRespuestas&id=${formularioId}`)
           .then(res => res.json())
           .then(data => {
             const asistencias = data.asistencias || [];

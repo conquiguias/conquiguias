@@ -2435,32 +2435,54 @@
         btnImprimir.innerHTML = '⏳ Generando PDF...';
         btnImprimir.disabled = true;
 
-        // Obtener el nombre del usuario desde las asistencias
+        // Obtener el nombre del usuario DESDE LAS ASISTENCIAS del formulario
         fetch(`/api/formulario?accion=verRespuestas&id=${formulario.id}`)
           .then(res => res.json())
           .then(data => {
             const asistencias = data.asistencias || [];
-            // Buscar CUALQUIER asistencia del usuario para obtener su nombre
-            const asistenciaUsuario = asistencias.find(a =>
+
+            // 🔹 BUSCAR ESPECÍFICAMENTE en TODAS las asistencias del usuario
+            let nombreUsuario = 'Nombre no encontrado';
+
+            // Buscar en TODAS las asistencias del visitanteId
+            const asistenciasUsuario = asistencias.filter(a =>
               a.visitanteId === resultado.visitanteId && a.nombre && a.nombre.trim() !== ''
             );
 
-            let nombreUsuario = 'Nombre no encontrado';
-            if (asistenciaUsuario && asistenciaUsuario.nombre) {
-              nombreUsuario = asistenciaUsuario.nombre.trim();
+            if (asistenciasUsuario.length > 0) {
+              // Tomar el nombre de la PRIMERA asistencia que tenga nombre
+              nombreUsuario = asistenciasUsuario[0].nombre.trim();
+              console.log('✅ Nombre encontrado en asistencias:', nombreUsuario);
             } else {
-              // Si no se encuentra en asistencias, intentar obtener del perfil del usuario
+              console.warn('⚠️ No se encontró nombre en las asistencias, buscando alternativas...');
+
+              // 🔹 ALTERNATIVA 1: Buscar por correo en asistencias
               const user = auth.currentUser;
-              if (user && user.displayName) {
-                nombreUsuario = user.displayName;
-              } else {
-                // Último recurso: usar el correo sin el dominio
-                const email = user.email;
-                if (email) {
-                  nombreUsuario = email.split('@')[0];
-                  nombreUsuario = nombreUsuario.split('.').map(word =>
-                    word.charAt(0).toUpperCase() + word.slice(1)
-                  ).join(' ');
+              if (user && user.email) {
+                const asistenciasPorCorreo = asistencias.filter(a =>
+                  a.correo === user.email && a.nombre && a.nombre.trim() !== ''
+                );
+                if (asistenciasPorCorreo.length > 0) {
+                  nombreUsuario = asistenciasPorCorreo[0].nombre.trim();
+                  console.log('✅ Nombre encontrado por correo:', nombreUsuario);
+                }
+              }
+
+              // 🔹 ALTERNATIVA 2: Si aún no se encuentra, usar datos del perfil como ÚLTIMO recurso
+              if (nombreUsuario === 'Nombre no encontrado' && userData) {
+                nombreUsuario = `${userData.nombre || ''} ${userData.apellido || ''}`.trim();
+                if (nombreUsuario) {
+                  console.log('⚠️ Usando nombre del perfil:', nombreUsuario);
+                } else {
+                  // 🔹 ALTERNATIVA 3: Usar el correo sin dominio
+                  const email = user.email;
+                  if (email) {
+                    nombreUsuario = email.split('@')[0];
+                    nombreUsuario = nombreUsuario.split('.').map(word =>
+                      word.charAt(0).toUpperCase() + word.slice(1)
+                    ).join(' ');
+                    console.log('⚠️ Usando nombre del correo:', nombreUsuario);
+                  }
                 }
               }
             }
@@ -2495,9 +2517,7 @@
                 <html>
                 <head>
                     <title>Examen y Certificación - ${formulario.titulo}</title>
-                    <link
-    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Great+Vibes&family=Montserrat:wght@300;500;700&display=swap"
-    rel="stylesheet">
+                    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Great+Vibes&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
                     <style>
                         /* ESTILOS PARA EL EXAMEN */
                         .examen-section {
@@ -2518,7 +2538,7 @@
                             max-width: 80px;
                             max-height: 80px;
                         }
-                            .resumen-examen {
+                        .resumen-examen {
                             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                             color: white;
                             padding: 25px;
@@ -2577,7 +2597,7 @@
                             margin-top: -50px;
                             margin-bottom: -50px;
                             height: 200px;
-                            width: auto; /
+                            width: auto;
                             z-index: 0; 
                         }
                         
@@ -2832,8 +2852,6 @@
                                 
                                 <div class="nombre-usuario">${nombreUsuario}</div>
                                 
-                                <!-- <div class="linea-separadora"></div> -->
-
                                 <div class="texto-certificacion">
                                     Por haber participado en la especialidad:<br>
                                     <strong style="color: #2c3e50; font-size: 22px;">"${formulario.titulo}"</strong><br>
@@ -2915,7 +2933,7 @@
             btnImprimir.disabled = false;
             mostrarMensaje("error", "Error", "No se pudo generar el PDF: " + error.message);
           });
-      }///////////////////////
+      }
 
       // Función auxiliar para extraer nombres de las firmas desde la URL
       function extraerNombreFirma(urlFirma) {

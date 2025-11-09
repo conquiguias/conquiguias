@@ -1532,113 +1532,114 @@
 
       // 🔹 Detectar usuario logueado
       // 🔹 Detectar usuario logueado
-      onAuthStateChanged(auth, async (user) => {
-        if (!user) {
-          console.log("🚫 Acceso denegado: usuario no autenticado");
-          window.location.href = "index.html";
-          return;
-        }
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    console.log("🚫 Acceso denegado: usuario no autenticado");
+    window.location.href = "index.html";
+    return;
+  }
 
-        // 🔒 VERIFICACIÓN DE CORREO ELECTRÓNICO
-        if (user && !user.emailVerified) {
-          console.log("🚫 Acceso denegado: correo no verificado");
+  // 🔒 VERIFICACIÓN DE CORREO ELECTRÓNICO
+  if (user && !user.emailVerified) {
+    console.log("🚫 Acceso denegado: correo no verificado");
 
-          mostrarMensaje("confirm", "📧 Verificación requerida",
-            `Hola ${user.displayName || 'usuario'},<br><br>
+    mostrarMensaje("confirm", "📧 Verificación requerida",
+      `Hola ${user.displayName || 'usuario'},<br><br>
 <strong>Debes verificar tu correo electrónico antes de acceder al panel.</strong><br><br>
 📬 Revisa tu bandeja de entrada y la carpeta de spam.<br>
 ¿Quieres que te reenviemos el correo de verificación?`,
-            async () => {
-              // Reenviar verificación
-              try {
-                await sendEmailVerification(user);
-                mostrarMensaje("info", "📧 Correo reenviado",
-                  "Te hemos enviado nuevamente el correo de verificación. " +
-                  "Revisa tu bandeja de entrada y la carpeta de spam.");
-              } catch (error) {
-                console.error("Error reenviando verificación:", error);
-              }
-
-              // Cerrar sesión y redirigir
-              await signOut(auth);
-              window.location.href = "index.html";
-            },
-            () => {
-              // Si cancela, igualmente redirigir al login
-              signOut(auth).then(() => {
-                window.location.href = "index.html";
-              });
-            }
-          );
-          return;
-        }
-
-        console.log("✅ Usuario verificado, acceso permitido al panel");
-        currentUserId = user.uid;
-
+      async () => {
+        // Reenviar verificación
         try {
-          // Obtener token para la API
-          const token = await user.getIdToken();
-
-          // Obtener perfil del usuario desde la API
-          const profileResponse = await callAPI('getProfile', {}, token);
-
-          if (profileResponse.success) {
-            const userDataGlobal = profileResponse.user;
-
-            // Actualizar elementos del header
-            const headerUserPhoto = document.getElementById("headerUserPhoto");
-            const headerUserName = document.getElementById("headerUserName");
-            headerUserPhoto.src = userDataGlobal.photoURL || 'https://dummyimage.com/45x45/ccc/fff';
-            headerUserName.textContent = `${userDataGlobal.nombre || ''} ${userDataGlobal.apellido || ''}`;
-
-            // Actualizar campos del perfil
-            const correoInput = document.getElementById("correo");
-            nombreInput.value = userDataGlobal.nombre || '';
-            apellidoInput.value = userDataGlobal.apellido || '';
-            edadInput.value = userDataGlobal.edad || '';
-            sexoInput.value = userDataGlobal.sexo || '';
-            paisInput.value = userDataGlobal.pais || '';
-            preview.src = userDataGlobal.photoURL || placeholderURL;
-            correoInput.value = userDataGlobal.email || '';
-
-            // Guardar datos para la red social
-            userDataGlobal = {
-              ...userDataGlobal,
-              email: userDataGlobal.email
-            };
-
-            // Verificar si es admin
-            const adminResponse = await callAPI('getAdmins');
-            if (adminResponse.success) {
-              isAdmin = adminResponse.admins.includes(userDataGlobal.email);
-
-              if (isAdmin) {
-                document.getElementById('menuAdmin').classList.remove('hidden');
-              }
-            }
-            
-
-            // Verificar acceso a especialidades
-            const accessResponse = await callAPI('checkEspecialidadesAccess', {}, token);
-            if (accessResponse.success) {
-              puedeEntrarEspecialidades = accessResponse.tieneAcceso;
-            }
-
-            // 🔹 INICIALIZAR RED SOCIAL SI ESTAMOS EN INICIO
-            if (!inicioSection.classList.contains('hidden')) {
-              setTimeout(() => {
-                initializeSocialNetwork();
-              }, 500);
-            }
-
-            cargarEspecialidadesFijas();
-          }
+          await sendEmailVerification(user);
+          mostrarMensaje("info", "📧 Correo reenviado",
+            "Te hemos enviado nuevamente el correo de verificación. " +
+            "Revisa tu bandeja de entrada y la carpeta de spam.");
         } catch (error) {
-          console.error('Error cargando perfil:', error);
-          mostrarMensaje('error', 'Error', 'No se pudieron cargar los datos del usuario.');
+          console.error("Error reenviando verificación:", error);
         }
-      });
+
+        // Cerrar sesión y redirigir
+        await signOut(auth);
+        window.location.href = "index.html";
+      },
+      () => {
+        // Si cancela, igualmente redirigir al login
+        signOut(auth).then(() => {
+          window.location.href = "index.html";
+        });
+      }
+    );
+    return;
+  }
+
+  console.log("✅ Usuario verificado, acceso permitido al panel");
+  currentUserId = user.uid;
+
+  try {
+    // Obtener token para la API
+    const token = await user.getIdToken();
+    
+    // Obtener perfil del usuario desde la API
+    const profileResponse = await callAPI('getProfile', {}, token);
+    
+    if (profileResponse.success) {
+      // 🔥 CORRECCIÓN: Usar userDataGlobal directamente
+      userDataGlobal = profileResponse.user;
+      
+      // Actualizar elementos del header
+      const headerUserPhoto = document.getElementById("headerUserPhoto");
+      const headerUserName = document.getElementById("headerUserName");
+      headerUserPhoto.src = userDataGlobal.photoURL || 'https://dummyimage.com/45x45/ccc/fff';
+      headerUserName.textContent = `${userDataGlobal.nombre || ''} ${userDataGlobal.apellido || ''}`;
+
+      // Actualizar campos del perfil
+      const correoInput = document.getElementById("correo");
+      nombreInput.value = userDataGlobal.nombre || '';
+      apellidoInput.value = userDataGlobal.apellido || '';
+      edadInput.value = userDataGlobal.edad || '';
+      sexoInput.value = userDataGlobal.sexo || '';
+      paisInput.value = userDataGlobal.pais || '';
+      preview.src = userDataGlobal.photoURL || placeholderURL;
+      correoInput.value = userDataGlobal.email || '';
+
+      // 🔥 CORRECCIÓN: Asegurar que userDataGlobal tenga email
+      userDataGlobal.email = userDataGlobal.email || user.email;
+
+      // Verificar si es admin
+      const adminResponse = await callAPI('getAdmins');
+      if (adminResponse.success) {
+        isAdmin = adminResponse.admins.includes(userDataGlobal.email);
+        
+        if (isAdmin) {
+          document.getElementById('menuAdmin').classList.remove('hidden');
+        }
+      }
+
+      // Verificar acceso a especialidades
+      const accessResponse = await callAPI('checkEspecialidadesAccess', {}, token);
+      if (accessResponse.success) {
+        puedeEntrarEspecialidades = accessResponse.tieneAcceso;
+      }
+
+      console.log("✅ Datos de usuario cargados correctamente");
+      console.log("👤 UserDataGlobal:", userDataGlobal);
+      console.log("👑 Es admin:", isAdmin);
+
+      // 🔹 INICIALIZAR RED SOCIAL SI ESTAMOS EN INICIO
+      if (!inicioSection.classList.contains('hidden')) {
+        setTimeout(() => {
+          initializeSocialNetwork();
+        }, 500);
+      }
+
+      cargarEspecialidadesFijas();
+    }
+  } catch (error) {
+    console.error('Error cargando perfil:', error);
+    mostrarMensaje('error', 'Error', 'No se pudieron cargar los datos del usuario.');
+  }
+});
 
       // 🔹 Inicializar red social automáticamente si estamos en la sección de inicio
       setTimeout(() => {
@@ -2841,90 +2842,25 @@
 
 
 
-      // Función para actualizar la interfaz con las certificaciones
-      // Función para actualizar la interfaz con las certificaciones
-      function actualizarInterfazCertificaciones(certificaciones) {
-        // Ocultar loading
-        certificacionesLoading.style.display = "none";
-
-        if (certificaciones.length === 0) {
-          sinCertificaciones.style.display = "block";
-          certificacionesContent.style.display = "none";
-          return;
-        }
-
-        // Mostrar contenido
-        sinCertificaciones.style.display = "none";
-        certificacionesContent.style.display = "block";
-
-        // Agrupar certificaciones por formularioId para evitar duplicados
-        const certificacionesAgrupadas = {};
-        certificaciones.forEach(cert => {
-          if (!certificacionesAgrupadas[cert.formularioId]) {
-            certificacionesAgrupadas[cert.formularioId] = [];
-          }
-          certificacionesAgrupadas[cert.formularioId].push(cert);
-        });
-
-        // Tomar la mejor certificación de cada formulario (la que tenga más asistencias completadas)
-        const certificacionesUnicas = [];
-        Object.values(certificacionesAgrupadas).forEach(grupo => {
-          // Ordenar por asistencias completadas (mayor a menor) y luego por fecha (más reciente primero)
-          grupo.sort((a, b) => {
-            if (b.asistenciasCompletadas !== a.asistenciasCompletadas) {
-              return b.asistenciasCompletadas - a.asistenciasCompletadas;
-            }
-            return new Date(b.fecha) - new Date(a.fecha);
-          });
-          // Tomar la primera (mejor) certificación del grupo
-          certificacionesUnicas.push(grupo[0]);
-        });
-
-        // Actualizar contadores
-        const completadas = certificacionesUnicas.filter(c => c.estado === "Completado").length;
-        totalEspecialidades.textContent = certificacionesUnicas.length;
-        especialidadesCompletadas.textContent = completadas;
-
-        // Limpiar tabla
-        cuerpoTablaCertificaciones.innerHTML = "";
-
-        // Ordenar certificaciones por fecha (más reciente primero)
-        certificacionesUnicas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-
-        // Llenar tabla
-        certificacionesUnicas.forEach((cert, index) => {
-          const fila = document.createElement("tr");
-
-          let calificacionTexto = "No realizado";
-          let calificacionClase = "";
-
-          if (cert.examenRealizado) {
-            calificacionClase = cert.aprobado ? "calificacion-aprobada" : "calificacion-reprobada";
-            calificacionTexto = `${cert.calificacion.toFixed(1)}%`;
-          }
-
-          fila.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${cert.titulo}</td>
-            <td>${cert.fecha.toLocaleDateString()}</td>
-            <td>${cert.asistenciasCompletadas}/3</td>
-            <td>${cert.examenRealizado ? "Sí" : "No"}</td>
-            <td class="${calificacionClase}">${calificacionTexto}</td>
-            <td class="${cert.estadoClase}">${cert.estado}</td>
-            <td>
-                ${cert.examenRealizado ?
-              `<button onclick="verCertificacionCompleta('${cert.formularioId}', '${cert.visitanteId}')" 
-                             style="background: #17a2b8; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">
-                        Ver Examen
-                    </button>`
-              : 'No disponible'
-            }
-            </td>
-        `;
-
-          cuerpoTablaCertificaciones.appendChild(fila);
-        });
+      fila.innerHTML = `
+  <td>${index + 1}</td>
+  <td>${cert.titulo}</td>
+  <td>${new Date(cert.fecha).toLocaleDateString()}</td>
+  <td>${cert.asistenciasCompletadas}/3</td>
+  <td>${cert.examenRealizado ? "Sí" : "No"}</td>
+  <td class="${calificacionClase}">${calificacionTexto}</td>
+  <td class="${cert.estadoClase}">${cert.estado}</td>
+  <td>
+      ${cert.examenRealizado ?
+        `<button onclick="verCertificacionCompleta('${cert.formularioId}', '${cert.visitanteId}')" 
+                 style="background: #17a2b8; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">
+            Ver Examen
+        </button>`
+        : 'No disponible'
       }
+  </td>
+`;
+      
       const tabla = document.getElementById('tablaCertificaciones');
       tabla.querySelector('thead').innerHTML = `
     <tr>
@@ -2972,6 +2908,7 @@
       let isAdmin = false;
       let lastPostTime = null;
       let countdownInterval = null;
+
 
       // 🔹 RED SOCIAL - Funciones principales
 

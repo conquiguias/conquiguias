@@ -21,6 +21,9 @@ if (!admin.apps.length) {
   });
 }
 
+// 🔐 Lista de administradores
+const ADMIN_EMAILS = process.env.ADMIN_EMAILS ? process.env.ADMIN_EMAILS.split(',') : ['admin@conquiguias.com'];
+
 module.exports = async (req, res) => {
   // Configurar CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -37,13 +40,23 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { action, data } = req.body;
+    const { action, data, token } = req.body;
 
     if (!action) {
       return res.status(400).json({ error: 'Acción no especificada' });
     }
 
-    // 🔹 REGISTRO DE USUARIO
+    // 🔐 VERIFICAR AUTENTICACIÓN PARA ACCIONES PROTEGIDAS
+    let user = null;
+    if (token) {
+      try {
+        user = await admin.auth().verifyIdToken(token);
+      } catch (error) {
+        return res.status(401).json({ error: 'Token inválido o expirado' });
+      }
+    }
+
+    // 🔹 REGISTRO DE USUARIO (existente - para index.html)
     if (action === 'register') {
       const { nombre, apellido, edad, sexo, pais, email, password, fotoBase64, fileName } = data;
 
@@ -111,7 +124,7 @@ module.exports = async (req, res) => {
       });
     }
 
-    // 🔹 VERIFICAR ESTADO DE USUARIO
+    // 🔹 VERIFICAR ESTADO DE USUARIO (existente)
     else if (action === 'checkAuth') {
       const { uid } = data;
       
@@ -131,7 +144,7 @@ module.exports = async (req, res) => {
       });
     }
 
-    // 🔹 REENVIAR VERIFICACIÓN DE EMAIL
+    // 🔹 REENVIAR VERIFICACIÓN DE EMAIL (existente)
     else if (action === 'resendVerification') {
       const { email } = data;
       
@@ -144,7 +157,7 @@ module.exports = async (req, res) => {
       });
     }
 
-    // 🔹 RECUPERAR CONTRASEÑA
+    // 🔹 RECUPERAR CONTRASEÑA (existente)
     else if (action === 'resetPassword') {
       const { email } = data;
       
@@ -154,6 +167,216 @@ module.exports = async (req, res) => {
       return res.status(200).json({ 
         success: true, 
         message: 'Email de recuperación enviado' 
+      });
+    }
+
+    // 🔹 NUEVAS ACCIONES PARA EL PANEL
+    
+    // 🔹 OBTENER PERFIL DE USUARIO
+    else if (action === 'getProfile') {
+      if (!user) return res.status(401).json({ error: 'No autenticado' });
+
+      const userRecord = await admin.auth().getUser(user.uid);
+      const userDoc = await admin.firestore().collection('usuarios').doc(user.uid).get();
+      
+      if (!userDoc.exists) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+
+      return res.status(200).json({
+        success: true,
+        user: {
+          uid: user.uid,
+          email: userRecord.email,
+          displayName: userRecord.displayName,
+          photoURL: userRecord.photoURL,
+          emailVerified: userRecord.emailVerified,
+          ...userDoc.data()
+        }
+      });
+    }
+
+    // 🔹 ACTUALIZAR PERFIL
+    else if (action === 'updateProfile') {
+      if (!user) return res.status(401).json({ error: 'No autenticado' });
+
+      const { nombre, apellido, edad, sexo, pais, fotoBase64, fileName } = data;
+
+      let fotoURL = null;
+
+      // Subir nueva foto si existe
+      if (fotoBase64 && fileName) {
+        const base64Data = fotoBase64.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+        
+        const bucket = admin.storage().bucket();
+        const file = bucket.file(`usuarios/${user.uid}/${fileName}`);
+        
+        await file.save(buffer, {
+          metadata: {
+            contentType: `image/${fileName.split('.').pop()}`,
+            metadata: { firebaseStorageDownloadTokens: user.uid }
+          }
+        });
+
+        fotoURL = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(file.name)}?alt=media&token=${user.uid}`;
+
+        // Actualizar foto en Auth
+        await admin.auth().updateUser(user.uid, {
+          photoURL: fotoURL,
+          displayName: `${nombre} ${apellido}`
+        });
+      }
+
+      // Actualizar datos en Firestore
+      await admin.firestore().collection('usuarios').doc(user.uid).update({
+        nombre,
+        apellido,
+        edad,
+        sexo,
+        pais,
+        ...(fotoURL && { fotoURL }),
+        actualizado: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Perfil actualizado correctamente' 
+      });
+    }
+
+    // 🔹 OBTENER LISTA DE ADMINS
+    else if (action === 'getAdmins') {
+      return res.status(200).json({
+        success: true,
+        admins: ADMIN_EMAILS
+      });
+    }
+
+    // 🔹 VERIFICAR ACCESO A ESPECIALIDADES
+    else if (action === 'checkEspecialidadesAccess') {
+      if (!user) return res.status(401).json({ error: 'No autenticado' });
+
+      const userDoc = await admin.firestore().collection('usuarios').doc(user.uid).get();
+      const userData = userDoc.data();
+      
+      const tieneAcceso = ADMIN_EMAILS.includes(userData.email);
+      
+      return res.status(200).json({
+        success: true,
+        tieneAcceso,
+        esAdmin: ADMIN_EMAILS.includes(userData.email)
+      });
+    }
+
+    // 🔹 OBTENER CERTIFICACIONES
+    else if (action === 'getCertificaciones') {
+      if (!user) return res.status(401).json({ error: 'No autenticado' });
+
+      try {
+        // Obtener el email del usuario
+        const userRecord = await admin.auth().getUser(user.uid);
+        const userEmail = userRecord.email;
+
+        // Aquí integrarías con tu sistema de formularios existente
+        // Por ahora retornamos datos de ejemplo
+        const certificaciones = await obtenerCertificacionesUsuario(userEmail);
+        
+        return res.status(200).json({ 
+          success: true, 
+          certificaciones 
+        });
+
+      } catch (error) {
+        console.error('Error obteniendo certificaciones:', error);
+        return res.status(200).json({ 
+          success: true, 
+          certificaciones: [] 
+        });
+      }
+    }
+
+    // 🔹 OBTENER DATOS ADMIN
+    else if (action === 'getAdminData') {
+      if (!user) return res.status(401).json({ error: 'No autenticado' });
+
+      const userDoc = await admin.firestore().collection('usuarios').doc(user.uid).get();
+      const userData = userDoc.data();
+      
+      if (!ADMIN_EMAILS.includes(userData.email)) {
+        return res.status(403).json({ error: 'Acceso denegado' });
+      }
+
+      // Obtener estadísticas
+      const postsSnapshot = await admin.firestore().collection('posts').get();
+      let pendingCount = 0;
+      let approvedCount = 0;
+      let rejectedCount = 0;
+
+      postsSnapshot.forEach(doc => {
+        const post = doc.data();
+        switch (post.status) {
+          case 'pending': pendingCount++; break;
+          case 'approved': approvedCount++; break;
+          case 'rejected': rejectedCount++; break;
+          default: approvedCount++;
+        }
+      });
+
+      // Obtener publicaciones pendientes
+      const pendingPostsQuery = admin.firestore()
+        .collection('posts')
+        .where('status', '==', 'pending')
+        .orderBy('timestamp', 'asc');
+
+      const pendingSnapshot = await pendingPostsQuery.get();
+      const pendingPosts = pendingSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      return res.status(200).json({
+        success: true,
+        stats: { pendingCount, approvedCount, rejectedCount },
+        pendingPosts,
+        adminEmails: ADMIN_EMAILS
+      });
+    }
+
+    // 🔹 APROBAR/RECHAZAR PUBLICACIÓN
+    else if (action === 'moderatePost') {
+      if (!user) return res.status(401).json({ error: 'No autenticado' });
+
+      const { postId, action: moderationAction, reason } = data;
+
+      // Verificar que es admin
+      const userDoc = await admin.firestore().collection('usuarios').doc(user.uid).get();
+      const userData = userDoc.data();
+      
+      if (!ADMIN_EMAILS.includes(userData.email)) {
+        return res.status(403).json({ error: 'Acceso denegado' });
+      }
+
+      const postRef = admin.firestore().collection('posts').doc(postId);
+      
+      if (moderationAction === 'approve') {
+        await postRef.update({
+          status: 'approved',
+          moderatedBy: user.uid,
+          moderatedAt: new Date().toISOString()
+        });
+      } else if (moderationAction === 'reject') {
+        await postRef.update({
+          status: 'rejected', 
+          moderatedBy: user.uid,
+          moderatedAt: new Date().toISOString(),
+          moderationReason: reason
+        });
+      }
+
+      return res.status(200).json({ 
+        success: true, 
+        message: `Publicación ${moderationAction === 'approve' ? 'aprobada' : 'rechazada'}` 
       });
     }
 
@@ -171,8 +394,38 @@ module.exports = async (req, res) => {
       errorMessage = 'El formato del correo electrónico no es válido';
     } else if (error.code === 'auth/weak-password') {
       errorMessage = 'La contraseña debe tener al menos 6 caracteres';
+    } else if (error.code === 'auth/user-not-found') {
+      errorMessage = 'Usuario no encontrado';
+    } else if (error.code === 'auth/invalid-id-token') {
+      errorMessage = 'Token de autenticación inválido';
     }
     
     return res.status(400).json({ error: errorMessage });
   }
 };
+
+// 🔹 FUNCIÓN AUXILIAR PARA OBTENER CERTIFICACIONES
+async function obtenerCertificacionesUsuario(userEmail) {
+  // Esta función se integraría con tu sistema de formularios
+  // Por ahora retornamos datos de ejemplo
+  return [
+    {
+      id: '1',
+      titulo: 'Especialidad en Cocina',
+      fecha: new Date().toISOString(),
+      asistenciasCompletadas: 3,
+      examenRealizado: true,
+      calificacion: 85,
+      estado: 'Completado'
+    },
+    {
+      id: '2', 
+      titulo: 'Especialidad en Primeros Auxilios',
+      fecha: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      asistenciasCompletadas: 2,
+      examenRealizado: false,
+      calificacion: null,
+      estado: 'En progreso'
+    }
+  ];
+}

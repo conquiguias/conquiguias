@@ -1455,6 +1455,31 @@
       };
 
       const app = initializeApp(firebaseConfig);
+      // 🔄 FUNCIÓN PARA LLAMAR A LA API
+      async function callAPI(action, data = {}, token = null) {
+        try {
+          const payload = { action, data };
+          if (token) payload.token = token;
+
+          const response = await fetch('/api/auth.js', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+          });
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(result.error || 'Error en la API');
+          }
+
+          return result;
+        } catch (error) {
+          throw error;
+        }
+      }
       const auth = getAuth(app);
       const db = getFirestore(app);
       const storage = getStorage(app);
@@ -1506,22 +1531,23 @@
       let puedeEntrarEspecialidades = false;
 
       // 🔹 Detectar usuario logueado
+      // 🔹 Detectar usuario logueado
       onAuthStateChanged(auth, async (user) => {
         if (!user) {
-          // Usuario NO autenticado - redirigir al login
           console.log("🚫 Acceso denegado: usuario no autenticado");
           window.location.href = "index.html";
           return;
         }
+
         // 🔒 VERIFICACIÓN DE CORREO ELECTRÓNICO
         if (user && !user.emailVerified) {
           console.log("🚫 Acceso denegado: correo no verificado");
 
           mostrarMensaje("confirm", "📧 Verificación requerida",
             `Hola ${user.displayName || 'usuario'},<br><br>
-      <strong>Debes verificar tu correo electrónico antes de acceder al panel.</strong><br><br>
-      📬 Revisa tu bandeja de entrada y la carpeta de spam.<br>
-      ¿Quieres que te reenviemos el correo de verificación?`,
+<strong>Debes verificar tu correo electrónico antes de acceder al panel.</strong><br><br>
+📬 Revisa tu bandeja de entrada y la carpeta de spam.<br>
+¿Quieres que te reenviemos el correo de verificación?`,
             async () => {
               // Reenviar verificación
               try {
@@ -1550,74 +1576,72 @@
         console.log("✅ Usuario verificado, acceso permitido al panel");
         currentUserId = user.uid;
 
-        // Obtener elementos del header
-        const headerUserPhoto = document.getElementById("headerUserPhoto");
-        const headerUserName = document.getElementById("headerUserName");
+        try {
+          // Obtener token para la API
+          const token = await user.getIdToken();
 
-        // Obtener el campo de correo del perfil
-        const correoInput = document.getElementById("correo");
+          // Obtener perfil del usuario desde la API
+          const profileResponse = await callAPI('getProfile', {}, token);
 
-        // Dentro del onAuthStateChanged (después de obtener el usuario)
-        if (user) {
-          // Obtener lista de admins desde el backend
-          const adminEmails = await getAdminEmails();
-          const email = user.email;
-          puedeEntrarEspecialidades = adminEmails.includes(email);
-          isAdmin = adminEmails.includes(email); // También para el panel admin
-        }
+          if (profileResponse.success) {
+            const userDataGlobal = profileResponse.user;
 
-        // Configurar panel admin si es administrador
-        if (isAdmin) {
-          setupAdminSection();
-          setupAdminEventListeners();
-        }
+            // Actualizar elementos del header
+            const headerUserPhoto = document.getElementById("headerUserPhoto");
+            const headerUserName = document.getElementById("headerUserName");
+            headerUserPhoto.src = userDataGlobal.photoURL || 'https://dummyimage.com/45x45/ccc/fff';
+            headerUserName.textContent = `${userDataGlobal.nombre || ''} ${userDataGlobal.apellido || ''}`;
 
-        currentUserId = user.uid;
+            // Actualizar campos del perfil
+            const correoInput = document.getElementById("correo");
+            nombreInput.value = userDataGlobal.nombre || '';
+            apellidoInput.value = userDataGlobal.apellido || '';
+            edadInput.value = userDataGlobal.edad || '';
+            sexoInput.value = userDataGlobal.sexo || '';
+            paisInput.value = userDataGlobal.pais || '';
+            preview.src = userDataGlobal.photoURL || placeholderURL;
+            correoInput.value = userDataGlobal.email || '';
 
-        const docRef = doc(db, "usuarios", currentUserId);
-        const docSnap = await getDoc(docRef);
+            // Guardar datos para la red social
+            userDataGlobalGlobal = {
+              ...userDataGlobal,
+              email: userDataGlobal.email
+            };
 
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          currentPhotoURL = data.fotoURL || placeholderURL;
+            // Verificar si es admin
+            const adminResponse = await callAPI('getAdmins');
+            if (adminResponse.success) {
+              isAdmin = adminResponse.admins.includes(userDataGlobal.email);
 
-          // Actualizar header del usuario
-          headerUserPhoto.src = currentPhotoURL;
-          headerUserName.textContent = `${data.nombre || ''} ${data.apellido || ''}`;
+              if (isAdmin) {
+                document.getElementById('menuAdmin').classList.remove('hidden');
+              }
+            }
 
-          // Actualizar los campos del perfil
-          nombreInput.value = data.nombre || '';
-          apellidoInput.value = data.apellido || '';
-          edadInput.value = data.edad || '';
-          sexoInput.value = data.sexo || '';
-          paisInput.value = data.pais || '';
-          preview.src = currentPhotoURL;
+            // Verificar acceso a especialidades
+            const accessResponse = await callAPI('checkEspecialidadesAccess', {}, token);
+            if (accessResponse.success) {
+              puedeEntrarEspecialidades = accessResponse.tieneAcceso;
+            }
 
-          // Establecer el correo (solo lectura)
-          correoInput.value = user.email || '';
+            // 🔹 INICIALIZAR RED SOCIAL SI ESTAMOS EN INICIO
+            if (!inicioSection.classList.contains('hidden')) {
+              setTimeout(() => {
+                initializeSocialNetwork();
+              }, 500);
+            }
 
-          // 🔹 INICIALIZAR DATOS DE RED SOCIAL - CORREGIDO
-          userData = {
-            ...data,
-            email: user.email // 🔥 Asegurar que userData tenga el email
-          };
-
-          isAdmin = ADMIN_EMAILS.includes(user.email);
-          lastPostTime = data.lastPostTime || null;
-
-          // 🔹 INICIALIZAR RED SOCIAL INMEDIATAMENTE SI ESTAMOS EN INICIO
-          if (!inicioSection.classList.contains('hidden')) {
-            setTimeout(() => {
-              initializeSocialNetwork();
-            }, 500);
+            cargarEspecialidadesFijas();
           }
+        } catch (error) {
+          console.error('Error cargando perfil:', error);
+          mostrarMensaje('error', 'Error', 'No se pudieron cargar los datos del usuario.');
         }
-
-        cargarEspecialidadesFijas();
       });
+
       // 🔹 Inicializar red social automáticamente si estamos en la sección de inicio
       setTimeout(() => {
-        if (!inicioSection.classList.contains('hidden') && currentUserId && userData) {
+        if (!inicioSection.classList.contains('hidden') && currentUserId && userDataGlobal) {
           initializeSocialNetwork();
         }
       }, 500);
@@ -1652,49 +1676,43 @@
       });
 
       // 🔹 Guardar perfil (versión con eliminación de foto anterior)
+      // 🔹 Guardar perfil (usando API)
       editForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         if (!currentUserId) return;
 
-        let newPhotoURL = currentPhotoURL;
         const file = fotoInput.files[0];
+        let fotoBase64 = null;
+        let fileName = null;
 
         try {
-          // ✅ Validar tamaño antes de subir
-          if (file && file.size > 1024 * 1024) {
-            mostrarMensaje("info", "⚠️ La imagen no debe superar 1 MB.", "");
-            return;
-          }
-
-          // ✅ Si hay un archivo nuevo, eliminar el anterior
-          if (file && currentPhotoURL) {
-            try {
-              // Buscar y eliminar foto anterior
-              const oldRef = ref(storage, currentPhotoURL);
-              await deleteObject(oldRef);
-              console.log("🗑️ Foto anterior eliminada del servidor");
-            } catch (err) {
-              console.warn("⚠️ No se pudo eliminar la foto anterior:", err.message);
-            }
-          }
-
-          // ✅ Subir la nueva imagen (si existe)
+          // Si hay nueva foto, convertir a base64
           if (file) {
-            const storageRef = ref(storage, `usuarios/${currentUserId}/${file.name}`);
-            await uploadBytes(storageRef, file);
-            newPhotoURL = await getDownloadURL(storageRef);
+            // ✅ Validar tamaño antes de subir
+            if (file.size > 1024 * 1024) {
+              mostrarMensaje("info", "⚠️ La imagen no debe superar 1 MB.", "");
+              return;
+            }
+
+            fotoBase64 = await fileToBase64(file);
+            fileName = file.name;
           }
 
-          // ✅ Actualizar datos en Firestore
-          const docRef = doc(db, "usuarios", currentUserId);
-          await updateDoc(docRef, {
+          const user = auth.currentUser;
+          const token = await user.getIdToken();
+
+          // Preparar datos para la API
+          const profileData = {
             nombre: nombreInput.value,
             apellido: apellidoInput.value,
             edad: edadInput.value,
             sexo: sexoInput.value,
             pais: paisInput.value,
-            fotoURL: newPhotoURL
-          });
+            ...(fotoBase64 && { fotoBase64, fileName })
+          };
+
+          // Llamar a la API
+          const result = await callAPI('updateProfile', profileData, token);
 
           mostrarMensaje("info", "✅ Información actualizada correctamente.", "", () => {
             window.location.reload();
@@ -1702,9 +1720,19 @@
 
         } catch (error) {
           console.error(error);
-          mostrarMensaje("error", "❌ Error al actualizar", "");
+          mostrarMensaje("error", "❌ Error al actualizar", error.message);
         }
       });
+
+      // 🔹 Función para convertir archivo a base64
+      function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = error => reject(error);
+        });
+      }
 
       logoutBtn.addEventListener("click", async () => {
         await signOut(auth);
@@ -1869,7 +1897,7 @@
         // 🔹 INICIALIZAR RED SOCIAL CUANDO SE MUESTRE LA SECCIÓN DE INICIO
         if (seccion.id === "inicioSection") {
           setTimeout(() => {
-            if (currentUserId && userData) {
+            if (currentUserId && userDataGlobal) {
               initializeSocialNetwork();
             }
           }, 100);
@@ -2092,137 +2120,16 @@
         sinCertificaciones.style.display = "none";
 
         try {
-          // Obtener el usuario actual
           const user = auth.currentUser;
-          if (!user || !user.email) {
-            throw new Error("No se pudo obtener la información del usuario");
+          const token = await user.getIdToken();
+
+          const response = await callAPI('getCertificaciones', {}, token);
+
+          if (response.success) {
+            actualizarInterfazCertificaciones(response.certificaciones);
+          } else {
+            throw new Error('Error al cargar certificaciones');
           }
-
-          const userEmail = user.email;
-
-          // Obtener el visitanteId del localStorage (si existe)
-          let visitanteId = localStorage.getItem("visitanteId");
-
-          // Obtener todos los formularios
-          const formulariosRes = await fetch("/api/formulario?accion=listarFormularios");
-          if (!formulariosRes.ok) {
-            throw new Error("No se pudieron cargar los formularios");
-          }
-
-          const formularios = await formulariosRes.json();
-          const formulariosIds = Object.keys(formularios);
-
-          // Array para almacenar las certificaciones
-          const certificaciones = [];
-
-          // Para cada formulario, buscar si el usuario participó
-          for (const formularioId of formulariosIds) {
-            try {
-              const respuestasRes = await fetch(`/api/formulario?accion=verRespuestas&id=${formularioId}`);
-              if (respuestasRes.ok) {
-                const data = await respuestasRes.json();
-                const respuestas = data.asistencias || [];
-                const examenes = data.examenes || [];
-
-                // Obtener la fecha de cierre del formulario desde la lista de formularios
-                const fechaCierreFormulario = formularios[formularioId].fechaCierre;
-                const fechaFin = fechaCierreFormulario ? new Date(fechaCierreFormulario) : null;
-                const hoy = new Date();
-
-                // Buscar TODAS las respuestas del usuario por correo O por visitanteId
-                let respuestasUsuario = respuestas.filter(r =>
-                  r.correo === userEmail || r.visitanteId === visitanteId
-                );
-
-                // Si no encontramos respuestas, continuar con el siguiente formulario
-                if (respuestasUsuario.length === 0) {
-                  continue;
-                }
-
-                // Agrupar respuestas por visitanteId para evitar duplicados
-                const respuestasAgrupadas = {};
-                respuestasUsuario.forEach(respuesta => {
-                  const key = respuesta.visitanteId;
-                  if (!respuestasAgrupadas[key]) {
-                    respuestasAgrupadas[key] = [];
-                  }
-                  respuestasAgrupadas[key].push(respuesta);
-                });
-
-                // Procesar cada grupo de respuestas (por visitanteId)
-                for (const [visitanteIdGrupo, respuestasGrupo] of Object.entries(respuestasAgrupadas)) {
-                  // Encontrar el examen del usuario para este visitanteId
-                  const examenUsuario = examenes.find(e => e.visitanteId === visitanteIdGrupo);
-
-                  // 🔹 CORRECCIÓN: Contar asistencias completadas correctamente
-                  const numerosAsistencia = respuestasGrupo.map(r => r.asistenciaNumero);
-                  const asistenciasCompletadas = [1, 2, 3].filter(num =>
-                    numerosAsistencia.includes(num)
-                  ).length;
-
-                  const examenRealizado = examenUsuario !== undefined;
-                  const calificacion = examenRealizado ? examenUsuario.puntaje : null;
-                  const aprobado = examenRealizado ? calificacion >= 70 : false;
-
-                  // 🔹 NUEVA LÓGICA PARA DETERMINAR ESTADO
-                  let estado = "";
-                  let estadoClase = "";
-
-                  if (fechaFin && hoy > fechaFin) {
-                    // TIEMPO TERMINADO
-                    if (asistenciasCompletadas >= 3) {
-                      if (examenRealizado && aprobado) {
-                        estado = "Completado";
-                        estadoClase = "estado-completado";
-                      } else {
-                        estado = "Incompleto";
-                        estadoClase = "estado-incompleto";
-                      }
-                    } else {
-                      estado = "No aplica";
-                      estadoClase = "estado-incompleto";
-                    }
-                  } else {
-                    // TIEMPO EN CURSO
-                    if (asistenciasCompletadas >= 3) {
-                      if (examenRealizado && aprobado) {
-                        estado = "Completado";
-                        estadoClase = "estado-completado";
-                      } else {
-                        estado = "En progreso";
-                        estadoClase = "estado-pendiente";
-                      }
-                    } else {
-                      estado = "En progreso";
-                      estadoClase = "estado-pendiente";
-                    }
-                  }
-
-                  // Obtener la fecha más reciente
-                  const fechaMasReciente = new Date(Math.max(...respuestasGrupo.map(r => new Date(r.fecha))));
-
-                  certificaciones.push({
-                    formularioId: formularioId,
-                    titulo: formularios[formularioId].titulo,
-                    fecha: fechaMasReciente,
-                    asistenciasCompletadas: asistenciasCompletadas,
-                    examenRealizado: examenRealizado,
-                    calificacion: calificacion,
-                    aprobado: aprobado,
-                    estado: estado,
-                    estadoClase: estadoClase,
-                    fechaFin: fechaFin,
-                    visitanteId: visitanteIdGrupo
-                  });
-                }
-              }
-            } catch (error) {
-              console.error(`Error al cargar respuestas para ${formularioId}:`, error);
-            }
-          }
-
-          // Actualizar la interfaz con las certificaciones
-          actualizarInterfazCertificaciones(certificaciones);
 
         } catch (error) {
           console.error("Error al cargar certificaciones:", error);
@@ -2232,12 +2139,11 @@
           certificacionesLoading.style.display = "none";
           sinCertificaciones.style.display = "block";
           sinCertificaciones.innerHTML = `
-            <h3>❌ Error al cargar certificaciones</h3>
-            <p>No se pudieron cargar tus certificaciones. Intenta nuevamente.</p>
-        `;
+      <h3>❌ Error al cargar certificaciones</h3>
+      <p>No se pudieron cargar tus certificaciones. Intenta nuevamente.</p>
+    `;
         }
       }
-
 
 
 
@@ -3061,7 +2967,7 @@
       const countdownTimer = document.getElementById('countdownTimer');
       const feed = document.getElementById('feed');
 
-      let userData = null;
+      let userDataGlobal = null;
       let isAdmin = false;
       let lastPostTime = null;
       let countdownInterval = null;
@@ -3073,7 +2979,7 @@
         console.log('🚀 Inicializando red social...');
         console.log('👤 User ID:', currentUserId);
         console.log('👑 Es admin:', isAdmin);
-        console.log('📝 User Data:', userData);
+        console.log('📝 User Data:', userDataGlobal);
 
         // Verificar que tenemos los datos necesarios
         if (!currentUserId) {
@@ -3082,8 +2988,8 @@
           return;
         }
 
-        if (!userData) {
-          console.error('❌ userData no está definido');
+        if (!userDataGlobal) {
+          console.error('❌ userDataGlobal no está definido');
           mostrarMensaje('error', 'Error de datos', 'No se pudieron cargar los datos del usuario.');
           return;
         }
@@ -3289,9 +3195,9 @@
 
           const postData = {
             userId: currentUserId,
-            userName: userData.nombre || 'Usuario',
-            userPhoto: userData.fotoURL || 'https://dummyimage.com/40x40/ccc/fff&text=User',
-            userEmail: userData.email || '',
+            userName: userDataGlobal.nombre || 'Usuario',
+            userPhoto: userDataGlobal.fotoURL || 'https://dummyimage.com/40x40/ccc/fff&text=User',
+            userEmail: userDataGlobal.email || '',
             mediaUrl: mediaData.url,
             mediaType: mediaType,
             description: description.trim(),
@@ -3398,11 +3304,11 @@
           // 2. Preparar datos de la publicación
           const postData = {
             userId: currentUserId,
-            userName: `${userData.nombre || ''} ${userData.apellido || ''}`.trim() || 'Usuario',
-            userNombre: userData.nombre,
-            userApellido: userData.apellido,
-            userPhoto: userData.fotoURL || 'https://dummyimage.com/40x40/ccc/fff&text=User',
-            userEmail: userData.email || '',
+            userName: `${userDataGlobal.nombre || ''} ${userDataGlobal.apellido || ''}`.trim() || 'Usuario',
+            userNombre: userDataGlobal.nombre,
+            userApellido: userDataGlobal.apellido,
+            userPhoto: userDataGlobal.fotoURL || 'https://dummyimage.com/40x40/ccc/fff&text=User',
+            userEmail: userDataGlobal.email || '',
             mediaUrl: mediaData.url,
             mediaType: file.type,
             description: description,
@@ -3940,14 +3846,14 @@
       // 🔹 VERIFICACIÓN INICIAL DEL ESTADO
       console.log('🔍 Estado inicial de la red social:');
       console.log('- currentUserId:', currentUserId);
-      console.log('- userData:', userData);
+      console.log('- userDataGlobal:', userDataGlobal);
       console.log('- isAdmin:', isAdmin);
       console.log('- inicioSection visible:', !inicioSection.classList.contains('hidden'));
 
       // Verificar si debemos inicializar la red social inmediatamente
       document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => {
-          if (!inicioSection.classList.contains('hidden') && currentUserId && userData) {
+          if (!inicioSection.classList.contains('hidden') && currentUserId && userDataGlobal) {
             console.log('🚀 Inicializando red social automáticamente...');
             initializeSocialNetwork();
           }
@@ -3956,7 +3862,7 @@
 
       // También verificar después de que Firebase se inicialice
       setTimeout(() => {
-        if (!inicioSection.classList.contains('hidden') && currentUserId && userData) {
+        if (!inicioSection.classList.contains('hidden') && currentUserId && userDataGlobal) {
           console.log('🚀 Inicializando red social después de Firebase...');
           initializeSocialNetwork();
         }
@@ -4043,82 +3949,7 @@
         }
       }
 
-      // Cargar publicaciones pendientes
-      async function loadPendingPosts() {
-        try {
-          const adminLoading = document.getElementById('adminLoading');
-          const adminPostsContainer = document.getElementById('adminPostsContainer');
-          const noPendingPosts = document.getElementById('noPendingPosts');
 
-          adminLoading.style.display = 'block';
-          adminPostsContainer.innerHTML = '';
-          noPendingPosts.style.display = 'none';
-
-          console.log('🔧 Cargando publicaciones pendientes...');
-
-          // Consulta SOLO publicaciones pendientes
-          const q = query(
-            collection(db, "posts"),
-            where("status", "==", "pending"),
-            orderBy("timestamp", "asc")
-          );
-
-          const querySnapshot = await getDocs(q);
-          adminLoading.style.display = 'none';
-
-          if (querySnapshot.empty) {
-            noPendingPosts.style.display = 'block';
-            updateAdminStats();
-            return;
-          }
-
-          console.log(`🔧 Publicaciones pendientes: ${querySnapshot.size}`);
-
-          querySnapshot.forEach((doc) => {
-            const post = { ...doc.data(), id: doc.id };
-            displayPendingPost(post, doc.id);
-          });
-
-          updateAdminStats();
-
-        } catch (error) {
-          console.error('❌ Error cargando publicaciones pendientes:', error);
-
-          // Fallback: cargar todas y filtrar manualmente
-          try {
-            console.log('🔄 Intentando carga manual de pendientes...');
-            const q = query(collection(db, "posts"), orderBy("timestamp", "asc"));
-            const querySnapshot = await getDocs(q);
-
-            document.getElementById('adminLoading').style.display = 'none';
-            const pendingPosts = [];
-
-            querySnapshot.forEach((doc) => {
-              const post = doc.data();
-              if (post.status === 'pending') {
-                pendingPosts.push({ ...post, id: doc.id });
-              }
-            });
-
-            if (pendingPosts.length === 0) {
-              document.getElementById('noPendingPosts').style.display = 'block';
-              updateAdminStats();
-              return;
-            }
-
-            pendingPosts.forEach((post) => {
-              displayPendingPost(post, post.id);
-            });
-
-            updateAdminStats();
-
-          } catch (fallbackError) {
-            console.error('❌ Error en fallback de admin:', fallbackError);
-            document.getElementById('adminLoading').style.display = 'none';
-            mostrarMensaje('error', 'Error', 'No se pudieron cargar las publicaciones pendientes.');
-          }
-        }
-      }
 
       // Mostrar publicación pendiente en el panel admin
       function displayPendingPost(post, postId) {
@@ -4174,17 +4005,60 @@
         document.getElementById('adminPostsContainer').appendChild(postElement);
       }
 
-      // Aprobar publicación
+
+
+      // 🔹 Cargar publicaciones pendientes (usando API)
+      async function loadPendingPosts() {
+        try {
+          const adminLoading = document.getElementById('adminLoading');
+          const adminPostsContainer = document.getElementById('adminPostsContainer');
+          const noPendingPosts = document.getElementById('noPendingPosts');
+
+          adminLoading.style.display = 'block';
+          adminPostsContainer.innerHTML = '';
+          noPendingPosts.style.display = 'none';
+
+          const user = auth.currentUser;
+          const token = await user.getIdToken();
+
+          const response = await callAPI('getAdminData', {}, token);
+
+          if (response.success) {
+            adminLoading.style.display = 'none';
+
+            // Actualizar estadísticas
+            document.getElementById('pendingCount').textContent = response.stats.pendingCount;
+            document.getElementById('approvedCount').textContent = response.stats.approvedCount;
+            document.getElementById('rejectedCount').textContent = response.stats.rejectedCount;
+
+            if (response.pendingPosts.length === 0) {
+              noPendingPosts.style.display = 'block';
+              return;
+            }
+
+            // Mostrar publicaciones pendientes
+            response.pendingPosts.forEach(post => {
+              displayPendingPost(post, post.id);
+            });
+          }
+
+        } catch (error) {
+          console.error('❌ Error cargando publicaciones pendientes:', error);
+          document.getElementById('adminLoading').style.display = 'none';
+          mostrarMensaje('error', 'Error', 'No se pudieron cargar las publicaciones pendientes.');
+        }
+      }
+
+      // 🔹 Aprobar publicación (usando API)
       async function approvePost(postId) {
         try {
-          console.log(`✅ Aprobando publicación: ${postId}`);
+          const user = auth.currentUser;
+          const token = await user.getIdToken();
 
-          const postRef = doc(db, "posts", postId);
-          await updateDoc(postRef, {
-            status: 'approved',
-            moderatedBy: currentUserId,
-            moderatedAt: new Date().toISOString()
-          });
+          await callAPI('moderatePost', {
+            postId,
+            action: 'approve'
+          }, token);
 
           // Eliminar del panel admin
           const postElement = document.querySelector(`.approve-btn[data-postid="${postId}"]`)?.closest('.post-card');
@@ -4193,28 +4067,9 @@
           }
 
           // Actualizar estadísticas
-          updateAdminStats();
-
-          // Notificar al backend (opcional)
-          try {
-            await fetch(`/api/social?action=approve-post`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ postId })
-            });
-          } catch (apiError) {
-            console.warn('⚠️ No se pudo notificar al backend:', apiError);
-          }
+          await loadPendingPosts();
 
           mostrarMensaje('success', '✅ Publicación aprobada', 'La publicación ahora es visible para todos los usuarios.');
-
-          // Verificar si quedan más publicaciones pendientes
-          const remainingPosts = document.querySelectorAll('.post-card').length;
-          if (remainingPosts === 0) {
-            document.getElementById('noPendingPosts').style.display = 'block';
-          }
 
         } catch (error) {
           console.error('❌ Error aprobando publicación:', error);
@@ -4222,40 +4077,19 @@
         }
       }
 
-      // Rechazar publicación
-      // 🔹 Rechazar publicación (versión mejorada)
+      // 🔹 Rechazar publicación (usando API)
       async function rejectPost(postId, deletehash) {
         try {
-          console.log(`❌ Rechazando publicación: ${postId}`);
+          const user = auth.currentUser;
+          const token = await user.getIdToken();
 
-          // 1. Eliminar de Imgur si existe deletehash
-          if (deletehash && deletehash !== 'undefined') {
-            try {
-              await fetch(`/api/social?action=delete`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ deletehash })
-              });
-              console.log('✅ Imagen eliminada de Imgur');
-            } catch (imgurError) {
-              console.warn('⚠️ No se pudo eliminar de Imgur:', imgurError);
-            }
-          }
+          await callAPI('moderatePost', {
+            postId,
+            action: 'reject',
+            reason: 'Rechazada por administrador'
+          }, token);
 
-          // 2. Actualizar estado en Firestore a "rejected" en lugar de eliminar
-          const postRef = doc(db, "posts", postId);
-          await updateDoc(postRef, {
-            status: 'rejected',
-            moderatedBy: currentUserId,
-            moderatedAt: new Date().toISOString(),
-            moderationReason: 'Rechazada por administrador'
-          });
-
-          console.log('✅ Estado actualizado a "rejected"');
-
-          // 3. Eliminar del panel admin con animación
+          // Eliminar del panel admin
           const postElement = document.querySelector(`.reject-btn[data-postid="${postId}"]`)?.closest('.post-card');
           if (postElement) {
             postElement.style.opacity = '0.5';
@@ -4270,10 +4104,7 @@
             }, 300);
           }
 
-          // 4. Actualizar estadísticas
-          await updateAdminStats();
-
-          mostrarMensaje('success', '❌ Publicación rechazada', 'La publicación ha sido rechazada y eliminada.');
+          mostrarMensaje('success', '❌ Publicación rechazada', 'La publicación ha sido rechazada.');
 
         } catch (error) {
           console.error('❌ Error rechazando publicación:', error);

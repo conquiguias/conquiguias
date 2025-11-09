@@ -2440,7 +2440,6 @@
           .then(res => res.json())
           .then(data => {
             const asistencias = data.asistencias || [];
-            console.log("Prueba arreglo",asistencias);
             // Buscar CUALQUIER asistencia del usuario para obtener su nombre
             const asistenciaUsuario = asistencias.find(a =>
               a.visitanteId === resultado.visitanteId && a.nombre && a.nombre.trim() !== ''

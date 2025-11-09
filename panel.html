@@ -2428,41 +2428,63 @@
       }
 
       function imprimirExamenCompleto(examen, resultado, formulario) {
-        const btnImprimir = document.getElementById('btnImprimirExamen');
-        const textoOriginal = btnImprimir.innerHTML;
+    const btnImprimir = document.getElementById('btnImprimirExamen');
+    const textoOriginal = btnImprimir.innerHTML;
 
-        // Mostrar loading
-        btnImprimir.innerHTML = '⏳ Generando PDF...';
-        btnImprimir.disabled = true;
+    // Mostrar loading
+    btnImprimir.innerHTML = '⏳ Generando PDF...';
+    btnImprimir.disabled = true;
 
-        // Obtener el nombre del usuario desde las asistencias
-        fetch(`/api/formulario?accion=verRespuestas&id=${formulario.id}`)
-          .then(res => res.json())
-          .then(data => {
+    // Obtener el nombre del usuario DESDE LAS ASISTENCIAS del formulario
+    fetch(`/api/formulario?accion=verRespuestas&id=${formulario.id}`)
+        .then(res => res.json())
+        .then(data => {
             const asistencias = data.asistencias || [];
-            // Buscar CUALQUIER asistencia del usuario para obtener su nombre
-            const asistenciaUsuario = asistencias.find(a =>
-              a.visitanteId === resultado.visitanteId && a.nombre && a.nombre.trim() !== ''
+            
+            // 🔹 BUSCAR ESPECÍFICAMENTE en TODAS las asistencias del usuario
+            let nombreUsuario = 'Nombre no encontrado';
+            
+            // Buscar en TODAS las asistencias del visitanteId
+            const asistenciasUsuario = asistencias.filter(a => 
+                a.visitanteId === resultado.visitanteId && a.nombre && a.nombre.trim() !== ''
             );
 
-            let nombreUsuario = 'Nombre no encontrado';
-            if (asistenciaUsuario && asistenciaUsuario.nombre) {
-              nombreUsuario = asistenciaUsuario.nombre.trim();
+            if (asistenciasUsuario.length > 0) {
+                // Tomar el nombre de la PRIMERA asistencia que tenga nombre
+                nombreUsuario = asistenciasUsuario[0].nombre.trim();
+                console.log('✅ Nombre encontrado en asistencias:', nombreUsuario);
             } else {
-              // Si no se encuentra en asistencias, intentar obtener del perfil del usuario
-              const user = auth.currentUser;
-              if (user && user.displayName) {
-                nombreUsuario = user.displayName;
-              } else {
-                // Último recurso: usar el correo sin el dominio
-                const email = user.email;
-                if (email) {
-                  nombreUsuario = email.split('@')[0];
-                  nombreUsuario = nombreUsuario.split('.').map(word =>
-                    word.charAt(0).toUpperCase() + word.slice(1)
-                  ).join(' ');
+                console.warn('⚠️ No se encontró nombre en las asistencias, buscando alternativas...');
+                
+                // 🔹 ALTERNATIVA 1: Buscar por correo en asistencias
+                const user = auth.currentUser;
+                if (user && user.email) {
+                    const asistenciasPorCorreo = asistencias.filter(a => 
+                        a.correo === user.email && a.nombre && a.nombre.trim() !== ''
+                    );
+                    if (asistenciasPorCorreo.length > 0) {
+                        nombreUsuario = asistenciasPorCorreo[0].nombre.trim();
+                        console.log('✅ Nombre encontrado por correo:', nombreUsuario);
+                    }
                 }
-              }
+                
+                // 🔹 ALTERNATIVA 2: Si aún no se encuentra, usar datos del perfil como ÚLTIMO recurso
+                if (nombreUsuario === 'Nombre no encontrado' && userData) {
+                    nombreUsuario = `${userData.nombre || ''} ${userData.apellido || ''}`.trim();
+                    if (nombreUsuario) {
+                        console.log('⚠️ Usando nombre del perfil:', nombreUsuario);
+                    } else {
+                        // 🔹 ALTERNATIVA 3: Usar el correo sin dominio
+                        const email = user.email;
+                        if (email) {
+                            nombreUsuario = email.split('@')[0];
+                            nombreUsuario = nombreUsuario.split('.').map(word =>
+                                word.charAt(0).toUpperCase() + word.slice(1)
+                            ).join(' ');
+                            console.log('⚠️ Usando nombre del correo:', nombreUsuario);
+                        }
+                    }
+                }
             }
 
             // Crear ventana de impresión
@@ -2474,11 +2496,11 @@
             let total = examen.length;
 
             examen.forEach(pregunta => {
-              const respuestaUsuario = respuestasUsuario[pregunta.id];
-              const respuestaCorrecta = pregunta.options.find(opt => opt.correct);
-              if (respuestaCorrecta && respuestaUsuario === respuestaCorrecta.id) {
-                correctas++;
-              }
+                const respuestaUsuario = respuestasUsuario[pregunta.id];
+                const respuestaCorrecta = pregunta.options.find(opt => opt.correct);
+                if (respuestaCorrecta && respuestaUsuario === respuestaCorrecta.id) {
+                    correctas++;
+                }
             });
 
             const porcentaje = (correctas / total) * 100;
@@ -2495,9 +2517,7 @@
                 <html>
                 <head>
                     <title>Examen y Certificación - ${formulario.titulo}</title>
-                    <link
-    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Great+Vibes&family=Montserrat:wght@300;500;700&display=swap"
-    rel="stylesheet">
+                    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Great+Vibes&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
                     <style>
                         /* ESTILOS PARA EL EXAMEN */
                         .examen-section {
@@ -2518,7 +2538,7 @@
                             max-width: 80px;
                             max-height: 80px;
                         }
-                            .resumen-examen {
+                        .resumen-examen {
                             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                             color: white;
                             padding: 25px;
@@ -2577,7 +2597,7 @@
                             margin-top: -50px;
                             margin-bottom: -50px;
                             height: 200px;
-                            width: auto; /
+                            width: auto;
                             z-index: 0; 
                         }
                         
@@ -2754,7 +2774,7 @@
                             ${formulario.imagenEspecialidad ?
                 `<img src="${formulario.imagenEspecialidad}" class="imagen-especialidad-examen" alt="Especialidad">`
                 : ''
-              }
+            }
                         </div>
 
                         <!-- RESUMEN DEL EXAMEN -->
@@ -2769,7 +2789,7 @@
                             ${aprobado ?
                 '<p style="margin: 15px 0 0 0; font-size: 16px; font-weight: bold;">🎉 ¡Felicidades! Has aprobado el examen.</p>' :
                 '<p style="margin: 15px 0 0 0; font-size: 16px;">💡 Sigue estudiando para mejorar tus resultados.</p>'
-              }
+            }
                         </div>
 
                         <div style="margin: 30px 0; border-top: 2px dashed #ccc; padding-top: 20px;">
@@ -2778,12 +2798,12 @@
 
             // Agregar preguntas del examen
             examen.forEach((pregunta, index) => {
-              const respuestaUsuario = respuestasUsuario[pregunta.id];
-              const respuestaCorrecta = pregunta.options.find(opt => opt.correct);
-              const opcionUsuario = pregunta.options.find(opt => opt.id === respuestaUsuario);
-              const esCorrecta = respuestaCorrecta && respuestaUsuario === respuestaCorrecta.id;
+                const respuestaUsuario = respuestasUsuario[pregunta.id];
+                const respuestaCorrecta = pregunta.options.find(opt => opt.correct);
+                const opcionUsuario = pregunta.options.find(opt => opt.id === respuestaUsuario);
+                const esCorrecta = respuestaCorrecta && respuestaUsuario === respuestaCorrecta.id;
 
-              contenidoImpresion += `
+                contenidoImpresion += `
                     <div class="pregunta ${esCorrecta ? 'correcta' : 'incorrecta'}">
                         <p style="margin: 0 0 10px 0; font-weight: bold; font-size: 16px; color: #2c3e50;">
                             <strong>Pregunta ${index + 1}:</strong> ${pregunta.text}
@@ -2795,7 +2815,7 @@
                             <strong>Tu respuesta:</strong> ${opcionUsuario ? opcionUsuario.text : 'No respondida'}
                         </p>
                         ${!esCorrecta && respuestaCorrecta ?
-                  `<p style="margin: 0 0 5px 0; font-size: 14px; color: #28a745;">
+                    `<p style="margin: 0 0 5px 0; font-size: 14px; color: #28a745;">
                                 <strong>Respuesta correcta:</strong> ${respuestaCorrecta.text}
                             </p>` : ''}
                     </div>
@@ -2817,7 +2837,7 @@
                         ${formulario.imagenEspecialidad ?
                 `<img src="${formulario.imagenEspecialidad}" class="imagen-especialidad-certificado" alt="Especialidad">`
                 : ''
-              }
+            }
                         
                         <div class="certificacion-contenido">
                             <div class="certificacion-header">
@@ -2832,8 +2852,6 @@
                                 
                                 <div class="nombre-usuario">${nombreUsuario}</div>
                                 
-                                <!-- <div class="linea-separadora"></div> -->
-
                                 <div class="texto-certificacion">
                                     Por haber participado en la especialidad:<br>
                                     <strong style="color: #2c3e50; font-size: 22px;">"${formulario.titulo}"</strong><br>
@@ -2907,15 +2925,15 @@
             // Restaurar botón
             btnImprimir.innerHTML = textoOriginal;
             btnImprimir.disabled = false;
-          })
-          .catch(error => {
+        })
+        .catch(error => {
             console.error('Error al obtener asistencias:', error);
             // Restaurar botón en caso de error
             btnImprimir.innerHTML = textoOriginal;
             btnImprimir.disabled = false;
             mostrarMensaje("error", "Error", "No se pudo generar el PDF: " + error.message);
-          });
-      }///////////////////////
+        });
+}
 
       // Función auxiliar para extraer nombres de las firmas desde la URL
       function extraerNombreFirma(urlFirma) {

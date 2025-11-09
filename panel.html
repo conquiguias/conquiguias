@@ -2281,7 +2281,7 @@
           const formulario = await resFormulario.json();
 
           // Mostrar en el modal extendido
-          mostrarCertificacionCompleta(examen, resultado, formulario);
+          mostrarCertificacionCompleta(examen, resultado, formulario,formularioId);
 
         } catch (error) {
           console.error('Error al cargar certificación completa:', error);
@@ -2289,7 +2289,7 @@
         }
       }
 
-      function mostrarCertificacionCompleta(examen, resultado, formulario) {
+      function mostrarCertificacionCompleta(examen, resultado, formulario,formularioId) {
         // Usar el modal del visor PDF pero con contenido personalizado
         const modal = document.getElementById('pdfViewerModal');
         const pdfFrame = document.getElementById('pdfFrame');
@@ -2420,14 +2420,14 @@
         // Configurar event listeners para los botones SOLO si aprobó
         if (aprobado) {
           document.getElementById('btnImprimirExamen').addEventListener('click', () => {
-            imprimirExamenCompleto(examen, resultado, formulario);
+            imprimirExamenCompleto(examen, resultado, formulario,formularioId);
           });
 
         }
 
       }
 
-      function imprimirExamenCompleto(examen, resultado, formulario) {
+      function imprimirExamenCompleto(examen, resultado, formulario,formularioId) {
         const btnImprimir = document.getElementById('btnImprimirExamen');
         const textoOriginal = btnImprimir.innerHTML;
 
@@ -2436,7 +2436,7 @@
         btnImprimir.disabled = true;
 
         // Obtener el nombre del usuario desde las asistencias
-        fetch(`/api/formulario?action=verRespuestas&id=${formulario.id}`)
+        fetch(`/api/formulario?action=verRespuestas&id=${formularioId}`)
           .then(res => res.json())
           .then(data => {
             const asistencias = data.asistencias || [];

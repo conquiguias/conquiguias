@@ -3122,15 +3122,7 @@
         countdownTimer.textContent = `Puedes publicar en: ${minutes}:${secs < 10 ? '0' : ''}${secs}`;
       }
 
-      // 🔹 Convertir archivo a base64 para enviar al backend
-      function fileToBase64(file) {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = error => reject(error);
-        });
-      }
+
 
       // 🔹 Subir a Imgur a través del backend unificado - VERSIÓN CORREGIDA
       // 🔹 Subir a Imgur DIRECTAMENTE desde el frontend

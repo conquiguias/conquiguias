@@ -2076,10 +2076,7 @@
 
       // Función para cargar las certificaciones del usuario
       async function cargarCertificaciones() {
-        console.log(`🔍 Firestore Read - ${funcion}`, {
-          timestamp: new Date().toISOString(),
-          user: currentUserId
-        });
+        agregarLogFirestore('cargarCertificaciones');
         // 🔒 Usar cache si está disponible
         const now = Date.now();
         if (certificacionesCache && (now - certificacionesCacheTime < CACHE_DURATION)) {
@@ -3075,10 +3072,7 @@
 
       // 🔹 Inicializar red social - VERSIÓN MEJORADA
       async function initializeSocialNetwork() {
-        console.log(`🔍 Firestore Read - ${funcion}`, {
-          timestamp: new Date().toISOString(),
-          user: currentUserId
-        });
+        agregarLogFirestore('cargarCertificaciones');
         if (isSocialNetworkInitialized) {
           console.log('⚠️ Red social ya estaba inicializada');
           return;
@@ -3500,10 +3494,7 @@
 
       // 🔹 Cargar publicaciones - VERSIÓN MEJORADA CON FALLBACK
       async function loadPosts() {
-        console.log(`🔍 Firestore Read - ${funcion}`, {
-          timestamp: new Date().toISOString(),
-          user: currentUserId
-        });
+        agregarLogFirestore('loadPosts');
         // 🔒 Protección contra llamadas simultáneas
         if (postsLoading) {
           console.log('⏳ LoadPosts ya en ejecución, ignorando...');
@@ -3594,6 +3585,13 @@
             postsLoading = false;
           }
         }
+      }
+
+      function agregarLogFirestore(funcion) {
+        console.log(`🔍 Firestore Read - ${funcion}`, {
+          timestamp: new Date().toISOString(),
+          user: currentUserId
+        });
       }
 
       // 🔹 Mostrar publicación en el feed - VERSIÓN MEJORADA

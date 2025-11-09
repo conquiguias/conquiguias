@@ -1603,7 +1603,7 @@
             correoInput.value = userDataGlobal.email || '';
 
             // Guardar datos para la red social
-            userDataGlobalGlobal = {
+            userDataGlobal = {
               ...userDataGlobal,
               email: userDataGlobal.email
             };
@@ -1617,6 +1617,7 @@
                 document.getElementById('menuAdmin').classList.remove('hidden');
               }
             }
+            
 
             // Verificar acceso a especialidades
             const accessResponse = await callAPI('checkEspecialidadesAccess', {}, token);

@@ -1,0 +1,14 @@
+{
+    "name": "conquiguias-world",
+    "version": "1.0.0",
+    "description": "ConquiGuías World - Plataforma segura",
+    "scripts": {
+      "dev": "vercel dev"
+    },
+    "dependencies": {
+      "firebase-admin": "^12.1.0"
+    },
+    "engines": {
+      "node": "18.x"
+    }
+  }

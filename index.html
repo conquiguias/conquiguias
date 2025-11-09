@@ -7,42 +7,45 @@
   <title>ConquiGuías World - Acceso</title>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-    import {
-      getAuth,
-      createUserWithEmailAndPassword,
-      signInWithEmailAndPassword,
-      updateProfile,
-      sendEmailVerification,
-      sendPasswordResetEmail,
-      onAuthStateChanged
-    } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
-    import {
-      getFirestore,
-      doc,
-      setDoc
-    } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
-    import {
-      getStorage,
-      ref,
-      uploadBytes,
-      getDownloadURL
-    } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-storage.js";
-
-    // 🔥 CONFIGURACIÓN FIREBASE
+    // 🔒 Configuración mínima y segura - SOLO lo necesario
     const firebaseConfig = {
       apiKey: "AIzaSyB1YTwZM8wKlxZ8HhXb7EUse8YyLmcfeS8",
       authDomain: "conquiguias-world-85ccd.firebaseapp.com",
-      projectId: "conquiguias-world-85ccd",
-      storageBucket: "conquiguias-world-85ccd.firebasestorage.app",
-      messagingSenderId: "785222651205",
-      appId: "1:785222651205:web:0486c50e9d8af6bf9b022c"
+      projectId: "conquiguias-world-85ccd"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const storage = getStorage(app);
+    // Función para llamar a nuestra API segura
+    async function callAPI(action, data) {
+      try {
+        const response = await fetch('/api/auth.js', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ action, data })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Error en la API');
+        }
+
+        return result;
+      } catch (error) {
+        throw error;
+      }
+    }
+
+    // Función para convertir imagen a Base64
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+      });
+    }
 
     document.addEventListener("DOMContentLoaded", () => {
       const loginForm = document.getElementById("loginForm");
@@ -52,34 +55,22 @@
       const registerBtn = document.getElementById("registerBtn");
       const resetPasswordBtn = document.getElementById("resetPasswordBtn");
 
-      // Verificar estado de autenticación
-      onAuthStateChanged(auth, (user) => {
-        if (user) {
-          // Si el usuario está verificado, redirigir al panel
-          if (user.emailVerified) {
-            window.location.href = "panel.html";
-          } else {
-            // Si no está verificado, mostrar mensaje
-            mostrarMensaje("info", "📧 Verifica tu correo",
-              "Tu cuenta ha sido creada, pero necesitas verificar tu correo electrónico antes de acceder. Revisa tu bandeja de entrada y la carpeta de spam.",
-              () => {
-                // Cerrar sesión hasta que verifique
-                auth.signOut();
-              });
-          }
-        }
-      });
-
-      // LOGIN CON VERIFICACIÓN OBLIGATORIA
+      // 🔹 LOGIN - MANTENEMOS FIREBASE AUTH (es seguro)
       loginForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         const email = loginForm.email.value.trim();
         const password = loginForm.password.value.trim();
 
-        // 🔥 MOSTRAR LOADER
         showLoader(loginBtn, "⏳ Iniciando sesión...");
 
         try {
+          // Importamos Firebase Auth solo para login
+          const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js");
+          const { getAuth, signInWithEmailAndPassword, sendEmailVerification } = await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
+
+          const app = initializeApp(firebaseConfig);
+          const auth = getAuth(app);
+
           const userCredential = await signInWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
 
@@ -90,7 +81,8 @@
               "Debes verificar tu correo electrónico antes de acceder. ¿Quieres que te reenviemos el correo de verificación?",
               () => {
                 // Reenviar verificación
-                reenviarVerificacion(user);
+                sendEmailVerification(user);
+                mostrarMensaje("info", "📧 Correo reenviado", "Te hemos enviado nuevamente el correo de verificación.");
               });
             return;
           }
@@ -107,7 +99,7 @@
         }
       });
 
-      // REGISTRO CON VERIFICACIÓN DE CORREO
+      // 🔹 REGISTRO - USAMOS NUESTRA API SEGURA
       registerForm.addEventListener("submit", async (e) => {
         e.preventDefault();
 
@@ -145,46 +137,16 @@
             return;
           }
 
-          // 🔹 Crear usuario
+          // Convertir foto a Base64
+          updateLoader(registerBtn, "⏳ Procesando imagen...");
+          const fotoBase64 = await fileToBase64(foto);
+          const fileName = foto.name;
+
+          // Llamar a nuestra API segura
           updateLoader(registerBtn, "⏳ Creando usuario...");
-          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          const user = userCredential.user;
-          console.log("🟢 Usuario creado:", user.uid);
-
-          // Subir foto
-          updateLoader(registerBtn, "⏳ Subiendo foto...");
-          const fotoRef = ref(storage, `usuarios/${user.uid}/${foto.name}`);
-          await uploadBytes(fotoRef, foto);
-          const fotoURL = await getDownloadURL(fotoRef);
-
-          // Actualizar perfil de Auth
-          updateLoader(registerBtn, "⏳ Configurando perfil...");
-          await updateProfile(user, {
-            displayName: `${nombre} ${apellido}`,
-            photoURL: fotoURL
+          const result = await callAPI('register', {
+            nombre, apellido, edad, sexo, pais, email, password, fotoBase64, fileName
           });
-
-          // Guardar datos en Firestore
-          updateLoader(registerBtn, "⏳ Guardando datos...");
-          await setDoc(doc(db, "usuarios", user.uid), {
-            nombre,
-            apellido,
-            edad,
-            sexo,
-            pais,
-            email,
-            fotoURL,
-            emailVerificado: false,
-            creado: new Date().toISOString()
-          });
-
-          // 🔹 ENVIAR VERIFICACIÓN DE CORREO
-          updateLoader(registerBtn, "⏳ Enviando verificación...");
-          await sendEmailVerification(user);
-          console.log("📧 Correo de verificación enviado");
-
-          // Cerrar sesión hasta que verifique el correo
-          await auth.signOut();
 
           hideLoader(registerBtn, "Registrar");
           mostrarMensaje("info", `🎉 Registro exitoso, ¡bienvenido ${nombre}!`,
@@ -199,21 +161,11 @@
         } catch (error) {
           hideLoader(registerBtn, "Registrar");
           console.error("Error al registrarse:", error);
-
-          let errorMessage = "Revisa tus datos o el tamaño de la imagen.";
-          if (error.code === 'auth/email-already-in-use') {
-            errorMessage = "Este correo electrónico ya está registrado.";
-          } else if (error.code === 'auth/weak-password') {
-            errorMessage = "La contraseña debe tener al menos 6 caracteres.";
-          } else if (error.code === 'auth/invalid-email') {
-            errorMessage = "El formato del correo electrónico no es válido.";
-          }
-
-          mostrarMensaje("error", "❌ Error en el registro", errorMessage);
+          mostrarMensaje("error", "❌ Error en el registro", error.message);
         }
       });
 
-      // RECUPERACIÓN DE CONTRASEÑA
+      // 🔹 RECUPERACIÓN DE CONTRASEÑA - USAMOS NUESTRA API SEGURA
       resetPasswordForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         const email = resetPasswordForm.email.value.trim();
@@ -222,7 +174,7 @@
         showLoader(resetPasswordBtn, "⏳ Enviando enlace...");
 
         try {
-          await sendPasswordResetEmail(auth, email);
+          await callAPI('resetPassword', { email });
           hideLoader(resetPasswordBtn, "Enviar enlace de recuperación");
           mostrarMensaje("info", "📧 Correo enviado",
             "Te hemos enviado un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada y la carpeta de spam.",
@@ -233,12 +185,12 @@
         } catch (error) {
           hideLoader(resetPasswordBtn, "Enviar enlace de recuperación");
           console.error("Error al enviar correo de recuperación:", error);
-          mostrarMensaje("error", "❌ Error", "No se pudo enviar el correo de recuperación. Verifica tu dirección de correo.");
+          mostrarMensaje("error", "❌ Error", error.message);
         }
       });
     });
 
-    // 🔥 FUNCIONES PARA LOS LOADERS
+    // 🔥 MANTENER TODAS TUS FUNCIONES EXISTENTES (NO CAMBIAR)
     function showLoader(button, text) {
       button.disabled = true;
       button.innerHTML = `
@@ -263,18 +215,6 @@
       button.innerHTML = originalText;
     }
 
-    // Función para reenviar verificación de correo
-    async function reenviarVerificacion(user) {
-      try {
-        await sendEmailVerification(user);
-        mostrarMensaje("info", "📧 Correo reenviado",
-          "Te hemos enviado nuevamente el correo de verificación. Revisa tu bandeja de entrada y la carpeta de spam.");
-      } catch (error) {
-        console.error("Error al reenviar verificación:", error);
-        mostrarMensaje("error", "❌ Error", "No se pudo reenviar el correo de verificación.");
-      }
-    }
-
     // Alternar formularios
     function toggleForms() {
       document.getElementById("loginBox").classList.toggle("hidden");
@@ -296,14 +236,7 @@
     }
     window.backToLogin = backToLogin;
 
-    ////////////////////////////////////////
-    /**
-     * 🔹 Mostrar mensaje dinámico
-     * @param {string} tipo - "info" | "error" | "confirm"
-     * @param {string} titulo - Texto del título
-     * @param {string} mensaje - Texto del cuerpo
-     * @param {function} onConfirm - (Opcional) callback si se presiona "Aceptar" en tipo confirm
-     */
+    // Función para mostrar mensajes (MANTENER IGUAL)
     function mostrarMensaje(tipo, titulo, mensaje, onConfirm = null) {
       const modal = document.getElementById("mensajeModal");
       const tituloEl = document.getElementById("mensajeTitulo");

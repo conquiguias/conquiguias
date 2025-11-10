@@ -3655,43 +3655,46 @@
         });
       }
 
-      // 🔹 REPRODUCIR VIDEO
+      // 🔹 REPRODUCIR VIDEO (Versión mejorada)
       async function playVideo(video) {
         try {
-          // Intentar reproducir con sonido
-          video.muted = false;
+          console.log('▶️ Intentando reproducir video:', video.src);
+
+          // Primero asegurarnos de que el video esté muteado (requerido por políticas)
+          video.muted = true;
+
+          // Intentar reproducir
           await video.play();
 
-          // Actualizar indicador de sonido
+          // Actualizar indicador
           const muteIndicator = video.parentNode.querySelector('.video-muted-indicator');
           if (muteIndicator) {
-            muteIndicator.textContent = '🔊 Sonido activado';
+            muteIndicator.textContent = '🔇 Sin sonido (haz clic para activar)';
+            muteIndicator.style.cursor = 'pointer';
+
+            // Agregar evento para activar sonido
+            muteIndicator.onclick = () => {
+              video.muted = false;
+              muteIndicator.textContent = '🔊 Sonido activado';
+              muteIndicator.style.cursor = 'default';
+            };
           }
 
-          console.log('▶️ Reproduciendo video:', video.src);
+          console.log('✅ Video reproducido exitosamente (sin sonido)');
+
         } catch (error) {
-          // Si falla, intentar reproducir sin sonido (políticas de autoplay)
+          console.error('❌ Error reproduciendo video:', error);
+
+          // Intentar con un enfoque diferente
           try {
-            video.muted = true;
+            video.currentTime = 0;
             await video.play();
-
-            // Actualizar indicador de sonido
-            const muteIndicator = video.parentNode.querySelector('.video-muted-indicator');
-            if (muteIndicator) {
-              muteIndicator.textContent = '🔇 Sin sonido (haz clic para activar)';
-              muteIndicator.style.cursor = 'pointer';
-
-              // Agregar evento para activar sonido al hacer clic
-              muteIndicator.onclick = () => {
-                video.muted = false;
-                muteIndicator.textContent = '🔊 Sonido activado';
-                muteIndicator.style.cursor = 'default';
-              };
-            }
-
-            console.log('▶️ Reproduciendo video (sin sonido):', video.src);
+            console.log('✅ Video reproducido en segundo intento');
           } catch (error2) {
-            console.error('❌ No se pudo reproducir el video:', error2);
+            console.error('❌ Error definitivo reproduciendo video:', error2);
+
+            // Mostrar controles nativos como fallback
+            video.controls = true;
           }
         }
       }
@@ -3967,32 +3970,33 @@
           reaction => userReactions[reaction]
         );
 
-        // 🔥 NUEVO: Contenido multimedia con soporte para autoplay en videos
+        // 🔥 CORRECCIÓN: Contenido multimedia unificado para autoplay
         let mediaContent = '';
 
         if (post.mediaType.startsWith('image/')) {
           mediaContent = `
-          <img src="${post.mediaUrl}" alt="Publicación" loading="lazy" 
-               style="width: 100%; max-height: 500px; object-fit: contain; border-radius: 8px;"
-               onerror="this.style.display='none'">
-        `;
+      <img src="${post.mediaUrl}" alt="Publicación" loading="lazy" 
+           style="width: 100%; max-height: 500px; object-fit: contain; border-radius: 8px;"
+           onerror="this.style.display='none'">
+    `;
         } else if (post.mediaType.startsWith('video/')) {
           mediaContent = `
-          <div class="video-container">
-            <video class="auto-play-video" 
-                   src="${post.mediaUrl}" 
-                   playsinline 
-                   loop
-                   style="width: 100%; max-height: 500px; object-fit: contain; border-radius: 8px;"
-                   onerror="this.style.display='none'">
-            </video>
-            <div class="video-muted-indicator">🔇 Cargando...</div>
-            <div class="video-controls">
-              <button class="video-control-btn" onclick="togglePlayPause(this)">⏯️</button>
-              <button class="video-control-btn" onclick="toggleMute(this)">🔇</button>
-            </div>
-          </div>
-        `;
+      <div class="video-container">
+        <video class="auto-play-video" 
+               src="${post.mediaUrl}" 
+               playsinline 
+               loop
+               muted
+               style="width: 100%; max-height: 500px; object-fit: contain; border-radius: 8px;"
+               onerror="this.style.display='none'">
+        </video>
+        <div class="video-muted-indicator">🔇 Sin sonido (haz clic para activar)</div>
+        <div class="video-controls">
+          <button class="video-control-btn" onclick="togglePlayPause(this)">⏯️</button>
+          <button class="video-control-btn" onclick="toggleMute(this)">🔇</button>
+        </div>
+      </div>
+    `;
         } else {
           mediaContent = `<div style="padding: 20px; text-align: center; color: #666;">Tipo de archivo no compatible</div>`;
         }

@@ -1439,8 +1439,7 @@
         deleteDoc,
         limit,
         setDoc,
-        where,
-        startAfter
+        where
       } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
       import {
         getStorage, ref, uploadBytes, getDownloadURL, deleteObject, listAll, getMetadata
@@ -3071,7 +3070,47 @@
 
       // 🔹 RED SOCIAL - Funciones principales
 
-      
+      // 🔹 Inicializar red social - VERSIÓN MEJORADA
+      async function initializeSocialNetwork() {
+        agregarLogFirestore('cargarCertificaciones');
+        if (isSocialNetworkInitialized) {
+          console.log('⚠️ Red social ya estaba inicializada');
+          return;
+        }
+
+        isSocialNetworkInitialized = true;
+        console.log('🚀 Inicializando red social...');
+        console.log('👤 User ID:', currentUserId);
+        console.log('👑 Es admin:', isAdmin);
+        console.log('📝 User Data:', userData);
+
+        // Verificar que tenemos los datos necesarios
+        if (!currentUserId) {
+          console.error('❌ currentUserId no está definido');
+          mostrarMensaje('error', 'Error de sesión', 'Por favor, inicia sesión nuevamente.');
+          return;
+        }
+
+        if (!userData) {
+          console.error('❌ userData no está definido');
+          mostrarMensaje('error', 'Error de datos', 'No se pudieron cargar los datos del usuario.');
+          return;
+        }
+
+        // Verificar Firestore
+        const firestoreReady = await initializeFirestore();
+        if (!firestoreReady) {
+          mostrarMensaje('error', 'Error de conexión', 'No se pudo conectar con la base de datos.');
+          return;
+        }
+
+        setupUploadListeners();
+        checkPostCooldown();
+        await loadPosts();
+
+        console.log('✅ Red social inicializada correctamente');
+      }
+
       // 🔹 Configurar listeners para la subida - VERSIÓN CON VERIFICACIÓN
       function setupUploadListeners() {
         console.log('🎯 Configurando listeners...');
@@ -3453,142 +3492,101 @@
         }
       }
 
-      // 🔹 VERSIÓN SIMPLIFICADA - MÁS CONFiable
-const POSTS_PER_PAGE = 5;
-let lastVisiblePost = null;
-let allPostsLoaded = false;
-let observer = null;
-
-function setupInfiniteScroll() {
-    console.log('🎯 Configurando Observer simplificado...');
-    
-    // Limpiar observer anterior
-    if (observer) {
-        observer.disconnect();
-    }
-
-    // Crear nuevo observer
-    observer = new IntersectionObserver(
-        (entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting && !postsLoading && !allPostsLoaded) {
-                    console.log('🎯 Cargando más posts...');
-                    loadMorePosts();
-                }
-            });
-        },
-        {
-            root: null,
-            rootMargin: '50px',
-            threshold: 0
-        }
-    );
-
-    // Crear y observar trigger
-    createLoadMoreTrigger();
-}
-
-function createLoadMoreTrigger() {
-    // Remover trigger existente
-    const existingTrigger = document.getElementById('loadMoreTrigger');
-    if (existingTrigger) {
-        existingTrigger.remove();
-    }
-
-    // Crear nuevo trigger
-    const trigger = document.createElement('div');
-    trigger.id = 'loadMoreTrigger';
-    trigger.style.cssText = `
-        height: 20px;
-        width: 100%;
-        background: transparent;
-        margin: 10px 0;
-    `;
-    feed.appendChild(trigger);
-
-    // Observar el nuevo trigger
-    if (observer) {
-        observer.observe(trigger);
-        console.log('👀 Nuevo trigger observado');
-    }
-}
-
-async function loadPosts(loadMore = false) {
-    if (postsLoading) return;
-    if (loadMore && allPostsLoaded) return;
-
-    postsLoading = true;
-
-    try {
-        let q;
-        const postsRef = collection(db, "posts");
-
-        if (loadMore && lastVisiblePost) {
-            q = query(
-                postsRef,
-                where("status", "==", "approved"),
-                orderBy("timestamp", "desc"),
-                startAfter(lastVisiblePost),
-                limit(POSTS_PER_PAGE)
-            );
-        } else {
-            q = query(
-                postsRef,
-                where("status", "==", "approved"),
-                orderBy("timestamp", "desc"),
-                limit(POSTS_PER_PAGE)
-            );
+      // 🔹 Cargar publicaciones - VERSIÓN MEJORADA CON FALLBACK
+      async function loadPosts() {
+        agregarLogFirestore('loadPosts');
+        // 🔒 Protección contra llamadas simultáneas
+        if (postsLoading) {
+          console.log('⏳ LoadPosts ya en ejecución, ignorando...');
+          return;
         }
 
-        const querySnapshot = await getDocs(q);
-        console.log(`📥 ${loadMore ? 'Más' : 'Primeros'} ${querySnapshot.size} posts`);
-
-        if (!loadMore) {
-            feed.innerHTML = '';
+        // 🔒 Protección contra llamadas muy frecuentes (mínimo 30 segundos)
+        const now = Date.now();
+        if (lastLoadTime && (now - lastLoadTime < 30000)) {
+          console.log('⏰ LoadPosts llamado muy pronto, ignorando...');
+          return;
         }
 
-        if (querySnapshot.empty) {
-            if (loadMore) {
-                allPostsLoaded = true;
-                showEndOfFeed();
-            } else {
-                showEmptyFeed();
-            }
+        postsLoading = true;
+        lastLoadTime = now;
+        try {
+          console.log('📥 Cargando publicaciones aprobadas...');
+          console.log('🔍 Firestore Read - loadPosts iniciado');
+
+          const q = query(
+            collection(db, "posts"),
+            where("status", "==", "approved"),
+            orderBy("timestamp", "desc"),
+            //limit(20) // 🔥 LIMITAR a 20 publicaciones
+          );
+
+          const querySnapshot = await getDocs(q);
+          console.log(`📊 Se encontraron ${querySnapshot.size} publicaciones aprobadas`);
+
+          feed.innerHTML = '';
+
+          if (querySnapshot.empty) {
+            feed.innerHTML = `
+        <div class="empty-feed">
+          <h3>📷 No hay publicaciones aún</h3>
+          <p>¡Sé el primero en compartir algo!</p>
+        </div>
+      `;
             return;
-        }
+          }
 
-        // Mostrar posts
-        querySnapshot.forEach((doc) => {
+          querySnapshot.forEach((doc) => {
             const post = { ...doc.data(), id: doc.id };
             displayPost(post, doc.id);
-        });
+          });
 
-        // Actualizar paginación
-        lastVisiblePost = querySnapshot.docs[querySnapshot.docs.length - 1];
+        } catch (error) {
+          console.error('❌ Error cargando publicaciones:', error);
 
-        // Verificar si hay más posts
-        if (querySnapshot.size < POSTS_PER_PAGE) {
-            allPostsLoaded = true;
-            showEndOfFeed();
-        } else {
-            // 🔥 CLAVE: Siempre recrear el trigger después de cargar posts
-            setTimeout(() => {
-                createLoadMoreTrigger();
-            }, 100);
+          // Fallback: intentar cargar sin filtro
+          try {
+            console.log('🔄 Intentando carga sin filtro...');
+            const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
+            const querySnapshot = await getDocs(q);
+
+            feed.innerHTML = '';
+
+            if (querySnapshot.empty) {
+              feed.innerHTML = `
+                    <div class="empty-feed">
+                        <h3>📷 No hay publicaciones aún</h3>
+                        <p>¡Sé el primero en compartir algo!</p>
+                    </div>
+                `;
+              return;
+            }
+
+            // Filtrar manualmente las aprobadas
+            querySnapshot.forEach((doc) => {
+              const post = doc.data();
+              if (post.status === 'approved') {
+                displayPost({ ...post, id: doc.id }, doc.id);
+              }
+            });
+
+          } catch (fallbackError) {
+            console.error('❌ Error en fallback:', fallbackError);
+            feed.innerHTML = `
+                <div class="empty-feed">
+                    <h3>❌ Error al cargar publicaciones</h3>
+                    <p>${fallbackError.message || 'Intenta recargar la página'}</p>
+                    <button onclick="loadPosts()" style="margin-top: 10px; padding: 8px 16px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        Reintentar
+                    </button>
+                </div>
+            `;
+          } finally {
+            postsLoading = false;
+          }
         }
+      }
 
-    } catch (error) {
-        console.error('❌ Error:', error);
-    } finally {
-        postsLoading = false;
-    }
-}
-
-async function loadMorePosts() {
-    console.log('⬇️ Cargando más posts...');
-    await loadPosts(true);
-}
-      
       function agregarLogFirestore(funcion) {
         console.log(`🔍 Firestore Read - ${funcion}`, {
           timestamp: new Date().toISOString(),

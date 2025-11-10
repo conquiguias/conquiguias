@@ -3518,7 +3518,7 @@
             collection(db, "posts"),
             where("status", "==", "approved"),
             orderBy("timestamp", "desc"),
-            limit(20) // 🔥 LIMITAR a 20 publicaciones
+            //limit(20) // 🔥 LIMITAR a 20 publicaciones
           );
 
           const querySnapshot = await getDocs(q);

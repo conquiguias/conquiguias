@@ -3124,10 +3124,11 @@
 
       // 🔹 Inicializar red social - VERSIÓN MEJORADA
       async function initializeSocialNetwork() {
-        if (isSocialNetworkInitialized) return;
-
-        console.log('🚀 Inicializando red social con scroll infinito...');
-        isSocialNetworkInitialized = true;
+        agregarLogFirestore('cargarCertificaciones');
+        if (isSocialNetworkInitialized) {
+          console.log('⚠️ Red social ya estaba inicializada');
+          return;
+        }
 
         // Limpiar estados anteriores
         lastVisiblePost = null;
@@ -3140,13 +3141,8 @@
         // Cargar primeros posts
         await loadPosts(false);
 
-        // Activar scroll infinito
+        // 🔥 AGREGAR ESTA LÍNEA - Activar scroll infinito
         setupInfiniteScroll();
-        agregarLogFirestore('cargarCertificaciones');
-        if (isSocialNetworkInitialized) {
-          console.log('⚠️ Red social ya estaba inicializada');
-          return;
-        }
 
         isSocialNetworkInitialized = true;
         console.log('🚀 Inicializando red social...');
@@ -3174,9 +3170,7 @@
           return;
         }
 
-        setupUploadListeners();
-        checkPostCooldown();
-        await loadPosts();
+
 
         console.log('✅ Red social inicializada correctamente');
       }
@@ -3563,6 +3557,7 @@
       }
 
       // 🔹 Cargar publicaciones - VERSIÓN MEJORADA CON FALLBACK
+      // 🔹 Cargar publicaciones - VERSIÓN MEJORADA CON FALLBACK
       let lastVisiblePost = null;
       const POSTS_PER_PAGE = 5;
       let allPostsLoaded = false;
@@ -3581,6 +3576,11 @@
         }
 
         postsLoading = true;
+
+        // Mostrar indicador de carga solo para "cargar más"
+        if (loadMore) {
+          showLoadingIndicator();
+        }
 
         try {
           console.log('loadPosts', loadMore ? 'Cargando más posts' : 'Cargando posts iniciales');
@@ -3625,7 +3625,11 @@
           // Guardar el último post para la siguiente paginación
           lastVisiblePost = querySnapshot.docs[querySnapshot.docs.length - 1];
 
-          // Mostrar posts
+          // Mostrar posts (solo en carga inicial limpiar el feed)
+          if (!loadMore) {
+            feed.innerHTML = '';
+          }
+
           querySnapshot.forEach((doc) => {
             const post = { ...doc.data(), id: doc.id };
             displayPost(post, doc.id);
@@ -3644,13 +3648,6 @@
           postsLoading = false;
           hideLoadingIndicator();
         }
-      }
-
-      function agregarLogFirestore(funcion) {
-        console.log(`🔍 Firestore Read - ${funcion}`, {
-          timestamp: new Date().toISOString(),
-          user: currentUserId
-        });
       }
 
       // 🔹 Función para mostrar estado vacío
@@ -3691,7 +3688,6 @@
         if (postsLoading || allPostsLoaded) return;
 
         console.log('⬇️  Cargando más posts...');
-        showLoadingIndicator();
         await loadPosts(true);
       }
 
@@ -3713,6 +3709,13 @@
         if (loadingDiv) {
           loadingDiv.remove();
         }
+      }
+
+      function agregarLogFirestore(funcion) {
+        console.log(`🔍 Firestore Read - ${funcion}`, {
+          timestamp: new Date().toISOString(),
+          user: currentUserId
+        });
       }
 
       // 🔹 Mostrar publicación en el feed - VERSIÓN MEJORADA

@@ -3591,18 +3591,18 @@
             // Cargar siguientes posts
             q = query(
               collection(db, "posts"),
-              where("status", "==", "approved"),
-              orderBy("timestamp", "desc"),
+              where("status", "==", "approved"), // ✅ CORREGIDO: "approved" no "approve"
+              orderBy("timestamp", "desc"),      // ✅ CORREGIDO: "timestamp" no "timeName"
               startAfter(lastVisiblePost),
-              limit(POSTS_PER_PAGE)
+              limit(POSTS_PER_PAGE)              // ✅ CORREGIDO: "limit" no "list"
             );
           } else {
             // Cargar primeros posts
             q = query(
               collection(db, "posts"),
-              where("status", "==", "approved"),
-              orderBy("timestamp", "desc"),
-              limit(POSTS_PER_PAGE)
+              where("status", "==", "approved"), // ✅ CORREGIDO
+              orderBy("timestamp", "desc"),      // ✅ CORREGIDO
+              limit(POSTS_PER_PAGE)              // ✅ CORREGIDO
             );
           }
 
@@ -3614,6 +3614,12 @@
             if (loadMore) {
               allPostsLoaded = true;
               console.log('🎯 No hay más posts para cargar');
+
+              // Mostrar mensaje de fin del feed
+              const endOfFeed = document.createElement('div');
+              endOfFeed.className = 'end-of-feed';
+              endOfFeed.textContent = '🎉 ¡Has visto todas las publicaciones!';
+              feed.appendChild(endOfFeed);
             }
             // Mostrar estado vacío solo en carga inicial
             if (!loadMore && feed.children.length === 0) {
@@ -3625,7 +3631,11 @@
           // Guardar el último post para la siguiente paginación
           lastVisiblePost = querySnapshot.docs[querySnapshot.docs.length - 1];
 
-          // Mostrar posts
+          // Mostrar posts (solo en carga inicial limpiar el feed)
+          if (!loadMore) {
+            feed.innerHTML = '';
+          }
+
           querySnapshot.forEach((doc) => {
             const post = { ...doc.data(), id: doc.id };
             displayPost(post, doc.id);

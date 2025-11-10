@@ -1439,7 +1439,8 @@
         deleteDoc,
         limit,
         setDoc,
-        where
+        where,
+        startAfter
       } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
       import {
         getStorage, ref, uploadBytes, getDownloadURL, deleteObject, listAll, getMetadata
@@ -3452,114 +3453,77 @@
         }
       }
 
-      // 🔹 CONFIGURACIÓN MEJORADA DE PAGINACIÓN
+      // 🔹 VERSIÓN SIMPLIFICADA - MÁS CONFiable
 const POSTS_PER_PAGE = 5;
 let lastVisiblePost = null;
 let allPostsLoaded = false;
 let observer = null;
 
-// 🔹 MEJORAR LA CONFIGURACIÓN DEL OBSERVER
 function setupInfiniteScroll() {
-    console.log('🎯 Configurando Intersection Observer...');
+    console.log('🎯 Configurando Observer simplificado...');
     
-    // Eliminar cualquier observer anterior
+    // Limpiar observer anterior
     if (observer) {
         observer.disconnect();
-        observer = null;
     }
 
-    // Crear el observer
+    // Crear nuevo observer
     observer = new IntersectionObserver(
         (entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting && !postsLoading && !allPostsLoaded) {
-                    console.log('🎯 Trigger visible - Cargando más posts...');
+                    console.log('🎯 Cargando más posts...');
                     loadMorePosts();
                 }
             });
         },
         {
             root: null,
-            rootMargin: '100px', // Cargar 100px antes de llegar al final
-            threshold: 0.1
+            rootMargin: '50px',
+            threshold: 0
         }
     );
 
-    // Asegurar que el trigger exista y observarlo
-    ensureLoadMoreTrigger();
-    console.log('✅ Intersection Observer configurado');
+    // Crear y observar trigger
+    createLoadMoreTrigger();
 }
 
-// 🔹 FUNCIONES AUXILIARES MEJORADAS
-function ensureLoadMoreTrigger() {
-    let trigger = document.getElementById('loadMoreTrigger');
-    
-    // Si no existe, crearlo
-    if (!trigger) {
-        trigger = document.createElement('div');
-        trigger.id = 'loadMoreTrigger';
-        trigger.style.cssText = `
-            height: 10px;
-            width: 100%;
-            background: transparent;
-            margin: 20px 0;
-            padding: 0;
-        `;
-        feed.appendChild(trigger);
+function createLoadMoreTrigger() {
+    // Remover trigger existente
+    const existingTrigger = document.getElementById('loadMoreTrigger');
+    if (existingTrigger) {
+        existingTrigger.remove();
     }
-    
-    // Observar el trigger si existe el observer
+
+    // Crear nuevo trigger
+    const trigger = document.createElement('div');
+    trigger.id = 'loadMoreTrigger';
+    trigger.style.cssText = `
+        height: 20px;
+        width: 100%;
+        background: transparent;
+        margin: 10px 0;
+    `;
+    feed.appendChild(trigger);
+
+    // Observar el nuevo trigger
     if (observer) {
         observer.observe(trigger);
-        console.log('👀 Observando trigger:', trigger.id);
+        console.log('👀 Nuevo trigger observado');
     }
 }
 
-function removeLoadMoreTrigger() {
-    const trigger = document.getElementById('loadMoreTrigger');
-    if (trigger) {
-        if (observer) {
-            observer.unobserve(trigger);
-        }
-        trigger.remove();
-        console.log('🗑️ Trigger removido');
-    }
-}
-
-// 🔹 FUNCIÓN PRINCIPAL MEJORADA - CON RECONEXIÓN DEL OBSERVER
 async function loadPosts(loadMore = false) {
-    console.log('🔄 loadPosts - loadMore:', loadMore, 'allPostsLoaded:', allPostsLoaded);
-    
-    if (postsLoading) {
-        console.log('⏳ Posts ya cargando, ignorando...');
-        return;
-    }
-
-    if (loadMore && allPostsLoaded) {
-        console.log('📭 Todos los posts ya cargados');
-        removeLoadMoreTrigger();
-        showEndOfFeed();
-        return;
-    }
+    if (postsLoading) return;
+    if (loadMore && allPostsLoaded) return;
 
     postsLoading = true;
 
-    // Mostrar loading solo para cargas adicionales
-    if (loadMore) {
-        showLoadingIndicator();
-    } else {
-        // En carga inicial, mostrar loading breve
-        feed.innerHTML = '<div style="text-align: center; padding: 20px;">Cargando publicaciones...</div>';
-    }
-
     try {
-        console.log('📥 Preparando query...');
-
         let q;
         const postsRef = collection(db, "posts");
 
         if (loadMore && lastVisiblePost) {
-            console.log('➡️ Cargando MÁS posts con paginación');
             q = query(
                 postsRef,
                 where("status", "==", "approved"),
@@ -3568,7 +3532,6 @@ async function loadPosts(loadMore = false) {
                 limit(POSTS_PER_PAGE)
             );
         } else {
-            console.log('🆕 Cargando PRIMEROS posts');
             q = query(
                 postsRef,
                 where("status", "==", "approved"),
@@ -3578,13 +3541,15 @@ async function loadPosts(loadMore = false) {
         }
 
         const querySnapshot = await getDocs(q);
-        console.log('✅ Query completada - Documentos:', querySnapshot.size);
+        console.log(`📥 ${loadMore ? 'Más' : 'Primeros'} ${querySnapshot.size} posts`);
+
+        if (!loadMore) {
+            feed.innerHTML = '';
+        }
 
         if (querySnapshot.empty) {
-            console.log('❌ No se encontraron posts');
             if (loadMore) {
                 allPostsLoaded = true;
-                removeLoadMoreTrigger();
                 showEndOfFeed();
             } else {
                 showEmptyFeed();
@@ -3592,162 +3557,38 @@ async function loadPosts(loadMore = false) {
             return;
         }
 
-        // 🔥 LIMPIAR SOLO EN CARGA INICIAL
-        if (!loadMore) {
-            feed.innerHTML = '';
-        }
-
-        // 🔥 PROCESAR DOCUMENTOS
+        // Mostrar posts
         querySnapshot.forEach((doc) => {
-            const post = { 
-                ...doc.data(), 
-                id: doc.id
-            };
+            const post = { ...doc.data(), id: doc.id };
             displayPost(post, doc.id);
         });
 
-        // 🔥 ACTUALIZAR PAGINACIÓN
+        // Actualizar paginación
         lastVisiblePost = querySnapshot.docs[querySnapshot.docs.length - 1];
-        console.log('📌 Último documento para paginación:', lastVisiblePost.id);
 
-        // 🔥 VERIFICAR SI HAY MÁS POSTS
+        // Verificar si hay más posts
         if (querySnapshot.size < POSTS_PER_PAGE) {
             allPostsLoaded = true;
-            console.log('🎯 Última página alcanzada');
-            removeLoadMoreTrigger();
-            if (loadMore || querySnapshot.size > 0) {
-                showEndOfFeed();
-            }
+            showEndOfFeed();
         } else {
-            console.log('📖 Hay más posts por cargar');
-            // 🔥 CLAVE: RECONECTAR EL OBSERVER DESPUÉS DE CARGAR NUEVOS POSTS
+            // 🔥 CLAVE: Siempre recrear el trigger después de cargar posts
             setTimeout(() => {
-                ensureLoadMoreTrigger();
+                createLoadMoreTrigger();
             }, 100);
         }
 
     } catch (error) {
-        console.error('❌ ERROR en loadPosts:', error);
-        
-        if (!loadMore) {
-            feed.innerHTML = `
-                <div style="text-align: center; padding: 40px; color: #e74c3c;">
-                    <h3>❌ Error al cargar publicaciones</h3>
-                    <p>${error.message}</p>
-                    <button onclick="resetAndLoadPosts()" style="
-                        background: #3498db; 
-                        color: white; 
-                        border: none; 
-                        padding: 10px 20px; 
-                        border-radius: 5px; 
-                        cursor: pointer;
-                        margin-top: 10px;
-                    ">
-                        Reintentar
-                    </button>
-                </div>
-            `;
-        }
-        
-        mostrarMensaje('error', 'Error', 'No se pudieron cargar las publicaciones: ' + error.message);
+        console.error('❌ Error:', error);
     } finally {
         postsLoading = false;
-        hideLoadingIndicator();
-        console.log('🏁 loadPosts finalizado - Estado:', {
-            postsLoading,
-            allPostsLoaded,
-            lastVisiblePost: !!lastVisiblePost
-        });
     }
 }
 
-// 🔹 FUNCIÓN MEJORADA PARA CARGAR MÁS POSTS
 async function loadMorePosts() {
-    console.log('⬇️ loadMorePosts llamado');
-    console.log('📊 Estado actual:', {
-        postsLoading,
-        allPostsLoaded,
-        lastVisiblePost: !!lastVisiblePost
-    });
-    
-    if (postsLoading) {
-        console.log('⏳ Ya cargando, ignorando...');
-        return;
-    }
-    
-    if (allPostsLoaded) {
-        console.log('📭 Todos cargados, ignorando...');
-        removeLoadMoreTrigger();
-        return;
-    }
-
-    // Remover temporalmente el observer para evitar múltiples llamadas
-    removeLoadMoreTrigger();
-    
+    console.log('⬇️ Cargando más posts...');
     await loadPosts(true);
 }
-
-// 🔹 REINICIALIZAR PAGINACIÓN COMPLETAMENTE
-function resetPagination() {
-    console.log('🔄 Reiniciando paginación...');
-    lastVisiblePost = null;
-    allPostsLoaded = false;
-    postsLoading = false;
-    
-    // Limpiar completamente el observer
-    if (observer) {
-        observer.disconnect();
-        observer = null;
-    }
-    
-    removeLoadMoreTrigger();
-}
-
-// 🔹 MODIFICAR LA INICIALIZACIÓN PARA SER MÁS ROBUSTA
-async function initializeSocialNetwork() {
-    if (isSocialNetworkInitialized) {
-        console.log('⚠️ Red social ya inicializada, reiniciando...');
-        resetPagination();
-    }
-
-    console.log('🚀 INICIALIZANDO RED SOCIAL CON INTERSECTION OBSERVER...');
-    
-    setupUploadListeners();
-    checkPostCooldown();
-    
-    // Primero cargar posts, luego configurar observer
-    await loadPosts(false);
-    
-    // Configurar observer después de cargar los primeros posts
-    setTimeout(() => {
-        setupInfiniteScroll();
-    }, 500);
-
-    isSocialNetworkInitialized = true;
-    console.log('✅ Red social inicializada con Intersection Observer');
-}
-
-// 🔹 AGREGAR DEBUGGING EN TIEMPO REAL
-function debugObserver() {
-    console.log('🐛 DEBUG OBSERVER:', {
-        observer: !!observer,
-        postsLoading,
-        allPostsLoaded,
-        lastVisiblePost: !!lastVisiblePost,
-        trigger: !!document.getElementById('loadMoreTrigger'),
-        feedChildren: feed.children.length
-    });
-    
-    // Verificar si el trigger está siendo observado
-    if (observer && document.getElementById('loadMoreTrigger')) {
-        console.log('✅ Trigger está siendo observado');
-    } else {
-        console.log('❌ Trigger NO está siendo observado');
-    }
-}
-
-// Ejecutar en consola: debugObserver()
-
+      
       function agregarLogFirestore(funcion) {
         console.log(`🔍 Firestore Read - ${funcion}`, {
           timestamp: new Date().toISOString(),

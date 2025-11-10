@@ -3560,7 +3560,7 @@
       // 🔹 Cargar publicaciones - VERSIÓN MEJORADA CON FALLBACK
       // 🔹 Cargar publicaciones - VERSIÓN MEJORADA CON FALLBACK
       let lastVisiblePost = null;
-      const POSTS_PER_PAGE = 3;
+      const POSTS_PER_PAGE = 2;
       let allPostsLoaded = false;
 
       async function loadPosts(loadMore = false) {
@@ -3690,7 +3690,7 @@
         const clientHeight = window.innerHeight;
 
         // Usar un threshold más grande para asegurar la detección
-        const threshold = 500;
+        const threshold = 100;
 
         // Verificar que hay contenido y no estamos ya cargando
         if (scrollHeight <= clientHeight) return; // No hay scroll

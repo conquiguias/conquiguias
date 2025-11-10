@@ -1198,51 +1198,6 @@
       width: 100%;
       background: transparent;
     }
-
-    /* 🔹 ESTILOS PARA VIDEOS CON AUTOPLAY */
-    .video-container {
-      position: relative;
-      width: 100%;
-      background: #000;
-    }
-
-    .video-container video {
-      width: 100%;
-      max-height: 500px;
-      object-fit: contain;
-      background: #000;
-    }
-
-    .video-muted-indicator {
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
-      background: rgba(0, 0, 0, 0.7);
-      color: white;
-      padding: 5px 10px;
-      border-radius: 15px;
-      font-size: 12px;
-      z-index: 10;
-    }
-
-    .video-controls {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
-      display: flex;
-      gap: 10px;
-      z-index: 10;
-    }
-
-    .video-control-btn {
-      background: rgba(0, 0, 0, 0.7);
-      color: white;
-      border: none;
-      border-radius: 5px;
-      padding: 5px 10px;
-      cursor: pointer;
-      font-size: 12px;
-    }
   </style>
 </head>
 
@@ -1938,6 +1893,7 @@
       });
 
       function mostrarSeccion(seccion, botonActivo) {
+        pausarTodosLosVideos();
         [inicioSection, perfilSection, especialidadesSection, clubesSection, certificacionesSection, adminSection].forEach(sec => sec.classList.add("hidden"));
         [menuInicio, menuPerfil, menuEspecialidades, menuClubes, menuCertificaciones, menuAdmin].forEach(btn => btn.classList.remove("active"));
 
@@ -3173,7 +3129,8 @@
         setupUploadListeners();
         checkPostCooldown();
         await loadPosts(); // Esto ahora carga solo el primer lote
-
+        // Inicializar sistema de videos
+        inicializarSistemaVideos();
         console.log('✅ Red social inicializada correctamente');
       }
 
@@ -3564,8 +3521,6 @@
       let isLoadingMore = false; // Para evitar múltiples cargas simultáneas
       let postsPerLoad = 2; // Número de publicaciones a cargar por vez
       let observer = null; // Observer para el scroll infinito
-      let videoObserver = null; // Observer para autoplay de videos
-      let currentlyPlayingVideo = null; // Video que se está reproduciendo actualmente
 
       // 🔹 INICIALIZAR SCROLL INFINITO
       function initializeInfiniteScroll() {
@@ -3603,109 +3558,6 @@
 
         if (sentinel) {
           observer.observe(sentinel);
-        }
-      }
-
-      // 🔹 INICIALIZAR AUTOPLAY PARA VIDEOS
-      function initializeVideoAutoplay() {
-        // Desconectar observer anterior si existe
-        if (videoObserver) {
-          videoObserver.disconnect();
-        }
-
-        // Configurar Intersection Observer para videos
-        videoObserver = new IntersectionObserver((entries) => {
-          entries.forEach(entry => {
-            const video = entry.target;
-            const videoContainer = video.closest('.video-container');
-
-            if (entry.isIntersecting) {
-              // El video está visible en el centro de la pantalla
-              const rect = entry.boundingClientRect;
-              const viewportHeight = window.innerHeight;
-              const isInCenter = rect.top >= 0 && rect.bottom <= viewportHeight;
-
-              if (isInCenter) {
-                // Pausar el video que se estaba reproduciendo antes
-                if (currentlyPlayingVideo && currentlyPlayingVideo !== video) {
-                  pauseVideo(currentlyPlayingVideo);
-                }
-
-                // Reproducir el nuevo video
-                playVideo(video);
-                currentlyPlayingVideo = video;
-              }
-            } else {
-              // El video ya no es visible, pausarlo
-              if (currentlyPlayingVideo === video) {
-                pauseVideo(video);
-                currentlyPlayingVideo = null;
-              }
-            }
-          });
-        }, {
-          root: null,
-          rootMargin: '0px',
-          threshold: 0.6 // Se activa cuando el 60% del video es visible
-        });
-
-        // Observar todos los videos del feed
-        document.querySelectorAll('.auto-play-video').forEach(video => {
-          videoObserver.observe(video);
-        });
-      }
-
-      // 🔹 REPRODUCIR VIDEO (Versión mejorada)
-      async function playVideo(video) {
-        try {
-          console.log('▶️ Intentando reproducir video:', video.src);
-
-          // Primero asegurarnos de que el video esté muteado (requerido por políticas)
-          video.muted = true;
-
-          // Intentar reproducir
-          await video.play();
-
-          // Actualizar indicador
-          const muteIndicator = video.parentNode.querySelector('.video-muted-indicator');
-          if (muteIndicator) {
-            muteIndicator.textContent = '🔇 Sin sonido (haz clic para activar)';
-            muteIndicator.style.cursor = 'pointer';
-
-            // Agregar evento para activar sonido
-            muteIndicator.onclick = () => {
-              video.muted = false;
-              muteIndicator.textContent = '🔊 Sonido activado';
-              muteIndicator.style.cursor = 'default';
-            };
-          }
-
-          console.log('✅ Video reproducido exitosamente (sin sonido)');
-
-        } catch (error) {
-          console.error('❌ Error reproduciendo video:', error);
-
-          // Intentar con un enfoque diferente
-          try {
-            video.currentTime = 0;
-            await video.play();
-            console.log('✅ Video reproducido en segundo intento');
-          } catch (error2) {
-            console.error('❌ Error definitivo reproduciendo video:', error2);
-
-            // Mostrar controles nativos como fallback
-            video.controls = true;
-          }
-        }
-      }
-
-      // 🔹 PAUSAR VIDEO
-      function pauseVideo(video) {
-        try {
-          video.pause();
-          console.log('⏸️ Video pausado:', video.src);
-        } catch (error) {
-          console.error('❌ Error pausando video:', error);
         }
       }
 
@@ -3755,9 +3607,8 @@
             displayPost(post, doc.id);
           });
 
-          // Inicializar autoplay para los nuevos videos
           setTimeout(() => {
-            initializeVideoAutoplay();
+            inicializarSistemaVideos();
           }, 100);
 
           // Si cargamos menos de postsPerLoad, no hay más publicaciones
@@ -3832,9 +3683,8 @@
             displayPost(post, doc.id);
           });
 
-          // Inicializar autoplay para videos después de cargar las publicaciones
           setTimeout(() => {
-            initializeVideoAutoplay();
+            inicializarSistemaVideos();
           }, 100);
 
           // Si cargamos menos de postsPerLoad, no hay más publicaciones
@@ -3883,11 +3733,6 @@
                 lastVisiblePost = doc;
               }
             });
-
-            // Inicializar autoplay para videos después de cargar las publicaciones
-            setTimeout(() => {
-              initializeVideoAutoplay();
-            }, 100);
 
             if (approvedCount < postsPerLoad) {
               hasMorePosts = false;
@@ -3970,37 +3815,6 @@
           reaction => userReactions[reaction]
         );
 
-        // 🔥 CORRECCIÓN: Contenido multimedia unificado para autoplay
-        let mediaContent = '';
-
-        if (post.mediaType.startsWith('image/')) {
-          mediaContent = `
-      <img src="${post.mediaUrl}" alt="Publicación" loading="lazy" 
-           style="width: 100%; max-height: 500px; object-fit: contain; border-radius: 8px;"
-           onerror="this.style.display='none'">
-    `;
-        } else if (post.mediaType.startsWith('video/')) {
-          mediaContent = `
-      <div class="video-container">
-        <video class="auto-play-video" 
-               src="${post.mediaUrl}" 
-               playsinline 
-               loop
-               muted
-               style="width: 100%; max-height: 500px; object-fit: contain; border-radius: 8px;"
-               onerror="this.style.display='none'">
-        </video>
-        <div class="video-muted-indicator">🔇 Sin sonido (haz clic para activar)</div>
-        <div class="video-controls">
-          <button class="video-control-btn" onclick="togglePlayPause(this)">⏯️</button>
-          <button class="video-control-btn" onclick="toggleMute(this)">🔇</button>
-        </div>
-      </div>
-    `;
-        } else {
-          mediaContent = `<div style="padding: 20px; text-align: center; color: #666;">Tipo de archivo no compatible</div>`;
-        }
-
         postElement.innerHTML = `
     <div class="post-header">
       <img src="${post.userPhoto}" alt="Foto de perfil" class="post-user-img" onerror="this.src='https://dummyimage.com/40x40/ccc/fff'">
@@ -4023,7 +3837,7 @@
       ${post.mediaType.startsWith('image/')
             ? `<img src="${post.mediaUrl}" alt="Publicación" loading="lazy" onerror="this.style.display='none'">`
             : post.mediaType.startsWith('video/')
-              ? `<video src="${post.mediaUrl}" controls style="max-width: 100%; border-radius: 8px;"></video>`
+              ? `<video src="${post.mediaUrl}" playsinline loop muted controls style="max-width: 100%; border-radius: 8px;"></video>`
               : `<div style="padding: 20px; text-align: center; color: #666;">Tipo de archivo no compatible</div>`
           }
     </div>
@@ -4095,33 +3909,6 @@
 
         feed.appendChild(postElement);
       }
-
-      // 🔹 FUNCIONES GLOBALES PARA CONTROL DE VIDEOS
-      window.togglePlayPause = function (button) {
-        const video = button.closest('.video-container').querySelector('video');
-        if (video.paused) {
-          video.play();
-          button.textContent = '⏸️';
-        } else {
-          video.pause();
-          button.textContent = '▶️';
-        }
-      };
-
-      window.toggleMute = function (button) {
-        const video = button.closest('.video-container').querySelector('video');
-        const muteIndicator = button.closest('.video-container').querySelector('.video-muted-indicator');
-
-        video.muted = !video.muted;
-
-        if (video.muted) {
-          button.textContent = '🔇';
-          muteIndicator.textContent = '🔇 Sin sonido';
-        } else {
-          button.textContent = '🔊';
-          muteIndicator.textContent = '🔊 Sonido activado';
-        }
-      };
 
       // 🔹 Calcular tiempo transcurrido (formato humano)
       function getTimeAgo(date) {
@@ -4837,6 +4624,80 @@
         } catch (error) {
           console.error('❌ Error obteniendo administradores:', error);
         }
+      }
+
+      // 🔹 VARIABLE GLOBAL PARA SABER QUÉ VIDEO SE ESTÁ REPRODUCIENDO
+      let videoActualmenteReproduciendose = null;
+
+      // 🔹 CONFIGURAR EVENTOS PARA TODOS LOS VIDEOS
+      function configurarEventosVideos() {
+        // Remover event listeners anteriores para evitar duplicados
+        document.querySelectorAll('video').forEach(video => {
+          video.replaceWith(video.cloneNode(true));
+        });
+
+        // Agregar event listeners a todos los videos
+        document.querySelectorAll('video').forEach(video => {
+          video.addEventListener('play', function () {
+            manejarPlayVideo(this);
+          });
+
+          video.addEventListener('pause', function () {
+            manejarPauseVideo(this);
+          });
+        });
+      }
+
+      // 🔹 CUANDO UN VIDEO COMIENZA A REPRODUCIRSE
+      function manejarPlayVideo(videoQueSeReproduce) {
+        console.log('▶️ Video comenzó a reproducirse:', videoQueSeReproduce.src);
+
+        // Si hay otro video reproduciéndose, pausarlo
+        if (videoActualmenteReproduciendose &&
+          videoActualmenteReproduciendose !== videoQueSeReproduce &&
+          !videoActualmenteReproduciendose.paused) {
+
+          console.log('⏸️ Pausando video anterior:', videoActualmenteReproduciendose.src);
+          videoActualmenteReproduciendose.pause();
+        }
+
+        // Actualizar el video actual
+        videoActualmenteReproduciendose = videoQueSeReproduce;
+      }
+
+      // 🔹 CUANDO UN VIDEO SE PAUSA
+      function manejarPauseVideo(videoQueSePausa) {
+        console.log('⏸️ Video se pausó:', videoQueSePausa.src);
+
+        // Si el video que se pausa es el que estaba reproduciéndose, limpiar la variable
+        if (videoActualmenteReproduciendose === videoQueSePausa) {
+          videoActualmenteReproduciendose = null;
+        }
+      }
+
+      // 🔹 INICIALIZAR EL SISTEMA DESPUÉS DE CARGAR POSTS
+      function inicializarSistemaVideos() {
+        // Pequeño delay para asegurar que los videos estén en el DOM
+        setTimeout(() => {
+          configurarEventosVideos();
+          console.log('✅ Sistema de videos inicializado');
+        }, 500);
+      }
+
+      // 🔹 PAUSAR TODOS LOS VIDEOS (útil para cambiar de sección)
+      function pausarTodosLosVideos() {
+        if (videoActualmenteReproduciendose) {
+          videoActualmenteReproduciendose.pause();
+        }
+
+        document.querySelectorAll('video').forEach(video => {
+          if (!video.paused) {
+            video.pause();
+          }
+        });
+
+        videoActualmenteReproduciendose = null;
+        console.log('⏸️ Todos los videos pausados');
       }
     </script>
 

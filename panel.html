@@ -3560,46 +3560,104 @@
       // 🔹 Cargar publicaciones - VERSIÓN MEJORADA CON FALLBACK
       // 🔹 Cargar publicaciones - VERSIÓN MEJORADA CON FALLBACK
       let lastVisiblePost = null;
-      const POSTS_PER_PAGE = 5;
+      const POSTS_PER_PAGE = 3;
       let allPostsLoaded = false;
 
-      // TEMPORAL: Solo cargar primeros posts para probar
-async function loadPosts(loadMore = false) {
-  if (postsLoading) return;
-  if (loadMore && allPostsLoaded) return;
+      async function loadPosts(loadMore = false) {
+        // 🔒 Protección contra llamadas múltiples
+        if (postsLoading) {
+          console.log('⏳ Posts ya cargando, ignorando...');
+          return;
+        }
 
-  postsLoading = true;
-  
-  try {
-    console.log('🎯 loadPosts (versión temporal):', { loadMore });
-    
-    // SIEMPRE cargar los primeros posts por ahora
-    const q = query(
-      collection(db, "posts"),
-      where("status", "==", "approved"),
-      orderBy("timestamp", "desc"),
-      limit(POSTS_PER_PAGE)
-    );
+        // Si no hay más posts, no cargar
+        if (loadMore && allPostsLoaded) {
+          console.log('📭 Todos los posts ya cargados');
+          return;
+        }
 
-    const querySnapshot = await getDocs(q);
-    console.log(`✅ ${querySnapshot.size} posts cargados`);
-    
-    if (!loadMore) {
-      feed.innerHTML = '';
-    }
+        postsLoading = true;
 
-    querySnapshot.forEach((doc) => {
-      const post = { ...doc.data(), id: doc.id };
-      displayPost(post, doc.id);
-    });
+        // Mostrar indicador de carga solo para "cargar más"
+        if (loadMore) {
+          showLoadingIndicator();
+        }
 
-  } catch (error) {
-    console.error('❌ Error cargando posts:', error);
-  } finally {
-    postsLoading = false;
-  }
-}
+        try {
+          console.log('loadPosts', loadMore ? 'Cargando más posts' : 'Cargando posts iniciales');
 
+          let q;
+
+          if (loadMore && lastVisiblePost) {
+            console.log('📥 Cargando MÁS posts (paginación)...');
+            q = query(
+              collection(db, "posts"),
+              where("status", "==", "approved"),
+              orderBy("timestamp", "desc"),
+              startAfter(lastVisiblePost),
+              limit(POSTS_PER_PAGE)
+            );
+          } else {
+            console.log('📥 Cargando PRIMEROS posts (inicial)...');
+            q = query(
+              collection(db, "posts"),
+              where("status", "==", "approved"),
+              orderBy("timestamp", "desc"),
+              limit(POSTS_PER_PAGE)
+            );
+          }
+
+          const querySnapshot = await getDocs(q);
+
+          console.log(`${loadMore ? 'Más' : 'Primeros'} ${querySnapshot.size} posts cargados`);
+
+          if (querySnapshot.empty) {
+            if (loadMore) {
+              allPostsLoaded = true;
+              console.log('🎯 No hay más posts para cargar');
+            }
+            // Mostrar estado vacío solo en carga inicial
+            if (!loadMore && feed.children.length === 0) {
+              showEmptyFeed();
+            }
+            return;
+          }
+
+          // Guardar el último post para la siguiente paginación
+          lastVisiblePost = querySnapshot.docs[querySnapshot.docs.length - 1];
+
+          // Mostrar posts (solo en carga inicial limpiar el feed)
+          if (!loadMore) {
+            feed.innerHTML = '';
+          }
+
+          querySnapshot.forEach((doc) => {
+            const post = { ...doc.data(), id: doc.id };
+            displayPost(post, doc.id);
+          });
+
+          setTimeout(() => {
+            console.log('🔄 Forzando verificación de scroll después de carga...');
+            handleScroll();
+          }, 1000);
+
+          // Si cargamos menos de los solicitados, no hay más
+          if (querySnapshot.size < POSTS_PER_PAGE) {
+            allPostsLoaded = true;
+            console.log('🎯 Últimos posts cargados');
+          }
+
+
+        } catch (error) {
+          console.error('❌ Error cargando posts:', error);
+          mostrarMensaje('error', 'Error', 'No se pudieron cargar las publicaciones.');
+        } finally {
+          postsLoading = false;
+          hideLoadingIndicator();
+        }
+      }
+
+      
       // 🔹 Función para mostrar estado vacío
       function showEmptyFeed() {
         feed.innerHTML = `

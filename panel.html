@@ -1217,6 +1217,32 @@
       border-top: 1px solid #eee;
       margin-top: 20px;
     }
+
+    /* 🔹 Estilos para el final del feed */
+.end-of-feed {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+    border-top: 1px solid #eee;
+    margin-top: 20px;
+}
+
+.end-of-feed p {
+    margin: 5px 0;
+}
+
+/* 🔹 Mejorar el indicador de carga */
+#loadingIndicator {
+    text-align: center;
+    padding: 30px;
+    color: #666;
+    font-size: 14px;
+}
+
+/* 🔹 Asegurar que el feed ocupe espacio mínimo en desktop */
+#feed {
+    min-height: 60vh;
+}
   </style>
 </head>
 
@@ -3125,56 +3151,29 @@
 
       // 🔹 Inicializar red social - VERSIÓN MEJORADA
       async function initializeSocialNetwork() {
-        agregarLogFirestore('cargarCertificaciones');
-        if (isSocialNetworkInitialized) {
-          console.log('⚠️ Red social ya estaba inicializada');
-          return;
-        }
+    if (isSocialNetworkInitialized) {
+        console.log('⚠️ Red social ya estaba inicializada');
+        return;
+    }
 
-        // Limpiar estados anteriores
-        lastVisiblePost = null;
-        allPostsLoaded = false;
-        feed.innerHTML = '';
+    // Limpiar estados anteriores
+    lastVisiblePost = null;
+    allPostsLoaded = false;
+    feed.innerHTML = '';
 
-        setupUploadListeners();
-        checkPostCooldown();
+    setupUploadListeners();
+    checkPostCooldown();
 
-        // Cargar primeros posts
-        await loadPosts(false);
+    // Cargar primeros posts
+    await loadPosts(false);
 
-        // 🔥 AGREGAR ESTA LÍNEA - Activar scroll infinito
-        setupInfiniteScroll();
+    // 🔥 INICIALIZAR SCROLL Y VERIFICAR CONTENIDO INICIAL
+    setupInfiniteScroll();
+    checkInitialContent();
 
-        isSocialNetworkInitialized = true;
-        console.log('🚀 Inicializando red social...');
-        console.log('👤 User ID:', currentUserId);
-        console.log('👑 Es admin:', isAdmin);
-        console.log('📝 User Data:', userData);
-
-        // Verificar que tenemos los datos necesarios
-        if (!currentUserId) {
-          console.error('❌ currentUserId no está definido');
-          mostrarMensaje('error', 'Error de sesión', 'Por favor, inicia sesión nuevamente.');
-          return;
-        }
-
-        if (!userData) {
-          console.error('❌ userData no está definido');
-          mostrarMensaje('error', 'Error de datos', 'No se pudieron cargar los datos del usuario.');
-          return;
-        }
-
-        // Verificar Firestore
-        const firestoreReady = await initializeFirestore();
-        if (!firestoreReady) {
-          mostrarMensaje('error', 'Error de conexión', 'No se pudo conectar con la base de datos.');
-          return;
-        }
-
-
-
-        console.log('✅ Red social inicializada correctamente');
-      }
+    isSocialNetworkInitialized = true;
+    console.log('🚀 Red social inicializada - Modo Desktop:', window.innerWidth > 1024);
+}
 
       // 🔹 Configurar listeners para la subida - VERSIÓN CON VERIFICACIÓN
       function setupUploadListeners() {
@@ -3563,99 +3562,117 @@
       const POSTS_PER_PAGE = 2;
       let allPostsLoaded = false;
 
-      async function loadPosts(loadMore = false) {
-        // 🔒 Protección contra llamadas múltiples
-        if (postsLoading) {
-          console.log('⏳ Posts ya cargando, ignorando...');
-          return;
-        }
+      // 🔹 MEJORAR LA FUNCIÓN loadPosts
+async function loadPosts(loadMore = false) {
+    if (postsLoading) {
+        console.log('⏳ Posts ya cargando, ignorando...');
+        return;
+    }
 
-        // Si no hay más posts, no cargar
-        if (loadMore && allPostsLoaded) {
-          console.log('📭 Todos los posts ya cargados');
-          return;
-        }
+    if (loadMore && allPostsLoaded) {
+        console.log('📭 Todos los posts ya cargados');
+        hideLoadingIndicator();
+        showEndOfFeed();
+        return;
+    }
 
-        postsLoading = true;
+    postsLoading = true;
 
-        // Mostrar indicador de carga solo para "cargar más"
-        if (loadMore) {
-          showLoadingIndicator();
-        }
+    if (loadMore) {
+        showLoadingIndicator();
+    }
 
-        try {
-          console.log('loadPosts', loadMore ? 'Cargando más posts' : 'Cargando posts iniciales');
+    try {
+        console.log('📥', loadMore ? 'Cargando MÁS posts' : 'Cargando posts iniciales');
 
-          let q;
+        let q;
+        const postsRef = collection(db, "posts");
 
-          if (loadMore && lastVisiblePost) {
-            console.log('📥 Cargando MÁS posts (paginación)...');
+        if (loadMore && lastVisiblePost) {
             q = query(
-              collection(db, "posts"),
-              where("status", "==", "approved"),
-              orderBy("timestamp", "desc"),
-              startAfter(lastVisiblePost),
-              limit(POSTS_PER_PAGE)
+                postsRef,
+                where("status", "==", "approved"),
+                orderBy("timestamp", "desc"),
+                startAfter(lastVisiblePost),
+                limit(POSTS_PER_PAGE)
             );
-          } else {
-            console.log('📥 Cargando PRIMEROS posts (inicial)...');
+        } else {
             q = query(
-              collection(db, "posts"),
-              where("status", "==", "approved"),
-              orderBy("timestamp", "desc"),
-              limit(POSTS_PER_PAGE)
+                postsRef,
+                where("status", "==", "approved"),
+                orderBy("timestamp", "desc"),
+                limit(POSTS_PER_PAGE)
             );
-          }
+        }
 
-          const querySnapshot = await getDocs(q);
+        const querySnapshot = await getDocs(q);
+        console.log(`✅ ${querySnapshot.size} posts cargados`);
 
-          console.log(`${loadMore ? 'Más' : 'Primeros'} ${querySnapshot.size} posts cargados`);
-
-          if (querySnapshot.empty) {
+        if (querySnapshot.empty) {
             if (loadMore) {
-              allPostsLoaded = true;
-              console.log('🎯 No hay más posts para cargar');
-            }
-            // Mostrar estado vacío solo en carga inicial
-            if (!loadMore && feed.children.length === 0) {
-              showEmptyFeed();
+                allPostsLoaded = true;
+                showEndOfFeed();
+                console.log('🎯 No hay más posts para cargar');
+            } else if (feed.children.length === 0) {
+                showEmptyFeed();
             }
             return;
-          }
+        }
 
-          // Guardar el último post para la siguiente paginación
-          lastVisiblePost = querySnapshot.docs[querySnapshot.docs.length - 1];
+        // Guardar el último post para paginación
+        lastVisiblePost = querySnapshot.docs[querySnapshot.docs.length - 1];
 
-          // Mostrar posts (solo en carga inicial limpiar el feed)
-          if (!loadMore) {
+        // Mostrar posts
+        if (!loadMore) {
             feed.innerHTML = '';
-          }
+        }
 
-          querySnapshot.forEach((doc) => {
+        querySnapshot.forEach((doc) => {
             const post = { ...doc.data(), id: doc.id };
             displayPost(post, doc.id);
-          });
+        });
 
-          setTimeout(() => {
-            console.log('🔄 Forzando verificación de scroll después de carga...');
-            handleScroll();
-          }, 1000);
-
-          // Si cargamos menos de los solicitados, no hay más
-          if (querySnapshot.size < POSTS_PER_PAGE) {
-            allPostsLoaded = true;
-            console.log('🎯 Últimos posts cargados');
-          }
-
-
-        } catch (error) {
-          console.error('❌ Error cargando posts:', error);
-          mostrarMensaje('error', 'Error', 'No se pudieron cargar las publicaciones.');
-        } finally {
-          postsLoading = false;
-          hideLoadingIndicator();
+        // Verificar si necesitamos cargar más inmediatamente (para desktop)
+        if (!loadMore && window.innerWidth > 1024) {
+            setTimeout(() => {
+                const needsMoreContent = document.documentElement.scrollHeight <= window.innerHeight * 1.5;
+                if (needsMoreContent && !allPostsLoaded && !postsLoading) {
+                    console.log('🖥️ Desktop: Cargando más contenido por pantalla grande...');
+                    loadMorePosts();
+                }
+            }, 500);
         }
-      }
+
+        if (querySnapshot.size < POSTS_PER_PAGE) {
+            allPostsLoaded = true;
+            if (loadMore) {
+                showEndOfFeed();
+            }
+        }
+
+    } catch (error) {
+        console.error('❌ Error cargando posts:', error);
+        mostrarMensaje('error', 'Error', 'No se pudieron cargar las publicaciones.');
+    } finally {
+        postsLoading = false;
+        hideLoadingIndicator();
+    }
+}
+
+// 🔹 AGREGAR FUNCIÓN PARA MOSTRAR FIN DEL FEED
+function showEndOfFeed() {
+    const existingEnd = document.getElementById('endOfFeed');
+    if (existingEnd) return;
+    
+    const endDiv = document.createElement('div');
+    endDiv.id = 'endOfFeed';
+    endDiv.className = 'end-of-feed';
+    endDiv.innerHTML = `
+        <p>🎉 ¡Has visto todas las publicaciones!</p>
+        <p>Vuelve más tarde para ver contenido nuevo.</p>
+    `;
+    feed.appendChild(endDiv);
+}
 
 
       // 🔹 Función para mostrar estado vacío
@@ -3672,66 +3689,90 @@
       let scrollHandlerAdded = false;
 
       function setupInfiniteScroll() {
-        if (scrollHandlerAdded) return;
+    if (scrollHandlerAdded) return;
 
-        // Usar passive events para mejor performance
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        window.addEventListener('resize', handleScroll, { passive: true }); // También en resize
-        window.addEventListener('orientationchange', handleScroll, { passive: true });
-
-        // 🔥 MÚLTIPLES EVENTOS PARA COMPUTADORA
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        window.addEventListener('wheel', handleScroll, { passive: true }); // Rueda del mouse
-        window.addEventListener('touchmove', handleScroll, { passive: true }); // Touch
-
-        // 🔥 FORZAR DETECCIÓN PERIÓDICA EN COMPUTADORA
+    // Evento principal de scroll
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // 🔥 EVENTOS ADICIONALES ESPECÍFICOS PARA COMPUTADORA
+    if (window.innerWidth > 1024) {
+        // Detectar rueda del mouse
+        window.addEventListener('wheel', (e) => {
+            if (e.deltaY > 0) { // Solo cuando se hace scroll hacia abajo
+                setTimeout(handleScroll, 100);
+            }
+        }, { passive: true });
+        
+        // Detectar teclas de página y flechas
+        window.addEventListener('keydown', (e) => {
+            if (['PageDown', 'ArrowDown', 'Space', ' '].includes(e.key)) {
+                setTimeout(handleScroll, 150);
+            }
+        });
+        
+        // 🔥 DETECCIÓN PERIÓDICA MÁS AGRESIVA EN COMPUTADORA
         setInterval(() => {
-          if (!postsLoading && !allPostsLoaded) {
-            handleScroll();
-          }
-        }, 500);
+            if (!postsLoading && !allPostsLoaded) {
+                const scrollHeight = document.documentElement.scrollHeight;
+                const clientHeight = window.innerHeight;
+                
+                // Si hay poco contenido, cargar más inmediatamente
+                if (scrollHeight <= clientHeight * 2) {
+                    console.log('🔄 Poco contenido detectado, cargando más...');
+                    loadMorePosts();
+                }
+            }
+        }, 1000);
+    }
 
-        scrollHandlerAdded = true;
-        console.log('🎯 Scroll infinito activado con eventos pasivos');
-      }
+    scrollHandlerAdded = true;
+    console.log('🎯 Scroll infinito activado - Modo:', window.innerWidth > 1024 ? 'Desktop' : 'Mobile');
+}
 
       let isScrolling = false;
 
       function handleScroll() {
-        const scrollTop = window.scrollY || document.documentElement.scrollTop;
-        const scrollHeight = document.documentElement.scrollHeight;
-        const clientHeight = window.innerHeight;
+    if (postsLoading || allPostsLoaded) return;
+    
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const scrollHeight = document.documentElement.scrollHeight;
+    const clientHeight = window.innerHeight;
+    
+    // 🔥 DETECCIÓN MÁS AGRESIVA PARA COMPUTADORAS
+    const isMobile = window.innerWidth <= 1024;
+    const threshold = isMobile ? 100 : 500; // Umbral más grande en desktop
+    
+    const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+    const isNearEnd = distanceFromBottom <= threshold;
+    
+    // 🔥 NUEVA DETECCIÓN: Si el contenido es más pequeño que el viewport, cargar más
+    const isSmallContent = scrollHeight <= clientHeight * 1.5;
+    
+    if (isNearEnd || isSmallContent) {
+        console.log('🎯 Activando carga - NearEnd:', isNearEnd, 'SmallContent:', isSmallContent);
+        loadMorePosts();
+    }
+}
 
-        // Usar un threshold más grande para asegurar la detección
-        const threshold = 0;
+async function loadMorePosts() {
+    if (postsLoading || allPostsLoaded) return;
+    
+    console.log('⬇️ Cargando más posts...');
+    await loadPosts(true);
+}
 
-        // Verificar que hay contenido y no estamos ya cargando
-        if (scrollHeight <= clientHeight) return; // No hay scroll
-        if (postsLoading || allPostsLoaded) return;
-
-        const isNearEnd = (scrollTop + clientHeight >= scrollHeight - threshold);
-
-        console.log('🔍 Scroll check:', {
-          scrollTop,
-          scrollHeight,
-          clientHeight,
-          isNearEnd,
-          postsLoading,
-          allPostsLoaded
-        });
-
-        if (isNearEnd) {
-          console.log('🎯 Cargando más posts...');
-          loadMorePosts();
+function checkInitialContent() {
+    setTimeout(() => {
+        const feed = document.getElementById('feed');
+        const hasContent = feed.children.length > 0;
+        const isSmallViewport = window.innerHeight >= document.documentElement.scrollHeight;
+        
+        if (hasContent && isSmallViewport && !allPostsLoaded && !postsLoading) {
+            console.log('📱 Viewport con espacio disponible, cargando más contenido...');
+            loadMorePosts();
         }
-      }
-
-      async function loadMorePosts() {
-        if (postsLoading || allPostsLoaded) return;
-
-        console.log('⬇️  Cargando más posts...');
-        await loadPosts(true);
-      }
+    }, 2000);
+}
 
       // 🔹 Indicadores de carga
       function showLoadingIndicator() {

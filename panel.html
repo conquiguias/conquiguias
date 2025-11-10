@@ -3837,7 +3837,7 @@
       ${post.mediaType.startsWith('image/')
             ? `<img src="${post.mediaUrl}" alt="Publicación" loading="lazy" onerror="this.style.display='none'">`
             : post.mediaType.startsWith('video/')
-              ? `<video src="${post.mediaUrl}" playsinline loop controls style="max-width: 100%; border-radius: 8px;"></video>`
+              ? `<video src="${post.mediaUrl}" autoplay playsinline loop controls style="max-width: 100%; border-radius: 8px;"></video>`
               : `<div style="padding: 20px; text-align: center; color: #666;">Tipo de archivo no compatible</div>`
           }
     </div>
@@ -4093,7 +4093,7 @@
         });
       }
 
-      
+
       // 🔹 Eliminar publicación (para admin o dueño del post)
       // 🔹 Eliminar publicación (versión corregida)
       async function deletePost(postId, imgurDeletehash) {
@@ -4600,7 +4600,6 @@
           mostrarMensaje('error', 'Error en migración', 'No se pudieron migrar las publicaciones antiguas.');
         }
       }
-
 
       // 🔹 Lista global de administradores (se llena automáticamente)
       let ADMIN_EMAILS = [];

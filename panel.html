@@ -29,6 +29,7 @@
   --warning-color: #f59e0b;
   --border-color: #334155;
   --shadow-color: rgba(0, 0, 0, 0.3);
+  --shadow-light: rgba(0, 0, 0, 0.1);
 }
 
 /* Reset básico */
@@ -920,6 +921,36 @@ h4 {
   font-weight: bold;
 }
 
+.loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ============================================
    RESPONSIVE DESIGN - MODO NOCHE
    ============================================ */
@@ -1058,6 +1089,25 @@ h4 {
   #userHeader span {
     font-size: 14px;
   }
+
+  /* Mejorar scroll del menú */
+  #sidebar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  }
+
+  #sidebar::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  #sidebar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  #sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+  }
 }
 
 /* 🔹 MÓVIL PEQUEÑO (375px - 575px) */
@@ -1101,37 +1151,6 @@ h4 {
 
   #sidebar::-webkit-scrollbar {
     display: none;
-  }
-}
-
-/* 🔹 ANIMACIONES Y ESTADOS */
-.loading {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 3px solid var(--bg-secondary);
-  border-top: 3px solid var(--accent-color);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
   </style>

@@ -1688,7 +1688,9 @@
       <div class="card card-certificaciones">
         <h2>📜 Mis Certificaciones de Especialidades</h2>
         <p>Aquí puedes ver todas las especialidades en las que has participado, validadas con tu correo electrónico.</p>
-
+        <button onclick="diagnosticarProblemaCertificaciones(); cargarCertificaciones();" style="margin: 10px; padding: 8px 16px; background: #ff9800; color: white; border: none; border-radius: 4px;">
+    🔍 Diagnosticar y Recargar
+</button>
         <div id="certificacionesLoading" style="text-align: center; padding: 20px;">
           <div class="loading" style="display: inline-block;"></div>
           <p>Cargando tus certificaciones...</p>
@@ -5355,6 +5357,35 @@ function smoothScrollToPost(postElement) {
         isProgrammaticScroll = false;
     }, 1000);
 }
+
+// 🔹 AGREGAR ESTA FUNCIÓN PARA DIAGNOSTICAR EL PROBLEMA
+function diagnosticarProblemaCertificaciones() {
+    const user = auth.currentUser;
+    const userEmail = user ? user.email : 'No autenticado';
+    const visitanteId = localStorage.getItem("visitanteId");
+    const platform = navigator.userAgent;
+    
+    console.log('🔍 Diagnóstico de certificaciones:', {
+        userEmail: userEmail,
+        visitanteId: visitanteId,
+        currentUserId: currentUserId,
+        platform: platform,
+        localStorageSupport: typeof(Storage) !== "undefined",
+        localStorageVisitanteId: visitanteId
+    });
+    
+    // Mostrar esta información en un mensaje de diagnóstico
+    mostrarMensaje('info', 'Diagnóstico', `
+        Email: ${userEmail}<br>
+        VisitanteId: ${visitanteId || 'No encontrado'}<br>
+        UserId: ${currentUserId || 'No disponible'}<br>
+        Plataforma: ${platform.includes('Mobile') ? 'Móvil' : 'Escritorio'}
+    `);
+}
+
+// Llamar al diagnóstico cuando haya problemas
+// Puedes agregar un botón temporal en tu HTML para probar:
+// <button onclick="diagnosticarProblemaCertificaciones()">Diagnóstico</button>
     </script>
 
 

@@ -2485,79 +2485,74 @@ async function cargarCertificaciones() {
                     const fechaFin = fechaCierreFormulario ? new Date(fechaCierreFormulario) : null;
                     const hoy = new Date();
 
-                    // 🔹 CORRECCIÓN: Buscar TODAS las respuestas del usuario por correo Y por visitanteId
-                    let respuestasUsuario = [];
+                    // 🔹 PASO 1: Encontrar el visitanteId del usuario actual
+                    let miVisitanteId = visitanteId;
                     
-                    // Buscar por correo
-                    respuestasUsuario = respuestas.filter(r => r.correo === userEmail);
-                    
-                    // Si no encontramos por correo, buscar por visitanteId
-                    if (respuestasUsuario.length === 0 && visitanteId) {
-                        respuestasUsuario = respuestas.filter(r => r.visitanteId === visitanteId);
-                    }
-                    
-                    // 🔹 NUEVA LÓGICA: Si tenemos visitanteId, buscar TODAS las respuestas de ese visitanteId
-                    if (visitanteId && respuestasUsuario.length > 0) {
-                        const miVisitanteId = respuestasUsuario[0].visitanteId;
-                        const todasMisRespuestas = respuestas.filter(r => r.visitanteId === miVisitanteId);
-                        if (todasMisRespuestas.length > respuestasUsuario.length) {
-                            respuestasUsuario = todasMisRespuestas;
-                            console.log(`🔍 Encontradas ${todasMisRespuestas.length} respuestas para visitanteId ${miVisitanteId}`);
+                    // Si no tenemos visitanteId, buscarlo en las respuestas por correo
+                    if (!miVisitanteId) {
+                        const respuestaUsuario = respuestas.find(r => r.correo === userEmail);
+                        if (respuestaUsuario) {
+                            miVisitanteId = respuestaUsuario.visitanteId;
+                            // Guardar en localStorage para futuras consultas
+                            localStorage.setItem("visitanteId", miVisitanteId);
                         }
                     }
+
+                    // Si no encontramos visitanteId, continuar
+                    if (!miVisitanteId) {
+                        continue;
+                    }
+
+                    // 🔹 PASO 2: Buscar TODAS las respuestas del usuario por visitanteId
+                    const respuestasUsuario = respuestas.filter(r => r.visitanteId === miVisitanteId);
 
                     // Si no encontramos respuestas, continuar con el siguiente formulario
                     if (respuestasUsuario.length === 0) {
                         continue;
                     }
 
-                    console.log(`📋 Formulario ${formularioId}:`, {
-                        usuario: userEmail,
-                        respuestasEncontradas: respuestasUsuario.length,
-                        datosRespuestas: respuestasUsuario.map(r => ({
-                            asistenciaNumero: r.asistenciaNumero,
-                            correo: r.correo,
-                            visitanteId: r.visitanteId
+                    console.log(`📋 Formulario ${formularioId} - VisitanteId: ${miVisitanteId}:`, {
+                        totalRespuestas: respuestasUsuario.length,
+                        asistencias: respuestasUsuario.map(r => ({
+                            numero: r.asistenciaNumero,
+                            fecha: r.fecha,
+                            tieneCorreo: !!r.correo
                         }))
                     });
 
-                    // 🔹 CORRECCIÓN: Contar asistencias únicas
-                    const asistenciasValidas = respuestasUsuario.filter(r => 
-                        r.asistenciaNumero === 1 || r.asistenciaNumero === 2 || r.asistenciaNumero === 3
+                    // 🔹 CORRECCIÓN: Contar asistencias únicas por número
+                    const numerosAsistencia = respuestasUsuario.map(r => r.asistenciaNumero);
+                    const asistenciasUnicas = [...new Set(numerosAsistencia)];
+                    
+                    // Filtrar solo asistencias válidas (1, 2, 3)
+                    const asistenciasValidas = asistenciasUnicas.filter(num => 
+                        num === 1 || num === 2 || num === 3
                     );
                     
-                    const numerosAsistenciaUnicos = [...new Set(asistenciasValidas.map(r => r.asistenciaNumero))];
-                    const asistenciasCompletadas = numerosAsistenciaUnicos.length;
+                    const asistenciasCompletadas = asistenciasValidas.length;
 
-                    // 🔹 CORRECCIÓN: Buscar examen - usar el visitanteId del usuario
-                    let examenUsuario = null;
-                    const miVisitanteId = respuestasUsuario[0]?.visitanteId;
-                    
-                    if (miVisitanteId) {
-                        examenUsuario = examenes.find(e => e.visitanteId === miVisitanteId);
-                    }
-                    
-                    // Si no se encuentra, buscar cualquier examen asociado a las respuestas del usuario
-                    if (!examenUsuario) {
-                        const visitanteIdsUsuario = [...new Set(respuestasUsuario.map(r => r.visitanteId))];
-                        for (const vid of visitanteIdsUsuario) {
-                            examenUsuario = examenes.find(e => e.visitanteId === vid);
-                            if (examenUsuario) break;
-                        }
-                    }
+                    console.log(`📊 Asistencias para ${formularioId}:`, {
+                        numerosEncontrados: numerosAsistencia,
+                        numerosUnicos: asistenciasUnicas,
+                        asistenciasValidas: asistenciasValidas,
+                        totalCompletadas: asistenciasCompletadas
+                    });
+
+                    // 🔹 PASO 3: Buscar examen del usuario
+                    const examenUsuario = examenes.find(e => e.visitanteId === miVisitanteId);
 
                     const examenRealizado = examenUsuario !== undefined;
                     const calificacion = examenRealizado ? examenUsuario.puntaje : null;
                     const aprobado = examenRealizado ? calificacion >= 70 : false;
 
-                    // 🔹 LÓGICA MEJORADA PARA DETERMINAR ESTADO
+                    // 🔹 LÓGICA PARA DETERMINAR ESTADO
                     let estado = "";
                     let estadoClase = "";
 
                     const tieneEvaluacion = formularioInfo.tieneEvaluacion === true;
 
-                    // Si el período ya terminó
                     if (fechaFin && hoy > fechaFin) {
+                        // PERIODO TERMINADO
                         if (asistenciasCompletadas >= 3) {
                             if (tieneEvaluacion) {
                                 if (examenRealizado) {
@@ -2576,7 +2571,7 @@ async function cargarCertificaciones() {
                             estadoClase = "estado-incompleto";
                         }
                     } else {
-                        // Período aún activo
+                        // PERIODO EN CURSO
                         if (asistenciasCompletadas >= 3) {
                             if (tieneEvaluacion) {
                                 if (examenRealizado) {

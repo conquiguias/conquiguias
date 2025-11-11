@@ -2430,6 +2430,7 @@
 
       //////////////////////////////////////////////////////
       // Función para cargar las certificaciones del usuario
+      // Función para cargar las certificaciones del usuario
 async function cargarCertificaciones() {
     agregarLogFirestore('cargarCertificaciones');
     // 🔒 Usar cache si está disponible
@@ -2478,117 +2479,134 @@ async function cargarCertificaciones() {
                     const respuestas = data.asistencias || [];
                     const examenes = data.examenes || [];
 
-                    // Obtener la fecha de cierre del formulario desde la lista de formularios
-                    const fechaCierreFormulario = formularios[formularioId].fechaCierre;
+                    // Obtener información del formulario
+                    const formularioInfo = formularios[formularioId];
+                    const fechaCierreFormulario = formularioInfo.fechaCierre;
                     const fechaFin = fechaCierreFormulario ? new Date(fechaCierreFormulario) : null;
                     const hoy = new Date();
 
-                    // Buscar TODAS las respuestas del usuario por correo O por visitanteId
-                    let respuestasUsuario = respuestas.filter(r =>
-                        r.correo === userEmail || r.visitanteId === visitanteId
-                    );
+                    // Buscar SOLO las respuestas del usuario actual por correo
+                    let respuestasUsuario = respuestas.filter(r => r.correo === userEmail);
+
+                    // Si no encontramos respuestas, intentar por visitanteId
+                    if (respuestasUsuario.length === 0 && visitanteId) {
+                        respuestasUsuario = respuestas.filter(r => r.visitanteId === visitanteId);
+                    }
 
                     // Si no encontramos respuestas, continuar con el siguiente formulario
                     if (respuestasUsuario.length === 0) {
                         continue;
                     }
 
-                    // Agrupar respuestas por visitanteId para evitar duplicados
-                    const respuestasAgrupadas = {};
-                    respuestasUsuario.forEach(respuesta => {
-                        const key = respuesta.visitanteId;
-                        if (!respuestasAgrupadas[key]) {
-                            respuestasAgrupadas[key] = [];
-                        }
-                        respuestasAgrupadas[key].push(respuesta);
+                    // 🔹 CORRECCIÓN: NO agrupar por visitanteId, usar todas las respuestas del usuario
+                    // Filtrar solo las asistencias que tienen número válido (1, 2, 3)
+                    const asistenciasValidas = respuestasUsuario.filter(r => 
+                        r.asistenciaNumero === 1 || r.asistenciaNumero === 2 || r.asistenciaNumero === 3
+                    );
+                    
+                    // Contar asistencias únicas por número
+                    const numerosAsistenciaUnicos = [...new Set(asistenciasValidas.map(r => r.asistenciaNumero))];
+                    const asistenciasCompletadas = numerosAsistenciaUnicos.length;
+
+                    console.log(`📊 Formulario ${formularioId}, Usuario ${userEmail}:`, {
+                        totalRespuestas: respuestasUsuario.length,
+                        asistenciasValidas: asistenciasValidas.length,
+                        numerosUnicos: numerosAsistenciaUnicos,
+                        asistenciasCompletadas: asistenciasCompletadas
                     });
 
-                    // Procesar cada grupo de respuestas (por visitanteId)
-                    for (const [visitanteIdGrupo, respuestasGrupo] of Object.entries(respuestasAgrupadas)) {
-                        // Encontrar el examen del usuario para este visitanteId
-                        const examenUsuario = examenes.find(e => e.visitanteId === visitanteIdGrupo);
+                    // 🔹 CORRECCIÓN: Buscar examen del usuario actual
+                    let examenUsuario = null;
+                    if (visitanteId) {
+                        // Buscar por visitanteId primero
+                        examenUsuario = examenes.find(e => e.visitanteId === visitanteId);
+                    }
+                    
+                    // Si no se encuentra por visitanteId, buscar cualquier examen del usuario por correo
+                    if (!examenUsuario) {
+                        // Obtener todos los visitanteIds del usuario
+                        const visitanteIdsUsuario = [...new Set(respuestasUsuario.map(r => r.visitanteId))];
+                        for (const vid of visitanteIdsUsuario) {
+                            examenUsuario = examenes.find(e => e.visitanteId === vid);
+                            if (examenUsuario) break;
+                        }
+                    }
 
-                        // 🔹 CORRECCIÓN: VALIDAR DIRECTAMENTE SI TIENE LAS 3 ASISTENCIAS
-                        const numerosAsistenciaUnicos = [...new Set(respuestasGrupo.map(r => r.asistenciaNumero))];
-                        const tieneAsistencia1 = numerosAsistenciaUnicos.includes(1);
-                        const tieneAsistencia2 = numerosAsistenciaUnicos.includes(2);
-                        const tieneAsistencia3 = numerosAsistenciaUnicos.includes(3);
-                        
-                        // Si tiene las 3 asistencias, mostrar 3/3, sino contar cuántas tiene
-                        const asistenciasCompletadas = tieneAsistencia1 && tieneAsistencia2 && tieneAsistencia3 ? 3 : 
-                                                     [tieneAsistencia1, tieneAsistencia2, tieneAsistencia3].filter(Boolean).length;
+                    const examenRealizado = examenUsuario !== undefined;
+                    const calificacion = examenRealizado ? examenUsuario.puntaje : null;
+                    const aprobado = examenRealizado ? calificacion >= 70 : false;
 
-                        const examenRealizado = examenUsuario !== undefined;
-                        const calificacion = examenRealizado ? examenUsuario.puntaje : null;
-                        const aprobado = examenRealizado ? calificacion >= 70 : false;
+                    // 🔹 LÓGICA CORREGIDA PARA DETERMINAR ESTADO
+                    let estado = "";
+                    let estadoClase = "";
 
-                        // 🔹 LÓGICA CORREGIDA PARA DETERMINAR ESTADO
-                        let estado = "";
-                        let estadoClase = "";
+                    // Verificar si el formulario tiene evaluación
+                    const tieneEvaluacion = formularioInfo.tieneEvaluacion === true;
 
-                        // Verificar si el formulario tiene evaluación
-                        const tieneEvaluacion = formularios[formularioId].tieneEvaluacion === true;
-
-                        if (fechaFin && hoy > fechaFin) {
-                            // PERIODO TERMINADO
-                            if (asistenciasCompletadas >= 3) {
-                                if (tieneEvaluacion) {
-                                    if (examenRealizado) {
-                                        estado = aprobado ? "Aprobado" : "Reprobado";
-                                        estadoClase = aprobado ? "estado-completado" : "estado-incompleto";
-                                    } else {
-                                        estado = "Sin examen";
-                                        estadoClase = "estado-incompleto";
-                                    }
+                    if (fechaFin && hoy > fechaFin) {
+                        // PERIODO TERMINADO
+                        if (asistenciasCompletadas >= 3) {
+                            if (tieneEvaluacion) {
+                                if (examenRealizado) {
+                                    estado = aprobado ? "Aprobado" : "Reprobado";
+                                    estadoClase = aprobado ? "estado-completado" : "estado-incompleto";
                                 } else {
-                                    // Formulario sin evaluación, solo requiere asistencias
-                                    estado = "Completado";
-                                    estadoClase = "estado-completado";
+                                    estado = "Sin examen";
+                                    estadoClase = "estado-incompleto";
                                 }
                             } else {
-                                estado = "Asistencias insuficientes";
-                                estadoClase = "estado-incompleto";
+                                // Formulario sin evaluación, solo requiere asistencias
+                                estado = "Completado";
+                                estadoClase = "estado-completado";
                             }
                         } else {
-                            // PERIODO EN CURSO
-                            if (asistenciasCompletadas >= 3) {
-                                if (tieneEvaluacion) {
-                                    if (examenRealizado) {
-                                        estado = aprobado ? "Aprobado" : "Reprobado";
-                                        estadoClase = aprobado ? "estado-completado" : "estado-incompleto";
-                                    } else {
-                                        estado = "Pendiente examen";
-                                        estadoClase = "estado-pendiente";
-                                    }
+                            estado = "Asistencias insuficientes";
+                            estadoClase = "estado-incompleto";
+                        }
+                    } else {
+                        // PERIODO EN CURSO
+                        if (asistenciasCompletadas >= 3) {
+                            if (tieneEvaluacion) {
+                                if (examenRealizado) {
+                                    estado = aprobado ? "Aprobado" : "Reprobado";
+                                    estadoClase = aprobado ? "estado-completado" : "estado-incompleto";
                                 } else {
-                                    // Formulario sin evaluación, solo requiere asistencias
-                                    estado = "Completado";
-                                    estadoClase = "estado-completado";
+                                    estado = "Pendiente examen";
+                                    estadoClase = "estado-pendiente";
                                 }
                             } else {
-                                estado = "En progreso";
-                                estadoClase = "estado-pendiente";
+                                // Formulario sin evaluación, solo requiere asistencias
+                                estado = "Completado";
+                                estadoClase = "estado-completado";
                             }
+                        } else {
+                            estado = "En progreso";
+                            estadoClase = "estado-pendiente";
                         }
-
-                        // Obtener la fecha más reciente
-                        const fechaMasReciente = new Date(Math.max(...respuestasGrupo.map(r => new Date(r.fecha))));
-
-                        certificaciones.push({
-                            formularioId: formularioId,
-                            titulo: formularios[formularioId].titulo,
-                            fecha: fechaMasReciente,
-                            asistenciasCompletadas: asistenciasCompletadas,
-                            examenRealizado: examenRealizado,
-                            calificacion: calificacion,
-                            aprobado: aprobado,
-                            estado: estado,
-                            estadoClase: estadoClase,
-                            fechaFin: fechaFin,
-                            visitanteId: visitanteIdGrupo,
-                            tieneEvaluacion: tieneEvaluacion
-                        });
                     }
+
+                    // Obtener la fecha más reciente
+                    const fechasAsistencias = respuestasUsuario
+                        .map(r => new Date(r.fecha))
+                        .filter(date => !isNaN(date.getTime()));
+                    
+                    const fechaParticipacion = fechasAsistencias.length > 0 ? 
+                        new Date(Math.max(...fechasAsistencias)) : new Date();
+
+                    certificaciones.push({
+                        formularioId: formularioId,
+                        titulo: formularioInfo.titulo,
+                        fecha: fechaParticipacion,
+                        asistenciasCompletadas: asistenciasCompletadas,
+                        examenRealizado: examenRealizado,
+                        calificacion: calificacion,
+                        aprobado: aprobado,
+                        estado: estado,
+                        estadoClase: estadoClase,
+                        fechaFin: fechaFin,
+                        visitanteId: visitanteId,
+                        tieneEvaluacion: tieneEvaluacion
+                    });
                 }
             } catch (error) {
                 console.error(`Error al cargar respuestas para ${formularioId}:`, error);
@@ -2700,7 +2718,6 @@ function actualizarInterfazCertificaciones(certificaciones) {
         cuerpoTablaCertificaciones.appendChild(fila);
     });
 }
-
 
 
 

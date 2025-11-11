@@ -1473,6 +1473,93 @@
   color: var(--text-primary);
   margin-bottom: 10px;
 }
+
+/* ============================================
+   EFECTO DE CENTRADO Y REBOTE PARA PUBLICACIONES
+   ============================================ */
+
+/* Contenedor del feed con scroll suave */
+#feed {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    scroll-behavior: smooth;
+}
+
+/* Clase para el centrado activo */
+.post-card.centered {
+    animation: bounceCenter 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) both;
+    position: relative;
+    z-index: 5;
+}
+
+/* Efecto de rebote moderno */
+@keyframes bounceCenter {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    }
+    50% {
+        transform: scale(1.02);
+        box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.3);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    }
+}
+
+/* Indicador visual de publicación centrada */
+.post-card.centered::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border: 2px solid var(--accent-color);
+    border-radius: 14px;
+    animation: pulseBorder 2s infinite;
+    pointer-events: none;
+}
+
+@keyframes pulseBorder {
+    0%, 100% {
+        opacity: 0.5;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.02);
+    }
+}
+
+/* Scroll personalizado para el contenedor principal */
+#mainContent {
+    scroll-behavior: smooth;
+}
+
+/* Estilo para el indicador de posición actual */
+.current-position-indicator {
+    position: fixed;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--accent-color);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    box-shadow: 0 4px 15px var(--shadow-color);
+}
+
+.current-position-indicator.show {
+    opacity: 1;
+}
   </style>
 </head>
 
@@ -4977,6 +5064,164 @@
         videoActualmenteReproduciendose = null;
         console.log('⏸️ Todos los videos pausados');
       }
+
+
+
+
+
+
+
+
+
+
+      // 🔹 SISTEMA DE CENTRADO CON REBOTE PARA PUBLICACIONES
+
+let currentCenteredPost = null;
+let scrollInProgress = false;
+
+// Función para centrar una publicación con efecto
+function centerPostWithBounce(postElement) {
+    if (scrollInProgress) return;
+    
+    scrollInProgress = true;
+    
+    // Remover clase centrada de la publicación anterior
+    if (currentCenteredPost && currentCenteredPost !== postElement) {
+        currentCenteredPost.classList.remove('centered');
+    }
+    
+    // Aplicar clase centrada a la nueva publicación
+    postElement.classList.add('centered');
+    currentCenteredPost = postElement;
+    
+    // Calcular posición para centrar
+    const mainContent = document.getElementById('mainContent');
+    const postRect = postElement.getBoundingClientRect();
+    const mainRect = mainContent.getBoundingClientRect();
+    
+    const targetScroll = mainContent.scrollTop + (postRect.top - mainRect.top) - (mainRect.height / 2) + (postRect.height / 2);
+    
+    // Scroll suave con efecto
+    mainContent.scrollTo({
+        top: targetScroll,
+        behavior: 'smooth'
+    });
+    
+    // Mostrar indicador de posición
+    showPositionIndicator(`Publicación ${getPostPosition(postElement)}`);
+    
+    // Remover clase después de la animación
+    setTimeout(() => {
+        postElement.classList.remove('centered');
+        scrollInProgress = false;
+    }, 2000);
+}
+
+// Función para obtener la posición de la publicación
+function getPostPosition(postElement) {
+    const posts = Array.from(document.querySelectorAll('.post-card'));
+    const index = posts.indexOf(postElement);
+    return index !== -1 ? index + 1 : '?';
+}
+
+// Función para mostrar indicador de posición
+function showPositionIndicator(text) {
+    let indicator = document.querySelector('.current-position-indicator');
+    
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.className = 'current-position-indicator';
+        document.body.appendChild(indicator);
+    }
+    
+    indicator.textContent = text;
+    indicator.classList.add('show');
+    
+    setTimeout(() => {
+        indicator.classList.remove('show');
+    }, 2000);
+}
+
+// Sistema de navegación con teclado
+function setupKeyboardNavigation() {
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            
+            const posts = Array.from(document.querySelectorAll('.post-card'));
+            if (posts.length === 0) return;
+            
+            let currentIndex = currentCenteredPost ? posts.indexOf(currentCenteredPost) : -1;
+            
+            if (e.key === 'ArrowDown') {
+                currentIndex = currentIndex < posts.length - 1 ? currentIndex + 1 : 0;
+            } else if (e.key === 'ArrowUp') {
+                currentIndex = currentIndex > 0 ? currentIndex - 1 : posts.length - 1;
+            }
+            
+            centerPostWithBounce(posts[currentIndex]);
+        }
+    });
+}
+
+// Sistema de clic para centrado
+function setupClickToCenter() {
+    document.addEventListener('click', (e) => {
+        const postCard = e.target.closest('.post-card');
+        if (postCard && !e.target.closest('.post-actions') && !e.target.closest('.delete-post-btn')) {
+            centerPostWithBounce(postCard);
+        }
+    });
+}
+
+// Detectar cuando una publicación es visible en el centro
+function setupIntersectionObserver() {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const postElement = entry.target;
+                const mainContent = document.getElementById('mainContent');
+                const postRect = postElement.getBoundingClientRect();
+                const mainRect = mainContent.getBoundingClientRect();
+                
+                // Verificar si está en el centro (con margen de error)
+                const isInCenter = Math.abs((postRect.top + postRect.bottom) / 2 - (mainRect.top + mainRect.bottom) / 2) < 100;
+                
+                if (isInCenter && !scrollInProgress) {
+                    postElement.classList.add('centered');
+                    currentCenteredPost = postElement;
+                    
+                    // Remover después de un tiempo
+                    setTimeout(() => {
+                        if (currentCenteredPost === postElement) {
+                            postElement.classList.remove('centered');
+                        }
+                    }, 1000);
+                }
+            }
+        });
+    }, {
+        root: document.getElementById('mainContent'),
+        threshold: 0.6
+    });
+    
+    // Observar todas las publicaciones
+    document.querySelectorAll('.post-card').forEach(post => {
+        observer.observe(post);
+    });
+}
+
+// Inicializar sistema de centrado
+function initializeCenteringSystem() {
+    setupKeyboardNavigation();
+    setupClickToCenter();
+    // setupIntersectionObserver(); // Opcional: descomenta si quieres centrado automático al scroll
+    
+    console.log('🎯 Sistema de centrado con rebote inicializado');
+}
+
+// Llamar después de cargar las publicaciones
+// Agrega esto después de tu función loadPosts() o donde cargues las publicaciones
     </script>
 
 

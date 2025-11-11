@@ -1684,46 +1684,33 @@
     </div>
 
     <!-- 🔹 NUEVA SECCIÓN: CERTIFICACIONES -->
-    <div id="certificacionesSection" class="hidden">
-      <div class="card card-certificaciones">
-        <h2>📜 Mis Certificaciones de Especialidades</h2>
-        <p>Aquí puedes ver todas las especialidades en las que has participado, validadas con tu correo electrónico.</p>
-
-        <div id="certificacionesLoading" style="text-align: center; padding: 20px;">
-          <div class="loading" style="display: inline-block;"></div>
-          <p>Cargando tus certificaciones...</p>
-        </div>
-
-        <div id="certificacionesContent" style="display: none;">
-          <div id="certificacionesContadores">
-            <p>Total de especialidades: <span id="totalEspecialidades">0</span></p>
-            <p>Especialidades completadas: <span id="especialidadesCompletadas">0</span></p>
-          </div>
-
-          <table id="tablaCertificaciones" border="1" style="border-collapse: collapse; width: 100%; margin-top: 20px;">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Especialidad</th>
-                <th>Fecha de Participación</th>
-                <th>Asistencias Completadas</th>
-                <th>Examen Realizado</th>
-                <th>Calificación</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody id="cuerpoTablaCertificaciones">
-              <!-- Las filas se llenarán dinámicamente -->
-            </tbody>
-          </table>
-
-          <div id="sinCertificaciones" style="display: none; text-align: center; padding: 30px; color: #666;">
-            <h3>📝 Aún no tienes certificaciones</h3>
-            <p>Participa en especialidades para ver tus certificaciones aquí.</p>
-          </div>
-        </div>
+    <div id="certificaciones-section">
+      <div id="certificaciones-loading" style="display: none;">
+          Cargando certificaciones...
       </div>
-    </div>
+      
+      <div id="certificaciones-content" style="display: none;">
+          <table>
+              <thead>
+                  <tr>
+                      <th>Fecha de Participación</th>
+                      <th>Asistencias Completadas</th>
+                      <th>Examen Realizado</th>
+                      <th>Calificación</th>
+                      <th>Estado</th>
+                      <th>Examen</th>
+                  </tr>
+              </thead>
+              <tbody id="certificaciones-body">
+                  <!-- Las filas se insertarán aquí -->
+              </tbody>
+          </table>
+      </div>
+      
+      <div id="sin-certificaciones" style="display: none;">
+          No se encontraron certificaciones.
+      </div>
+  </div>
 
     <!-- 🔧 SECCIÓN ADMIN -->
     <div id="adminSection" class="card hidden">
@@ -2440,6 +2427,17 @@
         return;
     }
 
+    // 🔍 VERIFICAR QUE LOS ELEMENTOS DEL DOM EXISTAN
+    const tbody = document.getElementById("certificaciones-body");
+    const certificacionesLoading = document.getElementById("certificaciones-loading");
+    const certificacionesContent = document.getElementById("certificaciones-content");
+    const sinCertificaciones = document.getElementById("sin-certificaciones");
+
+    if (!tbody || !certificacionesLoading || !certificacionesContent || !sinCertificaciones) {
+        console.error('❌ Elementos del DOM no encontrados para certificaciones');
+        return;
+    }
+
     // Mostrar loading
     certificacionesLoading.style.display = "block";
     certificacionesContent.style.display = "none";
@@ -2621,8 +2619,7 @@
 
     } catch (error) {
         console.error("Error al cargar certificaciones:", error);
-        mostrarMensaje("error", "Error al cargar certificaciones", "No se pudieron cargar tus certificaciones. Intenta nuevamente.");
-
+        
         // Mostrar estado de error
         certificacionesLoading.style.display = "none";
         sinCertificaciones.style.display = "block";
@@ -2635,7 +2632,17 @@
 
 // 🔹 FUNCIÓN ACTUALIZADA PARA LA INTERFAZ
 function actualizarInterfazCertificaciones(certificaciones) {
+    // 🔍 OBTENER ELEMENTOS DEL DOM DENTRO DE LA FUNCIÓN
     const tbody = document.getElementById("certificaciones-body");
+    const certificacionesLoading = document.getElementById("certificaciones-loading");
+    const certificacionesContent = document.getElementById("certificaciones-content");
+    const sinCertificaciones = document.getElementById("sin-certificaciones");
+
+    // ✅ VERIFICAR QUE LOS ELEMENTOS EXISTAN
+    if (!tbody || !certificacionesLoading || !certificacionesContent || !sinCertificaciones) {
+        console.error('❌ Elementos del DOM no encontrados en actualizarInterfazCertificaciones');
+        return;
+    }
     
     if (!certificaciones || certificaciones.length === 0) {
         certificacionesLoading.style.display = "none";

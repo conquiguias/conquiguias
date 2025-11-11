@@ -3938,6 +3938,7 @@
           // Actualizar el último documento visible
           lastVisiblePost = querySnapshot.docs[querySnapshot.docs.length - 1];
 
+          isProgrammaticScroll = true;
           // Mostrar las nuevas publicaciones
           querySnapshot.forEach((doc) => {
             const post = { ...doc.data(), id: doc.id };
@@ -3955,12 +3956,12 @@
             
             // Re-activar snapping SIN centrar automáticamente
             setupScrollSnapSystem();
+            // Quitar flag después de un tiempo
+            setTimeout(() => {
+                isProgrammaticScroll = false;
+            }, 500);
             
-            // Si había una publicación centrada antes, intentar mantenerla
-            if (currentPostBeforeLoad && currentPostBeforeLoad.isConnected) {
-                currentPostBeforeLoad.scrollIntoView({ behavior: 'auto', block: 'center' });
-            }
-        }, 100);
+        }, 200);
 
           // Si cargamos menos de postsPerLoad, no hay más publicaciones
           if (querySnapshot.size < postsPerLoad) {
@@ -5198,12 +5199,14 @@ function setupKeyboardSnapping() {
             }
             
             snapToPost(posts[currentIndex]);
+            smoothScrollToPost(posts[newIndex]);
         }
     });
 }
 
 // 🔹 SISTEMA DE SCROLL SNAPPING MEJORADO (MANTIENE POSICIÓN)
 let scrollSnapObserver = null;
+let isProgrammaticScroll = false;
 
 function setupScrollSnapSystem() {
     const posts = document.querySelectorAll('.post-card');
@@ -5216,6 +5219,8 @@ function setupScrollSnapSystem() {
     
     // Crear nuevo observer
     scrollSnapObserver = new IntersectionObserver((entries) => {
+      // Si es un scroll programático, ignorar
+      if (isProgrammaticScroll) return;
         entries.forEach(entry => {
             if (entry.isIntersecting && entry.intersectionRatio > 0.7) {
                 if (currentSnappedPost && currentSnappedPost !== entry.target) {
@@ -5264,6 +5269,34 @@ function initializeScrollSnapOnce() {
     }
     
     setupScrollSnapSystem();
+}
+
+// 🔹 FUNCIÓN PARA SCROLL SUAVE SIN INTERFERENCIAS
+function smoothScrollToPost(postElement) {
+    isProgrammaticScroll = true;
+    
+    const mainContent = document.getElementById('mainContent');
+    const postRect = postElement.getBoundingClientRect();
+    const mainRect = mainContent.getBoundingClientRect();
+    
+    const targetScroll = mainContent.scrollTop + (postRect.top - mainRect.top) - (mainRect.height / 2) + (postRect.height / 2);
+    
+    mainContent.scrollTo({
+        top: targetScroll,
+        behavior: 'smooth'
+    });
+    
+    // Resaltar la publicación
+    if (currentSnappedPost) {
+        currentSnappedPost.classList.remove('snapped');
+    }
+    postElement.classList.add('snapped');
+    currentSnappedPost = postElement;
+    
+    // Permitir que el observer vuelva a funcionar
+    setTimeout(() => {
+        isProgrammaticScroll = false;
+    }, 1000);
 }
     </script>
 

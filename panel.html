@@ -539,6 +539,14 @@
       flex: 1;
     }
 
+    .post-contenedor{
+      display: flex;
+      position: relative;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      width: 100%;
+    }
+
     .post-time {
       font-size: 12px;
       color: var(--text-secondary);
@@ -4057,14 +4065,13 @@
     <div class="post-header">
       <img src="${post.userPhoto}" alt="Foto de perfil" class="post-user-img" onerror="this.src='https://dummyimage.com/40x40/ccc/fff'">
       <div>
-        <div>
+        <div class="post-contenedor">
           <div class="post-user-name">${nombreCompleto}</div>
           ${ADMIN_EMAILS.includes(post.userEmail) ? '<span class="status-admin post-status-indicator">Admin</span>' : ''}
         </div>
         <div class="post-time">
           ${timeAgo}
           ${isLocalPost ? ' (Guardado localmente)' : ''}
-          
         </div>
       </div>
       ${(isAdmin || isPostOwner) ? `

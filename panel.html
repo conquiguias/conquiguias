@@ -2485,12 +2485,25 @@ async function cargarCertificaciones() {
                     const fechaFin = fechaCierreFormulario ? new Date(fechaCierreFormulario) : null;
                     const hoy = new Date();
 
-                    // Buscar SOLO las respuestas del usuario actual por correo
-                    let respuestasUsuario = respuestas.filter(r => r.correo === userEmail);
-
-                    // Si no encontramos respuestas, intentar por visitanteId
+                    // 🔹 CORRECCIÓN: Buscar TODAS las respuestas del usuario por correo Y por visitanteId
+                    let respuestasUsuario = [];
+                    
+                    // Buscar por correo
+                    respuestasUsuario = respuestas.filter(r => r.correo === userEmail);
+                    
+                    // Si no encontramos por correo, buscar por visitanteId
                     if (respuestasUsuario.length === 0 && visitanteId) {
                         respuestasUsuario = respuestas.filter(r => r.visitanteId === visitanteId);
+                    }
+                    
+                    // 🔹 NUEVA LÓGICA: Si tenemos visitanteId, buscar TODAS las respuestas de ese visitanteId
+                    if (visitanteId && respuestasUsuario.length > 0) {
+                        const miVisitanteId = respuestasUsuario[0].visitanteId;
+                        const todasMisRespuestas = respuestas.filter(r => r.visitanteId === miVisitanteId);
+                        if (todasMisRespuestas.length > respuestasUsuario.length) {
+                            respuestasUsuario = todasMisRespuestas;
+                            console.log(`🔍 Encontradas ${todasMisRespuestas.length} respuestas para visitanteId ${miVisitanteId}`);
+                        }
                     }
 
                     // Si no encontramos respuestas, continuar con el siguiente formulario
@@ -2498,33 +2511,34 @@ async function cargarCertificaciones() {
                         continue;
                     }
 
-                    // 🔹 CORRECCIÓN: NO agrupar por visitanteId, usar todas las respuestas del usuario
-                    // Filtrar solo las asistencias que tienen número válido (1, 2, 3)
+                    console.log(`📋 Formulario ${formularioId}:`, {
+                        usuario: userEmail,
+                        respuestasEncontradas: respuestasUsuario.length,
+                        datosRespuestas: respuestasUsuario.map(r => ({
+                            asistenciaNumero: r.asistenciaNumero,
+                            correo: r.correo,
+                            visitanteId: r.visitanteId
+                        }))
+                    });
+
+                    // 🔹 CORRECCIÓN: Contar asistencias únicas
                     const asistenciasValidas = respuestasUsuario.filter(r => 
                         r.asistenciaNumero === 1 || r.asistenciaNumero === 2 || r.asistenciaNumero === 3
                     );
                     
-                    // Contar asistencias únicas por número
                     const numerosAsistenciaUnicos = [...new Set(asistenciasValidas.map(r => r.asistenciaNumero))];
                     const asistenciasCompletadas = numerosAsistenciaUnicos.length;
 
-                    console.log(`📊 Formulario ${formularioId}, Usuario ${userEmail}:`, {
-                        totalRespuestas: respuestasUsuario.length,
-                        asistenciasValidas: asistenciasValidas.length,
-                        numerosUnicos: numerosAsistenciaUnicos,
-                        asistenciasCompletadas: asistenciasCompletadas
-                    });
-
-                    // 🔹 CORRECCIÓN: Buscar examen del usuario actual
+                    // 🔹 CORRECCIÓN: Buscar examen - usar el visitanteId del usuario
                     let examenUsuario = null;
-                    if (visitanteId) {
-                        // Buscar por visitanteId primero
-                        examenUsuario = examenes.find(e => e.visitanteId === visitanteId);
+                    const miVisitanteId = respuestasUsuario[0]?.visitanteId;
+                    
+                    if (miVisitanteId) {
+                        examenUsuario = examenes.find(e => e.visitanteId === miVisitanteId);
                     }
                     
-                    // Si no se encuentra por visitanteId, buscar cualquier examen del usuario por correo
+                    // Si no se encuentra, buscar cualquier examen asociado a las respuestas del usuario
                     if (!examenUsuario) {
-                        // Obtener todos los visitanteIds del usuario
                         const visitanteIdsUsuario = [...new Set(respuestasUsuario.map(r => r.visitanteId))];
                         for (const vid of visitanteIdsUsuario) {
                             examenUsuario = examenes.find(e => e.visitanteId === vid);
@@ -2536,15 +2550,14 @@ async function cargarCertificaciones() {
                     const calificacion = examenRealizado ? examenUsuario.puntaje : null;
                     const aprobado = examenRealizado ? calificacion >= 70 : false;
 
-                    // 🔹 LÓGICA CORREGIDA PARA DETERMINAR ESTADO
+                    // 🔹 LÓGICA MEJORADA PARA DETERMINAR ESTADO
                     let estado = "";
                     let estadoClase = "";
 
-                    // Verificar si el formulario tiene evaluación
                     const tieneEvaluacion = formularioInfo.tieneEvaluacion === true;
 
+                    // Si el período ya terminó
                     if (fechaFin && hoy > fechaFin) {
-                        // PERIODO TERMINADO
                         if (asistenciasCompletadas >= 3) {
                             if (tieneEvaluacion) {
                                 if (examenRealizado) {
@@ -2555,7 +2568,6 @@ async function cargarCertificaciones() {
                                     estadoClase = "estado-incompleto";
                                 }
                             } else {
-                                // Formulario sin evaluación, solo requiere asistencias
                                 estado = "Completado";
                                 estadoClase = "estado-completado";
                             }
@@ -2564,7 +2576,7 @@ async function cargarCertificaciones() {
                             estadoClase = "estado-incompleto";
                         }
                     } else {
-                        // PERIODO EN CURSO
+                        // Período aún activo
                         if (asistenciasCompletadas >= 3) {
                             if (tieneEvaluacion) {
                                 if (examenRealizado) {
@@ -2575,7 +2587,6 @@ async function cargarCertificaciones() {
                                     estadoClase = "estado-pendiente";
                                 }
                             } else {
-                                // Formulario sin evaluación, solo requiere asistencias
                                 estado = "Completado";
                                 estadoClase = "estado-completado";
                             }
@@ -2604,7 +2615,7 @@ async function cargarCertificaciones() {
                         estado: estado,
                         estadoClase: estadoClase,
                         fechaFin: fechaFin,
-                        visitanteId: visitanteId,
+                        visitanteId: miVisitanteId,
                         tieneEvaluacion: tieneEvaluacion
                     });
                 }
@@ -2616,6 +2627,9 @@ async function cargarCertificaciones() {
         // Guardar en cache
         certificacionesCache = certificaciones;
         certificacionesCacheTime = now;
+        
+        console.log('🎯 Certificaciones finales:', certificaciones);
+        
         // Actualizar la interfaz con las certificaciones
         actualizarInterfazCertificaciones(certificaciones);
 
@@ -2657,17 +2671,15 @@ function actualizarInterfazCertificaciones(certificaciones) {
         certificacionesAgrupadas[cert.formularioId].push(cert);
     });
 
-    // Tomar la mejor certificación de cada formulario (la que tenga más asistencias completadas)
+    // Tomar la mejor certificación de cada formulario
     const certificacionesUnicas = [];
     Object.values(certificacionesAgrupadas).forEach(grupo => {
-        // Ordenar por asistencias completadas (mayor a menor) y luego por fecha (más reciente primero)
         grupo.sort((a, b) => {
             if (b.asistenciasCompletadas !== a.asistenciasCompletadas) {
                 return b.asistenciasCompletadas - a.asistenciasCompletadas;
             }
             return new Date(b.fecha) - new Date(a.fecha);
         });
-        // Tomar la primera (mejor) certificación del grupo
         certificacionesUnicas.push(grupo[0]);
     });
 

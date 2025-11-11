@@ -727,7 +727,7 @@
 
     /* Indicador de estado en publicaciones normales */
     .post-status-indicator {
-      font-size: 8px;
+      font-size: 12px;
       padding: 2px 8px;
       border-radius: 12px;
       margin-left: 10px;
@@ -4057,11 +4057,14 @@
     <div class="post-header">
       <img src="${post.userPhoto}" alt="Foto de perfil" class="post-user-img" onerror="this.src='https://dummyimage.com/40x40/ccc/fff'">
       <div>
-        <div class="post-user-name">${nombreCompleto}</div>
+        <div>
+          <div class="post-user-name">${nombreCompleto}</div>
+          ${ADMIN_EMAILS.includes(post.userEmail) ? '<span class="status-admin post-status-indicator">Admin</span>' : ''}
+        </div>
         <div class="post-time">
           ${timeAgo}
           ${isLocalPost ? ' (Guardado localmente)' : ''}
-          ${ADMIN_EMAILS.includes(post.userEmail) ? '<span class="status-admin post-status-indicator">Admin</span>' : ''}
+          
         </div>
       </div>
       ${(isAdmin || isPostOwner) ? `

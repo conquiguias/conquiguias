@@ -2438,11 +2438,16 @@
       // 🔹 NUEVAS FUNCIONES PARA CERTIFICACIONES - DENTRO DEL MÓDULO
 
       // Función para cargar las certificaciones del usuario
-      // 🔹 REEMPLAZAR LA FUNCIÓN cargarCertificaciones CON ESTA VERSIÓN MEJORADA
+      // 🔹 FUNCIÓN COMPLETA MEJORADA PARA CERTIFICACIONES
 async function cargarCertificaciones() {
-    agregarLogFirestore('cargarCertificaciones');
+    console.log('🚀 INICIANDO CARGA INTELIGENTE DE CERTIFICACIONES...');
     
-    // 🔒 Usar cache si está disponible
+    // Detectar dispositivo
+    const esMovil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    console.log(`📱 Dispositivo detectado: ${esMovil ? 'MÓVIL' : 'COMPUTADORA'}`);
+    
+    // Usar cache si está disponible
     const now = Date.now();
     if (certificacionesCache && (now - certificacionesCacheTime < CACHE_DURATION)) {
         console.log('📚 Usando cache de certificaciones');
@@ -2463,23 +2468,10 @@ async function cargarCertificaciones() {
         }
 
         const userEmail = user.email.toLowerCase().trim();
-
-        // 🔥 MEJORA: Obtener visitanteId de múltiples fuentes
-        let visitanteId = localStorage.getItem("visitanteId");
         
-        // Si no hay visitanteId en localStorage, intentar generarlo
-        if (!visitanteId) {
-            // Crear un visitanteId basado en el email del usuario
-            visitanteId = 'user_' + btoa(userEmail).replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
-            localStorage.setItem("visitanteId", visitanteId);
-            console.log('🆕 VisitanteId generado:', visitanteId);
-        }
-
-        console.log('🔍 Buscando certificaciones para:', {
-            email: userEmail,
-            visitanteId: visitanteId,
-            platform: navigator.userAgent
-        });
+        // 🔥 ESTRATEGIA INTELIGENTE POR DISPOSITIVO
+        console.log(`🎯 Estrategia: ${esMovil ? 'SOLO_EMAIL (Móvil)' : 'EMAIL_Y_VISITANTEID (PC)'}`);
+        console.log('📧 Email usuario:', userEmail);
 
         // Obtener todos los formularios
         const formulariosRes = await fetch("/api/formulario?action=listarFormularios");
@@ -2502,133 +2494,122 @@ async function cargarCertificaciones() {
                     const respuestas = data.asistencias || [];
                     const examenes = data.examenes || [];
 
-                    // Obtener la fecha de cierre del formulario desde la lista de formularios
+                    // Obtener la fecha de cierre del formulario
                     const fechaCierreFormulario = formularios[formularioId].fechaCierre;
                     const fechaFin = fechaCierreFormulario ? new Date(fechaCierreFormulario) : null;
                     const hoy = new Date();
 
-                    // 🔥 MEJORA: Búsqueda más robusta de respuestas del usuario
-                    let respuestasUsuario = respuestas.filter(r => {
-                        // Buscar por email (case insensitive)
-                        const rEmail = (r.correo || '').toLowerCase().trim();
-                        const emailMatch = rEmail === userEmail;
-                        
-                        // Buscar por visitanteId
-                        const visitanteMatch = r.visitanteId === visitanteId;
-                        
-                        // Buscar por userId si existe
-                        const userIdMatch = r.userId === currentUserId;
-                        
-                        return emailMatch || visitanteMatch || userIdMatch;
-                    });
+                    // 🔥 ESTRATEGIA DIFERENTE SEGÚN DISPOSITIVO
+                    let respuestasUsuario = [];
 
-                    console.log(`📋 Formulario ${formularioId}:`, {
-                        totalRespuestas: respuestas.length,
-                        respuestasUsuario: respuestasUsuario.length,
-                        criterios: {
-                            email: userEmail,
-                            visitanteId: visitanteId,
-                            userId: currentUserId
-                        }
-                    });
+                    if (esMovil) {
+                        // 📱 ESTRATEGIA MÓVIL: Buscar SOLO por email
+                        respuestasUsuario = respuestas.filter(r => 
+                            (r.correo || '').toLowerCase().trim() === userEmail
+                        );
+                        console.log(`   📱 Móvil - Encontradas ${respuestasUsuario.length} respuestas por email`);
+                    } else {
+                        // 💻 ESTRATEGIA COMPUTADORA: Buscar por email Y visitanteId
+                        const visitanteId = localStorage.getItem("visitanteId");
+                        respuestasUsuario = respuestas.filter(r => 
+                            (r.correo || '').toLowerCase().trim() === userEmail || 
+                            r.visitanteId === visitanteId
+                        );
+                        console.log(`   💻 PC - Encontradas ${respuestasUsuario.length} respuestas (email + visitanteId)`);
+                    }
 
                     // Si no encontramos respuestas, continuar con el siguiente formulario
                     if (respuestasUsuario.length === 0) {
                         continue;
                     }
 
-                    // Agrupar respuestas por identificador único (email + visitanteId)
-                    const respuestasAgrupadas = {};
-                    respuestasUsuario.forEach(respuesta => {
-                        const key = respuesta.visitanteId || respuesta.correo || 'unknown';
-                        if (!respuestasAgrupadas[key]) {
-                            respuestasAgrupadas[key] = [];
-                        }
-                        respuestasAgrupadas[key].push(respuesta);
-                    });
+                    // 🔥 CONTAR ASISTENCIAS MEJORADO
+                    const numerosAsistencia = respuestasUsuario
+                        .map(r => parseInt(r.asistenciaNumero))
+                        .filter(num => !isNaN(num) && num >= 1 && num <= 3);
+                    
+                    const asistenciasUnicas = [...new Set(numerosAsistencia)];
+                    const asistenciasCompletadas = asistenciasUnicas.length;
 
-                    // Procesar cada grupo de respuestas
-                    for (const [grupoKey, respuestasGrupo] of Object.entries(respuestasAgrupadas)) {
-                        // Encontrar el examen del usuario para este grupo
-                        const examenUsuario = examenes.find(e => 
-                            e.visitanteId === grupoKey || 
+                    console.log(`   📊 Asistencias: ${asistenciasCompletadas}/3 (${asistenciasUnicas.join(', ')})`);
+
+                    // 🔥 BUSCAR EXAMEN SEGÚN DISPOSITIVO
+                    let examenUsuario = null;
+                    
+                    if (esMovil) {
+                        // 📱 MÓVIL: Buscar examen solo por email
+                        examenUsuario = examenes.find(e => 
                             (e.correo && e.correo.toLowerCase() === userEmail)
                         );
+                    } else {
+                        // 💻 COMPUTADORA: Buscar examen por visitanteId o email
+                        const visitanteId = localStorage.getItem("visitanteId");
+                        examenUsuario = examenes.find(e => 
+                            e.visitanteId === visitanteId || 
+                            (e.correo && e.correo.toLowerCase() === userEmail)
+                        );
+                    }
 
-                        // 🔥 CORRECCIÓN MEJORADA: Contar asistencias completadas
-                        const numerosAsistencia = respuestasGrupo.map(r => parseInt(r.asistenciaNumero) || 0);
-                        const asistenciasUnicas = [...new Set(numerosAsistencia)]; // Eliminar duplicados
-                        const asistenciasCompletadas = asistenciasUnicas.filter(num => 
-                            num >= 1 && num <= 3
-                        ).length;
+                    const examenRealizado = examenUsuario !== undefined && examenUsuario !== null;
+                    const calificacion = examenRealizado ? examenUsuario.puntaje : null;
+                    const aprobado = examenRealizado ? calificacion >= 70 : false;
 
-                        const examenRealizado = examenUsuario !== undefined;
-                        const calificacion = examenRealizado ? examenUsuario.puntaje : null;
-                        const aprobado = examenRealizado ? calificacion >= 70 : false;
+                    // 🔥 DETERMINAR ESTADO MEJORADO
+                    let estado = "";
+                    let estadoClase = "";
 
-                        // 🔥 NUEVA LÓGICA MEJORADA PARA DETERMINAR ESTADO
-                        let estado = "";
-                        let estadoClase = "";
-
-                        if (fechaFin && hoy > fechaFin) {
-                            // TIEMPO TERMINADO
-                            if (asistenciasCompletadas >= 3) {
-                                if (examenRealizado && aprobado) {
-                                    estado = "Completado";
-                                    estadoClase = "estado-completado";
-                                } else {
-                                    estado = "Incompleto";
-                                    estadoClase = "estado-incompleto";
-                                }
+                    if (fechaFin && hoy > fechaFin) {
+                        // TIEMPO TERMINADO
+                        if (asistenciasCompletadas >= 3) {
+                            if (examenRealizado && aprobado) {
+                                estado = "Completado";
+                                estadoClase = "estado-completado";
                             } else {
-                                estado = "No aplica";
+                                estado = "Incompleto";
                                 estadoClase = "estado-incompleto";
                             }
                         } else {
-                            // TIEMPO EN CURSO
-                            if (asistenciasCompletadas >= 3) {
-                                if (examenRealizado && aprobado) {
-                                    estado = "Completado";
-                                    estadoClase = "estado-completado";
-                                } else {
-                                    estado = "En progreso";
-                                    estadoClase = "estado-pendiente";
-                                }
+                            estado = "No aplica";
+                            estadoClase = "estado-incompleto";
+                        }
+                    } else {
+                        // TIEMPO EN CURSO
+                        if (asistenciasCompletadas >= 3) {
+                            if (examenRealizado && aprobado) {
+                                estado = "Completado";
+                                estadoClase = "estado-completado";
                             } else {
                                 estado = "En progreso";
                                 estadoClase = "estado-pendiente";
                             }
+                        } else {
+                            estado = "En progreso";
+                            estadoClase = "estado-pendiente";
                         }
-
-                        // Obtener la fecha más reciente
-                        const fechaMasReciente = new Date(Math.max(...respuestasGrupo.map(r => new Date(r.fecha))));
-
-                        certificaciones.push({
-                            formularioId: formularioId,
-                            titulo: formularios[formularioId].titulo,
-                            fecha: fechaMasReciente,
-                            asistenciasCompletadas: asistenciasCompletadas,
-                            examenRealizado: examenRealizado,
-                            calificacion: calificacion,
-                            aprobado: aprobado,
-                            estado: estado,
-                            estadoClase: estadoClase,
-                            fechaFin: fechaFin,
-                            visitanteId: grupoKey,
-                            debug: {
-                                respuestasCount: respuestasGrupo.length,
-                                numerosAsistencia: numerosAsistencia,
-                                asistenciasUnicas: asistenciasUnicas
-                            }
-                        });
-
-                        console.log(`✅ Certificación agregada:`, {
-                            formulario: formularios[formularioId].titulo,
-                            asistenciasCompletadas: asistenciasCompletadas,
-                            estado: estado,
-                            grupo: grupoKey
-                        });
                     }
+
+                    // Obtener la fecha más reciente
+                    const fechaMasReciente = new Date(Math.max(...respuestasUsuario.map(r => new Date(r.fecha))));
+
+                    certificaciones.push({
+                        formularioId: formularioId,
+                        titulo: formularios[formularioId].titulo,
+                        fecha: fechaMasReciente,
+                        asistenciasCompletadas: asistenciasCompletadas,
+                        examenRealizado: examenRealizado,
+                        calificacion: calificacion,
+                        aprobado: aprobado,
+                        estado: estado,
+                        estadoClase: estadoClase,
+                        fechaFin: fechaFin,
+                        debug: {
+                            dispositivo: esMovil ? 'movil' : 'pc',
+                            respuestasCount: respuestasUsuario.length,
+                            asistenciasUnicas: asistenciasUnicas
+                        }
+                    });
+
+                    console.log(`   ✅ ${formularios[formularioId].titulo}: ${asistenciasCompletadas}/3 - ${estado}`);
                 }
             } catch (error) {
                 console.error(`Error al cargar respuestas para ${formularioId}:`, error);
@@ -2639,7 +2620,7 @@ async function cargarCertificaciones() {
         certificacionesCache = certificaciones;
         certificacionesCacheTime = now;
         
-        console.log('📊 Certificaciones encontradas:', certificaciones.length);
+        console.log('📊 Total certificaciones encontradas:', certificaciones.length);
         
         // Actualizar la interfaz con las certificaciones
         actualizarInterfazCertificaciones(certificaciones);
@@ -2653,14 +2634,107 @@ async function cargarCertificaciones() {
         sinCertificaciones.style.display = "block";
         sinCertificaciones.innerHTML = `
             <h3>❌ Error al cargar certificaciones</h3>
-            <p>No se pudieron cargar tus certificaciones. Intenta nuevamente.</p>
+            <p>${error.message || 'Error desconocido'}</p>
             <button onclick="cargarCertificaciones()" style="margin-top: 10px; padding: 8px 16px; background: var(--accent-color); color: white; border: none; border-radius: 4px; cursor: pointer;">
-                Reintentar
+                🔄 Reintentar
             </button>
         `;
     }
 }
 
+// 🔹 FUNCIÓN PARA DIAGNOSTICAR (OPCIONAL)
+async function diagnosticarCertificaciones() {
+    const user = auth.currentUser;
+    if (!user) return;
+    
+    const userEmail = user.email.toLowerCase().trim();
+    const esMovil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const visitanteId = localStorage.getItem("visitanteId");
+    
+    console.log('🔍 DIAGNÓSTICO CERTIFICACIONES:');
+    console.log('📧 Email:', userEmail);
+    console.log('📱 Dispositivo:', esMovil ? 'MÓVIL' : 'PC');
+    console.log('🆔 VisitanteId:', visitanteId);
+    console.log('🌐 UserAgent:', navigator.userAgent);
+    
+    try {
+        const formulariosRes = await fetch("/api/formulario?action=listarFormularios");
+        const formularios = await formulariosRes.json();
+        
+        let infoHTML = `
+            <strong>🔍 Diagnóstico Certificaciones</strong><br><br>
+            <strong>Email:</strong> ${userEmail}<br>
+            <strong>Dispositivo:</strong> ${esMovil ? '📱 MÓVIL' : '💻 PC'}<br>
+            <strong>VisitanteId:</strong> ${visitanteId || 'No encontrado'}<br><br>
+            <strong>Formularios encontrados:</strong> ${Object.keys(formularios).length}<br><br>
+        `;
+        
+        // Revisar un formulario de ejemplo
+        const primerFormularioId = Object.keys(formularios)[0];
+        if (primerFormularioId) {
+            const respuestasRes = await fetch(`/api/formulario?action=verRespuestas&id=${primerFormularioId}`);
+            const data = await respuestasRes.json();
+            const respuestas = data.asistencias || [];
+            
+            // Buscar respuestas del usuario
+            const respuestasUsuario = respuestas.filter(r => 
+                (r.correo || '').toLowerCase().trim() === userEmail
+            );
+            
+            infoHTML += `<strong>Respuestas en "${formularios[primerFormularioId].titulo}":</strong> ${respuestasUsuario.length}<br>`;
+            
+            respuestasUsuario.forEach((r, i) => {
+                infoHTML += `${i+1}. Asistencia ${r.asistenciaNumero || 'N/A'} (VisitanteId: ${r.visitanteId || 'undefined'})<br>`;
+            });
+        }
+        
+        mostrarMensaje('info', 'Diagnóstico', infoHTML);
+        
+    } catch (error) {
+        console.error('Error en diagnóstico:', error);
+    }
+}
+
+// 🔹 AGREGAR BOTÓN DE DIAGNÓSTICO TEMPORAL (opcional)
+function agregarBotonesDebug() {
+    if (document.getElementById('debug-buttons')) return;
+    
+    const debugDiv = document.createElement('div');
+    debugDiv.id = 'debug-buttons';
+    debugDiv.style.cssText = `
+        position: fixed; 
+        bottom: 10px; 
+        right: 10px; 
+        z-index: 10000; 
+        background: rgba(0,0,0,0.9); 
+        color: white; 
+        padding: 10px; 
+        border-radius: 8px;
+        font-size: 12px;
+        border: 2px solid #ff9800;
+    `;
+    
+    debugDiv.innerHTML = `
+        <strong>🔧 Debug Certificaciones</strong><br>
+        <button onclick="diagnosticarCertificaciones()" 
+                style="margin: 2px; padding: 6px 10px; background: #2196f3; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">
+            🔍 Diagnosticar
+        </button>
+        <button onclick="localStorage.removeItem('visitanteId'); console.log('🗑️ VisitanteId eliminado');" 
+                style="margin: 2px; padding: 6px 10px; background: #f44336; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">
+            🗑️ Limpiar ID
+        </button>
+        <button onclick="cargarCertificaciones()" 
+                style="margin: 2px; padding: 6px 10px; background: #4caf50; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">
+            🔄 Recargar
+        </button>
+    `;
+    
+    document.body.appendChild(debugDiv);
+}
+
+// Agregar botones debug después de cargar la página
+setTimeout(agregarBotonesDebug, 3000);
 
 
 

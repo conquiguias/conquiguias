@@ -3837,7 +3837,7 @@
           );
 
           setTimeout(() => {
-            setupScrollSnapSystem();
+            initializeScrollSnapOnce();
         }, 500);
 
         } catch (error) {
@@ -3901,6 +3901,11 @@
         try {
           console.log('📥 Cargando más publicaciones...');
 
+          // 🔥 GUARDAR LA POSICIÓN ACTUAL ANTES DE CARGAR
+        const mainContent = document.getElementById('mainContent');
+        const currentScroll = mainContent.scrollTop;
+        const currentPostBeforeLoad = currentSnappedPost;
+
           let q;
           if (lastVisiblePost) {
             // Cargar después del último post visible
@@ -3944,9 +3949,19 @@
             inicializarSistemaVideos();
           }, 100);
 
-          setTimeout(() => {
+          // 🔥 RESTAURAR POSICIÓN Y ACTUALIZAR SNAPPING
+        setTimeout(() => {
+            // Restaurar scroll position
+            mainContent.scrollTop = currentScroll;
+            
+            // Re-activar snapping SIN centrar automáticamente
             setupScrollSnapSystem();
-        }, 500);
+            
+            // Si había una publicación centrada antes, intentar mantenerla
+            if (currentPostBeforeLoad && currentPostBeforeLoad.isConnected) {
+                currentPostBeforeLoad.scrollIntoView({ behavior: 'auto', block: 'center' });
+            }
+        }, 100);
 
           // Si cargamos menos de postsPerLoad, no hay más publicaciones
           if (querySnapshot.size < postsPerLoad) {
@@ -4035,7 +4050,7 @@
           }, 500);
 
           setTimeout(() => {
-            setupScrollSnapSystem();
+            initializeScrollSnapOnce();
         }, 500);
 
         } catch (error) {
@@ -5188,23 +5203,69 @@ function setupKeyboardSnapping() {
     });
 }
 
-// Inicializar todo el sistema
+// 🔹 SISTEMA DE SCROLL SNAPPING MEJORADO (MANTIENE POSICIÓN)
+let scrollSnapObserver = null;
+
 function setupScrollSnapSystem() {
-    // Pequeño delay para asegurar que las publicaciones estén cargadas
-    setTimeout(() => {
-        initializeScrollSnapping();
-        setupKeyboardSnapping();
-        
-        // Centrar la primera publicación al inicio
-        const firstPost = document.querySelector('.post-card');
-        if (firstPost) {
-            setTimeout(() => snapToPost(firstPost), 500);
+    const posts = document.querySelectorAll('.post-card');
+    if (posts.length === 0) return;
+    
+    // Detener el observer anterior si existe
+    if (scrollSnapObserver) {
+        scrollSnapObserver.disconnect();
+    }
+    
+    // Crear nuevo observer
+    scrollSnapObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && entry.intersectionRatio > 0.7) {
+                if (currentSnappedPost && currentSnappedPost !== entry.target) {
+                    currentSnappedPost.classList.remove('snapped');
+                }
+                entry.target.classList.add('snapped');
+                currentSnappedPost = entry.target;
+                
+                // Efecto rebote
+                entry.target.style.animation = 'none';
+                setTimeout(() => {
+                    entry.target.style.animation = 'bounceSnap 0.6s ease';
+                }, 10);
+            }
+        });
+    }, {
+        root: document.getElementById('mainContent'),
+        threshold: 0.7,
+        rootMargin: '-40% 0px -40% 0px'
+    });
+    
+    // Observar solo las nuevas publicaciones (no todas)
+    posts.forEach(post => {
+        if (!post.hasAttribute('data-observed')) {
+            scrollSnapObserver.observe(post);
+            post.setAttribute('data-observed', 'true');
         }
-    }, 1000);
+    });
+    
+    console.log('🎯 Scroll snapping actualizado para', posts.length, 'publicaciones');
 }
 
-// Llamar esta función después de cargar las publicaciones
-// setupScrollSnapSystem();
+// Función para inicializar solo una vez al principio
+function initializeScrollSnapOnce() {
+    const posts = document.querySelectorAll('.post-card');
+    if (posts.length === 0) return;
+    
+    // Solo centrar la primera publicación la primera vez
+    if (!document.body.hasAttribute('data-snap-initialized')) {
+        setTimeout(() => {
+            if (posts[0]) {
+                posts[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 500);
+        document.body.setAttribute('data-snap-initialized', 'true');
+    }
+    
+    setupScrollSnapSystem();
+}
     </script>
 
 

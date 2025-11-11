@@ -1684,33 +1684,46 @@
     </div>
 
     <!-- 🔹 NUEVA SECCIÓN: CERTIFICACIONES -->
-    <div id="certificaciones-section">
-      <div id="certificaciones-loading" style="display: none;">
-          Cargando certificaciones...
-      </div>
-      
-      <div id="certificaciones-content" style="display: none;">
-          <table>
-              <thead>
-                  <tr>
-                      <th>Fecha de Participación</th>
-                      <th>Asistencias Completadas</th>
-                      <th>Examen Realizado</th>
-                      <th>Calificación</th>
-                      <th>Estado</th>
-                      <th>Examen</th>
-                  </tr>
-              </thead>
-              <tbody id="certificaciones-body">
-                  <!-- Las filas se insertarán aquí -->
-              </tbody>
+    <div id="certificacionesSection" class="hidden">
+      <div class="card card-certificaciones">
+        <h2>📜 Mis Certificaciones de Especialidades</h2>
+        <p>Aquí puedes ver todas las especialidades en las que has participado, validadas con tu correo electrónico.</p>
+
+        <div id="certificacionesLoading" style="text-align: center; padding: 20px;">
+          <div class="loading" style="display: inline-block;"></div>
+          <p>Cargando tus certificaciones...</p>
+        </div>
+
+        <div id="certificacionesContent" style="display: none;">
+          <div id="certificacionesContadores">
+            <p>Total de especialidades: <span id="totalEspecialidades">0</span></p>
+            <p>Especialidades completadas: <span id="especialidadesCompletadas">0</span></p>
+          </div>
+
+          <table id="tablaCertificaciones" border="1" style="border-collapse: collapse; width: 100%; margin-top: 20px;">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Especialidad</th>
+                <th>Fecha de Participación</th>
+                <th>Asistencias Completadas</th>
+                <th>Examen Realizado</th>
+                <th>Calificación</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="cuerpoTablaCertificaciones">
+              <!-- Las filas se llenarán dinámicamente -->
+            </tbody>
           </table>
+
+          <div id="sinCertificaciones" style="display: none; text-align: center; padding: 30px; color: #666;">
+            <h3>📝 Aún no tienes certificaciones</h3>
+            <p>Participa en especialidades para ver tus certificaciones aquí.</p>
+          </div>
+        </div>
       </div>
-      
-      <div id="sin-certificaciones" style="display: none;">
-          No se encontraron certificaciones.
-      </div>
-  </div>
+    </div>
 
     <!-- 🔧 SECCIÓN ADMIN -->
     <div id="adminSection" class="card hidden">
@@ -2415,8 +2428,10 @@
         });
       });
 
-      //////////////
-      async function cargarCertificaciones() {
+      //////////////////////////////////////////////////////
+      // Función para cargar las certificaciones del usuario
+      // 🔹 FUNCIÓN CORREGIDA PARA CARGAR CERTIFICACIONES
+async function cargarCertificaciones() {
     agregarLogFirestore('cargarCertificaciones');
     
     // 🔒 Usar cache si está disponible
@@ -2428,12 +2443,12 @@
     }
 
     // 🔍 VERIFICAR QUE LOS ELEMENTOS DEL DOM EXISTAN
-    const tbody = document.getElementById("certificaciones-body");
-    const certificacionesLoading = document.getElementById("certificaciones-loading");
-    const certificacionesContent = document.getElementById("certificaciones-content");
-    const sinCertificaciones = document.getElementById("sin-certificaciones");
+    const certificacionesLoading = document.getElementById("certificacionesLoading");
+    const certificacionesContent = document.getElementById("certificacionesContent");
+    const sinCertificaciones = document.getElementById("sinCertificaciones");
+    const cuerpoTablaCertificaciones = document.getElementById("cuerpoTablaCertificaciones");
 
-    if (!tbody || !certificacionesLoading || !certificacionesContent || !sinCertificaciones) {
+    if (!certificacionesLoading || !certificacionesContent || !sinCertificaciones || !cuerpoTablaCertificaciones) {
         console.error('❌ Elementos del DOM no encontrados para certificaciones');
         return;
     }
@@ -2510,22 +2525,17 @@
                             e.visitanteId === visitanteIdGrupo
                         );
 
-                        // 🔹 CORRECCIÓN MEJORADA: Contar asistencias únicas por número para ESTE formulario
-                        const asistenciasEnEsteFormulario = respuestasGrupo.filter(r => 
-                            !r.id || r.id === formularioId
-                        );
-                        
-                        const numerosAsistencia = asistenciasEnEsteFormulario.map(r => r.asistenciaNumero);
-                        const asistenciasUnicas = [...new Set(numerosAsistencia.filter(num => 
+                        // 🔹 CORRECCIÓN MEJORADA: Contar asistencias únicas por número
+                        const asistenciasUnicas = [...new Set(respuestasGrupo.map(r => r.asistenciaNumero))];
+                        const asistenciasCompletadas = asistenciasUnicas.filter(num => 
                             num === 1 || num === 2 || num === 3
-                        ))];
-                        const asistenciasCompletadas = asistenciasUnicas.length;
+                        ).length;
 
                         const examenRealizado = examenUsuario !== undefined;
                         const calificacion = examenRealizado ? examenUsuario.puntaje : null;
                         const aprobado = examenRealizado ? calificacion >= 70 : false;
 
-                        // 🔹 LÓGICA SIMPLIFICADA PARA DETERMINAR ESTADO
+                        // 🔹 LÓGICA CORREGIDA PARA DETERMINAR ESTADO
                         let estado = "";
                         let estadoClase = "";
 
@@ -2630,16 +2640,18 @@
     }
 }
 
-// 🔹 FUNCIÓN ACTUALIZADA PARA LA INTERFAZ
+// 🔹 FUNCIÓN ACTUALIZADA PARA LA INTERFAZ DE CERTIFICACIONES
 function actualizarInterfazCertificaciones(certificaciones) {
     // 🔍 OBTENER ELEMENTOS DEL DOM DENTRO DE LA FUNCIÓN
-    const tbody = document.getElementById("certificaciones-body");
-    const certificacionesLoading = document.getElementById("certificaciones-loading");
-    const certificacionesContent = document.getElementById("certificaciones-content");
-    const sinCertificaciones = document.getElementById("sin-certificaciones");
+    const certificacionesLoading = document.getElementById("certificacionesLoading");
+    const certificacionesContent = document.getElementById("certificacionesContent");
+    const sinCertificaciones = document.getElementById("sinCertificaciones");
+    const cuerpoTablaCertificaciones = document.getElementById("cuerpoTablaCertificaciones");
+    const totalEspecialidades = document.getElementById("totalEspecialidades");
+    const especialidadesCompletadas = document.getElementById("especialidadesCompletadas");
 
     // ✅ VERIFICAR QUE LOS ELEMENTOS EXISTAN
-    if (!tbody || !certificacionesLoading || !certificacionesContent || !sinCertificaciones) {
+    if (!certificacionesLoading || !certificacionesContent || !sinCertificaciones || !cuerpoTablaCertificaciones) {
         console.error('❌ Elementos del DOM no encontrados en actualizarInterfazCertificaciones');
         return;
     }
@@ -2652,27 +2664,62 @@ function actualizarInterfazCertificaciones(certificaciones) {
     }
 
     // Limpiar tabla
-    tbody.innerHTML = "";
+    cuerpoTablaCertificaciones.innerHTML = "";
 
+    // Agrupar certificaciones por formularioId para evitar duplicados
+    const certificacionesAgrupadas = {};
     certificaciones.forEach(cert => {
+        if (!certificacionesAgrupadas[cert.formularioId]) {
+            certificacionesAgrupadas[cert.formularioId] = [];
+        }
+        certificacionesAgrupadas[cert.formularioId].push(cert);
+    });
+
+    // Tomar la mejor certificación de cada formulario (la que tenga más asistencias completadas)
+    const certificacionesUnicas = [];
+    Object.values(certificacionesAgrupadas).forEach(grupo => {
+        // Ordenar por asistencias completadas (mayor a menor) y luego por fecha (más reciente primero)
+        grupo.sort((a, b) => {
+            if (b.asistenciasCompletadas !== a.asistenciasCompletadas) {
+                return b.asistenciasCompletadas - a.asistenciasCompletadas;
+            }
+            return new Date(b.fecha) - new Date(a.fecha);
+        });
+        // Tomar la primera (mejor) certificación del grupo
+        certificacionesUnicas.push(grupo[0]);
+    });
+
+    // Actualizar contadores
+    const completadas = certificacionesUnicas.filter(c => c.estado === "Completado" || c.estado === "Aprobado").length;
+    if (totalEspecialidades) totalEspecialidades.textContent = certificacionesUnicas.length;
+    if (especialidadesCompletadas) especialidadesCompletadas.textContent = completadas;
+
+    // Ordenar certificaciones por fecha (más reciente primero)
+    certificacionesUnicas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+    // Llenar tabla
+    certificacionesUnicas.forEach((cert, index) => {
         const fila = document.createElement("tr");
-        
+
         // 🔹 FORMATEAR FECHA CORRECTAMENTE
         const fechaFormateada = cert.fecha instanceof Date && !isNaN(cert.fecha) ? 
             cert.fecha.toLocaleDateString('es-ES') : 'Fecha no disponible';
 
         // 🔹 FORMATEAR CALIFICACIÓN
         let calificacionTexto = 'No realizado';
+        let calificacionClase = '';
+        
         if (cert.examenRealizado && cert.calificacion !== null) {
+            calificacionClase = cert.aprobado ? "calificacion-aprobada" : "calificacion-reprobada";
             calificacionTexto = `${Math.round(cert.calificacion)}%`;
         } else if (cert.tieneEvaluacion === false) {
             calificacionTexto = 'No aplica';
         }
 
-        // 🔹 BOTÓN DE EXAMEN - solo mostrar si hay examen realizado
+        // 🔹 BOTÓN DE EXAMEN
         let examenBoton = 'No disponible';
         if (cert.examenRealizado) {
-            examenBoton = `<button class="btn-ver-examen" onclick="verExamen('${cert.formularioId}', '${cert.visitanteId}')">
+            examenBoton = `<button class="btn-ver-examen" onclick="verCertificacionCompleta('${cert.formularioId}', '${cert.visitanteId}')">
                 Ver Examen
             </button>`;
         } else if (cert.tieneEvaluacion === false) {
@@ -2680,15 +2727,17 @@ function actualizarInterfazCertificaciones(certificaciones) {
         }
 
         fila.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${cert.titulo}</td>
             <td>${fechaFormateada}</td>
             <td>${cert.asistenciasCompletadas}/${cert.totalAsistencias}</td>
             <td>${cert.examenRealizado ? 'Sí' : 'No'}</td>
-            <td>${calificacionTexto}</td>
-            <td><span class="${cert.estadoClase}">${cert.estado}</span></td>
+            <td class="${calificacionClase}">${calificacionTexto}</td>
+            <td class="${cert.estadoClase}">${cert.estado}</td>
             <td>${examenBoton}</td>
         `;
 
-        tbody.appendChild(fila);
+        cuerpoTablaCertificaciones.appendChild(fila);
     });
 
     // Ocultar loading y mostrar contenido
@@ -2696,6 +2745,7 @@ function actualizarInterfazCertificaciones(certificaciones) {
     certificacionesContent.style.display = "block";
     sinCertificaciones.style.display = "none";
 }
+
 
 
 
@@ -3391,8 +3441,6 @@ function actualizarInterfazCertificaciones(certificaciones) {
 
 
 
-      
-      
       
       const tabla = document.getElementById('tablaCertificaciones');
       tabla.querySelector('thead').innerHTML = `

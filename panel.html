@@ -1474,29 +1474,58 @@
   margin-bottom: 10px;
 }
 
-/* Versión simple solo con CSS */
-.post-card {
-    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    cursor: pointer;
-}
+/* ============================================
+   SCROLL SNAPPING CON EFECTO REBOTE
+   ============================================ */
 
-.post-card:active {
-    transform: scale(0.98);
-}
-
-.post-card:focus {
-    outline: none;
-    animation: gentleBounce 0.6s ease;
-}
-
-@keyframes gentleBounce {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.03); }
-}
-
-/* Scroll suave para todo el contenido */
+/* Configurar el contenedor principal para scroll snapping */
 #mainContent {
+    scroll-snap-type: y mandatory;
     scroll-behavior: smooth;
+    overflow-y: auto;
+}
+
+/* Cada publicación será un punto de snap */
+.post-card {
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+    margin: 20px auto;
+    transition: all 0.3s ease;
+}
+
+/* Efecto de rebote cuando se activa el snap */
+.post-card:focus {
+    animation: bounceSnap 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes bounceSnap {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+    }
+    50% {
+        transform: scale(1.02);
+        box-shadow: 0 0 0 10px rgba(59, 130, 246, 0.3);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    }
+}
+
+/* Indicador visual cuando una publicación está centrada */
+.post-card.snapped {
+    border: 2px solid var(--accent-color);
+    animation: gentlePulse 2s infinite;
+}
+
+@keyframes gentlePulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.1);
+    }
 }
   </style>
 </head>
@@ -3807,6 +3836,10 @@
             'Tiempo estimado de revisión: 24 horas.'
           );
 
+          setTimeout(() => {
+            setupScrollSnapSystem();
+        }, 500);
+
         } catch (error) {
           console.error('❌ Error al publicar:', error);
           mostrarMensaje('error', 'Error al publicar', error.message || 'No se pudo completar la publicación.');
@@ -3911,6 +3944,10 @@
             inicializarSistemaVideos();
           }, 100);
 
+          setTimeout(() => {
+            setupScrollSnapSystem();
+        }, 500);
+
           // Si cargamos menos de postsPerLoad, no hay más publicaciones
           if (querySnapshot.size < postsPerLoad) {
             hasMorePosts = false;
@@ -3996,6 +4033,10 @@
           setTimeout(() => {
             initializeInfiniteScroll();
           }, 500);
+
+          setTimeout(() => {
+            setupScrollSnapSystem();
+        }, 500);
 
         } catch (error) {
           console.error('❌ Error cargando publicaciones:', error);
@@ -5002,6 +5043,168 @@
         videoActualmenteReproduciendose = null;
         console.log('⏸️ Todos los videos pausados');
       }
+
+
+
+
+
+
+
+      // 🔹 SISTEMA DE SCROLL SNAPPING AUTOMÁTICO
+
+let isScrolling = false;
+let scrollTimeout;
+let currentSnappedPost = null;
+
+function initializeScrollSnapping() {
+    const mainContent = document.getElementById('mainContent');
+    const posts = document.querySelectorAll('.post-card');
+    
+    if (posts.length === 0) return;
+    
+    // Configurar Intersection Observer para detectar posts centrados
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && entry.intersectionRatio > 0.7) {
+                // Esta es la publicación actualmente centrada
+                highlightSnappedPost(entry.target);
+            }
+        });
+    }, {
+        root: mainContent,
+        threshold: [0.7, 0.8, 0.9],
+        rootMargin: '-45% 0px -45% 0px' // Solo el centro (10% arriba y abajo)
+    });
+    
+    // Observar todas las publicaciones
+    posts.forEach(post => {
+        observer.observe(post);
+        
+        // Agregar efecto de rebote al hacer clic
+        post.addEventListener('click', (e) => {
+            if (!e.target.closest('.post-actions') && !e.target.closest('.delete-post-btn')) {
+                snapToPost(post);
+            }
+        });
+    });
+    
+    // Detectar scroll para mejorar la experiencia
+    mainContent.addEventListener('scroll', () => {
+        if (!isScrolling) {
+            isScrolling = true;
+        }
+        
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+            isScrolling = false;
+            // Al terminar el scroll, asegurar que un post esté centrado
+            ensurePostIsCentered();
+        }, 150);
+    });
+    
+    console.log('🎯 Scroll snapping inicializado');
+}
+
+// Función para resaltar la publicación centrada
+function highlightSnappedPost(postElement) {
+    // Remover highlight anterior
+    if (currentSnappedPost && currentSnappedPost !== postElement) {
+        currentSnappedPost.classList.remove('snapped');
+    }
+    
+    // Aplicar highlight nuevo
+    postElement.classList.add('snapped');
+    currentSnappedPost = postElement;
+    
+    // Efecto de rebote
+    postElement.style.animation = 'none';
+    setTimeout(() => {
+        postElement.style.animation = 'bounceSnap 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+    }, 10);
+}
+
+// Función para centrar una publicación específica
+function snapToPost(postElement) {
+    const mainContent = document.getElementById('mainContent');
+    const postRect = postElement.getBoundingClientRect();
+    const mainRect = mainContent.getBoundingClientRect();
+    
+    const targetScroll = mainContent.scrollTop + (postRect.top - mainRect.top) - (mainRect.height / 2) + (postRect.height / 2);
+    
+    mainContent.scrollTo({
+        top: targetScroll,
+        behavior: 'smooth'
+    });
+    
+    highlightSnappedPost(postElement);
+}
+
+// Asegurar que siempre haya un post centrado
+function ensurePostIsCentered() {
+    const posts = document.querySelectorAll('.post-card');
+    const mainContent = document.getElementById('mainContent');
+    
+    let closestPost = null;
+    let closestDistance = Infinity;
+    
+    posts.forEach(post => {
+        const postRect = post.getBoundingClientRect();
+        const mainRect = mainContent.getBoundingClientRect();
+        
+        const postCenter = postRect.top + (postRect.height / 2);
+        const mainCenter = mainRect.top + (mainRect.height / 2);
+        const distance = Math.abs(postCenter - mainCenter);
+        
+        if (distance < closestDistance) {
+            closestDistance = distance;
+            closestPost = post;
+        }
+    });
+    
+    if (closestPost && closestDistance < mainRect.height * 0.4) {
+        snapToPost(closestPost);
+    }
+}
+
+// Navegación con teclado
+function setupKeyboardSnapping() {
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === ' ' || e.key === 'PageDown' || e.key === 'PageUp') {
+            e.preventDefault();
+            
+            const posts = Array.from(document.querySelectorAll('.post-card'));
+            if (posts.length === 0) return;
+            
+            let currentIndex = currentSnappedPost ? posts.indexOf(currentSnappedPost) : 0;
+            
+            if (e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown') {
+                currentIndex = currentIndex < posts.length - 1 ? currentIndex + 1 : 0;
+            } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+                currentIndex = currentIndex > 0 ? currentIndex - 1 : posts.length - 1;
+            }
+            
+            snapToPost(posts[currentIndex]);
+        }
+    });
+}
+
+// Inicializar todo el sistema
+function setupScrollSnapSystem() {
+    // Pequeño delay para asegurar que las publicaciones estén cargadas
+    setTimeout(() => {
+        initializeScrollSnapping();
+        setupKeyboardSnapping();
+        
+        // Centrar la primera publicación al inicio
+        const firstPost = document.querySelector('.post-card');
+        if (firstPost) {
+            setTimeout(() => snapToPost(firstPost), 500);
+        }
+    }, 1000);
+}
+
+// Llamar esta función después de cargar las publicaciones
+// setupScrollSnapSystem();
     </script>
 
 

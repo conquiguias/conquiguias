@@ -3481,7 +3481,9 @@ function actualizarInterfazCertificaciones(certificaciones) {
         <div class="firma">
             <img src="${formulario.imagenFirma1}" alt="Firma Instructor">
             <div class="linea-firma"></div>
-            <div class="nombre-firma" style="word-wrap: break-word; max-width: 180px;">${extraerNombreFirma(formulario.imagenFirma1)}</div>
+            <div class="nombre-firma" style="word-wrap: break-word; max-width: 180px;">
+                ${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma1))}
+            </div>
             <div class="cargo-firma"><strong>INSTRUCTOR</strong></div>
         </div>
     ` : ''}
@@ -3490,7 +3492,9 @@ function actualizarInterfazCertificaciones(certificaciones) {
         <div class="firma">
             <img src="${formulario.imagenFirma2}" alt="Firma Director">
             <div class="linea-firma"></div>
-            <div class="nombre-firma" style="word-wrap: break-word; max-width: 180px;">${extraerNombreFirma(formulario.imagenFirma2)}</div>
+            <div class="nombre-firma" style="word-wrap: break-word; max-width: 180px;">
+                ${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma2))}
+            </div>
             <div class="cargo-firma"><strong>DIRECTOR</strong></div>
         </div>
     ` : ''}
@@ -3499,7 +3503,9 @@ function actualizarInterfazCertificaciones(certificaciones) {
         <div class="firma">
             <img src="${formulario.imagenFirma3}" alt="Firma Coordinador">
             <div class="linea-firma"></div>
-            <div class="nombre-firma" style="word-wrap: break-word; max-width: 180px;">${extraerNombreFirma(formulario.imagenFirma3)}</div>
+            <div class="nombre-firma" style="word-wrap: break-word; max-width: 180px;">
+                ${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma3))}
+            </div>
             <div class="cargo-firma"><strong>COORDINADOR</strong></div>
         </div>
     ` : ''}
@@ -5487,37 +5493,23 @@ function smoothScrollToPost(postElement) {
     }, 1000);
 }
 
-// AGREGAR ESTA FUNCIÓN EN TU CÓDIGO (preferiblemente al inicio del script)
-function limpiarTexto(texto) {
+// Solo agregar la función de limpieza y modificar las llamadas
+function limpiarTextoCertificado(texto) {
     if (!texto) return '';
     
-    // Reemplazar %20 por espacios y decodificar otros caracteres URL
     let textoLimpio = texto.replace(/%20/g, ' ');
     
-    // Decodificar otros caracteres URL si es necesario
     try {
         textoLimpio = decodeURIComponent(textoLimpio);
     } catch (e) {
-        // Si hay error en la decodificación, mantener el texto con espacios
         textoLimpio = textoLimpio.replace(/%20/g, ' ');
     }
     
-    // Limpiar texto adicional que aparece en tu ejemplo
+    // Limpiar patrones específicos
     textoLimpio = textoLimpio.replace(/or%20GM%20Evagrio%/g, '');
     textoLimpio = textoLimpio.replace(/Coordinador%20GM%20/g, '');
     
     return textoLimpio.trim();
-}
-
-// MODIFICAR LA FUNCIÓN extraerNombreFirma (si existe) o crear una nueva
-function extraerNombreFirma(urlFirma) {
-    if (!urlFirma) return '';
-    
-    // Extraer el nombre del archivo de la URL
-    let nombreArchivo = urlFirma.split('/').pop().split('.').shift();
-    
-    // Aplicar la función de limpieza
-    return limpiarTexto(nombreArchivo);
 }
 
     </script>

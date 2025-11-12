@@ -3470,7 +3470,7 @@ function actualizarInterfazCertificaciones(certificaciones) {
                                 <div class="texto-certificacion">
                                     Por haber participado en la especialidad:<br>
                                     <strong style="color: #2c3e50; font-size: 22px;">"${formulario.titulo}"</strong><br>
-                                    impartido por <strong>${extraerNombreFirma(formulario.imagenFirma1) || 'el instructor'}</strong>,<br>
+                                    impartido por <strong>${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma1) || 'el instructor')}</strong>,<br>
                                     el ${fechaFormateada}.
                                 </div>
                             </div>
@@ -3495,7 +3495,7 @@ function actualizarInterfazCertificaciones(certificaciones) {
             <div class="nombre-firma" style="word-wrap: break-word; max-width: 180px;">
                 ${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma2))}
             </div>
-            <div class="cargo-firma"><strong>DIRECTOR</strong></div>
+            <div class="cargo-firma"><strong></strong></div>
         </div>
     ` : ''}
     
@@ -3506,7 +3506,7 @@ function actualizarInterfazCertificaciones(certificaciones) {
             <div class="nombre-firma" style="word-wrap: break-word; max-width: 180px;">
                 ${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma3))}
             </div>
-            <div class="cargo-firma"><strong>COORDINADOR</strong></div>
+            <div class="cargo-firma"><strong></strong></div>
         </div>
     ` : ''}
 </div>
@@ -3549,6 +3549,7 @@ function actualizarInterfazCertificaciones(certificaciones) {
             // Restaurar botón
             btnImprimir.innerHTML = textoOriginal;
             btnImprimir.disabled = false;
+            
           })
           .catch(error => {
             console.error('Error al obtener asistencias:', error);

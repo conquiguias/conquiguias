@@ -1527,6 +1527,21 @@
         box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.1);
     }
 }
+
+/* Estilos para el botón flotante y modal de subida */
+#floatingUploadBtn:hover {
+    transform: scale(1.1);
+    background: var(--accent-hover);
+}
+
+#uploadModal {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
   </style>
 </head>
 
@@ -1554,31 +1569,80 @@
 
     <!-- Inicio - Red Social -->
     <div id="inicioSection" class="card">
-      <!-- Contenedor de publicación -->
-      <div id="uploadContainer" class="card" style="margin-bottom: 20px;">
+      <!-- Botón flotante para crear publicación -->
+<div id="floatingUploadBtn" style="
+position: fixed;
+bottom: 30px;
+right: 30px;
+width: 60px;
+height: 60px;
+background: var(--accent-color);
+border-radius: 50%;
+display: flex;
+align-items: center;
+justify-content: center;
+cursor: pointer;
+box-shadow: 0 4px 15px var(--shadow-color);
+z-index: 999;
+transition: all 0.3s ease;
+">
+<span style="font-size: 24px; color: white;">+</span>
+</div>
+
+<!-- Modal para crear publicación -->
+<div id="uploadModal" class="hidden" style="
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background: rgba(0, 0, 0, 0.7);
+display: flex;
+align-items: center;
+justify-content: center;
+z-index: 1000;
+">
+<div class="card" style="
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    margin: 0;
+">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
         <h3>Crear Publicación</h3>
-        <div id="uploadBox">
-          <input type="file" id="fileInput" accept="image/*,video/*"
+        <button id="closeUploadModal" style="
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-primary);
+        ">×</button>
+    </div>
+    
+    <div id="uploadBox">
+        <input type="file" id="fileInput" accept="image/*,video/*"
             style="margin-bottom: 10px; width: 100%; padding: 8px;">
-          <textarea id="postDescription" placeholder="Escribe una descripción..."
-            style="width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ccc; font-family: inherit;"></textarea>
-          <div id="previewContainer" style="margin-bottom: 10px;"></div>
-          <div id="uploadProgress" style="display: none; margin-bottom: 10px;">
-            <div style="background: #f0f0f0; border-radius: 10px; height: 20px;">
-              <div id="progressBar"
-                style="background: #1976d2; height: 100%; border-radius: 10px; width: 0%; transition: width 0.3s;">
-              </div>
+        <textarea id="postDescription" placeholder="Escribe una descripción..."
+            style="width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 6px; border: 1px solid var(--border-color); font-family: inherit; background: var(--bg-secondary); color: var(--text-primary);"></textarea>
+        <div id="previewContainer" style="margin-bottom: 10px;"></div>
+        <div id="uploadProgress" style="display: none; margin-bottom: 10px;">
+            <div style="background: var(--bg-secondary); border-radius: 10px; height: 20px;">
+                <div id="progressBar"
+                    style="background: var(--accent-color); height: 100%; border-radius: 10px; width: 0%; transition: width 0.3s;">
+                </div>
             </div>
             <span id="progressText" style="font-size: 14px;">0%</span>
-          </div>
-          <div style="display: flex; align-items: center;">
-            <button id="uploadBtn"
-              style="padding: 10px 20px; background: #1976d2; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">Publicar</button>
-            <span id="countdownTimer"
-              style="margin-left: 15px; color: #ff5722; font-weight: bold; display: none;"></span>
-          </div>
         </div>
-      </div>
+        <div style="display: flex; align-items: center;">
+            <button id="uploadBtn"
+                style="padding: 10px 20px; background: var(--accent-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">Publicar</button>
+            <span id="countdownTimer"
+                style="margin-left: 15px; color: var(--warning-color); font-weight: bold; display: none;"></span>
+        </div>
+    </div>
+</div>
+</div>
 
       <!-- Feed de publicaciones -->
       <div id="feed" style="display: flex; flex-direction: column; gap: 20px;"></div>
@@ -2228,6 +2292,13 @@
 
         seccion.classList.remove("hidden");
         botonActivo.classList.add("active");
+
+        // Mostrar u ocultar botón flotante según la sección
+    if (seccion === inicioSection) {
+        floatingUploadBtn.style.display = 'flex';
+    } else {
+        floatingUploadBtn.style.display = 'none';
+    }
       }
 
       ////////////////////////////////////////////
@@ -4026,6 +4097,7 @@ function actualizarInterfazCertificaciones(certificaciones) {
 
           await loadPosts();
           // En handleUpload, después de guardar la publicación exitosamente
+          uploadModal.classList.add('hidden');
           mostrarMensaje('info', '📤 Publicación enviada',
             'Tu publicación ha sido enviada para revisión. Será visible para todos una vez que sea aprobada por un administrador.\n\n' +
             'Tiempo estimado de revisión: 24 horas.'
@@ -5513,6 +5585,38 @@ function limpiarTextoCertificado(texto) {
     
     return textoLimpio.trim();
 }
+
+
+
+// Elementos del modal de subida
+const floatingUploadBtn = document.getElementById('floatingUploadBtn');
+const uploadModal = document.getElementById('uploadModal');
+const closeUploadModal = document.getElementById('closeUploadModal');
+
+// Mostrar modal al hacer clic en el botón flotante
+floatingUploadBtn.addEventListener('click', () => {
+    uploadModal.classList.remove('hidden');
+});
+
+// Cerrar modal
+closeUploadModal.addEventListener('click', () => {
+    uploadModal.classList.add('hidden');
+    // Limpiar formulario al cerrar
+    fileInput.value = '';
+    postDescription.value = '';
+    previewContainer.innerHTML = '';
+});
+
+// Cerrar modal al hacer clic fuera del contenido
+uploadModal.addEventListener('click', (e) => {
+    if (e.target === uploadModal) {
+        uploadModal.classList.add('hidden');
+        // Limpiar formulario al cerrar
+        fileInput.value = '';
+        postDescription.value = '';
+        previewContainer.innerHTML = '';
+    }
+});
 
     </script>
 

@@ -499,6 +499,7 @@
 
     /* Contenedor de publicación */
     #uploadContainer {
+      display: none;
       background: var(--bg-card);
       margin-bottom: 20px;
       border-radius: 12px;
@@ -735,7 +736,7 @@
       margin-left: 10px;
     }
 
-    .post-contenedor{
+    .post-contenedor {
       display: flex;
       position: relative;
       flex-direction: row;
@@ -1136,7 +1137,7 @@
       }
     }
 
-    
+
 
     /* 🔹 MÓVIL PEQUEÑO (375px - 575px) */
     @media (max-width: 575px) {
@@ -1181,7 +1182,7 @@
       }
     }
 
-    
+
 
     /* 🔹 MEJORAS DE SCROLL PARA EL MENÚ */
     @media (max-width: 1023px) {
@@ -1201,334 +1202,360 @@
    ESTILOS DE CERTIFICACIONES - MODO NOCHE
    ============================================ */
 
-/* Estilos específicos para la sección de certificaciones */
-.card-certificaciones {
-  max-width: none !important;
-  width: calc(100% - 20px) !important;
-  margin: 10px !important;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 6px 15px var(--shadow-color);
-  background: var(--bg-card);
-  transition: transform 0.3s, box-shadow 0.3s;
-  border: 1px solid var(--border-color);
-}
+    /* Estilos específicos para la sección de certificaciones */
+    .card-certificaciones {
+      max-width: none !important;
+      width: calc(100% - 20px) !important;
+      margin: 10px !important;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 6px 15px var(--shadow-color);
+      background: var(--bg-card);
+      transition: transform 0.3s, box-shadow 0.3s;
+      border: 1px solid var(--border-color);
+    }
 
-.card-certificaciones:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 20px var(--shadow-color);
-}
+    .card-certificaciones:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px var(--shadow-color);
+    }
 
-#certificacionesSection {
-  width: 100%;
-  padding: 0;
-}
+    #certificacionesSection {
+      width: 100%;
+      padding: 0;
+    }
 
-#certificacionesContadores {
-  background: rgba(59, 130, 246, 0.1);
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 20px;
-  display: flex;
-  justify-content: space-around;
-  flex-wrap: wrap;
-  border: 1px solid var(--border-color);
-}
+    #certificacionesContadores {
+      background: rgba(59, 130, 246, 0.1);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      border: 1px solid var(--border-color);
+    }
 
-#certificacionesContadores p {
-  margin: 5px 0;
-  font-weight: bold;
-  color: var(--text-primary);
-}
+    #certificacionesContadores p {
+      margin: 5px 0;
+      font-weight: bold;
+      color: var(--text-primary);
+    }
 
-#certificacionesContadores span {
-  color: var(--accent-color);
-  font-size: 18px;
-}
+    #certificacionesContadores span {
+      color: var(--accent-color);
+      font-size: 18px;
+    }
 
-#tablaCertificaciones {
-  background: var(--bg-card);
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 6px var(--shadow-color);
-  border: 1px solid var(--border-color);
-}
+    #tablaCertificaciones {
+      background: var(--bg-card);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px var(--shadow-color);
+      border: 1px solid var(--border-color);
+    }
 
-#tablaCertificaciones thead {
-  background: rgba(59, 130, 246, 0.1);
-  color: var(--text-primary);
-}
+    #tablaCertificaciones thead {
+      background: rgba(59, 130, 246, 0.1);
+      color: var(--text-primary);
+    }
 
-#tablaCertificaciones th {
-  padding: 12px 15px;
-  text-align: left;
-  font-weight: 600;
-  border-bottom: 1px solid var(--border-color);
-}
+    #tablaCertificaciones th {
+      padding: 12px 15px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border-color);
+    }
 
-#tablaCertificaciones tbody tr {
-  border-bottom: 1px solid var(--border-color);
-  transition: background-color 0.3s ease;
-}
+    #tablaCertificaciones tbody tr {
+      border-bottom: 1px solid var(--border-color);
+      transition: background-color 0.3s ease;
+    }
 
-#tablaCertificaciones tbody tr:nth-child(even) {
-  background-color: rgba(255, 255, 255, 0.02);
-}
+    #tablaCertificaciones tbody tr:nth-child(even) {
+      background-color: rgba(255, 255, 255, 0.02);
+    }
 
-#tablaCertificaciones tbody tr:hover {
-  background-color: rgba(59, 130, 246, 0.1);
-}
+    #tablaCertificaciones tbody tr:hover {
+      background-color: rgba(59, 130, 246, 0.1);
+    }
 
-#tablaCertificaciones td {
-  padding: 10px 15px;
-  white-space: nowrap;
-  color: var(--text-primary);
-}
+    #tablaCertificaciones td {
+      padding: 10px 15px;
+      white-space: nowrap;
+      color: var(--text-primary);
+    }
 
-/* 🔹 CONTENEDOR DE LA TABLA CON SCROLL HORIZONTAL */
-#certificacionesContent {
-  overflow-x: auto;
-  max-width: 100%;
-  margin-top: 20px;
-}
+    /* 🔹 CONTENEDOR DE LA TABLA CON SCROLL HORIZONTAL */
+    #certificacionesContent {
+      overflow-x: auto;
+      max-width: 100%;
+      margin-top: 20px;
+    }
 
-/* 🔹 CORRECCIÓN: MANTENER COLORES ORIGINALES DE ESTADOS */
-.estado-completado {
-  color: #27ae60 !important; /* Verde original */
-  font-weight: bold;
-}
+    /* 🔹 CORRECCIÓN: MANTENER COLORES ORIGINALES DE ESTADOS */
+    .estado-completado {
+      color: #27ae60 !important;
+      /* Verde original */
+      font-weight: bold;
+    }
 
-.estado-pendiente {
-  color: #e67e22 !important; /* Naranja original */
-  font-weight: bold;
-}
+    .estado-pendiente {
+      color: #e67e22 !important;
+      /* Naranja original */
+      font-weight: bold;
+    }
 
-.estado-incompleto {
-  color: #e74c3c !important; /* Rojo original */
-  font-weight: bold;
-}
+    .estado-incompleto {
+      color: #e74c3c !important;
+      /* Rojo original */
+      font-weight: bold;
+    }
 
-.calificacion-aprobada {
-  color: #27ae60 !important; /* Verde original */
-  font-weight: bold;
-}
+    .calificacion-aprobada {
+      color: #27ae60 !important;
+      /* Verde original */
+      font-weight: bold;
+    }
 
-.calificacion-reprobada {
-  color: #e74c3c !important; /* Rojo original */
-  font-weight: bold;
-}
+    .calificacion-reprobada {
+      color: #e74c3c !important;
+      /* Rojo original */
+      font-weight: bold;
+    }
 
-/* ============================================
+    /* ============================================
    ESTILOS PANEL ADMIN - MODO NOCHE
    ============================================ */
 
-/* 🔧 ESTILOS PARA EL PANEL DE ADMINISTRACIÓN */
-#adminSection {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-}
+    /* 🔧 ESTILOS PARA EL PANEL DE ADMINISTRACIÓN */
+    #adminSection {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+    }
 
-#adminStats {
-  margin-top: 10px;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid var(--border-color);
-}
+    #adminStats {
+      margin-top: 10px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid var(--border-color);
+    }
 
-#adminStats h4 {
-  color: var(--text-primary);
-}
+    #adminStats h4 {
+      color: var(--text-primary);
+    }
 
-#adminStats div {
-  color: var(--text-primary);
-}
+    #adminStats div {
+      color: var(--text-primary);
+    }
 
-/* 🔹 CORRECCIÓN: MANTENER COLORES ORIGINALES EN ESTADÍSTICAS ADMIN */
-#pendingCount {
-  color: #ff9800 !important; /* Naranja original */
-}
+    /* 🔹 CORRECCIÓN: MANTENER COLORES ORIGINALES EN ESTADÍSTICAS ADMIN */
+    #pendingCount {
+      color: #ff9800 !important;
+      /* Naranja original */
+    }
 
-#approvedCount {
-  color: #4caf50 !important; /* Verde original */
-}
+    #approvedCount {
+      color: #4caf50 !important;
+      /* Verde original */
+    }
 
-#rejectedCount {
-  color: #f44336 !important; /* Rojo original */
-}
+    #rejectedCount {
+      color: #f44336 !important;
+      /* Rojo original */
+    }
 
-.admin-post-pending {
-  border-left: 4px solid #ff9800 !important; /* Naranja original */
-  background: rgba(255, 152, 0, 0.05) !important;
-}
+    .admin-post-pending {
+      border-left: 4px solid #ff9800 !important;
+      /* Naranja original */
+      background: rgba(255, 152, 0, 0.05) !important;
+    }
 
-.admin-post-approved {
-  border-left: 4px solid #4caf50 !important; /* Verde original */
-  background: rgba(76, 175, 80, 0.05) !important;
-}
+    .admin-post-approved {
+      border-left: 4px solid #4caf50 !important;
+      /* Verde original */
+      background: rgba(76, 175, 80, 0.05) !important;
+    }
 
-.admin-post-rejected {
-  border-left: 4px solid #f44336 !important; /* Rojo original */
-  background: rgba(244, 67, 54, 0.05) !important;
-}
+    .admin-post-rejected {
+      border-left: 4px solid #f44336 !important;
+      /* Rojo original */
+      background: rgba(244, 67, 54, 0.05) !important;
+    }
 
-.approve-btn {
-  background: #4caf50 !important; /* Verde original */
-  color: white !important;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.3s;
-}
+    .approve-btn {
+      background: #4caf50 !important;
+      /* Verde original */
+      color: white !important;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
 
-.approve-btn:hover {
-  background: #45a049 !important; /* Verde hover original */
-  transform: translateY(-2px);
-}
+    .approve-btn:hover {
+      background: #45a049 !important;
+      /* Verde hover original */
+      transform: translateY(-2px);
+    }
 
-.reject-btn {
-  background: #f44336 !important; /* Rojo original */
-  color: white !important;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.3s;
-}
+    .reject-btn {
+      background: #f44336 !important;
+      /* Rojo original */
+      color: white !important;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
 
-.reject-btn:hover {
-  background: #da190b !important; /* Rojo hover original */
-  transform: translateY(-2px);
-}
+    .reject-btn:hover {
+      background: #da190b !important;
+      /* Rojo hover original */
+      transform: translateY(-2px);
+    }
 
-.view-user-btn {
-  background: #0b7dda !important; /* Azul original */
-  color: white !important;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.3s;
-}
+    .view-user-btn {
+      background: #0b7dda !important;
+      /* Azul original */
+      color: white !important;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
 
-.view-user-btn:hover {
-  background: #0a6fc2 !important; /* Azul hover original */
-  transform: translateY(-2px);
-}
+    .view-user-btn:hover {
+      background: #0a6fc2 !important;
+      /* Azul hover original */
+      transform: translateY(-2px);
+    }
 
-/* Estados en publicaciones normales */
-.post-status-indicator {
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 12px;
-  margin-left: 10px;
-}
+    /* Estados en publicaciones normales */
+    .post-status-indicator {
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      margin-left: 10px;
+    }
 
-.status-pending {
-  background: rgba(255, 152, 0, 0.2); /* Naranja translúcido */
-  color: #ff9800 !important; /* Naranja original */
-}
+    .status-pending {
+      background: rgba(255, 152, 0, 0.2);
+      /* Naranja translúcido */
+      color: #ff9800 !important;
+      /* Naranja original */
+    }
 
-.status-approved {
-  background: rgba(76, 175, 80, 0.2); /* Verde translúcido */
-  color: #4caf50 !important; /* Verde original */
-}
+    .status-approved {
+      background: rgba(76, 175, 80, 0.2);
+      /* Verde translúcido */
+      color: #4caf50 !important;
+      /* Verde original */
+    }
 
-.status-admin {
-  background: linear-gradient(135deg, #ffd700, #ffed4e);
-  color: #8b6914 !important;
-  border: 1px solid #ffd700;
-  font-weight: bold;
-}
+    .status-admin {
+      background: linear-gradient(135deg, #ffd700, #ffed4e);
+      color: #8b6914 !important;
+      border: 1px solid #ffd700;
+      font-weight: bold;
+    }
 
-/* Sección de comentarios en modo oscuro */
-.post-comments {
-  background: var(--bg-secondary);
-  border-radius: 0 0 8px 8px;
-  border-top: 1px solid var(--border-color);
-}
+    /* Sección de comentarios en modo oscuro */
+    .post-comments {
+      background: var(--bg-secondary);
+      border-radius: 0 0 8px 8px;
+      border-top: 1px solid var(--border-color);
+    }
 
-/* Texto en sección admin */
-#adminSection h2,
-#adminSection p {
-  color: var(--text-primary);
-}
+    /* Texto en sección admin */
+    #adminSection h2,
+    #adminSection p {
+      color: var(--text-primary);
+    }
 
-#noPendingPosts h3,
-#noPendingPosts p {
-  color: var(--text-primary);
-}
+    #noPendingPosts h3,
+    #noPendingPosts p {
+      color: var(--text-primary);
+    }
 
-/* Botones de acción en posts del admin */
-.admin-post-actions {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  padding: 15px;
-  margin: 10px 0;
-  border: 1px solid var(--border-color);
-}
+    /* Botones de acción en posts del admin */
+    .admin-post-actions {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 15px;
+      margin: 10px 0;
+      border: 1px solid var(--border-color);
+    }
 
-.admin-post-actions h4 {
-  color: var(--text-primary);
-  margin-bottom: 10px;
-}
+    .admin-post-actions h4 {
+      color: var(--text-primary);
+      margin-bottom: 10px;
+    }
 
-/* ============================================
+    /* ============================================
    SCROLL SNAPPING CON EFECTO REBOTE
    ============================================ */
 
-/* Configurar el contenedor principal para scroll snapping */
-#mainContent {
-    scroll-snap-type: y mandatory;
-    scroll-behavior: smooth;
-    overflow-y: auto;
-}
+    /* Configurar el contenedor principal para scroll snapping */
+    #mainContent {
+      scroll-snap-type: y mandatory;
+      scroll-behavior: smooth;
+      overflow-y: auto;
+    }
 
-/* Cada publicación será un punto de snap */
-.post-card {
-    scroll-snap-align: center;
-    scroll-snap-stop: always;
-    transition: all 0.3s ease;
-}
+    /* Cada publicación será un punto de snap */
+    .post-card {
+      scroll-snap-align: center;
+      scroll-snap-stop: always;
+      transition: all 0.3s ease;
+    }
 
-/* Efecto de rebote cuando se activa el snap */
-.post-card:focus {
-    animation: bounceSnap 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-}
+    /* Efecto de rebote cuando se activa el snap */
+    .post-card:focus {
+      animation: bounceSnap 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
 
-@keyframes bounceSnap {
-    0% {
+    @keyframes bounceSnap {
+      0% {
         transform: scale(0.95);
         box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
-    }
-    50% {
+      }
+
+      50% {
         transform: scale(1.02);
         box-shadow: 0 0 0 10px rgba(59, 130, 246, 0.3);
-    }
-    100% {
+      }
+
+      100% {
         transform: scale(1);
         box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+      }
     }
-}
 
-/* Indicador visual cuando una publicación está centrada */
-.post-card.snapped {
-    /*border: 2px solid var(--accent-color);*/
-    animation: gentlePulse 2s infinite;
-}
+    /* Indicador visual cuando una publicación está centrada */
+    .post-card.snapped {
+      /*border: 2px solid var(--accent-color);*/
+      animation: gentlePulse 2s infinite;
+    }
 
-@keyframes gentlePulse {
-    0%, 100% {
+    @keyframes gentlePulse {
+
+      0%,
+      100% {
         box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
-    }
-    50% {
-        box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.1);
-    }
-}
+      }
 
-/* Estilos para el botón flotante y modal de subida */
+      50% {
+        box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.1);
+      }
+    }
+
+    /* Estilos para el botón flotante y modal de subida */
 #floatingUploadBtn {
     display: none; /* Oculto por defecto */
 }
@@ -1652,9 +1679,7 @@
       <span id="headerUserName">Cargando...</span>
     </div>
 
-    <!-- Inicio - Red Social -->
-    <div id="inicioSection" class="card">
-      <!-- Botón flotante para crear publicación -->
+    <!-- Botón flotante para crear publicación -->
 <div id="floatingUploadBtn" class="hidden" style="
 position: fixed;
 bottom: 30px;
@@ -1707,6 +1732,11 @@ transition: all 0.3s ease;
     </div>
 </div>
 </div>
+    
+    <!-- Inicio - Red Social -->
+    <div id="inicioSection" class="card">
+      
+      
 
       <!-- Feed de publicaciones -->
       <div id="feed" style="display: flex; flex-direction: column; gap: 20px;"></div>
@@ -2559,411 +2589,411 @@ transition: all 0.3s ease;
 
       //////////////////////////////////////////////////////
       // Función para cargar las certificaciones del usuario
-async function cargarCertificaciones() {
-    agregarLogFirestore('cargarCertificaciones');
-    
-    // 🔒 Usar cache si está disponible
-    const now = Date.now();
-    if (certificacionesCache && (now - certificacionesCacheTime < CACHE_DURATION)) {
-        console.log('📚 Usando cache de certificaciones');
-        actualizarInterfazCertificaciones(certificacionesCache);
-        return;
-    }
+      async function cargarCertificaciones() {
+        agregarLogFirestore('cargarCertificaciones');
 
-    // Mostrar loading
-    const certificacionesLoading = document.getElementById("certificacionesLoading");
-    const certificacionesContent = document.getElementById("certificacionesContent");
-    const sinCertificaciones = document.getElementById("sinCertificaciones");
-    
-    if (certificacionesLoading) certificacionesLoading.style.display = "block";
-    if (certificacionesContent) certificacionesContent.style.display = "none";
-    if (sinCertificaciones) sinCertificaciones.style.display = "none";
+        // 🔒 Usar cache si está disponible
+        const now = Date.now();
+        if (certificacionesCache && (now - certificacionesCacheTime < CACHE_DURATION)) {
+          console.log('📚 Usando cache de certificaciones');
+          actualizarInterfazCertificaciones(certificacionesCache);
+          return;
+        }
 
-    try {
-        // Obtener el usuario actual
-        const user = auth.currentUser;
-        if (!user || !user.email) {
+        // Mostrar loading
+        const certificacionesLoading = document.getElementById("certificacionesLoading");
+        const certificacionesContent = document.getElementById("certificacionesContent");
+        const sinCertificaciones = document.getElementById("sinCertificaciones");
+
+        if (certificacionesLoading) certificacionesLoading.style.display = "block";
+        if (certificacionesContent) certificacionesContent.style.display = "none";
+        if (sinCertificaciones) sinCertificaciones.style.display = "none";
+
+        try {
+          // Obtener el usuario actual
+          const user = auth.currentUser;
+          if (!user || !user.email) {
             throw new Error("No se pudo obtener la información del usuario");
-        }
+          }
 
-        const userEmail = user.email;
-        console.log('👤 Usuario actual:', userEmail);
+          const userEmail = user.email;
+          console.log('👤 Usuario actual:', userEmail);
 
-        // Obtener el visitanteId del localStorage (si existe)
-        let visitanteId = localStorage.getItem("visitanteId");
-        console.log('🔑 VisitanteId en localStorage:', visitanteId);
+          // Obtener el visitanteId del localStorage (si existe)
+          let visitanteId = localStorage.getItem("visitanteId");
+          console.log('🔑 VisitanteId en localStorage:', visitanteId);
 
-        // Obtener todos los formularios
-        const formulariosRes = await fetch("/api/formulario?action=listarFormularios");
-        if (!formulariosRes.ok) {
+          // Obtener todos los formularios
+          const formulariosRes = await fetch("/api/formulario?action=listarFormularios");
+          if (!formulariosRes.ok) {
             throw new Error("No se pudieron cargar los formularios");
-        }
+          }
 
-        const formularios = await formulariosRes.json();
-        const formulariosIds = Object.keys(formularios);
-        
-        console.log('📋 Formularios encontrados:', formulariosIds.length, formulariosIds);
+          const formularios = await formulariosRes.json();
+          const formulariosIds = Object.keys(formularios);
 
-        // Array para almacenar las certificaciones
-        const certificaciones = [];
+          console.log('📋 Formularios encontrados:', formulariosIds.length, formulariosIds);
 
-        // Para cada formulario, buscar si el usuario participó
-        for (const formularioId of formulariosIds) {
+          // Array para almacenar las certificaciones
+          const certificaciones = [];
+
+          // Para cada formulario, buscar si el usuario participó
+          for (const formularioId of formulariosIds) {
             try {
-                console.log(`🔍 Procesando formulario: ${formularioId}`);
-                
-                const respuestasRes = await fetch(`/api/formulario?action=verRespuestas&id=${formularioId}`);
-                if (!respuestasRes.ok) {
-                    console.warn(`⚠️ No se pudieron cargar respuestas para ${formularioId}`);
-                    continue; // Continuar con el siguiente formulario
+              console.log(`🔍 Procesando formulario: ${formularioId}`);
+
+              const respuestasRes = await fetch(`/api/formulario?action=verRespuestas&id=${formularioId}`);
+              if (!respuestasRes.ok) {
+                console.warn(`⚠️ No se pudieron cargar respuestas para ${formularioId}`);
+                continue; // Continuar con el siguiente formulario
+              }
+
+              const data = await respuestasRes.json();
+              const respuestas = data.asistencias || [];
+              const examenes = data.examenes || [];
+
+              console.log(`📊 Formulario ${formularioId}:`, {
+                totalRespuestas: respuestas.length,
+                totalExamenes: examenes.length
+              });
+
+              // Obtener información del formulario
+              const formularioInfo = formularios[formularioId];
+              if (!formularioInfo) {
+                console.warn(`⚠️ No se encontró información para formulario ${formularioId}`);
+                continue;
+              }
+
+              const fechaCierreFormulario = formularioInfo.fechaCierre;
+              const fechaFin = fechaCierreFormulario ? new Date(fechaCierreFormulario) : null;
+              const hoy = new Date();
+
+              // 🔹 PASO 1: Encontrar TODOS los visitanteIds del usuario
+              let visitanteIdsUsuario = [];
+
+              // Buscar por correo
+              const respuestasPorCorreo = respuestas.filter(r => r.correo === userEmail);
+              if (respuestasPorCorreo.length > 0) {
+                visitanteIdsUsuario = [...new Set(respuestasPorCorreo.map(r => r.visitanteId))];
+                console.log(`📧 Encontradas ${respuestasPorCorreo.length} respuestas por correo, visitanteIds:`, visitanteIdsUsuario);
+              }
+
+              // Si no encontramos por correo, usar el visitanteId del localStorage
+              if (visitanteIdsUsuario.length === 0 && visitanteId) {
+                const respuestasPorVisitanteId = respuestas.filter(r => r.visitanteId === visitanteId);
+                if (respuestasPorVisitanteId.length > 0) {
+                  visitanteIdsUsuario = [visitanteId];
+                  console.log(`🔑 Encontradas ${respuestasPorVisitanteId.length} respuestas por visitanteId:`, visitanteId);
                 }
+              }
 
-                const data = await respuestasRes.json();
-                const respuestas = data.asistencias || [];
-                const examenes = data.examenes || [];
+              // Si aún no encontramos, buscar cualquier respuesta que pueda ser del usuario
+              if (visitanteIdsUsuario.length === 0) {
+                // Buscar respuestas que tengan el mismo nombre o características similares
+                const userDoc = await getDoc(doc(db, "usuarios", user.uid));
+                if (userDoc.exists()) {
+                  const userData = userDoc.data();
+                  const userName = `${userData.nombre || ''} ${userData.apellido || ''}`.trim();
 
-                console.log(`📊 Formulario ${formularioId}:`, {
-                    totalRespuestas: respuestas.length,
-                    totalExamenes: examenes.length
-                });
+                  if (userName) {
+                    const respuestasPorNombre = respuestas.filter(r =>
+                      r.nombre && r.nombre.includes(userData.nombre) ||
+                      r.nombre && r.nombre.includes(userData.apellido)
+                    );
 
-                // Obtener información del formulario
-                const formularioInfo = formularios[formularioId];
-                if (!formularioInfo) {
-                    console.warn(`⚠️ No se encontró información para formulario ${formularioId}`);
-                    continue;
-                }
+                    if (respuestasPorNombre.length > 0) {
+                      visitanteIdsUsuario = [...new Set(respuestasPorNombre.map(r => r.visitanteId))];
+                      console.log(`👤 Encontradas ${respuestasPorNombre.length} respuestas por nombre:`, visitanteIdsUsuario);
 
-                const fechaCierreFormulario = formularioInfo.fechaCierre;
-                const fechaFin = fechaCierreFormulario ? new Date(fechaCierreFormulario) : null;
-                const hoy = new Date();
-
-                // 🔹 PASO 1: Encontrar TODOS los visitanteIds del usuario
-                let visitanteIdsUsuario = [];
-
-                // Buscar por correo
-                const respuestasPorCorreo = respuestas.filter(r => r.correo === userEmail);
-                if (respuestasPorCorreo.length > 0) {
-                    visitanteIdsUsuario = [...new Set(respuestasPorCorreo.map(r => r.visitanteId))];
-                    console.log(`📧 Encontradas ${respuestasPorCorreo.length} respuestas por correo, visitanteIds:`, visitanteIdsUsuario);
-                }
-
-                // Si no encontramos por correo, usar el visitanteId del localStorage
-                if (visitanteIdsUsuario.length === 0 && visitanteId) {
-                    const respuestasPorVisitanteId = respuestas.filter(r => r.visitanteId === visitanteId);
-                    if (respuestasPorVisitanteId.length > 0) {
-                        visitanteIdsUsuario = [visitanteId];
-                        console.log(`🔑 Encontradas ${respuestasPorVisitanteId.length} respuestas por visitanteId:`, visitanteId);
+                      // Guardar el primer visitanteId encontrado
+                      if (visitanteIdsUsuario.length > 0 && !visitanteId) {
+                        visitanteId = visitanteIdsUsuario[0];
+                        localStorage.setItem("visitanteId", visitanteId);
+                      }
                     }
+                  }
                 }
+              }
 
-                // Si aún no encontramos, buscar cualquier respuesta que pueda ser del usuario
-                if (visitanteIdsUsuario.length === 0) {
-                    // Buscar respuestas que tengan el mismo nombre o características similares
-                    const userDoc = await getDoc(doc(db, "usuarios", user.uid));
-                    if (userDoc.exists()) {
-                        const userData = userDoc.data();
-                        const userName = `${userData.nombre || ''} ${userData.apellido || ''}`.trim();
-                        
-                        if (userName) {
-                            const respuestasPorNombre = respuestas.filter(r => 
-                                r.nombre && r.nombre.includes(userData.nombre) || 
-                                r.nombre && r.nombre.includes(userData.apellido)
-                            );
-                            
-                            if (respuestasPorNombre.length > 0) {
-                                visitanteIdsUsuario = [...new Set(respuestasPorNombre.map(r => r.visitanteId))];
-                                console.log(`👤 Encontradas ${respuestasPorNombre.length} respuestas por nombre:`, visitanteIdsUsuario);
-                                
-                                // Guardar el primer visitanteId encontrado
-                                if (visitanteIdsUsuario.length > 0 && !visitanteId) {
-                                    visitanteId = visitanteIdsUsuario[0];
-                                    localStorage.setItem("visitanteId", visitanteId);
-                                }
-                            }
-                        }
-                    }
-                }
+              // Si no encontramos ningún visitanteId, continuar
+              if (visitanteIdsUsuario.length === 0) {
+                console.log(`❌ No se encontraron respuestas para el usuario en formulario ${formularioId}`);
+                continue;
+              }
 
-                // Si no encontramos ningún visitanteId, continuar
-                if (visitanteIdsUsuario.length === 0) {
-                    console.log(`❌ No se encontraron respuestas para el usuario en formulario ${formularioId}`);
+              // 🔹 PASO 2: Procesar CADA visitanteId del usuario
+              for (const currentVisitanteId of visitanteIdsUsuario) {
+                try {
+                  // Buscar TODAS las respuestas del usuario por visitanteId
+                  const respuestasUsuario = respuestas.filter(r => r.visitanteId === currentVisitanteId);
+
+                  if (respuestasUsuario.length === 0) {
+                    console.log(`❌ No se encontraron respuestas para visitanteId ${currentVisitanteId}`);
                     continue;
-                }
+                  }
 
-                // 🔹 PASO 2: Procesar CADA visitanteId del usuario
-                for (const currentVisitanteId of visitanteIdsUsuario) {
-                    try {
-                        // Buscar TODAS las respuestas del usuario por visitanteId
-                        const respuestasUsuario = respuestas.filter(r => r.visitanteId === currentVisitanteId);
+                  console.log(`📋 Formulario ${formularioId} - VisitanteId: ${currentVisitanteId}:`, {
+                    totalRespuestas: respuestasUsuario.length,
+                    asistencias: respuestasUsuario.map(r => ({
+                      numero: r.asistenciaNumero,
+                      fecha: r.fecha,
+                      tieneCorreo: !!r.correo,
+                      nombre: r.nombre || 'Sin nombre'
+                    }))
+                  });
 
-                        if (respuestasUsuario.length === 0) {
-                            console.log(`❌ No se encontraron respuestas para visitanteId ${currentVisitanteId}`);
-                            continue;
-                        }
+                  // 🔹 CORRECCIÓN: Contar asistencias únicas por número
+                  const numerosAsistencia = respuestasUsuario.map(r => r.asistenciaNumero);
+                  const asistenciasUnicas = [...new Set(numerosAsistencia)];
 
-                        console.log(`📋 Formulario ${formularioId} - VisitanteId: ${currentVisitanteId}:`, {
-                            totalRespuestas: respuestasUsuario.length,
-                            asistencias: respuestasUsuario.map(r => ({
-                                numero: r.asistenciaNumero,
-                                fecha: r.fecha,
-                                tieneCorreo: !!r.correo,
-                                nombre: r.nombre || 'Sin nombre'
-                            }))
-                        });
+                  // Filtrar solo asistencias válidas (1, 2, 3) y que sean números
+                  const asistenciasValidas = asistenciasUnicas.filter(num =>
+                    num === 1 || num === 2 || num === 3
+                  );
 
-                        // 🔹 CORRECCIÓN: Contar asistencias únicas por número
-                        const numerosAsistencia = respuestasUsuario.map(r => r.asistenciaNumero);
-                        const asistenciasUnicas = [...new Set(numerosAsistencia)];
-                        
-                        // Filtrar solo asistencias válidas (1, 2, 3) y que sean números
-                        const asistenciasValidas = asistenciasUnicas.filter(num => 
-                            num === 1 || num === 2 || num === 3
-                        );
-                        
-                        const asistenciasCompletadas = asistenciasValidas.length;
+                  const asistenciasCompletadas = asistenciasValidas.length;
 
-                        console.log(`📊 Asistencias para ${formularioId}:`, {
-                            numerosEncontrados: numerosAsistencia,
-                            numerosUnicos: asistenciasUnicas,
-                            asistenciasValidas: asistenciasValidas,
-                            totalCompletadas: asistenciasCompletadas
-                        });
+                  console.log(`📊 Asistencias para ${formularioId}:`, {
+                    numerosEncontrados: numerosAsistencia,
+                    numerosUnicos: asistenciasUnicas,
+                    asistenciasValidas: asistenciasValidas,
+                    totalCompletadas: asistenciasCompletadas
+                  });
 
-                        // 🔹 PASO 3: Buscar examen del usuario
-                        let examenUsuario = examenes.find(e => e.visitanteId === currentVisitanteId);
-                        
-                        // Si no se encuentra, buscar en todos los examenes de los visitanteIds del usuario
-                        if (!examenUsuario) {
-                            for (const vid of visitanteIdsUsuario) {
-                                examenUsuario = examenes.find(e => e.visitanteId === vid);
-                                if (examenUsuario) break;
-                            }
-                        }
+                  // 🔹 PASO 3: Buscar examen del usuario
+                  let examenUsuario = examenes.find(e => e.visitanteId === currentVisitanteId);
 
-                        const examenRealizado = examenUsuario !== undefined;
-                        const calificacion = examenRealizado ? examenUsuario.puntaje : null;
-                        const aprobado = examenRealizado ? calificacion >= 70 : false;
+                  // Si no se encuentra, buscar en todos los examenes de los visitanteIds del usuario
+                  if (!examenUsuario) {
+                    for (const vid of visitanteIdsUsuario) {
+                      examenUsuario = examenes.find(e => e.visitanteId === vid);
+                      if (examenUsuario) break;
+                    }
+                  }
 
-                        console.log(`🎯 Examen para ${formularioId}:`, {
-                            examenRealizado: examenRealizado,
-                            calificacion: calificacion,
-                            aprobado: aprobado
-                        });
+                  const examenRealizado = examenUsuario !== undefined;
+                  const calificacion = examenRealizado ? examenUsuario.puntaje : null;
+                  const aprobado = examenRealizado ? calificacion >= 70 : false;
 
-                        // 🔹 LÓGICA PARA DETERMINAR ESTADO
-                        let estado = "";
-                        let estadoClase = "";
+                  console.log(`🎯 Examen para ${formularioId}:`, {
+                    examenRealizado: examenRealizado,
+                    calificacion: calificacion,
+                    aprobado: aprobado
+                  });
 
-                        const tieneEvaluacion = formularioInfo.tieneEvaluacion === true;
+                  // 🔹 LÓGICA PARA DETERMINAR ESTADO
+                  let estado = "";
+                  let estadoClase = "";
 
-                        // Verificar si la fecha de cierre es válida
-                        const esPeriodoActivo = !fechaFin || hoy <= fechaFin;
+                  const tieneEvaluacion = formularioInfo.tieneEvaluacion === true;
 
-                        if (!esPeriodoActivo) {
-                            // PERIODO TERMINADO
-                            if (asistenciasCompletadas >= 3) {
-                                if (tieneEvaluacion) {
-                                    if (examenRealizado) {
-                                        estado = aprobado ? "Aprobado" : "Reprobado";
-                                        estadoClase = aprobado ? "estado-completado" : "estado-incompleto";
-                                    } else {
-                                        estado = "Sin examen";
-                                        estadoClase = "estado-incompleto";
-                                    }
-                                } else {
-                                    estado = "Completado";
-                                    estadoClase = "estado-completado";
-                                }
-                            } else {
-                                estado = "Asistencias insuficientes";
-                                estadoClase = "estado-incompleto";
-                            }
+                  // Verificar si la fecha de cierre es válida
+                  const esPeriodoActivo = !fechaFin || hoy <= fechaFin;
+
+                  if (!esPeriodoActivo) {
+                    // PERIODO TERMINADO
+                    if (asistenciasCompletadas >= 3) {
+                      if (tieneEvaluacion) {
+                        if (examenRealizado) {
+                          estado = aprobado ? "Aprobado" : "Reprobado";
+                          estadoClase = aprobado ? "estado-completado" : "estado-incompleto";
                         } else {
-                            // PERIODO EN CURSO
-                            if (asistenciasCompletadas >= 3) {
-                                if (tieneEvaluacion) {
-                                    if (examenRealizado) {
-                                        estado = aprobado ? "Aprobado" : "Reprobado";
-                                        estadoClase = aprobado ? "estado-completado" : "estado-incompleto";
-                                    } else {
-                                        estado = "Pendiente examen";
-                                        estadoClase = "estado-pendiente";
-                                    }
-                                } else {
-                                    estado = "Completado";
-                                    estadoClase = "estado-completado";
-                                }
-                            } else {
-                                estado = "En progreso";
-                                estadoClase = "estado-pendiente";
-                            }
+                          estado = "Sin examen";
+                          estadoClase = "estado-incompleto";
                         }
-
-                        // Obtener la fecha más reciente
-                        const fechasAsistencias = respuestasUsuario
-                            .map(r => {
-                                try {
-                                    return new Date(r.fecha);
-                                } catch (e) {
-                                    return null;
-                                }
-                            })
-                            .filter(date => date && !isNaN(date.getTime()));
-                        
-                        const fechaParticipacion = fechasAsistencias.length > 0 ? 
-                            new Date(Math.max(...fechasAsistencias)) : new Date();
-
-                        certificaciones.push({
-                            formularioId: formularioId,
-                            titulo: formularioInfo.titulo || `Formulario ${formularioId}`,
-                            fecha: fechaParticipacion,
-                            asistenciasCompletadas: asistenciasCompletadas,
-                            examenRealizado: examenRealizado,
-                            calificacion: calificacion,
-                            aprobado: aprobado,
-                            estado: estado,
-                            estadoClase: estadoClase,
-                            fechaFin: fechaFin,
-                            visitanteId: currentVisitanteId,
-                            tieneEvaluacion: tieneEvaluacion
-                        });
-
-                        console.log(`✅ Certificación agregada para ${formularioId}:`, {
-                            titulo: formularioInfo.titulo,
-                            asistencias: asistenciasCompletadas,
-                            examen: examenRealizado,
-                            estado: estado
-                        });
-
-                    } catch (error) {
-                        console.error(`❌ Error procesando visitanteId ${currentVisitanteId} para formulario ${formularioId}:`, error);
-                        // Continuar con el siguiente visitanteId
+                      } else {
+                        estado = "Completado";
+                        estadoClase = "estado-completado";
+                      }
+                    } else {
+                      estado = "Asistencias insuficientes";
+                      estadoClase = "estado-incompleto";
                     }
+                  } else {
+                    // PERIODO EN CURSO
+                    if (asistenciasCompletadas >= 3) {
+                      if (tieneEvaluacion) {
+                        if (examenRealizado) {
+                          estado = aprobado ? "Aprobado" : "Reprobado";
+                          estadoClase = aprobado ? "estado-completado" : "estado-incompleto";
+                        } else {
+                          estado = "Pendiente examen";
+                          estadoClase = "estado-pendiente";
+                        }
+                      } else {
+                        estado = "Completado";
+                        estadoClase = "estado-completado";
+                      }
+                    } else {
+                      estado = "En progreso";
+                      estadoClase = "estado-pendiente";
+                    }
+                  }
+
+                  // Obtener la fecha más reciente
+                  const fechasAsistencias = respuestasUsuario
+                    .map(r => {
+                      try {
+                        return new Date(r.fecha);
+                      } catch (e) {
+                        return null;
+                      }
+                    })
+                    .filter(date => date && !isNaN(date.getTime()));
+
+                  const fechaParticipacion = fechasAsistencias.length > 0 ?
+                    new Date(Math.max(...fechasAsistencias)) : new Date();
+
+                  certificaciones.push({
+                    formularioId: formularioId,
+                    titulo: formularioInfo.titulo || `Formulario ${formularioId}`,
+                    fecha: fechaParticipacion,
+                    asistenciasCompletadas: asistenciasCompletadas,
+                    examenRealizado: examenRealizado,
+                    calificacion: calificacion,
+                    aprobado: aprobado,
+                    estado: estado,
+                    estadoClase: estadoClase,
+                    fechaFin: fechaFin,
+                    visitanteId: currentVisitanteId,
+                    tieneEvaluacion: tieneEvaluacion
+                  });
+
+                  console.log(`✅ Certificación agregada para ${formularioId}:`, {
+                    titulo: formularioInfo.titulo,
+                    asistencias: asistenciasCompletadas,
+                    examen: examenRealizado,
+                    estado: estado
+                  });
+
+                } catch (error) {
+                  console.error(`❌ Error procesando visitanteId ${currentVisitanteId} para formulario ${formularioId}:`, error);
+                  // Continuar con el siguiente visitanteId
                 }
+              }
 
             } catch (error) {
-                console.error(`❌ Error procesando formulario ${formularioId}:`, error);
-                // Continuar con el siguiente formulario
+              console.error(`❌ Error procesando formulario ${formularioId}:`, error);
+              // Continuar con el siguiente formulario
             }
-        }
+          }
 
-        // Guardar en cache
-        certificacionesCache = certificaciones;
-        certificacionesCacheTime = now;
-        
-        console.log('🎯 CERTIFICACIONES FINALES:', certificaciones.length, certificaciones);
-        
-        // Actualizar la interfaz con las certificaciones
-        actualizarInterfazCertificaciones(certificaciones);
+          // Guardar en cache
+          certificacionesCache = certificaciones;
+          certificacionesCacheTime = now;
 
-    } catch (error) {
-        console.error("❌ Error general cargando certificaciones:", error);
-        
-        // Mostrar estado de error
-        const certificacionesLoading = document.getElementById("certificacionesLoading");
-        const sinCertificaciones = document.getElementById("sinCertificaciones");
-        
-        if (certificacionesLoading) certificacionesLoading.style.display = "none";
-        if (sinCertificaciones) {
+          console.log('🎯 CERTIFICACIONES FINALES:', certificaciones.length, certificaciones);
+
+          // Actualizar la interfaz con las certificaciones
+          actualizarInterfazCertificaciones(certificaciones);
+
+        } catch (error) {
+          console.error("❌ Error general cargando certificaciones:", error);
+
+          // Mostrar estado de error
+          const certificacionesLoading = document.getElementById("certificacionesLoading");
+          const sinCertificaciones = document.getElementById("sinCertificaciones");
+
+          if (certificacionesLoading) certificacionesLoading.style.display = "none";
+          if (sinCertificaciones) {
             sinCertificaciones.style.display = "block";
             sinCertificaciones.innerHTML = `
                 <h3>❌ Error al cargar certificaciones</h3>
                 <p>No se pudieron cargar tus certificaciones. Intenta nuevamente.</p>
                 <p><small>Error: ${error.message}</small></p>
             `;
+          }
         }
-    }
-}
+      }
 
-// Función para actualizar la interfaz con las certificaciones
-function actualizarInterfazCertificaciones(certificaciones) {
-    const cuerpoTablaCertificaciones = document.getElementById("cuerpoTablaCertificaciones");
-    const certificacionesLoading = document.getElementById("certificacionesLoading");
-    const certificacionesContent = document.getElementById("certificacionesContent");
-    const sinCertificaciones = document.getElementById("sinCertificaciones");
-    const totalEspecialidades = document.getElementById("totalEspecialidades");
-    const especialidadesCompletadas = document.getElementById("especialidadesCompletadas");
+      // Función para actualizar la interfaz con las certificaciones
+      function actualizarInterfazCertificaciones(certificaciones) {
+        const cuerpoTablaCertificaciones = document.getElementById("cuerpoTablaCertificaciones");
+        const certificacionesLoading = document.getElementById("certificacionesLoading");
+        const certificacionesContent = document.getElementById("certificacionesContent");
+        const sinCertificaciones = document.getElementById("sinCertificaciones");
+        const totalEspecialidades = document.getElementById("totalEspecialidades");
+        const especialidadesCompletadas = document.getElementById("especialidadesCompletadas");
 
-    // ✅ VERIFICAR QUE LOS ELEMENTOS EXISTAN
-    if (!cuerpoTablaCertificaciones || !certificacionesLoading || !certificacionesContent || !sinCertificaciones) {
-        console.error('❌ Elementos del DOM no encontrados');
-        return;
-    }
+        // ✅ VERIFICAR QUE LOS ELEMENTOS EXISTAN
+        if (!cuerpoTablaCertificaciones || !certificacionesLoading || !certificacionesContent || !sinCertificaciones) {
+          console.error('❌ Elementos del DOM no encontrados');
+          return;
+        }
 
-    // Ocultar loading
-    certificacionesLoading.style.display = "none";
+        // Ocultar loading
+        certificacionesLoading.style.display = "none";
 
-    if (!certificaciones || certificaciones.length === 0) {
-        console.log('📭 No hay certificaciones para mostrar');
-        sinCertificaciones.style.display = "block";
-        certificacionesContent.style.display = "none";
-        return;
-    }
+        if (!certificaciones || certificaciones.length === 0) {
+          console.log('📭 No hay certificaciones para mostrar');
+          sinCertificaciones.style.display = "block";
+          certificacionesContent.style.display = "none";
+          return;
+        }
 
-    console.log('🎨 Actualizando interfaz con', certificaciones.length, 'certificaciones');
+        console.log('🎨 Actualizando interfaz con', certificaciones.length, 'certificaciones');
 
-    // Mostrar contenido
-    sinCertificaciones.style.display = "none";
-    certificacionesContent.style.display = "block";
+        // Mostrar contenido
+        sinCertificaciones.style.display = "none";
+        certificacionesContent.style.display = "block";
 
-    // Agrupar certificaciones por formularioId para evitar duplicados
-    const certificacionesAgrupadas = {};
-    certificaciones.forEach(cert => {
-        if (!certificacionesAgrupadas[cert.formularioId]) {
+        // Agrupar certificaciones por formularioId para evitar duplicados
+        const certificacionesAgrupadas = {};
+        certificaciones.forEach(cert => {
+          if (!certificacionesAgrupadas[cert.formularioId]) {
             certificacionesAgrupadas[cert.formularioId] = [];
-        }
-        certificacionesAgrupadas[cert.formularioId].push(cert);
-    });
+          }
+          certificacionesAgrupadas[cert.formularioId].push(cert);
+        });
 
-    console.log('📊 Certificaciones agrupadas:', Object.keys(certificacionesAgrupadas).length, 'formularios');
+        console.log('📊 Certificaciones agrupadas:', Object.keys(certificacionesAgrupadas).length, 'formularios');
 
-    // Tomar la mejor certificación de cada formulario
-    const certificacionesUnicas = [];
-    Object.values(certificacionesAgrupadas).forEach(grupo => {
-        grupo.sort((a, b) => {
+        // Tomar la mejor certificación de cada formulario
+        const certificacionesUnicas = [];
+        Object.values(certificacionesAgrupadas).forEach(grupo => {
+          grupo.sort((a, b) => {
             if (b.asistenciasCompletadas !== a.asistenciasCompletadas) {
-                return b.asistenciasCompletadas - a.asistenciasCompletadas;
+              return b.asistenciasCompletadas - a.asistenciasCompletadas;
             }
             return new Date(b.fecha) - new Date(a.fecha);
+          });
+          certificacionesUnicas.push(grupo[0]);
         });
-        certificacionesUnicas.push(grupo[0]);
-    });
 
-    console.log('🎯 Certificaciones únicas:', certificacionesUnicas.length);
+        console.log('🎯 Certificaciones únicas:', certificacionesUnicas.length);
 
-    // Actualizar contadores
-    const completadas = certificacionesUnicas.filter(c => c.estado === "Completado" || c.estado === "Aprobado").length;
-    if (totalEspecialidades) totalEspecialidades.textContent = certificacionesUnicas.length;
-    if (especialidadesCompletadas) especialidadesCompletadas.textContent = completadas;
+        // Actualizar contadores
+        const completadas = certificacionesUnicas.filter(c => c.estado === "Completado" || c.estado === "Aprobado").length;
+        if (totalEspecialidades) totalEspecialidades.textContent = certificacionesUnicas.length;
+        if (especialidadesCompletadas) especialidadesCompletadas.textContent = completadas;
 
-    // Limpiar tabla
-    cuerpoTablaCertificaciones.innerHTML = "";
+        // Limpiar tabla
+        cuerpoTablaCertificaciones.innerHTML = "";
 
-    // Ordenar certificaciones por fecha (más reciente primero)
-    certificacionesUnicas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+        // Ordenar certificaciones por fecha (más reciente primero)
+        certificacionesUnicas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
-    // Llenar tabla
-    certificacionesUnicas.forEach((cert, index) => {
-        const fila = document.createElement("tr");
+        // Llenar tabla
+        certificacionesUnicas.forEach((cert, index) => {
+          const fila = document.createElement("tr");
 
-        let calificacionTexto = "No realizado";
-        let calificacionClase = "";
+          let calificacionTexto = "No realizado";
+          let calificacionClase = "";
 
-        if (cert.examenRealizado && cert.calificacion !== null) {
+          if (cert.examenRealizado && cert.calificacion !== null) {
             calificacionClase = cert.aprobado ? "calificacion-aprobada" : "calificacion-reprobada";
             calificacionTexto = `${cert.calificacion.toFixed(1)}%`;
-        } else if (cert.tieneEvaluacion === false) {
+          } else if (cert.tieneEvaluacion === false) {
             calificacionTexto = "No aplica";
-        }
+          }
 
-        // Validar que todos los campos existan antes de usarlos
-        const titulo = cert.titulo || 'Sin título';
-        const fecha = cert.fecha instanceof Date && !isNaN(cert.fecha) ? 
+          // Validar que todos los campos existan antes de usarlos
+          const titulo = cert.titulo || 'Sin título';
+          const fecha = cert.fecha instanceof Date && !isNaN(cert.fecha) ?
             cert.fecha.toLocaleDateString() : 'Fecha no disponible';
-        const asistencias = cert.asistenciasCompletadas !== undefined ? cert.asistenciasCompletadas : 0;
+          const asistencias = cert.asistenciasCompletadas !== undefined ? cert.asistenciasCompletadas : 0;
 
-        fila.innerHTML = `
+          fila.innerHTML = `
             <td>${index + 1}</td>
             <td>${titulo}</td>
             <td>${fecha}</td>
@@ -2973,20 +3003,20 @@ function actualizarInterfazCertificaciones(certificaciones) {
             <td class="${cert.estadoClase || 'estado-pendiente'}">${cert.estado || 'En progreso'}</td>
             <td>
                 ${cert.examenRealizado && cert.visitanteId ?
-                `<button onclick="verCertificacionCompleta('${cert.formularioId}', '${cert.visitanteId}')" 
+              `<button onclick="verCertificacionCompleta('${cert.formularioId}', '${cert.visitanteId}')" 
                          style="background: #17a2b8; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">
                     Ver Examen
                 </button>`
-                : (cert.tieneEvaluacion === false ? 'No aplica' : 'No disponible')
+              : (cert.tieneEvaluacion === false ? 'No aplica' : 'No disponible')
             }
             </td>
         `;
 
-        cuerpoTablaCertificaciones.appendChild(fila);
-    });
+          cuerpoTablaCertificaciones.appendChild(fila);
+        });
 
-    console.log('✅ Tabla actualizada con', certificacionesUnicas.length, 'filas');
-}
+        console.log('✅ Tabla actualizada con', certificacionesUnicas.length, 'filas');
+      }
 
 
 
@@ -3678,7 +3708,7 @@ function actualizarInterfazCertificaciones(certificaciones) {
             // Restaurar botón
             btnImprimir.innerHTML = textoOriginal;
             btnImprimir.disabled = false;
-            
+
           })
           .catch(error => {
             console.error('Error al obtener asistencias:', error);
@@ -3706,7 +3736,7 @@ function actualizarInterfazCertificaciones(certificaciones) {
 
 
 
-      
+
       const tabla = document.getElementById('tablaCertificaciones');
       tabla.querySelector('thead').innerHTML = `
     <tr>
@@ -4165,7 +4195,7 @@ if (!inicioSection.classList.contains('hidden')) {
 
           setTimeout(() => {
             initializeScrollSnapOnce();
-        }, 500);
+          }, 500);
 
         } catch (error) {
           console.error('❌ Error al publicar:', error);
@@ -4229,9 +4259,9 @@ if (!inicioSection.classList.contains('hidden')) {
           console.log('📥 Cargando más publicaciones...');
 
           // 🔥 GUARDAR LA POSICIÓN ACTUAL ANTES DE CARGAR
-        const mainContent = document.getElementById('mainContent');
-        const currentScroll = mainContent.scrollTop;
-        const currentPostBeforeLoad = currentSnappedPost;
+          const mainContent = document.getElementById('mainContent');
+          const currentScroll = mainContent.scrollTop;
+          const currentPostBeforeLoad = currentSnappedPost;
 
           let q;
           if (lastVisiblePost) {
@@ -4278,18 +4308,18 @@ if (!inicioSection.classList.contains('hidden')) {
           }, 100);
 
           // 🔥 RESTAURAR POSICIÓN Y ACTUALIZAR SNAPPING
-        setTimeout(() => {
+          setTimeout(() => {
             // Restaurar scroll position
             mainContent.scrollTop = currentScroll;
-            
+
             // Re-activar snapping SIN centrar automáticamente
             setupScrollSnapSystem();
             // Quitar flag después de un tiempo
             setTimeout(() => {
-                isProgrammaticScroll = false;
+              isProgrammaticScroll = false;
             }, 500);
-            
-        }, 200);
+
+          }, 200);
 
           // Si cargamos menos de postsPerLoad, no hay más publicaciones
           if (querySnapshot.size < postsPerLoad) {
@@ -4379,7 +4409,7 @@ if (!inicioSection.classList.contains('hidden')) {
 
           setTimeout(() => {
             initializeScrollSnapOnce();
-        }, 500);
+          }, 500);
 
         } catch (error) {
           console.error('❌ Error cargando publicaciones:', error);
@@ -5395,259 +5425,258 @@ if (!inicioSection.classList.contains('hidden')) {
 
       // 🔹 SISTEMA DE SCROLL SNAPPING AUTOMÁTICO
 
-let isScrolling = false;
-let scrollTimeout;
-let currentSnappedPost = null;
+      let isScrolling = false;
+      let scrollTimeout;
+      let currentSnappedPost = null;
 
-function initializeScrollSnapping() {
-    const mainContent = document.getElementById('mainContent');
-    const posts = document.querySelectorAll('.post-card');
-    
-    if (posts.length === 0) return;
-    
-    // Configurar Intersection Observer para detectar posts centrados
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
+      function initializeScrollSnapping() {
+        const mainContent = document.getElementById('mainContent');
+        const posts = document.querySelectorAll('.post-card');
+
+        if (posts.length === 0) return;
+
+        // Configurar Intersection Observer para detectar posts centrados
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
             if (entry.isIntersecting && entry.intersectionRatio > 0.7) {
-                // Esta es la publicación actualmente centrada
-                highlightSnappedPost(entry.target);
+              // Esta es la publicación actualmente centrada
+              highlightSnappedPost(entry.target);
             }
+          });
+        }, {
+          root: mainContent,
+          threshold: [0.7, 0.8, 0.9],
+          rootMargin: '-45% 0px -45% 0px' // Solo el centro (10% arriba y abajo)
         });
-    }, {
-        root: mainContent,
-        threshold: [0.7, 0.8, 0.9],
-        rootMargin: '-45% 0px -45% 0px' // Solo el centro (10% arriba y abajo)
-    });
-    
-    // Observar todas las publicaciones
-    posts.forEach(post => {
-        observer.observe(post);
-        
-        // Agregar efecto de rebote al hacer clic
-        post.addEventListener('click', (e) => {
+
+        // Observar todas las publicaciones
+        posts.forEach(post => {
+          observer.observe(post);
+
+          // Agregar efecto de rebote al hacer clic
+          post.addEventListener('click', (e) => {
             if (!e.target.closest('.post-actions') && !e.target.closest('.delete-post-btn')) {
-                snapToPost(post);
+              snapToPost(post);
             }
+          });
         });
-    });
-    
-    // Detectar scroll para mejorar la experiencia
-    mainContent.addEventListener('scroll', () => {
-        if (!isScrolling) {
+
+        // Detectar scroll para mejorar la experiencia
+        mainContent.addEventListener('scroll', () => {
+          if (!isScrolling) {
             isScrolling = true;
-        }
-        
-        clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(() => {
+          }
+
+          clearTimeout(scrollTimeout);
+          scrollTimeout = setTimeout(() => {
             isScrolling = false;
             // Al terminar el scroll, asegurar que un post esté centrado
             ensurePostIsCentered();
-        }, 150);
-    });
-    
-    console.log('🎯 Scroll snapping inicializado');
-}
+          }, 150);
+        });
 
-// Función para resaltar la publicación centrada
-function highlightSnappedPost(postElement) {
-    // Remover highlight anterior
-    if (currentSnappedPost && currentSnappedPost !== postElement) {
-        currentSnappedPost.classList.remove('snapped');
-    }
-    
-    // Aplicar highlight nuevo
-    postElement.classList.add('snapped');
-    currentSnappedPost = postElement;
-    
-    // Efecto de rebote
-    postElement.style.animation = 'none';
-    setTimeout(() => {
-        postElement.style.animation = 'bounceSnap 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
-    }, 10);
-}
+        console.log('🎯 Scroll snapping inicializado');
+      }
 
-// Función para centrar una publicación específica
-function snapToPost(postElement) {
-    const mainContent = document.getElementById('mainContent');
-    const postRect = postElement.getBoundingClientRect();
-    const mainRect = mainContent.getBoundingClientRect();
-    
-    const targetScroll = mainContent.scrollTop + (postRect.top - mainRect.top) - (mainRect.height / 2) + (postRect.height / 2);
-    
-    mainContent.scrollTo({
-        top: targetScroll,
-        behavior: 'smooth'
-    });
-    
-    highlightSnappedPost(postElement);
-}
+      // Función para resaltar la publicación centrada
+      function highlightSnappedPost(postElement) {
+        // Remover highlight anterior
+        if (currentSnappedPost && currentSnappedPost !== postElement) {
+          currentSnappedPost.classList.remove('snapped');
+        }
 
-// Asegurar que siempre haya un post centrado
-function ensurePostIsCentered() {
-    const posts = document.querySelectorAll('.post-card');
-    const mainContent = document.getElementById('mainContent');
-    
-    let closestPost = null;
-    let closestDistance = Infinity;
-    
-    posts.forEach(post => {
-        const postRect = post.getBoundingClientRect();
+        // Aplicar highlight nuevo
+        postElement.classList.add('snapped');
+        currentSnappedPost = postElement;
+
+        // Efecto de rebote
+        postElement.style.animation = 'none';
+        setTimeout(() => {
+          postElement.style.animation = 'bounceSnap 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+        }, 10);
+      }
+
+      // Función para centrar una publicación específica
+      function snapToPost(postElement) {
+        const mainContent = document.getElementById('mainContent');
+        const postRect = postElement.getBoundingClientRect();
         const mainRect = mainContent.getBoundingClientRect();
-        
-        const postCenter = postRect.top + (postRect.height / 2);
-        const mainCenter = mainRect.top + (mainRect.height / 2);
-        const distance = Math.abs(postCenter - mainCenter);
-        
-        if (distance < closestDistance) {
+
+        const targetScroll = mainContent.scrollTop + (postRect.top - mainRect.top) - (mainRect.height / 2) + (postRect.height / 2);
+
+        mainContent.scrollTo({
+          top: targetScroll,
+          behavior: 'smooth'
+        });
+
+        highlightSnappedPost(postElement);
+      }
+
+      // Asegurar que siempre haya un post centrado
+      function ensurePostIsCentered() {
+        const posts = document.querySelectorAll('.post-card');
+        const mainContent = document.getElementById('mainContent');
+
+        let closestPost = null;
+        let closestDistance = Infinity;
+
+        posts.forEach(post => {
+          const postRect = post.getBoundingClientRect();
+          const mainRect = mainContent.getBoundingClientRect();
+
+          const postCenter = postRect.top + (postRect.height / 2);
+          const mainCenter = mainRect.top + (mainRect.height / 2);
+          const distance = Math.abs(postCenter - mainCenter);
+
+          if (distance < closestDistance) {
             closestDistance = distance;
             closestPost = post;
-        }
-    });
-    
-    if (closestPost && closestDistance < mainRect.height * 0.4) {
-        snapToPost(closestPost);
-    }
-}
+          }
+        });
 
-// Navegación con teclado
-function setupKeyboardSnapping() {
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === ' ' || e.key === 'PageDown' || e.key === 'PageUp') {
+        if (closestPost && closestDistance < mainRect.height * 0.4) {
+          snapToPost(closestPost);
+        }
+      }
+
+      // Navegación con teclado
+      function setupKeyboardSnapping() {
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === ' ' || e.key === 'PageDown' || e.key === 'PageUp') {
             e.preventDefault();
-            
+
             const posts = Array.from(document.querySelectorAll('.post-card'));
             if (posts.length === 0) return;
-            
+
             let currentIndex = currentSnappedPost ? posts.indexOf(currentSnappedPost) : 0;
-            
+
             if (e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown') {
-                currentIndex = currentIndex < posts.length - 1 ? currentIndex + 1 : 0;
+              currentIndex = currentIndex < posts.length - 1 ? currentIndex + 1 : 0;
             } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-                currentIndex = currentIndex > 0 ? currentIndex - 1 : posts.length - 1;
+              currentIndex = currentIndex > 0 ? currentIndex - 1 : posts.length - 1;
             }
-            
+
             snapToPost(posts[currentIndex]);
             smoothScrollToPost(posts[newIndex]);
-        }
-    });
-}
-
-// 🔹 SISTEMA DE SCROLL SNAPPING MEJORADO (MANTIENE POSICIÓN)
-let scrollSnapObserver = null;
-let isProgrammaticScroll = false;
-
-function setupScrollSnapSystem() {
-    const posts = document.querySelectorAll('.post-card');
-    if (posts.length === 0) return;
-    
-    // Detener el observer anterior si existe
-    if (scrollSnapObserver) {
-        scrollSnapObserver.disconnect();
-    }
-    
-    // Crear nuevo observer
-    scrollSnapObserver = new IntersectionObserver((entries) => {
-      // Si es un scroll programático, ignorar
-      if (isProgrammaticScroll) return;
-        entries.forEach(entry => {
-            if (entry.isIntersecting && entry.intersectionRatio > 0.7) {
-                if (currentSnappedPost && currentSnappedPost !== entry.target) {
-                    currentSnappedPost.classList.remove('snapped');
-                }
-                entry.target.classList.add('snapped');
-                currentSnappedPost = entry.target;
-                
-                // Efecto rebote
-                entry.target.style.animation = 'none';
-                setTimeout(() => {
-                    entry.target.style.animation = 'bounceSnap 0.6s ease';
-                }, 10);
-            }
+          }
         });
-    }, {
-        root: document.getElementById('mainContent'),
-        threshold: 0.7,
-        rootMargin: '-40% 0px -40% 0px'
-    });
-    
-    // Observar solo las nuevas publicaciones (no todas)
-    posts.forEach(post => {
-        if (!post.hasAttribute('data-observed')) {
+      }
+
+      // 🔹 SISTEMA DE SCROLL SNAPPING MEJORADO (MANTIENE POSICIÓN)
+      let scrollSnapObserver = null;
+      let isProgrammaticScroll = false;
+
+      function setupScrollSnapSystem() {
+        const posts = document.querySelectorAll('.post-card');
+        if (posts.length === 0) return;
+
+        // Detener el observer anterior si existe
+        if (scrollSnapObserver) {
+          scrollSnapObserver.disconnect();
+        }
+
+        // Crear nuevo observer
+        scrollSnapObserver = new IntersectionObserver((entries) => {
+          // Si es un scroll programático, ignorar
+          if (isProgrammaticScroll) return;
+          entries.forEach(entry => {
+            if (entry.isIntersecting && entry.intersectionRatio > 0.7) {
+              if (currentSnappedPost && currentSnappedPost !== entry.target) {
+                currentSnappedPost.classList.remove('snapped');
+              }
+              entry.target.classList.add('snapped');
+              currentSnappedPost = entry.target;
+
+              // Efecto rebote
+              entry.target.style.animation = 'none';
+              setTimeout(() => {
+                entry.target.style.animation = 'bounceSnap 0.6s ease';
+              }, 10);
+            }
+          });
+        }, {
+          root: document.getElementById('mainContent'),
+          threshold: 0.7,
+          rootMargin: '-40% 0px -40% 0px'
+        });
+
+        // Observar solo las nuevas publicaciones (no todas)
+        posts.forEach(post => {
+          if (!post.hasAttribute('data-observed')) {
             scrollSnapObserver.observe(post);
             post.setAttribute('data-observed', 'true');
-        }
-    });
-    
-    console.log('🎯 Scroll snapping actualizado para', posts.length, 'publicaciones');
-}
+          }
+        });
 
-// Función para inicializar solo una vez al principio
-function initializeScrollSnapOnce() {
-    const posts = document.querySelectorAll('.post-card');
-    if (posts.length === 0) return;
-    
-    // Solo centrar la primera publicación la primera vez
-    if (!document.body.hasAttribute('data-snap-initialized')) {
-        setTimeout(() => {
+        console.log('🎯 Scroll snapping actualizado para', posts.length, 'publicaciones');
+      }
+
+      // Función para inicializar solo una vez al principio
+      function initializeScrollSnapOnce() {
+        const posts = document.querySelectorAll('.post-card');
+        if (posts.length === 0) return;
+
+        // Solo centrar la primera publicación la primera vez
+        if (!document.body.hasAttribute('data-snap-initialized')) {
+          setTimeout(() => {
             if (posts[0]) {
-                posts[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+              posts[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
-        }, 500);
-        document.body.setAttribute('data-snap-initialized', 'true');
-    }
-    
-    setupScrollSnapSystem();
-}
+          }, 500);
+          document.body.setAttribute('data-snap-initialized', 'true');
+        }
 
-// 🔹 FUNCIÓN PARA SCROLL SUAVE SIN INTERFERENCIAS
-function smoothScrollToPost(postElement) {
-    isProgrammaticScroll = true;
-    
-    const mainContent = document.getElementById('mainContent');
-    const postRect = postElement.getBoundingClientRect();
-    const mainRect = mainContent.getBoundingClientRect();
-    
-    const targetScroll = mainContent.scrollTop + (postRect.top - mainRect.top) - (mainRect.height / 2) + (postRect.height / 2);
-    
-    mainContent.scrollTo({
-        top: targetScroll,
-        behavior: 'smooth'
-    });
-    
-    // Resaltar la publicación
-    if (currentSnappedPost) {
-        currentSnappedPost.classList.remove('snapped');
-    }
-    postElement.classList.add('snapped');
-    currentSnappedPost = postElement;
-    
-    // Permitir que el observer vuelva a funcionar
-    setTimeout(() => {
-        isProgrammaticScroll = false;
-    }, 1000);
-}
+        setupScrollSnapSystem();
+      }
 
-// Solo agregar la función de limpieza y modificar las llamadas
-function limpiarTextoCertificado(texto) {
-    if (!texto) return '';
-    
-    let textoLimpio = texto.replace(/%20/g, ' ');
-    
-    try {
-        textoLimpio = decodeURIComponent(textoLimpio);
-    } catch (e) {
-        textoLimpio = textoLimpio.replace(/%20/g, ' ');
-    }
-    
-    // Limpiar patrones específicos
-    textoLimpio = textoLimpio.replace(/or%20GM%20Evagrio%/g, '');
-    textoLimpio = textoLimpio.replace(/Coordinador%20GM%20/g, '');
-    
-    return textoLimpio.trim();
-}
+      // 🔹 FUNCIÓN PARA SCROLL SUAVE SIN INTERFERENCIAS
+      function smoothScrollToPost(postElement) {
+        isProgrammaticScroll = true;
 
+        const mainContent = document.getElementById('mainContent');
+        const postRect = postElement.getBoundingClientRect();
+        const mainRect = mainContent.getBoundingClientRect();
 
-// Elementos del modal de subida
+        const targetScroll = mainContent.scrollTop + (postRect.top - mainRect.top) - (mainRect.height / 2) + (postRect.height / 2);
+
+        mainContent.scrollTo({
+          top: targetScroll,
+          behavior: 'smooth'
+        });
+
+        // Resaltar la publicación
+        if (currentSnappedPost) {
+          currentSnappedPost.classList.remove('snapped');
+        }
+        postElement.classList.add('snapped');
+        currentSnappedPost = postElement;
+
+        // Permitir que el observer vuelva a funcionar
+        setTimeout(() => {
+          isProgrammaticScroll = false;
+        }, 1000);
+      }
+
+      // Solo agregar la función de limpieza y modificar las llamadas
+      function limpiarTextoCertificado(texto) {
+        if (!texto) return '';
+
+        let textoLimpio = texto.replace(/%20/g, ' ');
+
+        try {
+          textoLimpio = decodeURIComponent(textoLimpio);
+        } catch (e) {
+          textoLimpio = textoLimpio.replace(/%20/g, ' ');
+        }
+
+        // Limpiar patrones específicos
+        textoLimpio = textoLimpio.replace(/or%20GM%20Evagrio%/g, '');
+        textoLimpio = textoLimpio.replace(/Coordinador%20GM%20/g, '');
+
+        return textoLimpio.trim();
+      }
+
+      // Elementos del modal de subida
 const floatingUploadBtn = document.getElementById('floatingUploadBtn');
 const uploadModal = document.getElementById('uploadModal');
 const closeUploadModal = document.getElementById('closeUploadModal');

@@ -3138,11 +3138,6 @@ transition: all 0.3s ease;
       window.imprimirExamenCompleto = imprimirExamenCompleto;
       window.mostrarCertificacionCompleta = mostrarCertificacionCompleta;
       window.extraerNombreFirma = extraerNombreFirma;
-      // 🔹 Hacer funciones globales para el botón "Leer más"
-      window.toggleReadMore = toggleReadMore;
-      window.formatPostDescription = formatPostDescription;
-      window.formatFullText = formatFullText;
-      window.escapeHtml = escapeHtml;
 
       // 🔹 FUNCIONES PARA CERTIFICACIÓN COMPLETA
       async function verCertificacionCompleta(formularioId, visitanteId) {
@@ -4185,6 +4180,18 @@ transition: all 0.3s ease;
           return;
         }
 
+        // 🔹 VALIDAR LONGITUD MÁXIMA DEL TEXTO
+        const MAX_DESCRIPTION_LENGTH = 2000;
+        if (description.length > MAX_DESCRIPTION_LENGTH) {
+          console.log(`❌ Texto demasiado largo: ${description.length} caracteres`);
+          mostrarMensaje('error', 'Texto muy largo',
+            `La descripción no puede tener más de ${MAX_DESCRIPTION_LENGTH} caracteres.\n\n` +
+            `Tu texto actual tiene: ${description.length} caracteres\n` +
+            `Te excedes por: ${description.length - MAX_DESCRIPTION_LENGTH} caracteres\n\n` +
+            `Por favor, acorta tu texto.`);
+          return;
+        }
+
         // Validaciones de archivo según tipo y tamaño
         const fileType = file.type;
 
@@ -4677,7 +4684,7 @@ transition: all 0.3s ease;
     
 
     <div class="post-description" id="post-description-${postId}">
-  ${formatPostDescription(post.description, postId) || ''}
+  ${window.formatPostDescription(post.description, postId) || ''}
     </div>
     
     <div class="post-actions">
@@ -6035,16 +6042,28 @@ transition: all 0.3s ease;
 
       // Función para ocultar el modal
       function hideUploadModal() {
-        uploadModal.classList.add('hiddenX');
-        // Limpiar formulario al cerrar
-        fileInput.value = '';
-        postDescription.value = '';
-        previewContainer.innerHTML = '';
-        // Resetear progress
-        uploadProgress.style.display = 'none';
-        progressBar.style.width = '0%';
-        progressText.textContent = '0%';
-      }
+    uploadModal.classList.add('hiddenX');
+    // Limpiar formulario al cerrar
+    fileInput.value = '';
+    postDescription.value = '';
+    previewContainer.innerHTML = '';
+    // Resetear progress
+    uploadProgress.style.display = 'none';
+    progressBar.style.width = '0%';
+    progressText.textContent = '0%';
+    
+    // 🔹 Resetear contador de caracteres
+    const charCount = document.getElementById('charCount');
+    const currentChars = document.getElementById('currentChars');
+    if (charCount) {
+        charCount.classList.remove('warning', 'error');
+        charCount.classList.add('normal');
+        charCount.innerHTML = '<span id="currentChars">0</span>/<span id="maxChars">1000</span> caracteres';
+    }
+    if (currentChars) {
+        currentChars.textContent = '0';
+    }
+}
 
       // Mostrar modal al hacer clic en el botón flotante
       floatingUploadBtn.addEventListener('click', showUploadModal);
@@ -6096,6 +6115,168 @@ transition: all 0.3s ease;
           console.error('Error en la publicación:', error);
         }
       };
+
+
+
+
+      // 🔹 Hacer funciones globales para el botón "Leer más"
+window.toggleReadMore = function(postId, fullText) {
+    console.log('🔄 toggleReadMore llamado:', postId, fullText?.substring(0, 50) + '...');
+    
+    const descriptionElement = document.getElementById(`post-description-${postId}`);
+    if (!descriptionElement) {
+        console.error('❌ Elemento no encontrado:', `post-description-${postId}`);
+        return;
+    }
+
+    const readMoreBtn = descriptionElement.querySelector('.read-more-btn');
+    const isExpanded = readMoreBtn?.textContent === 'Leer menos';
+
+    if (isExpanded) {
+        // Contraer texto - usar versión corta
+        const shortText = window.formatPostDescription(fullText, postId);
+        descriptionElement.innerHTML = shortText;
+    } else {
+        // Expandir texto completo
+        const fullFormattedText = window.formatFullText(fullText);
+        descriptionElement.innerHTML = fullFormattedText + `
+            <br>
+            <button class="read-more-btn" onclick="toggleReadMore('${postId}', '${window.escapeHtml(fullText)}')" 
+                    style="background: none; border: none; color: var(--accent-color); 
+                           cursor: pointer; font-weight: bold; padding: 5px 0; margin-top: 5px;
+                           font-size: 14px;">
+                Leer menos
+            </button>
+        `;
+    }
+};
+
+window.escapeHtml = function(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+};
+
+window.formatPostDescription = function(text, postId) {
+    if (!text || typeof text !== 'string') return '';
+    
+    const MAX_LENGTH = 300;
+    const hasLongText = text.length > MAX_LENGTH;
+    
+    // Escapar HTML para seguridad
+    let safeText = window.escapeHtml(text);
+    
+    // Si el texto es corto, mostrar completo
+    if (!hasLongText) {
+        return window.formatTextWithLinks(safeText);
+    }
+    
+    // Para texto largo, mostrar versión corta con "Leer más"
+    let shortText = safeText.substring(0, MAX_LENGTH);
+    
+    // Asegurar que no cortemos en medio de una palabra
+    const lastSpace = shortText.lastIndexOf(' ');
+    if (lastSpace > MAX_LENGTH - 50 && lastSpace > 0) {
+        shortText = shortText.substring(0, lastSpace) + '...';
+    } else {
+        shortText += '...';
+    }
+    
+    let formattedText = window.formatTextWithLinks(shortText);
+    
+    // Agregar botón "Leer más"
+    formattedText += `
+        <br>
+        <button class="read-more-btn" onclick="toggleReadMore('${postId}', '${window.escapeHtml(text)}')" 
+                style="background: none; border: none; color: var(--accent-color); 
+                       cursor: pointer; font-weight: bold; padding: 5px 0; margin-top: 5px;
+                       font-size: 14px;">
+            Leer más
+        </button>
+    `;
+    
+    return formattedText;
+};
+
+window.formatFullText = function(text) {
+    if (!text || typeof text !== 'string') return '';
+    
+    // Escapar HTML para seguridad
+    let safeText = window.escapeHtml(text);
+    
+    return window.formatTextWithLinks(safeText);
+};
+
+window.formatTextWithLinks = function(text) {
+    if (!text) return '';
+    
+    // 1. Mantener formato original
+    let formattedText = text
+        .replace(/\n/g, '<br>')
+        .replace(/  /g, ' &nbsp;')
+        .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
+    
+    // 2. Detectar URLs
+    const urlRegex = /(https?:\/\/[^\s<]+[^<.,!?;:)\]\s])/g;
+    formattedText = formattedText.replace(urlRegex, (url) => {
+        try {
+            new URL(url);
+            
+            let displayUrl = url;
+            try {
+                const urlObj = new URL(url);
+                displayUrl = urlObj.hostname + (urlObj.pathname !== '/' ? urlObj.pathname : '');
+                if (displayUrl.length > 30) {
+                    displayUrl = displayUrl.substring(0, 27) + '...';
+                }
+            } catch (e) {
+                if (url.length > 30) {
+                    displayUrl = url.substring(0, 27) + '...';
+                }
+            }
+            
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer" 
+                     style="color: var(--accent-color); text-decoration: underline; 
+                            word-break: break-all; font-weight: 500;"
+                     onmouseover="this.style.textDecoration='none'" 
+                     onmouseout="this.style.textDecoration='underline'"
+                     title="${url}">
+                     🔗 ${displayUrl}
+                   </a>`;
+        } catch (error) {
+            return url;
+        }
+    });
+    
+    // 3. Detectar enlaces sin protocolo
+    const wwwRegex = /(^|\s)(www\.[^\s<]+\.[^\s<]+)/g;
+    formattedText = formattedText.replace(wwwRegex, (match, space, url) => {
+        const fullUrl = 'https://' + url;
+        return `${space}<a href="${fullUrl}" target="_blank" rel="noopener noreferrer"
+                 style="color: var(--accent-color); text-decoration: underline; 
+                        word-break: break-all; font-weight: 500;"
+                 onmouseover="this.style.textDecoration='none'" 
+                 onmouseout="this.style.textDecoration='underline'"
+                 title="${fullUrl}">
+                 🔗 ${url}
+               </a>`;
+    });
+    
+    // 4. Menciones @usuario
+    const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+    formattedText = formattedText.replace(mentionRegex, 
+        '<span style="color: var(--accent-color); font-weight: bold;">@$1</span>'
+    );
+    
+    // 5. Hashtags #tema
+    const hashtagRegex = /#([a-zA-Z0-9_]+)/g;
+    formattedText = formattedText.replace(hashtagRegex, 
+        '<span style="color: var(--success-color); font-weight: bold;">#$1</span>'
+    );
+    
+    return formattedText;
+};
     </script>
 
 

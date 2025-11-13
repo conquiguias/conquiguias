@@ -147,7 +147,7 @@
       overflow-x: hidden;
     }
 
-    textarea{
+    textarea {
       min-height: 200px;
       font-size: 16px;
     }
@@ -1668,6 +1668,49 @@
         max-height: 95vh;
       }
     }
+
+    /* Mejoras para el textarea y descripciones de posts */
+    #postDescription {
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    #postDescription:focus {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    }
+
+    .post-description {
+      white-space: pre-line;
+      /* Respeta saltos de línea */
+      line-height: 1.5;
+      word-wrap: break-word;
+    }
+
+    .post-description a {
+      transition: all 0.2s ease;
+    }
+
+    .post-description a:hover {
+      opacity: 0.8;
+      text-decoration: none !important;
+    }
+
+    /* Contador de caracteres */
+    .char-counter {
+      font-size: 12px;
+      text-align: right;
+      margin-top: -8px;
+      margin-bottom: 10px;
+    }
+
+    .char-counter.warning {
+      color: var(--warning-color);
+    }
+
+    .char-counter.error {
+      color: var(--danger-color);
+      font-weight: bold;
+    }
   </style>
 </head>
 
@@ -1725,8 +1768,22 @@ transition: all 0.3s ease;
           <div id="uploadBox">
             <input type="file" id="fileInput" accept="image/*,video/*"
               style="margin-bottom: 10px; width: 100%; padding: 8px;">
-            <textarea id="postDescription" placeholder="Escribe una descripción..."
-              style="width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 6px; border: 1px solid var(--border-color); font-family: inherit; background: var(--bg-secondary); color: var(--text-primary);"></textarea>
+            <textarea id="postDescription" placeholder="¿Qué quieres compartir? Puedes usar:
+              • Saltos de línea (Enter)
+              • Enlaces (se detectarán automáticamente)
+              • Menciones @usuario  
+              • Hashtags #tema" style="width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; 
+                               border: 1px solid var(--border-color); font-family: inherit; 
+                               background: var(--bg-secondary); color: var(--text-primary);
+                               min-height: 120px; resize: vertical; font-size: 14px; line-height: 1.4;"></textarea>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <small style="color: var(--text-secondary); font-size: 12px;">
+                Presiona Enter para saltos de línea • Los enlaces se abrirán en nueva pestaña
+              </small>
+              <small id="charCount" style="color: var(--text-secondary); font-size: 12px;">
+                0/1000
+              </small>
+            </div>
             <div id="previewContainer" style="margin-bottom: 10px;"></div>
             <div id="uploadProgress" style="display: none; margin-bottom: 10px;">
               <div style="background: var(--bg-secondary); border-radius: 10px; height: 20px;">
@@ -4574,7 +4631,7 @@ transition: all 0.3s ease;
     
 
     <div class="post-description">
-      ${post.description || ''}
+      ${formatPostDescription(post.description) || ''}
     </div>
     
     <div class="post-actions">
@@ -4640,6 +4697,115 @@ transition: all 0.3s ease;
 
         feed.appendChild(postElement);
       }
+
+      // 🔹 Formatear descripción del post - mantener espacios y detectar enlaces
+      // 🔹 Formatear descripción del post - VERSIÓN MEJORADA
+      function formatPostDescription(text) {
+        if (!text || typeof text !== 'string') return '';
+
+        // Escapar HTML para seguridad
+        let safeText = text
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+
+        // 1. Mantener formato original (saltos de línea y espacios)
+        let formattedText = safeText
+          .replace(/\n/g, '<br>') // Saltos de línea
+          .replace(/  /g, ' &nbsp;') // Espacios dobles
+          .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;'); // Tabs
+
+        // 2. Detectar URLs complejas (incluye dominios comunes)
+        const urlRegex = /(https?:\/\/[^\s<]+[^<.,!?;:)\]\s])/g;
+        formattedText = formattedText.replace(urlRegex, (url) => {
+          try {
+            // Validar que sea una URL válida
+            new URL(url);
+
+            // Acortar para mostrar
+            let displayText = url;
+            try {
+              const urlObj = new URL(url);
+              displayText = urlObj.hostname + (urlObj.pathname !== '/' ? urlObj.pathname : '');
+              if (displayText.length > 30) {
+                displayText = displayText.substring(0, 27) + '...';
+              }
+            } catch (e) {
+              // Si falla el parsing, usar la URL original acortada
+              if (url.length > 30) {
+                displayText = url.substring(0, 27) + '...';
+              }
+            }
+
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer" 
+               style="color: var(--accent-color); text-decoration: underline; 
+                      word-break: break-all; font-weight: 500;"
+               onmouseover="this.style.textDecoration='none'" 
+               onmouseout="this.style.textDecoration='underline'"
+               title="${url}">
+               🔗 ${displayText}
+             </a>`;
+          } catch (error) {
+            // Si no es una URL válida, devolver el texto original
+            return url;
+          }
+        });
+
+        // 3. Detectar enlaces sin protocolo (www.example.com)
+        const wwwRegex = /(^|\s)(www\.[^\s<]+\.[^\s<]+)/g;
+        formattedText = formattedText.replace(wwwRegex, (match, space, url) => {
+          const fullUrl = 'https://' + url;
+          return `${space}<a href="${fullUrl}" target="_blank" rel="noopener noreferrer"
+             style="color: var(--accent-color); text-decoration: underline; 
+                    word-break: break-all; font-weight: 500;"
+             onmouseover="this.style.textDecoration='none'" 
+             onmouseout="this.style.textDecoration='underline'"
+             title="${fullUrl}">
+             🔗 ${url}
+           </a>`;
+        });
+
+        // 4. Menciones @usuario
+        const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+        formattedText = formattedText.replace(mentionRegex,
+          '<span style="color: var(--accent-color); font-weight: bold;">@$1</span>'
+        );
+
+        // 5. Hashtags #tema
+        const hashtagRegex = /#([a-zA-Z0-9_]+)/g;
+        formattedText = formattedText.replace(hashtagRegex,
+          '<span style="color: var(--success-color); font-weight: bold;">#$1</span>'
+        );
+
+        return formattedText;
+      }
+
+      // Contador de caracteres para el textarea
+      postDescription.addEventListener('input', function () {
+        const maxLength = 1000;
+        const currentLength = this.value.length;
+        const charCount = document.getElementById('charCount');
+
+        if (charCount) {
+          charCount.textContent = `${currentLength}/${maxLength}`;
+
+          // Cambiar color si se acerca al límite
+          if (currentLength > maxLength * 0.9) {
+            charCount.style.color = 'var(--warning-color)';
+          } else if (currentLength > maxLength) {
+            charCount.style.color = 'var(--danger-color)';
+          } else {
+            charCount.style.color = 'var(--text-secondary)';
+          }
+        }
+
+        // Limitar longitud
+        if (currentLength > maxLength) {
+          this.value = this.value.substring(0, maxLength);
+        }
+      });
 
       // 🔹 Calcular tiempo transcurrido (formato humano)
       function getTimeAgo(date) {

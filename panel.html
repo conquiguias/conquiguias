@@ -1711,6 +1711,47 @@
       color: var(--danger-color);
       font-weight: bold;
     }
+
+    /* Estilos para textos largos con "Leer más" */
+    .post-description {
+      white-space: pre-line;
+      line-height: 1.5;
+      word-wrap: break-word;
+      max-height: none;
+      overflow: visible;
+    }
+
+    .read-more-btn {
+      background: none !important;
+      border: none !important;
+      color: var(--accent-color) !important;
+      cursor: pointer !important;
+      font-weight: bold !important;
+      padding: 5px 0 !important;
+      margin-top: 8px !important;
+      font-size: 14px !important;
+      transition: all 0.2s ease !important;
+      display: inline-block !important;
+    }
+
+    .read-more-btn:hover {
+      color: var(--accent-hover) !important;
+      text-decoration: underline !important;
+    }
+
+    /* Efecto de transición suave cuando se expande/contrae */
+    .post-description {
+      transition: all 0.3s ease;
+    }
+
+    /* Indicador visual de texto largo (opcional) */
+    .post-description:after {
+      content: '';
+      display: block;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border-color), transparent);
+      margin: 8px 0;
+    }
   </style>
 </head>
 
@@ -3097,6 +3138,11 @@ transition: all 0.3s ease;
       window.imprimirExamenCompleto = imprimirExamenCompleto;
       window.mostrarCertificacionCompleta = mostrarCertificacionCompleta;
       window.extraerNombreFirma = extraerNombreFirma;
+      // 🔹 Hacer funciones globales para el botón "Leer más"
+      window.toggleReadMore = toggleReadMore;
+      window.formatPostDescription = formatPostDescription;
+      window.formatFullText = formatFullText;
+      window.escapeHtml = escapeHtml;
 
       // 🔹 FUNCIONES PARA CERTIFICACIÓN COMPLETA
       async function verCertificacionCompleta(formularioId, visitanteId) {
@@ -4630,8 +4676,8 @@ transition: all 0.3s ease;
     </div>
     
 
-    <div class="post-description">
-      ${formatPostDescription(post.description) || ''}
+    <div class="post-description" id="post-description-${postId}">
+  ${formatPostDescription(post.description, postId) || ''}
     </div>
     
     <div class="post-actions">
@@ -4699,9 +4745,12 @@ transition: all 0.3s ease;
       }
 
       // 🔹 Formatear descripción del post - mantener espacios y detectar enlaces
-      // 🔹 Formatear descripción del post - VERSIÓN MEJORADA
-      function formatPostDescription(text) {
+      // 🔹 Formatear descripción del post con "Leer más" para textos largos
+      function formatPostDescription(text, postId) {
         if (!text || typeof text !== 'string') return '';
+
+        const MAX_LENGTH = 300; // Límite de caracteres antes de mostrar "Leer más"
+        const hasLongText = text.length > MAX_LENGTH;
 
         // Escapar HTML para seguridad
         let safeText = text
@@ -4711,8 +4760,11 @@ transition: all 0.3s ease;
           .replace(/"/g, '&quot;')
           .replace(/'/g, '&#039;');
 
+        // Texto corto o texto completo si es largo
+        let displayText = hasLongText ? safeText.substring(0, MAX_LENGTH) + '...' : safeText;
+
         // 1. Mantener formato original (saltos de línea y espacios)
-        let formattedText = safeText
+        let formattedText = displayText
           .replace(/\n/g, '<br>') // Saltos de línea
           .replace(/  /g, ' &nbsp;') // Espacios dobles
           .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;'); // Tabs
@@ -4721,21 +4773,18 @@ transition: all 0.3s ease;
         const urlRegex = /(https?:\/\/[^\s<]+[^<.,!?;:)\]\s])/g;
         formattedText = formattedText.replace(urlRegex, (url) => {
           try {
-            // Validar que sea una URL válida
             new URL(url);
 
-            // Acortar para mostrar
-            let displayText = url;
+            let displayUrl = url;
             try {
               const urlObj = new URL(url);
-              displayText = urlObj.hostname + (urlObj.pathname !== '/' ? urlObj.pathname : '');
-              if (displayText.length > 30) {
-                displayText = displayText.substring(0, 27) + '...';
+              displayUrl = urlObj.hostname + (urlObj.pathname !== '/' ? urlObj.pathname : '');
+              if (displayUrl.length > 30) {
+                displayUrl = displayUrl.substring(0, 27) + '...';
               }
             } catch (e) {
-              // Si falla el parsing, usar la URL original acortada
               if (url.length > 30) {
-                displayText = url.substring(0, 27) + '...';
+                displayUrl = url.substring(0, 27) + '...';
               }
             }
 
@@ -4745,10 +4794,9 @@ transition: all 0.3s ease;
                onmouseover="this.style.textDecoration='none'" 
                onmouseout="this.style.textDecoration='underline'"
                title="${url}">
-               🔗 ${displayText}
+               🔗 ${displayUrl}
              </a>`;
           } catch (error) {
-            // Si no es una URL válida, devolver el texto original
             return url;
           }
         });
@@ -4774,6 +4822,123 @@ transition: all 0.3s ease;
         );
 
         // 5. Hashtags #tema
+        const hashtagRegex = /#([a-zA-Z0-9_]+)/g;
+        formattedText = formattedText.replace(hashtagRegex,
+          '<span style="color: var(--success-color); font-weight: bold;">#$1</span>'
+        );
+
+        // 6. Agregar botón "Leer más" si el texto es largo
+        if (hasLongText) {
+          formattedText += `
+      <br>
+      <button class="read-more-btn" onclick="toggleReadMore('${postId}', '${escapeHtml(text)}')" 
+              style="background: none; border: none; color: var(--accent-color); 
+                     cursor: pointer; font-weight: bold; padding: 5px 0; margin-top: 5px;
+                     font-size: 14px;">
+        Leer más
+      </button>
+    `;
+        }
+
+        return formattedText;
+      }
+
+      // 🔹 Función auxiliar para escapar HTML (seguridad)
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      // 🔹 Alternar entre texto completo y texto corto
+      function toggleReadMore(postId, fullText) {
+        const descriptionElement = document.getElementById(`post-description-${postId}`);
+        const readMoreBtn = descriptionElement.querySelector('.read-more-btn');
+
+        if (!descriptionElement || !readMoreBtn) return;
+
+        const isExpanded = readMoreBtn.textContent === 'Leer menos';
+
+        if (isExpanded) {
+          // Contraer texto
+          const shortText = formatPostDescription(fullText.substring(0, 300) + '...', postId);
+          descriptionElement.innerHTML = shortText;
+        } else {
+          // Expandir texto completo
+          const fullFormattedText = formatFullText(fullText);
+          descriptionElement.innerHTML = fullFormattedText + `
+      <br>
+      <button class="read-more-btn" onclick="toggleReadMore('${postId}', '${escapeHtml(fullText)}')" 
+              style="background: none; border: none; color: var(--accent-color); 
+                     cursor: pointer; font-weight: bold; padding: 5px 0; margin-top: 5px;
+                     font-size: 14px;">
+        Leer menos
+      </button>
+    `;
+        }
+      }
+
+      // 🔹 Formatear texto completo (sin límite de caracteres)
+      function formatFullText(text) {
+        if (!text || typeof text !== 'string') return '';
+
+        // Escapar HTML para seguridad
+        let safeText = escapeHtml(text);
+
+        // Mantener formato original
+        let formattedText = safeText
+          .replace(/\n/g, '<br>')
+          .replace(/  /g, ' &nbsp;')
+          .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
+
+        // Detectar y formatear URLs
+        const urlRegex = /(https?:\/\/[^\s<]+[^<.,!?;:)\]\s])/g;
+        formattedText = formattedText.replace(urlRegex, (url) => {
+          try {
+            new URL(url);
+
+            let displayUrl = url;
+            try {
+              const urlObj = new URL(url);
+              displayUrl = urlObj.hostname + (urlObj.pathname !== '/' ? urlObj.pathname : '');
+            } catch (e) {
+              // Usar URL original si falla el parsing
+            }
+
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer" 
+               style="color: var(--accent-color); text-decoration: underline; 
+                      word-break: break-all; font-weight: 500;"
+               onmouseover="this.style.textDecoration='none'" 
+               onmouseout="this.style.textDecoration='underline'"
+               title="${url}">
+               🔗 ${displayUrl}
+             </a>`;
+          } catch (error) {
+            return url;
+          }
+        });
+
+        // Detectar enlaces sin protocolo
+        const wwwRegex = /(^|\s)(www\.[^\s<]+\.[^\s<]+)/g;
+        formattedText = formattedText.replace(wwwRegex, (match, space, url) => {
+          const fullUrl = 'https://' + url;
+          return `${space}<a href="${fullUrl}" target="_blank" rel="noopener noreferrer"
+             style="color: var(--accent-color); text-decoration: underline; 
+                    word-break: break-all; font-weight: 500;"
+             onmouseover="this.style.textDecoration='none'" 
+             onmouseout="this.style.textDecoration='underline'"
+             title="${fullUrl}">
+             🔗 ${url}
+           </a>`;
+        });
+
+        // Menciones @usuario
+        const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+        formattedText = formattedText.replace(mentionRegex,
+          '<span style="color: var(--accent-color); font-weight: bold;">@$1</span>'
+        );
+
+        // Hashtags #tema
         const hashtagRegex = /#([a-zA-Z0-9_]+)/g;
         formattedText = formattedText.replace(hashtagRegex,
           '<span style="color: var(--success-color); font-weight: bold;">#$1</span>'

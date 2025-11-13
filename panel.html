@@ -4153,6 +4153,7 @@ transition: all 0.3s ease;
       }
 
       // 🔹 Manejar subida de publicación - VERSIÓN FINAL CON FALLBACK
+      // 🔹 Manejar subida de publicación - VERSIÓN CORREGIDA CON VALIDACIÓN
       async function handleUpload() {
         console.log('🔄 handleUpload iniciado');
 
@@ -4167,77 +4168,65 @@ transition: all 0.3s ease;
 
         console.log('📁 Archivo:', file);
         console.log('📝 Descripción:', description);
+        console.log('📊 Longitud del texto:', description.length);
 
+        // 🔹 VALIDACIÓN 1: Verificar que hay archivo
         if (!file) {
           console.log('❌ No hay archivo');
           mostrarMensaje('info', 'Selecciona una imagen o video', 'Debes seleccionar un archivo para publicar.');
           return;
         }
 
+        // 🔹 VALIDACIÓN 2: Verificar que hay descripción
         if (!description) {
           console.log('❌ No hay descripción');
           mostrarMensaje('info', 'Agrega una descripción', 'Escribe una descripción para tu publicación.');
           return;
         }
 
-        // 🔹 VALIDAR LONGITUD MÁXIMA DEL TEXTO
-        const MAX_DESCRIPTION_LENGTH = 2000;
+        // 🔹 VALIDACIÓN 3: LONGITUD MÁXIMA DEL TEXTO (ESTA ES LA CLAVE)
+        const MAX_DESCRIPTION_LENGTH = 1000;
         if (description.length > MAX_DESCRIPTION_LENGTH) {
           console.log(`❌ Texto demasiado largo: ${description.length} caracteres`);
           mostrarMensaje('error', 'Texto muy largo',
-            `La descripción no puede tener más de ${MAX_DESCRIPTION_LENGTH} caracteres.\n\n` +
-            `Tu texto actual tiene: ${description.length} caracteres\n` +
-            `Te excedes por: ${description.length - MAX_DESCRIPTION_LENGTH} caracteres\n\n` +
-            `Por favor, acorta tu texto.`);
-          return;
+            `❌ La descripción no puede tener más de ${MAX_DESCRIPTION_LENGTH} caracteres.\n\n` +
+            `📊 Tu texto actual tiene: ${description.length} caracteres\n` +
+            `📈 Te excedes por: ${description.length - MAX_DESCRIPTION_LENGTH} caracteres\n\n` +
+            `✂️ Por favor, acorta tu texto antes de publicar.`);
+          return; // 🔥 ESTE return ES CRÍTICO - DETIENE LA PUBLICACIÓN
         }
 
-        // Validaciones de archivo según tipo y tamaño
-        const fileType = file.type;
-
-        // Límite para imágenes → 20MB
-        const IMAGE_MAX = 20 * 1024 * 1024; // 20MB
-        // Límite para videos / GIF → 200MB
-        const VIDEO_MAX = 200 * 1024 * 1024; // 200MB
-
-        if (fileType.startsWith("image/")) {
-          // Es imagen
-          if (file.size > IMAGE_MAX) {
-            mostrarMensaje(
-              'error',
-              'Imagen muy grande',
-              'Las imágenes no deben superar los 20MB.'
-            );
-            return;
-          }
-        } else if (fileType.startsWith("video/") || fileType === "image/gif") {
-          // Es video o GIF
-          if (file.size > VIDEO_MAX) {
-            mostrarMensaje(
-              'error',
-              'Video demasiado grande',
-              'Los videos y GIF no deben superar los 200MB.'
-            );
-            return;
-          }
-        }
-
-
+        // Resto de validaciones (tipos de archivo, tamaños, etc.)
         const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'video/mp4', 'video/quicktime'];
         if (!validTypes.includes(file.type)) {
           mostrarMensaje('error', 'Tipo de archivo no válido', 'Solo se permiten imágenes (JPEG, PNG, GIF) y videos (MP4).');
           return;
         }
 
+        // Validaciones de tamaño de archivo
+        const IMAGE_MAX = 20 * 1024 * 1024;
+        const VIDEO_MAX = 200 * 1024 * 1024;
+
+        if (file.type.startsWith("image/") && file.size > IMAGE_MAX) {
+          mostrarMensaje('error', 'Imagen muy grande', 'Las imágenes no deben superar los 20MB.');
+          return;
+        }
+
+        if ((file.type.startsWith("video/") || file.type === "image/gif") && file.size > VIDEO_MAX) {
+          mostrarMensaje('error', 'Video demasiado grande', 'Los videos y GIF no deben superar los 200MB.');
+          return;
+        }
+
+        // 🔹 SI PASÓ TODAS LAS VALIDACIONES, PROCEDER CON LA PUBLICACIÓN
         try {
           uploadBtn.disabled = true;
           uploadBtn.textContent = 'Subiendo...';
 
-          // 1. Subir a Imgur
+          // 1. Subir a Imgur...
           console.log('📤 Subiendo a Imgur...');
           const mediaData = await uploadToImgur(file);
 
-          // 2. Preparar datos de la publicación
+          // 2. Preparar datos de la publicación...
           const postData = {
             userId: currentUserId,
             userName: `${userData.nombre || ''} ${userData.apellido || ''}`.trim() || 'Usuario',
@@ -4252,12 +4241,12 @@ transition: all 0.3s ease;
             imgurData: mediaData,
             reactions: { like: [], love: [], laugh: [], wow: [], sad: [], angry: [], seven: [] },
             comments: [],
-            status: isAdmin ? 'approved' : 'pending' // ✅ Cambio importante aquí
+            status: isAdmin ? 'approved' : 'pending'
           };
 
           let postId;
 
-          // 3. Intentar guardar en Firestore primero
+          // 3. Guardar en Firestore...
           try {
             console.log('💾 Intentando guardar en Firestore...');
             const docRef = await addDoc(collection(db, "posts"), postData);
@@ -4265,8 +4254,6 @@ transition: all 0.3s ease;
             console.log('✅ Guardado en Firestore, ID:', postId);
           } catch (firestoreError) {
             console.warn('⚠️ Falló Firestore, usando localStorage:', firestoreError);
-
-            // Fallback a localStorage
             const saved = savePostToLocalStorage(postData);
             if (saved) {
               postId = 'local_' + Date.now();
@@ -4277,7 +4264,7 @@ transition: all 0.3s ease;
             }
           }
 
-          // 4. Actualizar tiempo de publicación
+          // 4. Actualizar tiempo de publicación si no es admin
           if (!isAdmin) {
             try {
               await updateDoc(doc(db, "usuarios", currentUserId), {
@@ -4295,15 +4282,14 @@ transition: all 0.3s ease;
           postDescription.value = '';
           previewContainer.innerHTML = '';
 
-          // Solo deshabilitar si NO es admin
+          // Actualizar interfaz según si es admin o no
           if (!isAdmin) {
             uploadBtn.disabled = true;
             uploadBtn.style.pointerEvents = 'none';
             uploadBtn.style.opacity = '0.6';
             uploadBtn.textContent = 'Publicar';
-            startCountdown(60); // Iniciar el contador de 60 minutos
+            startCountdown(60);
           } else {
-            // Admin puede publicar inmediatamente
             uploadBtn.disabled = false;
             uploadBtn.style.pointerEvents = 'auto';
             uploadBtn.style.opacity = '1';
@@ -4311,7 +4297,6 @@ transition: all 0.3s ease;
           }
 
           await loadPosts();
-          // En handleUpload, después de guardar la publicación exitosamente
           mostrarMensaje('info', '📤 Publicación enviada',
             'Tu publicación ha sido enviada para revisión. Será visible para todos una vez que sea aprobada por un administrador.\n\n' +
             'Tiempo estimado de revisión: 24 horas.'
@@ -4954,28 +4939,49 @@ transition: all 0.3s ease;
         return formattedText;
       }
 
-      // Contador de caracteres para el textarea
+      // Contador de caracteres mejorado para el textarea
       postDescription.addEventListener('input', function () {
-        const maxLength = 1000;
+        const MAX_DESCRIPTION_LENGTH = 1000;
         const currentLength = this.value.length;
         const charCount = document.getElementById('charCount');
 
         if (charCount) {
-          charCount.textContent = `${currentLength}/${maxLength}`;
+          // Actualizar contador
+          const currentChars = charCount.querySelector('#currentChars') || charCount;
+          const maxChars = charCount.querySelector('#maxChars');
 
-          // Cambiar color si se acerca al límite
-          if (currentLength > maxLength * 0.9) {
-            charCount.style.color = 'var(--warning-color)';
-          } else if (currentLength > maxLength) {
+          if (currentChars.textContent !== undefined) {
+            currentChars.textContent = currentLength;
+          } else {
+            charCount.textContent = `${currentLength}/${MAX_DESCRIPTION_LENGTH}`;
+          }
+
+          // Cambiar colores según se acerca al límite
+          if (currentLength > MAX_DESCRIPTION_LENGTH) {
             charCount.style.color = 'var(--danger-color)';
+            charCount.style.fontWeight = 'bold';
+            // Deshabilitar botón de publicación si excede el límite
+            uploadBtn.disabled = true;
+            uploadBtn.style.opacity = '0.6';
+            uploadBtn.style.cursor = 'not-allowed';
+          } else if (currentLength > MAX_DESCRIPTION_LENGTH * 0.9) {
+            charCount.style.color = 'var(--warning-color)';
+            charCount.style.fontWeight = 'bold';
+            uploadBtn.disabled = false;
+            uploadBtn.style.opacity = '1';
+            uploadBtn.style.cursor = 'pointer';
           } else {
             charCount.style.color = 'var(--text-secondary)';
+            charCount.style.fontWeight = 'normal';
+            uploadBtn.disabled = false;
+            uploadBtn.style.opacity = '1';
+            uploadBtn.style.cursor = 'pointer';
           }
         }
 
-        // Limitar longitud
-        if (currentLength > maxLength) {
-          this.value = this.value.substring(0, maxLength);
+        // Limitar longitud en tiempo real (opcional)
+        if (currentLength > MAX_DESCRIPTION_LENGTH) {
+          this.value = this.value.substring(0, MAX_DESCRIPTION_LENGTH);
         }
       });
 
@@ -6042,28 +6048,28 @@ transition: all 0.3s ease;
 
       // Función para ocultar el modal
       function hideUploadModal() {
-    uploadModal.classList.add('hiddenX');
-    // Limpiar formulario al cerrar
-    fileInput.value = '';
-    postDescription.value = '';
-    previewContainer.innerHTML = '';
-    // Resetear progress
-    uploadProgress.style.display = 'none';
-    progressBar.style.width = '0%';
-    progressText.textContent = '0%';
-    
-    // 🔹 Resetear contador de caracteres
-    const charCount = document.getElementById('charCount');
-    const currentChars = document.getElementById('currentChars');
-    if (charCount) {
-        charCount.classList.remove('warning', 'error');
-        charCount.classList.add('normal');
-        charCount.innerHTML = '<span id="currentChars">0</span>/<span id="maxChars">1000</span> caracteres';
-    }
-    if (currentChars) {
-        currentChars.textContent = '0';
-    }
-}
+        uploadModal.classList.add('hiddenX');
+        // Limpiar formulario al cerrar
+        fileInput.value = '';
+        postDescription.value = '';
+        previewContainer.innerHTML = '';
+        // Resetear progress
+        uploadProgress.style.display = 'none';
+        progressBar.style.width = '0%';
+        progressText.textContent = '0%';
+
+        // 🔹 Resetear contador de caracteres
+        const charCount = document.getElementById('charCount');
+        const currentChars = document.getElementById('currentChars');
+        if (charCount) {
+          charCount.classList.remove('warning', 'error');
+          charCount.classList.add('normal');
+          charCount.innerHTML = '<span id="currentChars">0</span>/<span id="maxChars">1000</span> caracteres';
+        }
+        if (currentChars) {
+          currentChars.textContent = '0';
+        }
+      }
 
       // Mostrar modal al hacer clic en el botón flotante
       floatingUploadBtn.addEventListener('click', showUploadModal);
@@ -6120,26 +6126,26 @@ transition: all 0.3s ease;
 
 
       // 🔹 Hacer funciones globales para el botón "Leer más"
-window.toggleReadMore = function(postId, fullText) {
-    console.log('🔄 toggleReadMore llamado:', postId, fullText?.substring(0, 50) + '...');
-    
-    const descriptionElement = document.getElementById(`post-description-${postId}`);
-    if (!descriptionElement) {
-        console.error('❌ Elemento no encontrado:', `post-description-${postId}`);
-        return;
-    }
+      window.toggleReadMore = function (postId, fullText) {
+        console.log('🔄 toggleReadMore llamado:', postId, fullText?.substring(0, 50) + '...');
 
-    const readMoreBtn = descriptionElement.querySelector('.read-more-btn');
-    const isExpanded = readMoreBtn?.textContent === 'Leer menos';
+        const descriptionElement = document.getElementById(`post-description-${postId}`);
+        if (!descriptionElement) {
+          console.error('❌ Elemento no encontrado:', `post-description-${postId}`);
+          return;
+        }
 
-    if (isExpanded) {
-        // Contraer texto - usar versión corta
-        const shortText = window.formatPostDescription(fullText, postId);
-        descriptionElement.innerHTML = shortText;
-    } else {
-        // Expandir texto completo
-        const fullFormattedText = window.formatFullText(fullText);
-        descriptionElement.innerHTML = fullFormattedText + `
+        const readMoreBtn = descriptionElement.querySelector('.read-more-btn');
+        const isExpanded = readMoreBtn?.textContent === 'Leer menos';
+
+        if (isExpanded) {
+          // Contraer texto - usar versión corta
+          const shortText = window.formatPostDescription(fullText, postId);
+          descriptionElement.innerHTML = shortText;
+        } else {
+          // Expandir texto completo
+          const fullFormattedText = window.formatFullText(fullText);
+          descriptionElement.innerHTML = fullFormattedText + `
             <br>
             <button class="read-more-btn" onclick="toggleReadMore('${postId}', '${window.escapeHtml(fullText)}')" 
                     style="background: none; border: none; color: var(--accent-color); 
@@ -6148,45 +6154,45 @@ window.toggleReadMore = function(postId, fullText) {
                 Leer menos
             </button>
         `;
-    }
-};
+        }
+      };
 
-window.escapeHtml = function(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-};
+      window.escapeHtml = function (text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      };
 
-window.formatPostDescription = function(text, postId) {
-    if (!text || typeof text !== 'string') return '';
-    
-    const MAX_LENGTH = 300;
-    const hasLongText = text.length > MAX_LENGTH;
-    
-    // Escapar HTML para seguridad
-    let safeText = window.escapeHtml(text);
-    
-    // Si el texto es corto, mostrar completo
-    if (!hasLongText) {
-        return window.formatTextWithLinks(safeText);
-    }
-    
-    // Para texto largo, mostrar versión corta con "Leer más"
-    let shortText = safeText.substring(0, MAX_LENGTH);
-    
-    // Asegurar que no cortemos en medio de una palabra
-    const lastSpace = shortText.lastIndexOf(' ');
-    if (lastSpace > MAX_LENGTH - 50 && lastSpace > 0) {
-        shortText = shortText.substring(0, lastSpace) + '...';
-    } else {
-        shortText += '...';
-    }
-    
-    let formattedText = window.formatTextWithLinks(shortText);
-    
-    // Agregar botón "Leer más"
-    formattedText += `
+      window.formatPostDescription = function (text, postId) {
+        if (!text || typeof text !== 'string') return '';
+
+        const MAX_LENGTH = 300;
+        const hasLongText = text.length > MAX_LENGTH;
+
+        // Escapar HTML para seguridad
+        let safeText = window.escapeHtml(text);
+
+        // Si el texto es corto, mostrar completo
+        if (!hasLongText) {
+          return window.formatTextWithLinks(safeText);
+        }
+
+        // Para texto largo, mostrar versión corta con "Leer más"
+        let shortText = safeText.substring(0, MAX_LENGTH);
+
+        // Asegurar que no cortemos en medio de una palabra
+        const lastSpace = shortText.lastIndexOf(' ');
+        if (lastSpace > MAX_LENGTH - 50 && lastSpace > 0) {
+          shortText = shortText.substring(0, lastSpace) + '...';
+        } else {
+          shortText += '...';
+        }
+
+        let formattedText = window.formatTextWithLinks(shortText);
+
+        // Agregar botón "Leer más"
+        formattedText += `
         <br>
         <button class="read-more-btn" onclick="toggleReadMore('${postId}', '${window.escapeHtml(text)}')" 
                 style="background: none; border: none; color: var(--accent-color); 
@@ -6195,47 +6201,47 @@ window.formatPostDescription = function(text, postId) {
             Leer más
         </button>
     `;
-    
-    return formattedText;
-};
 
-window.formatFullText = function(text) {
-    if (!text || typeof text !== 'string') return '';
-    
-    // Escapar HTML para seguridad
-    let safeText = window.escapeHtml(text);
-    
-    return window.formatTextWithLinks(safeText);
-};
+        return formattedText;
+      };
 
-window.formatTextWithLinks = function(text) {
-    if (!text) return '';
-    
-    // 1. Mantener formato original
-    let formattedText = text
-        .replace(/\n/g, '<br>')
-        .replace(/  /g, ' &nbsp;')
-        .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
-    
-    // 2. Detectar URLs
-    const urlRegex = /(https?:\/\/[^\s<]+[^<.,!?;:)\]\s])/g;
-    formattedText = formattedText.replace(urlRegex, (url) => {
-        try {
+      window.formatFullText = function (text) {
+        if (!text || typeof text !== 'string') return '';
+
+        // Escapar HTML para seguridad
+        let safeText = window.escapeHtml(text);
+
+        return window.formatTextWithLinks(safeText);
+      };
+
+      window.formatTextWithLinks = function (text) {
+        if (!text) return '';
+
+        // 1. Mantener formato original
+        let formattedText = text
+          .replace(/\n/g, '<br>')
+          .replace(/  /g, ' &nbsp;')
+          .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
+
+        // 2. Detectar URLs
+        const urlRegex = /(https?:\/\/[^\s<]+[^<.,!?;:)\]\s])/g;
+        formattedText = formattedText.replace(urlRegex, (url) => {
+          try {
             new URL(url);
-            
+
             let displayUrl = url;
             try {
-                const urlObj = new URL(url);
-                displayUrl = urlObj.hostname + (urlObj.pathname !== '/' ? urlObj.pathname : '');
-                if (displayUrl.length > 30) {
-                    displayUrl = displayUrl.substring(0, 27) + '...';
-                }
+              const urlObj = new URL(url);
+              displayUrl = urlObj.hostname + (urlObj.pathname !== '/' ? urlObj.pathname : '');
+              if (displayUrl.length > 30) {
+                displayUrl = displayUrl.substring(0, 27) + '...';
+              }
             } catch (e) {
-                if (url.length > 30) {
-                    displayUrl = url.substring(0, 27) + '...';
-                }
+              if (url.length > 30) {
+                displayUrl = url.substring(0, 27) + '...';
+              }
             }
-            
+
             return `<a href="${url}" target="_blank" rel="noopener noreferrer" 
                      style="color: var(--accent-color); text-decoration: underline; 
                             word-break: break-all; font-weight: 500;"
@@ -6244,16 +6250,16 @@ window.formatTextWithLinks = function(text) {
                      title="${url}">
                      🔗 ${displayUrl}
                    </a>`;
-        } catch (error) {
+          } catch (error) {
             return url;
-        }
-    });
-    
-    // 3. Detectar enlaces sin protocolo
-    const wwwRegex = /(^|\s)(www\.[^\s<]+\.[^\s<]+)/g;
-    formattedText = formattedText.replace(wwwRegex, (match, space, url) => {
-        const fullUrl = 'https://' + url;
-        return `${space}<a href="${fullUrl}" target="_blank" rel="noopener noreferrer"
+          }
+        });
+
+        // 3. Detectar enlaces sin protocolo
+        const wwwRegex = /(^|\s)(www\.[^\s<]+\.[^\s<]+)/g;
+        formattedText = formattedText.replace(wwwRegex, (match, space, url) => {
+          const fullUrl = 'https://' + url;
+          return `${space}<a href="${fullUrl}" target="_blank" rel="noopener noreferrer"
                  style="color: var(--accent-color); text-decoration: underline; 
                         word-break: break-all; font-weight: 500;"
                  onmouseover="this.style.textDecoration='none'" 
@@ -6261,22 +6267,22 @@ window.formatTextWithLinks = function(text) {
                  title="${fullUrl}">
                  🔗 ${url}
                </a>`;
-    });
-    
-    // 4. Menciones @usuario
-    const mentionRegex = /@([a-zA-Z0-9_]+)/g;
-    formattedText = formattedText.replace(mentionRegex, 
-        '<span style="color: var(--accent-color); font-weight: bold;">@$1</span>'
-    );
-    
-    // 5. Hashtags #tema
-    const hashtagRegex = /#([a-zA-Z0-9_]+)/g;
-    formattedText = formattedText.replace(hashtagRegex, 
-        '<span style="color: var(--success-color); font-weight: bold;">#$1</span>'
-    );
-    
-    return formattedText;
-};
+        });
+
+        // 4. Menciones @usuario
+        const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+        formattedText = formattedText.replace(mentionRegex,
+          '<span style="color: var(--accent-color); font-weight: bold;">@$1</span>'
+        );
+
+        // 5. Hashtags #tema
+        const hashtagRegex = /#([a-zA-Z0-9_]+)/g;
+        formattedText = formattedText.replace(hashtagRegex,
+          '<span style="color: var(--success-color); font-weight: bold;">#$1</span>'
+        );
+
+        return formattedText;
+      };
     </script>
 
 

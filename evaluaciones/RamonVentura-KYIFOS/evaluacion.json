@@ -1,0 +1,400 @@
+[
+  {
+    "id": "q-1762993533641-9rh6wr0of",
+    "type": "multiple",
+    "text": "¿Qué animal pasa por cuatro etapas: huevo, larva, pupa y adulto?",
+    "options": [
+      {
+        "id": "opt-1762993533641-xtcdr1uui",
+        "text": "a) Pájaro",
+        "correct": false
+      },
+      {
+        "id": "opt-1762993533641-h2h15hp71",
+        "text": "b) Mariposa",
+        "correct": true
+      },
+      {
+        "id": "opt-1762993542754-8kqsn4mwy",
+        "text": "c) Rana",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762993573799-twul6azxy",
+    "type": "multiple",
+    "text": "¿Cómo se llama la etapa cuando la mariposa es una oruga?",
+    "options": [
+      {
+        "id": "opt-1762993573799-lbmrkipgs",
+        "text": "a) Larva",
+        "correct": true
+      },
+      {
+        "id": "opt-1762993573799-84guszc93",
+        "text": "b) Huevo",
+        "correct": false
+      },
+      {
+        "id": "opt-1762993588353-xq1gnd1q1",
+        "text": "c) Pupa",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762993628977-6172a26e5",
+    "type": "multiple",
+    "text": "¿Cómo se llama la “casita” donde la oruga se encierra para cambiar?",
+    "options": [
+      {
+        "id": "opt-1762993628977-b87axyor1",
+        "text": "a) Nido",
+        "correct": false
+      },
+      {
+        "id": "opt-1762993628977-ldcmkkogj",
+        "text": "b) Crisálida o capullo",
+        "correct": true
+      },
+      {
+        "id": "opt-1762993637804-gmy51ao6y",
+        "text": "c) Flor",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762993661665-rqd7rq0ib",
+    "type": "multiple",
+    "text": "¿Qué tienen las antenas de las mariposas en la punta?",
+    "options": [
+      {
+        "id": "opt-1762993661665-c5lkfh8ha",
+        "text": "a) Una bolita",
+        "correct": true
+      },
+      {
+        "id": "opt-1762993661665-r17z1tpdm",
+        "text": "b) Nada",
+        "correct": false
+      },
+      {
+        "id": "opt-1762993671314-9h0fu0h6i",
+        "text": "c) Plumas",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762993682081-p3343sowo",
+    "type": "multiple",
+    "text": "¿Cuándo vuelan las mariposas?",
+    "options": [
+      {
+        "id": "opt-1762993682081-mwyjj5qy4",
+        "text": "a) De día",
+        "correct": true
+      },
+      {
+        "id": "opt-1762993682081-kfgjccvf4",
+        "text": "b) De noche",
+        "correct": false
+      },
+      {
+        "id": "opt-1762993695033-78p1o0edl",
+        "text": "c) Solo con lluvia",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762993722451-f34kv0xx8",
+    "type": "multiple",
+    "text": "¿Cuándo vuelan las palomillas?",
+    "options": [
+      {
+        "id": "opt-1762993722451-y187om4wb",
+        "text": "a) De día",
+        "correct": false
+      },
+      {
+        "id": "opt-1762993722451-z96lh9693",
+        "text": "b) De noche",
+        "correct": true
+      },
+      {
+        "id": "opt-1762993732729-z5squcu47",
+        "text": "c) Cuando hay sol",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762993756279-j8g4h6oxv",
+    "type": "multiple",
+    "text": "¿Por qué tienen polvo las alas de las mariposas?",
+    "options": [
+      {
+        "id": "opt-1762993756279-q3ak5f36h",
+        "text": "a) Porque se mojan",
+        "correct": false
+      },
+      {
+        "id": "opt-1762993756279-o8ihi0mhe",
+        "text": "b) Por escamas de colores",
+        "correct": true
+      },
+      {
+        "id": "opt-1762993769873-qpch5q2as",
+        "text": "c) Por tierra",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762993802809-ay1huqork",
+    "type": "multiple",
+    "text": "¿Qué debemos hacer si vemos una mariposa?",
+    "options": [
+      {
+        "id": "opt-1762993802809-brm0xlij0",
+        "text": "a) Cuidarla y no dañarla",
+        "correct": true
+      },
+      {
+        "id": "opt-1762993802809-ax0ncn1ax",
+        "text": "b) Perseguirla",
+        "correct": false
+      },
+      {
+        "id": "opt-1762993814017-1lg1l4a8z",
+        "text": "c) Tocar sus alas",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762993825377-8tj7fwguu",
+    "type": "multiple",
+    "text": "¿Qué come una oruga?",
+    "options": [
+      {
+        "id": "opt-1762993825377-evi0878j2",
+        "text": "a) Hojas",
+        "correct": true
+      },
+      {
+        "id": "opt-1762993825377-6ytsiss7p",
+        "text": "b) Pan",
+        "correct": false
+      },
+      {
+        "id": "opt-1762993828001-g8cpzzjgq",
+        "text": "c) Frutas",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762993848793-r24iepkvw",
+    "type": "multiple",
+    "text": "¿Qué le gusta hacer a las mariposas?",
+    "options": [
+      {
+        "id": "opt-1762993848793-6chvx9cys",
+        "text": "a) Volar sobre flores",
+        "correct": true
+      },
+      {
+        "id": "opt-1762993848793-cksxezxxw",
+        "text": "b) Vivir en cuevas",
+        "correct": false
+      },
+      {
+        "id": "opt-1762993852916-33544w16d",
+        "text": "c) Estar bajo tierra",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762993937854-06g939z9n",
+    "type": "multiple",
+    "text": "¿Qué diferencia hay entre mariposa y palomilla?",
+    "options": [
+      {
+        "id": "opt-1762993937854-09jmywkut",
+        "text": "a) Las mariposas vuelan de día y las palomillas de noche",
+        "correct": true
+      },
+      {
+        "id": "opt-1762993937854-mb4qhery3",
+        "text": "b) Las dos son iguales",
+        "correct": false
+      },
+      {
+        "id": "opt-1762993939105-qdidcryrv",
+        "text": "c) Una vive en el agua",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762993980341-ez94ay65b",
+    "type": "multiple",
+    "text": "¿En qué etapa las palomillas hacen más daño?",
+    "options": [
+      {
+        "id": "opt-1762993980341-l9xnfyqh7",
+        "text": "a) Huevo",
+        "correct": false
+      },
+      {
+        "id": "opt-1762993980341-0l6ajoyf5",
+        "text": "b) Larva (oruga)",
+        "correct": true
+      },
+      {
+        "id": "opt-1762993988280-myjv1545w",
+        "text": "c) Adulta",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762994001464-fg20czuem",
+    "type": "multiple",
+    "text": "¿Cuál mariposa viaja muchos kilómetros cada año?",
+    "options": [
+      {
+        "id": "opt-1762994001464-u7lcl1n6d",
+        "text": "a) Monarca",
+        "correct": true
+      },
+      {
+        "id": "opt-1762994001464-ry80x81wn",
+        "text": "b) Azul",
+        "correct": false
+      },
+      {
+        "id": "opt-1762994004049-789g26m7p",
+        "text": "c) Blanca",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762994027545-q3w5j05fp",
+    "type": "multiple",
+    "text": "¿Qué lección espiritual enseña la transformación de la mariposa?",
+    "options": [
+      {
+        "id": "opt-1762994027545-ovtiw2ziz",
+        "text": "a) La resurrección y nueva vida",
+        "correct": true
+      },
+      {
+        "id": "opt-1762994027545-vu2r8if6b",
+        "text": "b) El descanso",
+        "correct": false
+      },
+      {
+        "id": "opt-1762994037080-o398w0dvs",
+        "text": "c) El vuelo libre",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762994057176-sbpifqril",
+    "type": "multiple",
+    "text": "¿Por qué debemos cuidar las mariposas?",
+    "options": [
+      {
+        "id": "opt-1762994057176-pdp3ce9ns",
+        "text": "a) Porque son parte de la creación de Dios",
+        "correct": true
+      },
+      {
+        "id": "opt-1762994057176-0uc1u2z8x",
+        "text": "b) Porque hacen ruido",
+        "correct": false
+      },
+      {
+        "id": "opt-1762994060713-ousz5uwtr",
+        "text": "c) Porque nos asustan",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762994102915-lcdtlgd5b",
+    "type": "truefalse",
+    "text": "Las mariposas y las palomillas son exactamente iguales.",
+    "options": [
+      {
+        "id": "true-1762994102915-6u5l8au1r",
+        "text": "Verdadero",
+        "correct": false
+      },
+      {
+        "id": "false-1762994102915-45a8k403l",
+        "text": "Falso",
+        "correct": true
+      }
+    ]
+  },
+  {
+    "id": "q-1762994133714-0xnifbglk",
+    "type": "truefalse",
+    "text": "Las alas de las mariposas tienen pequeñas escamas de colores.",
+    "options": [
+      {
+        "id": "true-1762994133714-j6oec4nyt",
+        "text": "Verdadero",
+        "correct": true
+      },
+      {
+        "id": "false-1762994133714-0xzr0wkik",
+        "text": "Falso",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762994141441-t7o6ic9aq",
+    "type": "truefalse",
+    "text": "La mariposa monarca viaja miles de kilómetros cada año.",
+    "options": [
+      {
+        "id": "true-1762994141441-q454pykh2",
+        "text": "Verdadero",
+        "correct": true
+      },
+      {
+        "id": "false-1762994141441-4i6biuuus",
+        "text": "Falso",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762994151992-m671jqrb8",
+    "type": "truefalse",
+    "text": "Las orugas siempre ayudan a los árboles y en los arbustos y flores de nuestra casa.",
+    "options": [
+      {
+        "id": "true-1762994151992-8lp875pfs",
+        "text": "Verdadero",
+        "correct": false
+      },
+      {
+        "id": "false-1762994151992-wksajsx0c",
+        "text": "Falso",
+        "correct": true
+      }
+    ]
+  }
+]

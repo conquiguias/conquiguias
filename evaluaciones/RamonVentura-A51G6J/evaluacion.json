@@ -1,0 +1,554 @@
+[
+  {
+    "id": "q-1763688401224-xv6qfy6bs",
+    "type": "multiple",
+    "text": "¿Qué es una discapacidad?",
+    "options": [
+      {
+        "id": "opt-1763688401224-jnkv5hhj1",
+        "text": "a) Una condición que puede dificultar algunas actividades",
+        "correct": true
+      },
+      {
+        "id": "opt-1763688401224-vl61jvnxz",
+        "text": "b) Algo que hace a una persona menos valiosa",
+        "correct": false
+      },
+      {
+        "id": "opt-1763688628288-1049h9z4i",
+        "text": "c) Una gripe fuerte",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1763688651632-3so0kgf4n",
+    "type": "multiple",
+    "text": "¿Cuál es un ejemplo de discapacidad sensorial?",
+    "options": [
+      {
+        "id": "opt-1763688651632-dhu0t4g00",
+        "text": "a) Dolor de pie",
+        "correct": false
+      },
+      {
+        "id": "opt-1763688651632-wp71oc2tt",
+        "text": "b) Sordera",
+        "correct": true
+      },
+      {
+        "id": "opt-1763688653688-53lbh64a2",
+        "text": "c) Tener sueño",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1763688678368-vlhhqac0f",
+    "type": "multiple",
+    "text": "¿Qué puede usar una persona sorda para comunicarse?",
+    "options": [
+      {
+        "id": "opt-1763688678368-b80b255dj",
+        "text": "a) Más volumen en la voz",
+        "correct": false
+      },
+      {
+        "id": "opt-1763688678368-apqsmps3p",
+        "text": "b) Lengua de señas",
+        "correct": true
+      },
+      {
+        "id": "opt-1763688752784-w1joqwjdg",
+        "text": "c) Linternas",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1763688769640-legp1vxzv",
+    "type": "multiple",
+    "text": "¿Qué ayuda a una persona en silla de ruedas?",
+    "options": [
+      {
+        "id": "opt-1763688769640-vabzx7se2",
+        "text": "a) Escaleras altas",
+        "correct": false
+      },
+      {
+        "id": "opt-1763688769640-apscivxjw",
+        "text": "b) Rampas",
+        "correct": true
+      },
+      {
+        "id": "opt-1763688781353-bfkpd2z07",
+        "text": "c) Más sillas",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1763688822368-x1bpnwmyk",
+    "type": "multiple",
+    "text": "¿Qué institución brinda apoyo a personas con discapacidad?",
+    "options": [
+      {
+        "id": "opt-1763688822368-g4qy951sp",
+        "text": "a) La Casa o Departamento de Discapacidad",
+        "correct": true
+      },
+      {
+        "id": "opt-1763688822368-m7r6tuw26",
+        "text": "b) El cine",
+        "correct": false
+      },
+      {
+        "id": "opt-1763688835368-r5djp0ieb",
+        "text": "c) El estadio",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1763688844144-5fb0do42d",
+    "type": "multiple",
+    "text": "¿Qué documento suelen entregar estas instituciones?",
+    "options": [
+      {
+        "id": "opt-1763688844144-syeaj8q5b",
+        "text": "Certificación de discapacidad",
+        "correct": true
+      },
+      {
+        "id": "opt-1763688844144-idzxy006m",
+        "text": "b) Abono para conciertos",
+        "correct": false
+      },
+      {
+        "id": "opt-1763688857400-zzbcc4v4c",
+        "text": "c) Boleta de cine",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1763688869977-qfmhz0jrd",
+    "type": "multiple",
+    "text": "¿Qué es una barrera?",
+    "options": [
+      {
+        "id": "opt-1763688869977-jq742m1jv",
+        "text": "a) Algo que dificulta la participación",
+        "correct": true
+      },
+      {
+        "id": "opt-1763688869977-to0abef5x",
+        "text": "b) Un juguete",
+        "correct": false
+      },
+      {
+        "id": "opt-1763688883552-xlegr65ug",
+        "text": "c) Un postre",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1763688894664-sbcdzuo7a",
+    "type": "multiple",
+    "text": "¿Qué es inclusión?",
+    "options": [
+      {
+        "id": "opt-1763688894664-lvf3c8rvr",
+        "text": "a) Aceptar, apoyar y permitir que todos participen",
+        "correct": true
+      },
+      {
+        "id": "opt-1763688894664-qwp1yex2s",
+        "text": "b) Dejar fuera a los demás",
+        "correct": false
+      },
+      {
+        "id": "opt-1763688901041-dh27bnp2z",
+        "text": "c) Hacer grupos secretos",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1763688921057-whkw0iw7k",
+    "type": "multiple",
+    "text": "¿Cuál de estas es una discapacidad motora?",
+    "options": [
+      {
+        "id": "opt-1763688921057-q53c80y3r",
+        "text": "a) Dificultad para caminar",
+        "correct": true
+      },
+      {
+        "id": "opt-1763688921057-8evfeanjs",
+        "text": "b) No saber nadar",
+        "correct": false
+      },
+      {
+        "id": "opt-1763688922728-5ujnw8irt",
+        "text": "c) Tener hambre",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1763688942177-eps0vz4t3",
+    "type": "multiple",
+    "text": "¿Qué ayuda a una persona ciega?",
+    "options": [
+      {
+        "id": "opt-1763688942177-48axp8mha",
+        "text": "a) Bastón blanco",
+        "correct": true
+      },
+      {
+        "id": "opt-1763688942177-hg4wz1gjz",
+        "text": "b) Estar sola",
+        "correct": false
+      },
+      {
+        "id": "opt-1763688956392-u9b20gfhz",
+        "text": "c) Luz muy fuerte",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1763688964424-dj74b50e0",
+    "type": "multiple",
+    "text": "¿Qué es un ajuste razonable?",
+    "options": [
+      {
+        "id": "opt-1763688964424-6q85dzkqx",
+        "text": "a) Un cambio que permite la inclusión",
+        "correct": true
+      },
+      {
+        "id": "opt-1763688964424-pl7zddanx",
+        "text": "b) Un cambio de nombre",
+        "correct": false
+      },
+      {
+        "id": "opt-1763688979185-xx0423xgj",
+        "text": "c) Un cambio de clima",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1763688984384-imdwvg2z6",
+    "type": "multiple",
+    "text": "¿Qué se puede investigar en un establecimiento que atiende personas con discapacidad?",
+    "options": [
+      {
+        "id": "opt-1763688984384-4h2epw9np",
+        "text": "a) Sus necesidades y apoyos",
+        "correct": true
+      },
+      {
+        "id": "opt-1763688984384-l7apjl7iw",
+        "text": "b) Qué música escuchan",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689003425-y2p0e2maf",
+        "text": "c) El color de sus zapatos",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1763689017225-o5arn2v5e",
+    "type": "multiple",
+    "text": "¿Qué actividad sirve para crear conciencia en el club?",
+    "options": [
+      {
+        "id": "opt-1763689017225-jlek2o676",
+        "text": "a) Caminar con los ojos vendados",
+        "correct": true
+      },
+      {
+        "id": "opt-1763689017225-qq7r0rzeb",
+        "text": "b) Comer rápido",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689026792-bslnj5qrs",
+        "text": "c) Gritar fuerte",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1763689036146-is90dj0bs",
+    "type": "multiple",
+    "text": "¿Cuál dificultad puede tener una persona con discapacidad intelectual?",
+    "options": [
+      {
+        "id": "opt-1763689036146-2sd425ag2",
+        "text": "a) Comprender instrucciones complejas",
+        "correct": true
+      },
+      {
+        "id": "opt-1763689036146-r6z6o0kd0",
+        "text": "b) Dormir una siesta",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689060146-0azh0qnph",
+        "text": "c) Tomar agua",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1763689084120-d8zdjil9r",
+    "type": "multiple",
+    "text": "¿Cómo debemos tratar a las personas con discapacidad?",
+    "options": [
+      {
+        "id": "opt-1763689084120-msge2xbqd",
+        "text": "a) Con amor, respeto y paciencia",
+        "correct": true
+      },
+      {
+        "id": "opt-1763689084120-jet4k7ip5",
+        "text": "b) Con burlas",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689107905-5od54jv6d",
+        "text": "c) Ignorarlas",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1763689115153-hvkeaizh0",
+    "type": "multiple",
+    "text": "¿Cuál es la definición de la OMS sobre discapacidad?",
+    "options": [
+      {
+        "id": "opt-1763689115153-o056xxklb",
+        "text": "a) Un problema únicamente médico",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689115153-k0n7uxbe7",
+        "text": "b) Interacción entre condición de salud y barreras del entorno",
+        "correct": true
+      },
+      {
+        "id": "opt-1763689134945-6gdcgx363",
+        "text": "c) Resultado de mala alimentación",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689137361-48vd204o9",
+        "text": "d) Una enfermedad contagiosa",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689151705-4lxchwjkg",
+        "text": "e) Un trastorno temporal",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689155665-pvxhc0u5i",
+        "text": "f) Algo exclusivamente emocional",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1763689172665-m2p8fui77",
+    "type": "multiple",
+    "text": "¿Qué debe evaluar un establecimiento inclusivo?",
+    "options": [
+      {
+        "id": "opt-1763689172665-is6h489p8",
+        "text": "a) Color de los uniformes",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689172665-oxpgqhjnt",
+        "text": "b) Accesibilidad física, comunicativa y actitudinal",
+        "correct": true
+      },
+      {
+        "id": "opt-1763689186753-e8qaxpwfc",
+        "text": "c) Decoración del lugar",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689187449-hm0v3pjhx",
+        "text": "d) Preferencias del administrador",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689188169-k3qe0ob7c",
+        "text": "e) La altura de las sillas",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689208569-jqc2m7oly",
+        "text": "f) Cantidad de ventanas",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1763689218745-dd1oms82j",
+    "type": "multiple",
+    "text": "En trámites de ingreso, ¿qué es esencial para un estudiante con discapacidad?",
+    "options": [
+      {
+        "id": "opt-1763689218745-r7us3h7wa",
+        "text": "a) Plan de apoyos y evaluación interdisciplinaria",
+        "correct": true
+      },
+      {
+        "id": "opt-1763689218745-pm2ngb3sj",
+        "text": "b) Que se sepa todos los himnos",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689220065-20tncd371",
+        "text": "c) Traer celular nuevo",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689222825-5dnzesg7k",
+        "text": "d) Ser el más alto del grupo",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689223409-x84pddmmy",
+        "text": "e) Tener muchos amigos",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689224105-bfz2ike0o",
+        "text": "f) Saber tocar un instrumento",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1763689257121-h4yrznwy2",
+    "type": "multiple",
+    "text": "¿Cuál es una barrera actitudinal?",
+    "options": [
+      {
+        "id": "opt-1763689257121-ra85xk44c",
+        "text": "a) Pensar que una persona con discapacidad “no puede aprender”",
+        "correct": true
+      },
+      {
+        "id": "opt-1763689257121-c40ewzk9a",
+        "text": "b) Falta de rampas",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689274529-vmm3196jx",
+        "text": "c) Letras muy pequeñas",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689275131-o3yscr3li",
+        "text": "d) Pasillos estrechos",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689282417-x38rst986",
+        "text": "e) Piso resbaloso",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689288714-6v6ym8nqa",
+        "text": "f) Ruido excesivo",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1763689306067-w3hvo6x0k",
+    "type": "multiple",
+    "text": "¿Cuál es el principio cristiano adventista hacia la discapacidad?",
+    "options": [
+      {
+        "id": "opt-1763689306067-k1v08hnfd",
+        "text": "a) Servir con amor y ver a todos como hijos de Dios",
+        "correct": true
+      },
+      {
+        "id": "opt-1763689306067-4vr5k7jyx",
+        "text": "b) Solo ayudar si alguien supervisa",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689310113-zr4op5qpv",
+        "text": "c) Apartarlos por “seguridad”",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689310730-bsfg418x3",
+        "text": "d) Dar lástima en vez de apoyo",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689311297-fhdihfw8f",
+        "text": "e) No permitirles participar en actividades espirituales",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689337121-pys4i0oog",
+        "text": "f) Sentarlos siempre aparte",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1763689401345-k361jl3ct",
+    "type": "multiple",
+    "text": "¿Cuál de las siguientes opciones describe mejor una situación donde una barrera del entorno no afecta directamente a la discapacidad, pero sí a la participación social de la persona?",
+    "options": [
+      {
+        "id": "opt-1763689401345-rno4sezcr",
+        "text": "a) Una persona con discapacidad visual tiene un bastón, pero el edificio no tiene señalización táctil en el piso.",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689401345-wqij71mzb",
+        "text": "b) Una persona con discapacidad intelectual entiende instrucciones simples, pero todos los avisos del lugar están escritos en lenguaje técnico.",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689415425-51thzdofx",
+        "text": "c) Una persona con discapacidad motora puede moverse en su silla de ruedas, pero los pasillos del lugar son lo suficientemente anchos.",
+        "correct": true
+      },
+      {
+        "id": "opt-1763689416139-ltarygc86",
+        "text": "d) Una persona sorda puede leer labios, pero todos en la reunión usan mascarilla y no hay intérprete.",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689428289-tu1bfnit9",
+        "text": "e) Una persona ciega va por un pasillo con iluminación perfecta.",
+        "correct": false
+      },
+      {
+        "id": "opt-1763689433265-xepnkdwnq",
+        "text": "f) Una persona con discapacidad auditiva está en una sala silenciosa sin necesidad de comunicación.",
+        "correct": false
+      }
+    ]
+  }
+]

@@ -1242,6 +1242,9 @@
 
     // Comenzar el examen cronometrado
     function comenzarExamenCronometrado(idFormulario) {
+      // Activar medidas de seguridad
+      activarSeguridadExamen();
+
       // Si pasa todas las verificaciones, crear modal de examen
       if (!examenModal) {
         crearModalExamen();
@@ -1250,6 +1253,307 @@
       // Cargar evaluación con temporizador
       cargarEvaluacion(idFormulario);
     }
+
+    // ========== SISTEMA DE SEGURIDAD DEL EXAMEN ==========
+
+    // Variables para controlar la seguridad
+    window.seguridadActiva = false;
+    window.contadorCambiosPestana = 0;
+
+    function activarSeguridadExamen() {
+      window.seguridadActiva = true;
+
+      // 1. Deshabilitar selección de texto
+      document.body.style.userSelect = 'none';
+      document.body.style.webkitUserSelect = 'none';
+      document.body.style.mozUserSelect = 'none';
+      document.body.style.msUserSelect = 'none';
+
+      // 2. Deshabilitar click derecho
+      document.addEventListener('contextmenu', bloquearClickDerecho);
+
+      // 3. Deshabilitar copiar/cortar/pegar
+      document.addEventListener('copy', bloquearCopiar);
+      document.addEventListener('cut', bloquearCortar);
+      document.addEventListener('paste', bloquearPegar);
+
+      // 4. Deshabilitar teclas peligrosas (F12, Ctrl+Shift+I, etc.)
+      document.addEventListener('keydown', bloquearTeclasPeligrosas);
+
+      // 5. Detectar cambio de pestaña/ventana
+      document.addEventListener('visibilitychange', detectarCambioPestana);
+      window.addEventListener('blur', detectarCambioVentana);
+
+      // 6. Detectar redimensionamiento de ventana (posible apertura de DevTools)
+      window.addEventListener('resize', detectarDevTools);
+
+      // 7. Deshabilitar arrastrar texto
+      document.addEventListener('dragstart', bloquearArrastrar);
+
+      // 8. Protección adicional contra DevTools
+      setInterval(detectarDevToolsAvanzado, 1000);
+
+      console.log('🔒 Sistema de seguridad activado');
+    }
+
+    function desactivarSeguridadExamen() {
+      window.seguridadActiva = false;
+
+      // Restaurar selección de texto
+      document.body.style.userSelect = '';
+      document.body.style.webkitUserSelect = '';
+      document.body.style.mozUserSelect = '';
+      document.body.style.msUserSelect = '';
+
+      // Remover event listeners
+      document.removeEventListener('contextmenu', bloquearClickDerecho);
+      document.removeEventListener('copy', bloquearCopiar);
+      document.removeEventListener('cut', bloquearCortar);
+      document.removeEventListener('paste', bloquearPegar);
+      document.removeEventListener('keydown', bloquearTeclasPeligrosas);
+      document.removeEventListener('visibilitychange', detectarCambioPestana);
+      window.removeEventListener('blur', detectarCambioVentana);
+      window.removeEventListener('resize', detectarDevTools);
+      document.removeEventListener('dragstart', bloquearArrastrar);
+
+      console.log('🔓 Sistema de seguridad desactivado');
+    }
+
+    // Funciones de bloqueo
+    function bloquearClickDerecho(e) {
+      if (window.seguridadActiva) {
+        e.preventDefault();
+        mostrarAdvertencia('⚠️ Click derecho deshabilitado durante el examen');
+        return false;
+      }
+    }
+
+    function bloquearCopiar(e) {
+      if (window.seguridadActiva) {
+        e.preventDefault();
+        mostrarAdvertencia('⚠️ No se permite copiar durante el examen');
+        return false;
+      }
+    }
+
+    function bloquearCortar(e) {
+      if (window.seguridadActiva) {
+        e.preventDefault();
+        mostrarAdvertencia('⚠️ No se permite cortar durante el examen');
+        return false;
+      }
+    }
+
+    function bloquearPegar(e) {
+      if (window.seguridadActiva) {
+        e.preventDefault();
+        return false;
+      }
+    }
+
+    function bloquearArrastrar(e) {
+      if (window.seguridadActiva) {
+        e.preventDefault();
+        return false;
+      }
+    }
+
+    function bloquearTeclasPeligrosas(e) {
+      if (!window.seguridadActiva) return;
+
+      // F12
+      if (e.keyCode === 123) {
+        e.preventDefault();
+        mostrarAdvertencia('⚠️ Herramientas de desarrollo deshabilitadas');
+        return false;
+      }
+
+      // Ctrl+Shift+I (Inspeccionar)
+      if (e.ctrlKey && e.shiftKey && e.keyCode === 73) {
+        e.preventDefault();
+        mostrarAdvertencia('⚠️ Herramientas de desarrollo deshabilitadas');
+        return false;
+      }
+
+      // Ctrl+Shift+J (Consola)
+      if (e.ctrlKey && e.shiftKey && e.keyCode === 74) {
+        e.preventDefault();
+        mostrarAdvertencia('⚠️ Consola deshabilitada');
+        return false;
+      }
+
+      // Ctrl+Shift+C (Selector de elementos)
+      if (e.ctrlKey && e.shiftKey && e.keyCode === 67) {
+        e.preventDefault();
+        mostrarAdvertencia('⚠️ Selector de elementos deshabilitado');
+        return false;
+      }
+
+      // Ctrl+U (Ver código fuente)
+      if (e.ctrlKey && e.keyCode === 85) {
+        e.preventDefault();
+        mostrarAdvertencia('⚠️ Ver código fuente deshabilitado');
+        return false;
+      }
+
+      // Ctrl+S (Guardar página)
+      if (e.ctrlKey && e.keyCode === 83) {
+        e.preventDefault();
+        return false;
+      }
+
+      // Ctrl+P (Imprimir)
+      if (e.ctrlKey && e.keyCode === 80) {
+        e.preventDefault();
+        mostrarAdvertencia('⚠️ Imprimir deshabilitado durante el examen');
+        return false;
+      }
+
+      // Ctrl+C (Copiar)
+      if (e.ctrlKey && e.keyCode === 67 && !e.shiftKey) {
+        e.preventDefault();
+        mostrarAdvertencia('⚠️ No se permite copiar durante el examen');
+        return false;
+      }
+    }
+
+    function detectarCambioPestana() {
+      if (!window.seguridadActiva) return;
+
+      if (document.hidden) {
+        window.contadorCambiosPestana++;
+
+        // Advertir al usuario
+        mostrarAdvertenciaGrave(`⚠️ ADVERTENCIA: Has cambiado de pestaña (${window.contadorCambiosPestana} veces)`);
+
+        // Si cambia más de 3 veces, se podría tomar acción adicional
+        if (window.contadorCambiosPestana >= 3) {
+          mostrarAdvertenciaGrave('🚨 ALERTA: Múltiples cambios de pestaña detectados. Esto quedará registrado.');
+        }
+      }
+    }
+
+    function detectarCambioVentana() {
+      if (!window.seguridadActiva) return;
+
+      // Solo alertar, no contar como cambio de pestaña
+      console.warn('Ventana perdió el foco');
+    }
+
+    function detectarDevTools() {
+      if (!window.seguridadActiva) return;
+
+      const threshold = 160;
+      const widthThreshold = window.outerWidth - window.innerWidth > threshold;
+      const heightThreshold = window.outerHeight - window.innerHeight > threshold;
+
+      if (widthThreshold || heightThreshold) {
+        mostrarAdvertencia('⚠️ Posible apertura de herramientas de desarrollo detectada');
+      }
+    }
+
+    function detectarDevToolsAvanzado() {
+      if (!window.seguridadActiva) return;
+
+      const devtools = /./;
+      devtools.toString = function () {
+        mostrarAdvertencia('⚠️ Herramientas de desarrollo detectadas');
+      };
+      console.log('%c', devtools);
+    }
+
+    // Funciones de advertencia
+    function mostrarAdvertencia(mensaje) {
+      // Crear tooltip temporal
+      const advertencia = document.createElement('div');
+      advertencia.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+        color: white;
+        padding: 15px 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        z-index: 100000;
+        font-weight: bold;
+        animation: slideDown 0.3s ease;
+      `;
+      advertencia.textContent = mensaje;
+
+      document.body.appendChild(advertencia);
+
+      setTimeout(() => {
+        advertencia.style.animation = 'slideUp 0.3s ease';
+        setTimeout(() => {
+          document.body.removeChild(advertencia);
+        }, 300);
+      }, 3000);
+    }
+
+    function mostrarAdvertenciaGrave(mensaje) {
+      const advertencia = document.createElement('div');
+      advertencia.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(135deg, #c0392b, #e74c3c);
+        color: white;
+        padding: 30px 40px;
+        border-radius: 15px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        z-index: 100001;
+        font-weight: bold;
+        font-size: 18px;
+        text-align: center;
+        border: 3px solid #fff;
+        animation: pulse 1s infinite;
+      `;
+      advertencia.innerHTML = `
+        <div style="font-size: 48px; margin-bottom: 15px;">🚨</div>
+        <div>${mensaje}</div>
+        <div style="font-size: 14px; margin-top: 15px; opacity: 0.9;">
+          Tu comportamiento está siendo monitoreado
+        </div>
+      `;
+
+      document.body.appendChild(advertencia);
+
+      setTimeout(() => {
+        document.body.removeChild(advertencia);
+      }, 4000);
+    }
+
+    // Agregar estilos para animaciones
+    const styleSeguridad = document.createElement('style');
+    styleSeguridad.textContent = `
+      @keyframes slideDown {
+        from {
+          transform: translateX(-50%) translateY(-100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(-50%) translateY(0);
+          opacity: 1;
+        }
+      }
+      
+      @keyframes slideUp {
+        from {
+          transform: translateX(-50%) translateY(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(-50%) translateY(-100%);
+          opacity: 0;
+        }
+      }
+    `;
+    document.head.appendChild(styleSeguridad);
+
+    // ========== FIN SISTEMA DE SEGURIDAD ==========
 
     // Crear modal para el examen
     function crearModalExamen() {
@@ -1640,6 +1944,14 @@
 
     // Cerrar modal de examen
     function cerrarExamen() {
+      // Desactivar medidas de seguridad
+      desactivarSeguridadExamen();
+
+      // Limpiar timer si existe
+      if (window.timerInterval) {
+        clearInterval(window.timerInterval);
+      }
+
       if (examenModal) {
         examenModal.style.display = 'none';
         document.getElementById('resultadoExamen').style.display = 'none';
@@ -1712,6 +2024,9 @@
     // Mostrar resultado del examen
     // Mostrar resultado del examen después de enviarlo
     function mostrarResultadoExamen(porcentaje, correctas, total, respuestasUsuario) {
+      // Desactivar seguridad ya que el examen terminó
+      desactivarSeguridadExamen();
+
       const resultadoDiv = document.getElementById('resultadoExamen');
       const btnEnviar = document.getElementById('btnEnviarExamen');
 

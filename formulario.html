@@ -561,6 +561,9 @@
         document.getElementById("tituloFormulario").textContent = data.titulo;
         document.getElementById("idFormulario").value = id;
 
+        // Guardar configuración de asistencia
+        window.formularioTomaAsistencia = data.tomaAsistencia !== undefined ? data.tomaAsistencia : true;
+
         // Calcular tiempos basados en la fecha de cierre del formulario
         const fechaCierre = new Date(data.fechaCierre);
         fechaInicioFormulario = new Date(fechaCierre.getTime() - (70 * 60 * 1000)); // 70 minutos antes
@@ -972,11 +975,18 @@
 
         tablaBody.innerHTML = "";
         Object.values(respuestasAgrupadas).forEach((r, index) => {
-          const asistioCompleto = r.maxAsistencia >= 3 ? "SÍ" : "NO";
-          const puedeExamen = r.maxAsistencia >= 3;
+          // Determinar si puede hacer examen según configuración del formulario
+          const asistenciasRequeridas = window.formularioTomaAsistencia !== false ? 3 : 1;
+          const asistioCompleto = r.maxAsistencia >= asistenciasRequeridas ? "SÍ" : "NO";
+          const puedeExamen = r.maxAsistencia >= asistenciasRequeridas;
 
           // VERIFICAR SI ES EL USUARIO ACTUAL
           const esUsuarioActual = r.visitanteId === visitanteId;
+
+          // Mensaje para cuando no puede hacer examen
+          const mensajeAsistenciasPendientes = window.formularioTomaAsistencia !== false
+            ? '⏳ Complete las 3 asistencias'
+            : '⏳ Registre asistencia para hacer el examen';
 
           // En la parte de la tabla, cambiar el botón a:
           const fila = `
@@ -999,7 +1009,7 @@
       `
                 : `<button onclick="iniciarExamen()">📝 Hacer Examen</button>`)
               : (esUsuarioActual
-                ? '⏳ Complete las 3 asistencias'
+                ? mensajeAsistenciasPendientes
                 : (r.examen ? '✅ Examen completado' : '❌ Examen no realizado'))}
 </td>
   </tr>
@@ -1081,8 +1091,14 @@
           const misRespuestas = respuestas.filter(r => r.visitanteId === visitanteId);
           const maxAsistencia = Math.max(...misRespuestas.map(r => r.asistenciaNumero || 0));
 
-          if (maxAsistencia < 3) {
-            document.getElementById("mensaje").textContent = "❌ Debes completar las 3 asistencias antes de hacer el examen";
+          // Determinar asistencias requeridas según configuración
+          const asistenciasRequeridas = window.formularioTomaAsistencia !== false ? 3 : 1;
+          const mensajeAsistencias = window.formularioTomaAsistencia !== false
+            ? "❌ Debes completar las 3 asistencias antes de hacer el examen"
+            : "❌ Debes registrar al menos una asistencia antes de hacer el examen";
+
+          if (maxAsistencia < asistenciasRequeridas) {
+            document.getElementById("mensaje").textContent = mensajeAsistencias;
             return;
           }
 

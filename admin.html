@@ -267,7 +267,7 @@
   <h2>Crear nuevo formulario de Asistencia con Evaluación</h2>
 
   <form id="crearFormulario">
-    
+
     <label>ID del formulario (ej. nombre y apellido de instructor):</label><br>
     <input type="text" id="formId" required><br><br>
 
@@ -275,6 +275,23 @@
     <input type="text" id="titulo" required><br><br>
 
     <input type="hidden" id="fechaCierre">
+
+    <!-- Configuración de asistencia -->
+    <div
+      style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #007bff;">
+      <label style="display: flex; align-items: center; cursor: pointer; font-size: 16px;">
+        <input type="checkbox" id="tomaAsistencia" checked
+          style="margin-right: 10px; width: 20px; height: 20px; cursor: pointer;">
+        <span>
+          <strong>¿Este formulario requiere tomar asistencia?</strong>
+          <br>
+          <small style="color: #6c757d; margin-left: 30px;">
+            Si está marcado: Se requerirán 3 asistencias para poder hacer el examen (comportamiento normal).<br>
+            Si está desmarcado: Con solo registrar la primera asistencia, ya podrán hacer el examen.
+          </small>
+        </span>
+      </label>
+    </div>
 
     <!-- Selector de Imágenes -->
     <div class="image-selector">
@@ -847,6 +864,7 @@
             titulo,
             fechaCierre: fechaCierre,
             evaluation: questions.length > 0 ? questions : null,
+            tomaAsistencia: document.getElementById("tomaAsistencia").checked,
             imagenEspecialidad: imagenEspecialidadSeleccionada.url,
             imagenFirma1: imagenFirma1Seleccionada.url,
             imagenFirma2: imagenFirma2Seleccionada.url,

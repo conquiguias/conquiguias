@@ -189,7 +189,7 @@ async function handleGuardarFormulario(req, res, repo) {
   try {
     console.log("Recibiendo solicitud para guardar formulario...");
     
-    const { id, titulo, fechaCierre, evaluation, imagenEspecialidad, imagenFirma1, imagenFirma2, imagenFirma3 } = req.body;
+    const { id, titulo, fechaCierre, evaluation, imagenEspecialidad, imagenFirma1, imagenFirma2, imagenFirma3, tomaAsistencia } = req.body;
 
     // Validaciones básicas
     if (!id || !titulo) {
@@ -235,6 +235,7 @@ async function handleGuardarFormulario(req, res, repo) {
       fechaCierre: fechaCierre || new Date(Date.now() + 70 * 60 * 1000).toISOString(),
       creado: new Date().toISOString(),
       tieneEvaluacion: !!(evaluation && evaluation.length > 0),
+      tomaAsistencia: tomaAsistencia !== undefined ? tomaAsistencia : true,
       imagenEspecialidad: imagenEspecialidad || null,
       imagenFirma1: imagenFirma1 || null,
       imagenFirma2: imagenFirma2 || null,

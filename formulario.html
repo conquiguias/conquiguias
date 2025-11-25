@@ -1290,9 +1290,6 @@
       // 7. Deshabilitar arrastrar texto
       document.addEventListener('dragstart', bloquearArrastrar);
 
-      // 8. Protección adicional contra DevTools
-      setInterval(detectarDevToolsAvanzado, 1000);
-
       console.log('🔒 Sistema de seguridad activado');
     }
 
@@ -1450,16 +1447,6 @@
       if (widthThreshold || heightThreshold) {
         mostrarAdvertencia('⚠️ Posible apertura de herramientas de desarrollo detectada');
       }
-    }
-
-    function detectarDevToolsAvanzado() {
-      if (!window.seguridadActiva) return;
-
-      const devtools = /./;
-      devtools.toString = function () {
-        mostrarAdvertencia('⚠️ Herramientas de desarrollo detectadas');
-      };
-      console.log('%c', devtools);
     }
 
     // Funciones de advertencia
@@ -1745,19 +1732,32 @@
 
       // Agregar event listeners a las opciones
       const opciones = document.querySelectorAll('.opcion-examen');
+      let respuestaSeleccionada = false; // Flag para evitar clicks múltiples
+
       opciones.forEach(opcion => {
         opcion.addEventListener('click', function () {
+          // Evitar clicks múltiples
+          if (respuestaSeleccionada) {
+            return;
+          }
+
+          respuestaSeleccionada = true;
+
           const radio = this.querySelector('input[type="radio"]');
           radio.checked = true;
 
           // Guardar respuesta
           window.respuestasUsuario[pregunta.id] = radio.value;
 
-          // Marcar visualmente
+          // Deshabilitar todas las opciones para evitar más clicks
           opciones.forEach(opt => {
+            opt.style.pointerEvents = 'none';
+            opt.style.cursor = 'not-allowed';
             opt.style.background = '#f8f9fa';
-            opt.style.borderColor = '#  #dee2e6';
+            opt.style.borderColor = '#dee2e6';
           });
+
+          // Marcar visualmente la opción seleccionada
           this.style.background = '#d4edda';
           this.style.borderColor = '#28a745';
 

@@ -1120,12 +1120,134 @@
         return;
       }
 
+      // Mostrar modal de instrucciones primero
+      mostrarInstruccionesExamen(idFormulario);
+    }
+
+    // Mostrar instrucciones antes del examen
+    function mostrarInstruccionesExamen(idFormulario) {
+      const modalInstrucciones = document.createElement('div');
+      modalInstrucciones.style.cssText = `
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.9);
+        z-index: 10001;
+        overflow-y: auto;
+      `;
+
+      modalInstrucciones.innerHTML = `
+        <div style="
+          position: relative;
+          background: white;
+          margin: 50px auto;
+          padding: 40px;
+          border-radius: 15px;
+          width: 90%;
+          max-width: 700px;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        ">
+          <h2 style="color: #2c3e50; margin-bottom: 20px; text-align: center; font-size: 28px;">
+            ⚠️ INSTRUCCIONES DEL EXAMEN
+          </h2>
+          
+          <div style="background: #fff3cd; border-left: 5px solid #ffc107; padding: 20px; margin-bottom: 25px; border-radius: 8px;">
+            <p style="margin: 0; color: #856404; font-weight: bold; font-size: 16px;">
+              ⏱️ Este examen es cronometrado. Lee con atención:
+            </p>
+          </div>
+
+          <div style="line-height: 1.8; color: #2c3e50; font-size: 15px;">
+            <p style="margin-bottom: 15px;">
+              <strong>📌 NORMAS DEL EXAMEN:</strong>
+            </p>
+            
+            <ol style="padding-left: 25px;">
+              <li style="margin-bottom: 12px;">
+                <strong>Tiempo por pregunta:</strong> Tienes <span style="color: #dc3545; font-weight: bold;">2 minutos</span> para responder cada pregunta.
+              </li>
+              
+              <li style="margin-bottom: 12px;">
+                <strong>Avance automático:</strong> Al seleccionar una respuesta, el examen avanzará automáticamente a la siguiente pregunta.
+              </li>
+              
+              <li style="margin-bottom: 12px;">
+                <strong>No hay vuelta atrás:</strong> Una vez que avances, la pregunta anterior quedará deshabilitada y no podrás cambiar tu respuesta.
+              </li>
+              
+              <li style="margin-bottom: 12px;">
+                <strong>Límite de tiempo:</strong> Si se acaba el tiempo de una pregunta, avanzará automáticamente sin respuesta (se marcará como incorrecta).
+              </li>
+              
+              <li style="margin-bottom: 12px;">
+                <strong>Preguntas sin responder:</strong> Todas las preguntas que no contestes contarán como incorrectas.
+              </li>
+              
+              <li style="margin-bottom: 12px;">
+                <strong>Envío automático:</strong> Al llegar a la última pregunta, tienes 2 minutos para responder. Si no envías el examen, se enviará automáticamente.
+              </li>
+            </ol>
+
+            <div style="background: #d1ecf1; border-left: 5px solid #17a2b8; padding: 15px; margin-top: 20px; border-radius: 8px;">
+              <p style="margin: 0; color: #0c5460; font-weight: bold;">
+                💡 Consejo: Asegúrate de estar en un lugar tranquilo y sin interrupciones antes de comenzar.
+              </p>
+            </div>
+          </div>
+
+          <div style="margin-top: 30px; text-align: center;">
+            <button id="btnComenzarExamen" style="
+              background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+              color: white;
+              border: none;
+              padding: 15px 40px;
+              font-size: 18px;
+              font-weight: bold;
+              border-radius: 8px;
+              cursor: pointer;
+              margin: 0 10px;
+              box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+            ">✅ Comenzar Examen</button>
+            
+            <button id="btnCancelarInstrucciones" style="
+              background: #6c757d;
+              color: white;
+              border: none;
+              padding: 15px 40px;
+              font-size: 18px;
+              border-radius: 8px;
+              cursor: pointer;
+              margin: 0 10px;
+            ">❌ Cancelar y Estudiar Más</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modalInstrucciones);
+
+      // Event listeners
+      document.getElementById('btnComenzarExamen').addEventListener('click', () => {
+        document.body.removeChild(modalInstrucciones);
+        comenzarExamenCronometrado(idFormulario);
+      });
+
+      document.getElementById('btnCancelarInstrucciones').addEventListener('click', () => {
+        document.body.removeChild(modalInstrucciones);
+        document.getElementById("mensaje").textContent = "📚 Puedes estudiar más y volver cuando estés listo.";
+      });
+    }
+
+    // Comenzar el examen cronometrado
+    function comenzarExamenCronometrado(idFormulario) {
       // Si pasa todas las verificaciones, crear modal de examen
       if (!examenModal) {
         crearModalExamen();
       }
 
-      // Cargar evaluación
+      // Cargar evaluación con temporizador
       cargarEvaluacion(idFormulario);
     }
 
@@ -1222,7 +1344,7 @@
       }
     }
 
-    // Mostrar examen en el modal
+    // Mostrar examen cronometrado (una pregunta a la vez)
     function mostrarExamen(evaluacion) {
       const examenContent = document.getElementById('examenContent');
       examenContent.innerHTML = '';
@@ -1232,34 +1354,288 @@
         return;
       }
 
-      evaluacion.forEach((pregunta, index) => {
-        const preguntaDiv = document.createElement('div');
-        preguntaDiv.className = 'pregunta-examen';
-        preguntaDiv.style.cssText = `
-      margin-bottom: 25px;
-      padding: 20px;
-      border: 2px solid #e9ecef;
-      border-radius: 10px;
-      background: #f8f9fa;
-    `;
+      // Variables globales para el cronómetro
+      window.preguntaActualIndex = 0;
+      window.respuestasUsuario = {};
+      window.timerInterval = null;
+      window.tiempoRestante = 120; // 2 minutos por pregunta
 
-        preguntaDiv.innerHTML = `
-      <h3 style="color: #2c3e50; margin-bottom: 15px;">Pregunta ${index + 1}: ${pregunta.text}</h3>
-      <div class="opciones" data-pregunta-id="${pregunta.id}">
-        ${pregunta.options.map((opcion, optIndex) => `
-          <label style="display: block; margin: 10px 0; padding: 10px; background: white; border-radius: 5px; cursor: pointer;">
-            <input type="radio" 
-                   name="pregunta_${pregunta.id}" 
-                   value="${opcion.id}"
-                   style="margin-right: 10px;">
-            ${String.fromCharCode(65 + optIndex)}) ${opcion.text}
-          </label>
-        `).join('')}
-      </div>
-    `;
+      // Ocultar botón de enviar (se mostrará automáticamente cuando corresponda)
+      document.getElementById('btnEnviarExamen').style.display = 'none';
+      document.getElementById('btnCerrarExamen').style.display = 'none';
 
-        examenContent.appendChild(preguntaDiv);
+      mostrarPreguntaCronometrada();
+    }
+
+    // Mostrar una pregunta con cronómetro
+    function mostrarPreguntaCronometrada() {
+      const examenContent = document.getElementById('examenContent');
+      const pregunta = examenActual[window.preguntaActualIndex];
+      const totalPreguntas = examenActual.length;
+
+      // Reiniciar temporizador
+      window.tiempoRestante = 120; // 2 minutos
+
+      examenContent.innerHTML = `
+        <div style="background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: bold; color: #2c3e50;">
+              Pregunta ${window.preguntaActualIndex + 1} de ${totalPreguntas}
+            </span>
+            <span id="cronometro" style="
+              font-size: 24px;
+              font-weight: bold;
+              color: #28a745;
+              background: white;
+              padding: 10px 20px;
+              border-radius: 8px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            ">
+              ⏱️ 02:00
+            </span>
+          </div>
+          <div style="margin-top: 10px; background: #dee2e6; height: 8px; border-radius: 4px; overflow: hidden;">
+            <div id="barraProgreso" style="
+              height: 100%;
+              background: linear-gradient(90deg, #28a745, #20c997);
+              width: 100%;
+              transition: width 1s linear;
+            "></div>
+          </div>
+        </div>
+
+        <div style="
+          padding: 30px;
+          background: white;
+          border-radius: 10px;
+          border: 2px solid #e9ecef;
+          min-height: 400px;
+        ">
+          <h3 style="color: #2c3e50; margin-bottom: 25px; font-size: 20px; line-height: 1.6;">
+            ${pregunta.text}
+          </h3>
+          
+          <div class="opciones" id="opcionesContainer">
+            ${pregunta.options.map((opcion, optIndex) => `
+              <label class="opcion-examen" data-option-id="${opcion.id}" style="
+                display: block;
+                margin: 15px 0;
+                padding: 15px;
+                background: #f8f9fa;
+                border: 2px solid #dee2e6;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                font-size: 16px;
+              ">
+                <input type="radio" 
+                       name="pregunta_${pregunta.id}" 
+                       value="${opcion.id}"
+                       style="margin-right: 12px; transform: scale(1.2);">
+                <strong>${String.fromCharCode(65 + optIndex)})</strong> ${opcion.text}
+              </label>
+            `).join('')}
+          </div>
+        </div>
+      `;
+
+      // Agregar event listeners a las opciones
+      const opciones = document.querySelectorAll('.opcion-examen');
+      opciones.forEach(opcion => {
+        opcion.addEventListener('click', function () {
+          const radio = this.querySelector('input[type="radio"]');
+          radio.checked = true;
+
+          // Guardar respuesta
+          window.respuestasUsuario[pregunta.id] = radio.value;
+
+          // Marcar visualmente
+          opciones.forEach(opt => {
+            opt.style.background = '#f8f9fa';
+            opt.style.borderColor = '#  #dee2e6';
+          });
+          this.style.background = '#d4edda';
+          this.style.borderColor = '#28a745';
+
+          // Esperar 800ms antes de avanzar (para que el usuario vea su selección)
+          setTimeout(() => {
+            avanzarSiguientePregunta();
+          }, 800);
+        });
+
+        // Efecto hover
+        opcion.addEventListener('mouseenter', function () {
+          if (!this.querySelector('input').checked) {
+            this.style.background = '#e8f4fd';
+            this.style.borderColor = '#3498db';
+          }
+        });
+
+        opcion.addEventListener('mouseleave', function () {
+          if (!this.querySelector('input').checked) {
+            this.style.background = '#f8f9fa';
+            this.style.borderColor = '#dee2e6';
+          }
+        });
       });
+
+      // Iniciar cronómetro
+      iniciarCronometro();
+    }
+
+    // Iniciar cronómetro de la pregunta
+    function iniciarCronometro() {
+      // Limpiar intervalo anterior si existe
+      if (window.timerInterval) {
+        clearInterval(window.timerInterval);
+      }
+
+      window.timerInterval = setInterval(() => {
+        window.tiempoRestante--;
+
+        const minutos = Math.floor(window.tiempoRestante / 60);
+        const segundos = window.tiempoRestante % 60;
+
+        const cronometroElement = document.getElementById('cronometro');
+        const barraProgreso = document.getElementById('barraProgreso');
+
+        if (cronometroElement) {
+          cronometroElement.textContent = `⏱️ ${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`;
+
+          // Cambiar color según el tiempo restante
+          if (window.tiempoRestante <= 30) {
+            cronometroElement.style.color = '#dc3545';
+            cronometroElement.style.animation = 'pulse 1s infinite';
+          } else if (window.tiempoRestante <= 60) {
+            cronometroElement.style.color = '#ffc107';
+          }
+        }
+
+        if (barraProgreso) {
+          const porcentaje = (window.tiempoRestante / 120) * 100;
+          barraProgreso.style.width = porcentaje + '%';
+
+          if (window.tiempoRestante <= 30) {
+            barraProgreso.style.background = 'linear-gradient(90deg, #dc3545, #c82333)';
+          } else if (window.tiempoRestante <= 60) {
+            barraProgreso.style.background = 'linear-gradient(90deg, #ffc107, #e0a800)';
+          }
+        }
+
+        // Si se acaba el tiempo, avanzar automáticamente
+        if (window.tiempoRestante <= 0) {
+          clearInterval(window.timerInterval);
+          avanzarSiguientePregunta();
+        }
+      }, 1000);
+    }
+
+    // Avanzar a la siguiente pregunta
+    function avanzarSiguientePregunta() {
+      // Limpiar intervalo
+      if (window.timerInterval) {
+        clearInterval(window.timerInterval);
+      }
+
+      window.preguntaActualIndex++;
+
+      // Si hay más preguntas, mostrar la siguiente
+      if (window.preguntaActualIndex < examenActual.length) {
+        mostrarPreguntaCronometrada();
+      } else {
+        // Si era la última pregunta, mostrar botón de enviar y dar 2 minutos
+        mostrarPantallaFinal();
+      }
+    }
+
+    // Mostrar pantalla final con botón de enviar
+    function mostrarPantallaFinal() {
+      const examenContent = document.getElementById('examenContent');
+
+      // Resetear temporizador para el envío final
+      window.tiempoRestante = 120;
+
+      const preguntasRespondidas = Object.keys(window.respuestasUsuario).length;
+      const preguntasSinResponder = examenActual.length - preguntasRespondidas;
+
+      examenContent.innerHTML = `
+        <div style="text-align: center; padding: 40px;">
+          <div style="background: #d1ecf1; border-left: 5px solid #17a2b8; padding: 20px; margin-bottom: 25px; border-radius: 8px;">
+            <h2 style="color: #0c5460; margin-bottom: 15px;">
+              ✅ Has completado todas las preguntas
+            </h2>
+            <p style="color: #0c5460; font-size: 16px; margin: 10px 0;">
+              <strong>Preguntas respondidas:</strong> ${preguntasRespondidas} de ${examenActual.length}
+            </p>
+            ${preguntasSinResponder > 0 ? `
+              <p style="color: #856404; background: #fff3cd; padding: 10px; border-radius: 5px; margin-top: 10px;">
+                ⚠️ <strong>${preguntasSinResponder}</strong> pregunta(s) sin responder (contarán como incorrectas)
+              </p>
+            ` : ''}
+          </div>
+
+          <div style="background: #fff3cd; border-left: 5px solid #ffc107; padding: 20px; margin-bottom: 25px; border-radius: 8px;">
+            <p style="color: #856404; font-size: 18px; font-weight: bold; margin: 0;">
+              ⏱️ Tiempo restante para enviar: <span id="cronometroFinal" style="color: #dc3545;">02:00</span>
+            </p>
+            <p style="color: #856404; margin-top: 10px; margin-bottom: 0;">
+              Si no envías el examen, se enviará automáticamente cuando se acabe el tiempo.
+            </p>
+          </div>
+
+          <button id="btnEnviarExamenFinal" style="
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 20px 50px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+            animation: pulse 2s infinite;
+          ">
+            📤 Enviar Examen Ahora
+          </button>
+        </div>
+      `;
+
+      // Agregar animación de pulso
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
+      `;
+      document.head.appendChild(style);
+
+      // Event listener para enviar
+      document.getElementById('btnEnviarExamenFinal').addEventListener('click', () => {
+        if (window.timerInterval) {
+          clearInterval(window.timerInterval);
+        }
+        enviarExamen();
+      });
+
+      // Iniciar cronómetro final
+      window.timerInterval = setInterval(() => {
+        window.tiempoRestante--;
+
+        const minutos = Math.floor(window.tiempoRestante / 60);
+        const segundos = window.tiempoRestante % 60;
+
+        const cronometroFinal = document.getElementById('cronometroFinal');
+        if (cronometroFinal) {
+          cronometroFinal.textContent = `${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`;
+        }
+
+        // Auto-enviar cuando se acabe el tiempo
+        if (window.tiempoRestante <= 0) {
+          clearInterval(window.timerInterval);
+          enviarExamen();
+        }
+      }, 1000);
     }
 
     // Cerrar modal de examen
@@ -1272,31 +1648,13 @@
     }
 
     // Enviar examen y calificar
-    // Enviar examen y calificar
-    // Enviar examen y calificar
     async function enviarExamen() {
       if (!examenActual) return;
 
-      const respuestas = {};
-      let todasRespondidas = true;
+      // Usar las respuestas del sistema cronometrado
+      const respuestas = window.respuestasUsuario || {};
 
-      // Recopilar respuestas
-      examenActual.forEach(pregunta => {
-        const opcionSeleccionada = document.querySelector(`input[name="pregunta_${pregunta.id}"]:checked`);
-
-        if (opcionSeleccionada) {
-          respuestas[pregunta.id] = opcionSeleccionada.value;
-        } else {
-          todasRespondidas = false;
-        }
-      });
-
-      if (!todasRespondidas) {
-        alert('❌ Por favor responde todas las preguntas antes de enviar el examen.');
-        return;
-      }
-
-      // Calificar examen
+      // Calificar examen (las no respondidas cuentan como incorrectas)
       let puntaje = 0;
       examenActual.forEach(pregunta => {
         const respuestaUsuario = respuestas[pregunta.id];
@@ -1309,11 +1667,13 @@
 
       const porcentaje = (puntaje / examenActual.length) * 100;
 
-      // Mostrar loading
-      const btnEnviar = document.getElementById('btnEnviarExamen');
-      const textoOriginal = btnEnviar.textContent;
-      btnEnviar.innerHTML = 'Enviando... <div class="loading" style="display: inline-block; margin-left: 10px;"></div>';
-      btnEnviar.disabled = true;
+      // Mostrar loading (puede ser el botón normal o el cronometrado)
+      const btnEnviar = document.getElementById('btnEnviarExamenFinal') || document.getElementById('btnEnviarExamen');
+      if (btnEnviar) {
+        const textoOriginal = btnEnviar.textContent;
+        btnEnviar.innerHTML = 'Enviando... <div class="loading" style="display: inline-block; margin-left: 10px;"></div>';
+        btnEnviar.disabled = true;
+      }
 
       try {
         const res = await fetch('/api/formulario?action=guardarResultadoExamen', {

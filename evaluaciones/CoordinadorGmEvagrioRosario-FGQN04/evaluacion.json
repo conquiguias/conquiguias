@@ -1,0 +1,612 @@
+[
+  {
+    "id": "q-1762909060539-56e8w75jj",
+    "type": "multiple",
+    "text": "¿Qué es el acoso?",
+    "options": [
+      {
+        "id": "opt-1762909060539-f6i9j9drf",
+        "text": "a) Una broma entre amigos",
+        "correct": false
+      },
+      {
+        "id": "opt-1762909060539-a9yvzz0r5",
+        "text": "b) Cuando una persona lastima o molesta a otra repetidamente",
+        "correct": true
+      },
+      {
+        "id": "opt-1762909071365-txulpschl",
+        "text": "c) Una discusión corta",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762909093467-2ww1ttke5",
+    "type": "multiple",
+    "text": "¿Qué diferencia al acoso del conflicto?",
+    "options": [
+      {
+        "id": "opt-1762909093467-opunt41mt",
+        "text": "a) El acoso es repetido e intencional",
+        "correct": false
+      },
+      {
+        "id": "opt-1762909093467-fsmzr59yw",
+        "text": "b) El conflicto ocurre una sola vez entre personas con igualdad",
+        "correct": false
+      },
+      {
+        "id": "opt-1762909110019-fxiaulpp8",
+        "text": "c) Ambas respuestas son correctas",
+        "correct": true
+      }
+    ]
+  },
+  {
+    "id": "q-1762909118755-phj2pxeec",
+    "type": "multiple",
+    "text": "El acoso verbal incluye:",
+    "options": [
+      {
+        "id": "opt-1762909118755-0j61ko9sz",
+        "text": "a) Empujar y golpear",
+        "correct": false
+      },
+      {
+        "id": "opt-1762909118755-zsw62hb61",
+        "text": "b) Insultar, burlarse o usar palabras hirientes",
+        "correct": true
+      },
+      {
+        "id": "opt-1762909130260-81ipyb697",
+        "text": "c) Romper objetos",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762909149396-uh32v5k7b",
+    "type": "multiple",
+    "text": "El acoso físico es cuando alguien:",
+    "options": [
+      {
+        "id": "opt-1762909149396-g801ysdpr",
+        "text": "a) Deja de hablarte",
+        "correct": false
+      },
+      {
+        "id": "opt-1762909149396-6fgxngrf2",
+        "text": "b) Te ignora en un juego",
+        "correct": false
+      },
+      {
+        "id": "opt-1762909250146-tpk3iilnh",
+        "text": "c) Te golpea, empuja o lastima tu cuerpo",
+        "correct": true
+      }
+    ]
+  },
+  {
+    "id": "q-1762909274442-4mvpphooq",
+    "type": "multiple",
+    "text": "El acoso perjudicial (prejudicial) se relaciona con:",
+    "options": [
+      {
+        "id": "opt-1762909274442-ty32p5kxy",
+        "text": "a) Excluir por apariencia, cultura o creencias",
+        "correct": true
+      },
+      {
+        "id": "opt-1762909274442-es2jv65kd",
+        "text": "b) Competir en un juego",
+        "correct": false
+      },
+      {
+        "id": "opt-1762909287243-sai4v7qh5",
+        "text": "c) No querer prestar juguetes",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762909307525-awowzte0m",
+    "type": "multiple",
+    "text": "La autoaceptación significa:",
+    "options": [
+      {
+        "id": "opt-1762909307525-mh268xcmj",
+        "text": "a) Sentirme bien conmigo mismo como soy",
+        "correct": true
+      },
+      {
+        "id": "opt-1762909307525-iow89a4uq",
+        "text": "b) Sentir que soy mejor que todos",
+        "correct": false
+      },
+      {
+        "id": "opt-1762909334274-lr41echss",
+        "text": "c) Cambiar para gustarle a los demás",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762909349706-qbwbhxsgk",
+    "type": "multiple",
+    "text": "La autoestima es:",
+    "options": [
+      {
+        "id": "opt-1762909349706-l2e23nwdl",
+        "text": "a) Lo que otras personas piensan de mí",
+        "correct": false
+      },
+      {
+        "id": "opt-1762909349706-4ukysv8d0",
+        "text": "b) El valor y cariño que me doy a mí mismo",
+        "correct": true
+      },
+      {
+        "id": "opt-1762909357978-y6akepmo4",
+        "text": "c) Mi ropa o apariencia",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762909376603-ptm04asot",
+    "type": "multiple",
+    "text": "La identidad personal se refiere a:",
+    "options": [
+      {
+        "id": "opt-1762909376603-lkz3as1c2",
+        "text": "a) Quién soy y lo que me hace único",
+        "correct": true
+      },
+      {
+        "id": "opt-1762909376603-pmre5809a",
+        "text": "b) Mi comida favorita solamente",
+        "correct": false
+      },
+      {
+        "id": "opt-1762909379843-qfhexdgjm",
+        "text": "c) Cómo me ven los demás",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762909408946-wbaczq7ks",
+    "type": "multiple",
+    "text": "Una persona con buena autoaceptación y autoestima:",
+    "options": [
+      {
+        "id": "opt-1762909408946-rgumjy8lx",
+        "text": "a) Puede defenderse mejor y buscar ayuda",
+        "correct": true
+      },
+      {
+        "id": "opt-1762909408946-8fsmvxty9",
+        "text": "b) Siempre pelea",
+        "correct": false
+      },
+      {
+        "id": "opt-1762909411851-pdjjlyz2t",
+        "text": "c) Se queda callada ante el acoso",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762909442546-wfzqrw9zs",
+    "type": "multiple",
+    "text": "Una regla de prevención del acoso es:",
+    "options": [
+      {
+        "id": "opt-1762909442546-rif8n5zhm",
+        "text": "a) No contar lo que vemos",
+        "correct": false
+      },
+      {
+        "id": "opt-1762909442546-3es74gc3y",
+        "text": "b) No intimidar ni acosar a otros",
+        "correct": true
+      },
+      {
+        "id": "opt-1762909444035-ox5d9sa53",
+        "text": "c) Ignorar siempre todo",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762909484890-7sgb9pojm",
+    "type": "multiple",
+    "text": "Otra regla importante es:",
+    "options": [
+      {
+        "id": "opt-1762909484890-76kkaw1cw",
+        "text": "a) Reírnos del que es acosado",
+        "correct": false
+      },
+      {
+        "id": "opt-1762909484890-7rbwcfq33",
+        "text": "b) Ayudar al que está siendo acosado",
+        "correct": true
+      },
+      {
+        "id": "opt-1762909486770-0uriyyqjz",
+        "text": "c) Mantenerlo en secreto",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762909521274-0ngx5cov3",
+    "type": "multiple",
+    "text": "Si sabemos que alguien es acosado, debemos:",
+    "options": [
+      {
+        "id": "opt-1762909521274-ryo2mo1gg",
+        "text": "a) Contárselo a un adulto",
+        "correct": true
+      },
+      {
+        "id": "opt-1762909521274-nqc6w77cc",
+        "text": "b) Guardarlo para no meternos en problemas",
+        "correct": false
+      },
+      {
+        "id": "opt-1762909542906-m2w6wqkka",
+        "text": "c) Hacer lo mismo",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762909549948-vlpas1vae",
+    "type": "multiple",
+    "text": "Una señal de que alguien está siendo acosado puede ser:",
+    "options": [
+      {
+        "id": "opt-1762909549948-hluppz7sj",
+        "text": "a) Está feliz todo el tiempo",
+        "correct": false
+      },
+      {
+        "id": "opt-1762909549948-7pdulf0r8",
+        "text": "b) Tiene miedo de ir a la escuela o club",
+        "correct": true
+      },
+      {
+        "id": "opt-1762909551258-sgiro8i3a",
+        "text": "c) Se ríe mucho",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762909572122-rtep14yx6",
+    "type": "multiple",
+    "text": "En el Círculo del Acoso, el acosador es:",
+    "options": [
+      {
+        "id": "opt-1762909572122-fmslxff1p",
+        "text": "a) El que sufre",
+        "correct": false
+      },
+      {
+        "id": "opt-1762909572122-i3cmbwjf8",
+        "text": "b) El que causa daño",
+        "correct": true
+      },
+      {
+        "id": "opt-1762909573818-t88pbeqx4",
+        "text": "c) El que observa",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762909595098-oafvkmx7b",
+    "type": "multiple",
+    "text": "En el Círculo del Acoso, la víctima es:",
+    "options": [
+      {
+        "id": "opt-1762909595098-7je4yxmwm",
+        "text": "a) La persona que recibe el daño",
+        "correct": true
+      },
+      {
+        "id": "opt-1762909595098-t32nt13nf",
+        "text": "b) La persona que observa",
+        "correct": false
+      },
+      {
+        "id": "opt-1762909622666-9twlv2i99",
+        "text": "c) La persona que ayuda al acosador",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762909647930-kyqt1zl61",
+    "type": "multiple",
+    "text": "David fue maltratado por sus hermanos cuando:",
+    "options": [
+      {
+        "id": "opt-1762909647930-xnzq94jt7",
+        "text": "a) Ganó una carrera",
+        "correct": false
+      },
+      {
+        "id": "opt-1762909647930-s5zcwlw58",
+        "text": "b) Ellos lo criticaron y lo trataron con desprecio",
+        "correct": true
+      },
+      {
+        "id": "opt-1762909667890-2xu8ckvz5",
+        "text": "c) Él los maltrató a ellos",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762909687306-mat0uckm6",
+    "type": "multiple",
+    "text": "José fue vendido por sus hermanos porque:",
+    "options": [
+      {
+        "id": "opt-1762909687306-aeiq5e7zi",
+        "text": "a) Le tenían envidia y lo trataron injustamente",
+        "correct": true
+      },
+      {
+        "id": "opt-1762909687306-3keaucj81",
+        "text": "b) Él era malvado",
+        "correct": false
+      },
+      {
+        "id": "opt-1762909689434-a5inwon0w",
+        "text": "c) Era muy tímido",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762909714897-vx1vjiyku",
+    "type": "multiple",
+    "text": "“Derribar a alguien nunca te ayudará a llegar a la cima” significa:",
+    "options": [
+      {
+        "id": "opt-1762909714897-wt5wzsldx",
+        "text": "a) Molestar ayuda a ser popular",
+        "correct": false
+      },
+      {
+        "id": "opt-1762909714897-qt5nxtf5x",
+        "text": "b) Lastimar no te hace mejor persona",
+        "correct": true
+      },
+      {
+        "id": "opt-1762909716986-2xlttj1xt",
+        "text": "c) Es bueno hacer sentir mal a otros",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762909740777-7czq2j70r",
+    "type": "multiple",
+    "text": "Si eres víctima de acoso, lo primero que debes hacer es:",
+    "options": [
+      {
+        "id": "opt-1762909740777-eh1xw720w",
+        "text": "a) Guardarlo en secreto",
+        "correct": false
+      },
+      {
+        "id": "opt-1762909740777-n4n8p03w3",
+        "text": "b) Buscar ayuda de un adulto",
+        "correct": true
+      },
+      {
+        "id": "opt-1762909743763-ll6vpop18",
+        "text": "c) Vengarte",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762909764369-il2f514lg",
+    "type": "multiple",
+    "text": "Una cualidad de un buen amigo es:",
+    "options": [
+      {
+        "id": "opt-1762909764369-uqfv2kdot",
+        "text": "a) Burlarse para divertirse",
+        "correct": false
+      },
+      {
+        "id": "opt-1762909764369-pbvcovhsi",
+        "text": "b) Aceptar y respetar",
+        "correct": true
+      },
+      {
+        "id": "opt-1762909766498-073k2ayn7",
+        "text": "c) Ignorar a otros",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762909797714-xxmic5k5u",
+    "type": "truefalse",
+    "text": "El acoso solo ocurre cuando hay golpes o empujones.",
+    "options": [
+      {
+        "id": "true-1762909797714-61m82gnji",
+        "text": "Verdadero",
+        "correct": false
+      },
+      {
+        "id": "false-1762909797714-77okkfa2y",
+        "text": "Falso",
+        "correct": true
+      }
+    ]
+  },
+  {
+    "id": "q-1762910095169-s7onm9yl4",
+    "type": "truefalse",
+    "text": "Guardar el acoso en secreto puede empeorar el problema.",
+    "options": [
+      {
+        "id": "true-1762910095169-hj36dvcks",
+        "text": "Verdadero",
+        "correct": true
+      },
+      {
+        "id": "false-1762910095169-4xiy0h3px",
+        "text": "Falso",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762910104953-pee1dg0dp",
+    "type": "truefalse",
+    "text": "Un conflicto puede resolverse hablando, pero el acoso necesita detenerse con ayuda.",
+    "options": [
+      {
+        "id": "true-1762910104953-xphxp5kle",
+        "text": "Verdadero",
+        "correct": true
+      },
+      {
+        "id": "false-1762910104953-0nnq22pwy",
+        "text": "Falso",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762910119337-i4anypjxd",
+    "type": "truefalse",
+    "text": "Reírse cuando alguien es acosado te convierte en parte del problema.",
+    "options": [
+      {
+        "id": "true-1762910119337-di6m8we6e",
+        "text": "Verdadero",
+        "correct": true
+      },
+      {
+        "id": "false-1762910119337-bx8yzih04",
+        "text": "Falso",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762910140105-qyt8z0p7a",
+    "type": "truefalse",
+    "text": "Las personas con buena autoestima son menos propensas a ser víctimas de acoso.",
+    "options": [
+      {
+        "id": "true-1762910140105-fwbmwg9h4",
+        "text": "Verdadero",
+        "correct": true
+      },
+      {
+        "id": "false-1762910140105-4uh883vvf",
+        "text": "Falso",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762910151521-xjgtxrnx9",
+    "type": "truefalse",
+    "text": "El acoso no deja huellas porque solo es un juego.",
+    "options": [
+      {
+        "id": "true-1762910151521-3g2k4gz93",
+        "text": "Verdadero",
+        "correct": false
+      },
+      {
+        "id": "false-1762910151521-51x8aeuqx",
+        "text": "Falso",
+        "correct": true
+      }
+    ]
+  },
+  {
+    "id": "q-1762910163681-nxzzblzf9",
+    "type": "truefalse",
+    "text": "Dios aprueba que ignoremos el sufrimiento de otros.",
+    "options": [
+      {
+        "id": "true-1762910163681-3gtikdnc3",
+        "text": "Verdadero",
+        "correct": false
+      },
+      {
+        "id": "false-1762910163681-2e44lr57t",
+        "text": "Falso",
+        "correct": true
+      }
+    ]
+  },
+  {
+    "id": "q-1762910176721-ox6zebzsx",
+    "type": "truefalse",
+    "text": "Ignorar al acosador puede ser una estrategia útil para quitarle poder.",
+    "options": [
+      {
+        "id": "true-1762910176721-s1m9gvcsh",
+        "text": "Verdadero",
+        "correct": true
+      },
+      {
+        "id": "false-1762910176721-kdrac28us",
+        "text": "Falso",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762910202145-hawrk6502",
+    "type": "truefalse",
+    "text": "Si ves que alguien es acosado, lo correcto es contárselo a un adulto de confianza.",
+    "options": [
+      {
+        "id": "true-1762910202145-ysc9lr9r4",
+        "text": "Verdadero",
+        "correct": true
+      },
+      {
+        "id": "false-1762910202145-6miyzm93u",
+        "text": "Falso",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1762910209657-dz35bn3op",
+    "type": "truefalse",
+    "text": "Mostrar respeto, ayudar al que sufre y ser amable son señales de un buen cristiano.",
+    "options": [
+      {
+        "id": "true-1762910209657-5iiqv7woa",
+        "text": "Verdadero",
+        "correct": true
+      },
+      {
+        "id": "false-1762910209657-tyr9d35ki",
+        "text": "Falso",
+        "correct": false
+      }
+    ]
+  }
+]

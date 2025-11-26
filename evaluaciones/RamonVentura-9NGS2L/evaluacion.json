@@ -1,0 +1,642 @@
+[
+  {
+    "id": "q-1764119844808-2arqvgqnm",
+    "type": "multiple",
+    "text": "¿Cuántas jorobas tiene un dromedario?",
+    "options": [
+      {
+        "id": "opt-1764119844808-pfcueurtu",
+        "text": "a) Dos",
+        "correct": false
+      },
+      {
+        "id": "opt-1764119844808-pqi3pl92j",
+        "text": "b) Una",
+        "correct": true
+      },
+      {
+        "id": "opt-1764119846168-uc5esjuu9",
+        "text": "c) Ninguna",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764119891535-t5h1drk1a",
+    "type": "multiple",
+    "text": "¿Cuántas jorobas tiene el camello bactriano?",
+    "options": [
+      {
+        "id": "opt-1764119891535-csv4ifj2t",
+        "text": "a) Dos",
+        "correct": true
+      },
+      {
+        "id": "opt-1764119891535-vncpx040l",
+        "text": "b) Una",
+        "correct": false
+      },
+      {
+        "id": "opt-1764119893305-0lcx63rsj",
+        "text": "c) Tres",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764119913351-boaahi0ui",
+    "type": "multiple",
+    "text": "¿Cuál es una utilidad común del camello?",
+    "options": [
+      {
+        "id": "opt-1764119913352-htub8bynz",
+        "text": "a) Ayudar a transportar cargas",
+        "correct": true
+      },
+      {
+        "id": "opt-1764119913352-hy9z5972x",
+        "text": "b) Pintar casas",
+        "correct": false
+      },
+      {
+        "id": "opt-1764119917727-f86sdyyaq",
+        "text": "c) Cortar madera",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764119962303-ftoytc2nd",
+    "type": "multiple",
+    "text": "¿De dónde provienen principalmente los dromedarios?",
+    "options": [
+      {
+        "id": "opt-1764119962303-ktq97gzs2",
+        "text": "a) África",
+        "correct": true
+      },
+      {
+        "id": "opt-1764119962303-p62oi2ydv",
+        "text": "b) América",
+        "correct": false
+      },
+      {
+        "id": "opt-1764119964000-y4hyp48gm",
+        "text": "c) Europa",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764119987649-6ntog0mir",
+    "type": "multiple",
+    "text": "¿Cuánto pueden beber los camellos en poco tiempo?",
+    "options": [
+      {
+        "id": "opt-1764119987649-0apgmjd7m",
+        "text": "a) Un vaso con agua",
+        "correct": false
+      },
+      {
+        "id": "opt-1764119987649-52oems6jm",
+        "text": "b) Muy poca agua",
+        "correct": false
+      },
+      {
+        "id": "opt-1764119989135-r76i2rn0j",
+        "text": "c) Mucha agua rápidamente",
+        "correct": true
+      }
+    ]
+  },
+  {
+    "id": "q-1764120014967-rnvobynxc",
+    "type": "multiple",
+    "text": "¿Qué cualidad ayuda al camello a sobrevivir en el desierto?",
+    "options": [
+      {
+        "id": "opt-1764120014967-6z717xgcl",
+        "text": "a) Almacenar grasa en su joroba",
+        "correct": true
+      },
+      {
+        "id": "opt-1764120014967-18n5gd103",
+        "text": "b) Dormir mucho",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120024615-bt2d7pf1p",
+        "text": "c) Saltar muy alto",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764120048551-j738y98u0",
+    "type": "multiple",
+    "text": "¿Cuál de estos es un camélido sudamericano?",
+    "options": [
+      {
+        "id": "opt-1764120048552-4se9zpici",
+        "text": "a) Llama",
+        "correct": true
+      },
+      {
+        "id": "opt-1764120048552-ruak61cnd",
+        "text": "b) Cebra",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120050423-uqokimbd6",
+        "text": "c) Jirafa",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764120077703-n0rul7whe",
+    "type": "multiple",
+    "text": "¿Dónde vive la vicuña?",
+    "options": [
+      {
+        "id": "opt-1764120077703-8zginwx09",
+        "text": "a) Montañas frías",
+        "correct": true
+      },
+      {
+        "id": "opt-1764120077703-jm46yvc1e",
+        "text": "b) Desiertos africanos",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120079176-7mfen31b9",
+        "text": "c) Bosques tropicales",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764120102687-qhgmawgv7",
+    "type": "multiple",
+    "text": "¿Qué comen los camélidos sudamericanos?",
+    "options": [
+      {
+        "id": "opt-1764120102687-gar8h1tor",
+        "text": "a) Carne",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120102687-yy21kw8fy",
+        "text": "b) Plantas",
+        "correct": true
+      },
+      {
+        "id": "opt-1764120104287-ybn8h6ygh",
+        "text": "c) Insectos",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764120128263-bea6smxb5",
+    "type": "multiple",
+    "text": "¿Cuál es una razón por la que algunos camélidos sudamericanos están en peligro?",
+    "options": [
+      {
+        "id": "opt-1764120128263-9fdugud9z",
+        "text": "a) Mucha nieve",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120128263-6dpu18fni",
+        "text": "b) Depredación y caza",
+        "correct": true
+      },
+      {
+        "id": "opt-1764120130143-e9f3os9vz",
+        "text": "c) No respiran bien",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764120149207-fidj824dc",
+    "type": "multiple",
+    "text": "¿Qué animal tiene DOS jorobas?",
+    "options": [
+      {
+        "id": "opt-1764120149207-vuzar8ihp",
+        "text": "a) Dromedario",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120149207-hlvzk881b",
+        "text": "b) Caballo",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120151664-ftr0t2jp4",
+        "text": "c) Bactriano",
+        "correct": true
+      }
+    ]
+  },
+  {
+    "id": "q-1764120171543-wvi04txhl",
+    "type": "multiple",
+    "text": "¿Qué utilidad tiene la lana de alpaca?",
+    "options": [
+      {
+        "id": "opt-1764120171543-u188bm6c2",
+        "text": "a) Hacer ropa",
+        "correct": true
+      },
+      {
+        "id": "opt-1764120171543-mscl92vsd",
+        "text": "b) Hacer ladrillos",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120173721-iqgv2unh7",
+        "text": "c) Construir autos",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764120207536-9zushhnbw",
+    "type": "multiple",
+    "text": "¿Qué región habitan principalmente los camellos?",
+    "options": [
+      {
+        "id": "opt-1764120207536-pu98oahfk",
+        "text": "a) Desiertos",
+        "correct": true
+      },
+      {
+        "id": "opt-1764120207536-yro9m3ehw",
+        "text": "b) Islas",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120210871-0yabz189h",
+        "text": "c) Montañas",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764120263135-71t6r70m1",
+    "type": "multiple",
+    "text": "¿Para qué sirve la joroba?",
+    "options": [
+      {
+        "id": "opt-1764120263135-4kd89ylyq",
+        "text": "a) Para guardar grasa",
+        "correct": true
+      },
+      {
+        "id": "opt-1764120263135-0kl6b81bo",
+        "text": "b) Para guardar agua",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120264967-m44yojugm",
+        "text": "c) Para guardar piedras",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764120284198-rk4p3gkr5",
+    "type": "multiple",
+    "text": "¿Qué camélido sudamericano es el más pequeño?",
+    "options": [
+      {
+        "id": "opt-1764120284198-05pzmznh6",
+        "text": "a) Vicuña",
+        "correct": true
+      },
+      {
+        "id": "opt-1764120284198-joi6p69y7",
+        "text": "b) Llama",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120286752-zey5ptjra",
+        "text": "c) Alpaca",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764120305710-6uk6nl58e",
+    "type": "multiple",
+    "text": "¿Cuál de estos es un camélido doméstico?",
+    "options": [
+      {
+        "id": "opt-1764120305710-ox77rbkw7",
+        "text": "a) León",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120305710-ho1wj7ict",
+        "text": "b) Llama",
+        "correct": true
+      },
+      {
+        "id": "opt-1764120308455-5v74w5yan",
+        "text": "c) Vicuña",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764120340303-y5914eo6o",
+    "type": "multiple",
+    "text": "¿Por qué son importantes los camellos para las personas del desierto?",
+    "options": [
+      {
+        "id": "opt-1764120340303-orkbxrv0d",
+        "text": "a) Porque dan transporte y leche",
+        "correct": true
+      },
+      {
+        "id": "opt-1764120340303-ryedl31s8",
+        "text": "b) Porque hacen ladrillos",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120342071-xyc5fj55e",
+        "text": "c) Porque transportan personas y dan agua",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764120389520-e2oahi6q1",
+    "type": "multiple",
+    "text": "¿Qué camélido es conocido por escupir para defenderse?",
+    "options": [
+      {
+        "id": "opt-1764120389520-drim3ooys",
+        "text": "a) Albaca",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120389520-mby9vpkdb",
+        "text": "b) Vicuña",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120390799-62pv9tmis",
+        "text": "c) Llama",
+        "correct": true
+      }
+    ]
+  },
+  {
+    "id": "q-1764120436088-ms24bhfo3",
+    "type": "multiple",
+    "text": "¿Qué significa “depredación”?",
+    "options": [
+      {
+        "id": "opt-1764120436088-nt2mu3dx1",
+        "text": "a) Que los animales tienen muchos amigos",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120436088-i79uxuf5l",
+        "text": "b) Que otros animales los atacan",
+        "correct": true
+      },
+      {
+        "id": "opt-1764120440120-t3nqrv5k0",
+        "text": "c) Que duermen más",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764120467935-9s8f2t73l",
+    "type": "multiple",
+    "text": "¿Qué animal aparece varias veces en historias bíblicas?",
+    "options": [
+      {
+        "id": "opt-1764120467935-vu0p1udht",
+        "text": "a) Camello",
+        "correct": true
+      },
+      {
+        "id": "opt-1764120467935-bx5ppbk2n",
+        "text": "b) Llama",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120469831-cyjwk1ud1",
+        "text": "c) Dromedario",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764120577512-9fdr567i7",
+    "type": "multiple",
+    "text": "¿Por qué Jesús mencionó al camello en Mateo 19:24?",
+    "options": [
+      {
+        "id": "opt-1764120577512-xvqcpcr0h",
+        "text": "a) Para enseñar sobre lo difícil que es amar",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120577512-dibc0xdrt",
+        "text": "b) Para enseñar sobre la humildad y el corazón",
+        "correct": true
+      },
+      {
+        "id": "opt-1764120580687-8c9uupc2v",
+        "text": "c) Para hablar de animales",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764120602422-iyg14f4xv",
+    "type": "multiple",
+    "text": "¿Qué característica permite que el camello soporte temperaturas muy altas?",
+    "options": [
+      {
+        "id": "opt-1764120602422-7cen7573a",
+        "text": "a) Piel gruesa",
+        "correct": true
+      },
+      {
+        "id": "opt-1764120602422-iaj7mvoko",
+        "text": "b) Colores brillantes",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120604527-sqxja8i4c",
+        "text": "c) Mucha agua en sus patas",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764120625382-ff5vixguj",
+    "type": "multiple",
+    "text": "¿Cuál camélido sudamericano tiene la mejor lana del mundo?",
+    "options": [
+      {
+        "id": "opt-1764120625382-a6xx5hndv",
+        "text": "a) Vicuña",
+        "correct": true
+      },
+      {
+        "id": "opt-1764120625382-pfwibc4du",
+        "text": "b) Llama",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120626959-f9a7m6f3l",
+        "text": "c) Perro pastor",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120655503-d3b0fbdxb",
+        "text": "d) Camello Africano",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764120680191-27m6tqkvt",
+    "type": "multiple",
+    "text": "¿Qué explica mejor por qué están en riesgo algunos camélidos sudamericanos?",
+    "options": [
+      {
+        "id": "opt-1764120680191-l3p0md7zb",
+        "text": "a) Porque corren muy lento",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120680191-vq4jrt2z9",
+        "text": "b) Porque pierden su hábitat y son cazados",
+        "correct": true
+      },
+      {
+        "id": "opt-1764120681679-ggtxcz07h",
+        "text": "c) Porque no comen",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764120701886-pait60vur",
+    "type": "multiple",
+    "text": "¿Cómo se relaciona el camello con la enseñanza bíblica?",
+    "options": [
+      {
+        "id": "opt-1764120701886-wq0zzqub5",
+        "text": "a) Como ejemplo de paciencia",
+        "correct": true
+      },
+      {
+        "id": "opt-1764120701886-l5co1smi8",
+        "text": "b) Como ejemplo de velocidad",
+        "correct": false
+      },
+      {
+        "id": "opt-1764120703335-lxbud3bo2",
+        "text": "c) Como ejemplo de fuerza mágica",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764120732487-xaozc9wwf",
+    "type": "truefalse",
+    "text": "El dromedario tiene una sola joroba.",
+    "options": [
+      {
+        "id": "true-1764120732487-w3pquugma",
+        "text": "Verdadero",
+        "correct": true
+      },
+      {
+        "id": "false-1764120732487-oxogpiqqj",
+        "text": "Falso",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764120746721-c4wa0yqz5",
+    "type": "truefalse",
+    "text": "La llama es un camélido sudamericano.",
+    "options": [
+      {
+        "id": "true-1764120746721-z48w7jw8p",
+        "text": "Verdadero",
+        "correct": true
+      },
+      {
+        "id": "false-1764120746721-qnbe2okye",
+        "text": "Falso",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764120759310-nfnx6o18i",
+    "type": "truefalse",
+    "text": "Los camellos guardan agua en la joroba.",
+    "options": [
+      {
+        "id": "true-1764120759310-tqheb92ys",
+        "text": "Verdadero",
+        "correct": false
+      },
+      {
+        "id": "false-1764120759310-bynnxgv04",
+        "text": "Falso",
+        "correct": true
+      }
+    ]
+  },
+  {
+    "id": "q-1764120774347-nfc25hkbc",
+    "type": "truefalse",
+    "text": "Los camellos pueden vivir sin agua más tiempo que muchos animales.",
+    "options": [
+      {
+        "id": "true-1764120774347-oqjdspkfv",
+        "text": "Verdadero",
+        "correct": true
+      },
+      {
+        "id": "false-1764120774347-t07rbcf2o",
+        "text": "Falso",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764120788359-cnued81eu",
+    "type": "truefalse",
+    "text": "Jesús mencionó al camello para enseñar sobre la riqueza y el corazón.",
+    "options": [
+      {
+        "id": "true-1764120788359-nyu9ac1gm",
+        "text": "Verdadero",
+        "correct": true
+      },
+      {
+        "id": "false-1764120788359-y4glofpg8",
+        "text": "Falso",
+        "correct": false
+      }
+    ]
+  }
+]

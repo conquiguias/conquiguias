@@ -1,0 +1,417 @@
+[
+  {
+    "id": "q-1764207294452-yj0ggu562",
+    "type": "multiple",
+    "text": "¿Qué tipo de planta es una gramínea?",
+    "options": [
+      {
+        "id": "opt-1764207294452-oei1p3ywy",
+        "text": "a) Una planta con flores enormes",
+        "correct": false
+      },
+      {
+        "id": "opt-1764207294452-jv4k35f2z",
+        "text": "b) Una planta con tallos huecos y hojas largas",
+        "correct": true
+      },
+      {
+        "id": "opt-1764207302579-lyc77i0bi",
+        "text": "c) Una planta acuática",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764207999953-iskprs09a",
+    "type": "multiple",
+    "text": "¿Qué tipo de raíces tienen las gramíneas?",
+    "options": [
+      {
+        "id": "opt-1764207999953-boa4uhli5",
+        "text": "a) Raíces fibrosas",
+        "correct": true
+      },
+      {
+        "id": "opt-1764207999953-k8m7b56vz",
+        "text": "b) Raíces profundas como árboles",
+        "correct": false
+      },
+      {
+        "id": "opt-1764208001395-4zbq4i54q",
+        "text": "c) Raíces aéreas",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764208026137-06ytbigp9",
+    "type": "multiple",
+    "text": "Las gramíneas son plantas…",
+    "options": [
+      {
+        "id": "opt-1764208026137-hthud4uqn",
+        "text": "a) Dicotiledóneas",
+        "correct": false
+      },
+      {
+        "id": "opt-1764208026137-epx0taarj",
+        "text": "b) Monocotiledóneas",
+        "correct": true
+      },
+      {
+        "id": "opt-1764208027450-oe6qm8dfk",
+        "text": "c) Acuáticas",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764208045434-4d7uzc14r",
+    "type": "multiple",
+    "text": "¿Cuántas especies de gramíneas existen aproximadamente?",
+    "options": [
+      {
+        "id": "opt-1764208045434-uv9a7uffb",
+        "text": "a) 50",
+        "correct": false
+      },
+      {
+        "id": "opt-1764208045434-qjkbcq9fx",
+        "text": "b) 200",
+        "correct": false
+      },
+      {
+        "id": "opt-1764208047562-nmkgntul4",
+        "text": "c) Más de 10 000",
+        "correct": true
+      }
+    ]
+  },
+  {
+    "id": "q-1764208057921-0xy6ft9jk",
+    "type": "multiple",
+    "text": "¿Qué permite que las gramíneas sigan creciendo aunque se corten?",
+    "options": [
+      {
+        "id": "opt-1764208057921-elkd6wg41",
+        "text": "a) Que regeneran desde la punta",
+        "correct": false
+      },
+      {
+        "id": "opt-1764208057921-xe17r86uu",
+        "text": "b) Que su crecimiento viene desde la base",
+        "correct": true
+      },
+      {
+        "id": "opt-1764208059259-sgotgusux",
+        "text": "c) Que guardan energía en las hojas",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764208084330-5p06vguaa",
+    "type": "multiple",
+    "text": "¿Cuál de estas es una gramínea anual?",
+    "options": [
+      {
+        "id": "opt-1764208084330-9ab1sh6qv",
+        "text": "a) Trigo",
+        "correct": true
+      },
+      {
+        "id": "opt-1764208084330-msw4of66q",
+        "text": "b) Sauce",
+        "correct": false
+      },
+      {
+        "id": "opt-1764208093001-1a46si4sd",
+        "text": "c) Roble",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764208099145-jv6z1rjkt",
+    "type": "multiple",
+    "text": "¿Cuál de estas es una gramínea perenne?",
+    "options": [
+      {
+        "id": "opt-1764208099145-quocgpcry",
+        "text": "a) Pino",
+        "correct": false
+      },
+      {
+        "id": "opt-1764208099145-z9817sohp",
+        "text": "b) Bermuda (pasto)",
+        "correct": true
+      },
+      {
+        "id": "opt-1764208101497-2s4qmt7r7",
+        "text": "c) Mango",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764208118801-laoulafqb",
+    "type": "multiple",
+    "text": "¿Qué gramínea se usa para hacer pan?",
+    "options": [
+      {
+        "id": "opt-1764208118801-mg49gy5nn",
+        "text": "a) Trigo",
+        "correct": true
+      },
+      {
+        "id": "opt-1764208118801-xz7o77coc",
+        "text": "b) Mango",
+        "correct": false
+      },
+      {
+        "id": "opt-1764208120529-c16bty9cw",
+        "text": "c) Zanahoria",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764208157921-tpmtt2tsr",
+    "type": "multiple",
+    "text": "¿Con qué gramínea se fabrican muchas escobas tradicionales?",
+    "options": [
+      {
+        "id": "opt-1764208157921-ry9ucjo9r",
+        "text": "a) Cebada",
+        "correct": false
+      },
+      {
+        "id": "opt-1764208157921-av7kig8ny",
+        "text": "b) Sorgo",
+        "correct": true
+      },
+      {
+        "id": "opt-1764208159210-9x3rr0fit",
+        "text": "c) Maíz",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764208182025-cotd05m80",
+    "type": "multiple",
+    "text": "¿Cuál de estas gramíneas sirve para hacer cañas de pesca?",
+    "options": [
+      {
+        "id": "opt-1764208182025-dzixin52u",
+        "text": "a) Caña de azúcar",
+        "correct": false
+      },
+      {
+        "id": "opt-1764208182025-ezyry657c",
+        "text": "b) Bambú",
+        "correct": true
+      },
+      {
+        "id": "opt-1764208183074-4wgn68zlf",
+        "text": "c) Arroz",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764208200201-55dr29xsp",
+    "type": "multiple",
+    "text": "¿Qué gramínea se usa para producir melaza?",
+    "options": [
+      {
+        "id": "opt-1764208200201-57hs3c6hl",
+        "text": "a) Tomate",
+        "correct": false
+      },
+      {
+        "id": "opt-1764208200201-msjaj0rpe",
+        "text": "b) Caña de azúcar",
+        "correct": true
+      },
+      {
+        "id": "opt-1764208201633-59do5coc1",
+        "text": "c) Arroz salvaje",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764208227537-50aya8vni",
+    "type": "multiple",
+    "text": "¿Cuál gramínea se utiliza para obtener avena?",
+    "options": [
+      {
+        "id": "opt-1764208227537-exq7wbfxu",
+        "text": "a) Avena",
+        "correct": true
+      },
+      {
+        "id": "opt-1764208227537-3echwgyeo",
+        "text": "b) Maíz",
+        "correct": false
+      },
+      {
+        "id": "opt-1764208229305-t77air0ww",
+        "text": "c) Trigo",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764208247521-0t2qv64yc",
+    "type": "multiple",
+    "text": "¿Qué gramínea se usa para producir maíz machacado (pozole)?",
+    "options": [
+      {
+        "id": "opt-1764208247521-n3z07c5h5",
+        "text": "a) Cebada",
+        "correct": false
+      },
+      {
+        "id": "opt-1764208247521-2fmd0l6ft",
+        "text": "b) Sorgo",
+        "correct": false
+      },
+      {
+        "id": "opt-1764208250498-gk37o5qpf",
+        "text": "c) Maíz",
+        "correct": true
+      }
+    ]
+  },
+  {
+    "id": "q-1764208266953-1f1gozpep",
+    "type": "multiple",
+    "text": "¿Cuál de estas gramíneas se usa para producir azúcar?",
+    "options": [
+      {
+        "id": "opt-1764208266953-hpk2xru0v",
+        "text": "a) Caña de azúcar",
+        "correct": true
+      },
+      {
+        "id": "opt-1764208266953-jgf5tnfwd",
+        "text": "b) Algodón",
+        "correct": false
+      },
+      {
+        "id": "opt-1764208270185-2lmbfcnpd",
+        "text": "c) Frijol",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764208286290-bsncohka2",
+    "type": "multiple",
+    "text": "Los pastos cultivados como forraje para vacas pertenecen a…",
+    "options": [
+      {
+        "id": "opt-1764208286290-mmzh9hm9o",
+        "text": "a) Las gramíneas",
+        "correct": true
+      },
+      {
+        "id": "opt-1764208286290-qp41joi30",
+        "text": "b) Las plantas carnívoras",
+        "correct": false
+      },
+      {
+        "id": "opt-1764208294489-94z053fb9",
+        "text": "c) Las plantas acuáticas",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764208313393-cn9heepfk",
+    "type": "truefalse",
+    "text": "Las gramíneas tienen flores muy vistosas y grandes.",
+    "options": [
+      {
+        "id": "true-1764208313393-eenj8am0f",
+        "text": "Verdadero",
+        "correct": false
+      },
+      {
+        "id": "false-1764208313393-omucmx8ws",
+        "text": "Falso",
+        "correct": true
+      }
+    ]
+  },
+  {
+    "id": "q-1764208321489-uwmts795m",
+    "type": "truefalse",
+    "text": "El arroz es una gramínea.",
+    "options": [
+      {
+        "id": "true-1764208321489-3gcygqvqv",
+        "text": "Verdadero",
+        "correct": true
+      },
+      {
+        "id": "false-1764208321489-zk7xs8n7b",
+        "text": "Falso",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764208341641-tbh89hroo",
+    "type": "truefalse",
+    "text": "Las gramíneas pueden crecer en casi cualquier clima.",
+    "options": [
+      {
+        "id": "true-1764208341641-3a8i9xt7x",
+        "text": "Verdadero",
+        "correct": true
+      },
+      {
+        "id": "false-1764208341641-83u1dqdlq",
+        "text": "Falso",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1764208358329-8sp04tzyh",
+    "type": "truefalse",
+    "text": "Todas las gramíneas son árboles.",
+    "options": [
+      {
+        "id": "true-1764208358329-s2f4b5zcm",
+        "text": "Verdadero",
+        "correct": false
+      },
+      {
+        "id": "false-1764208358329-fer7m9jkf",
+        "text": "Falso",
+        "correct": true
+      }
+    ]
+  },
+  {
+    "id": "q-1764208369549-qoea22mip",
+    "type": "truefalse",
+    "text": "El maíz, el trigo y la cebada son parte de la familia de las gramíneas.",
+    "options": [
+      {
+        "id": "true-1764208369549-97inawg15",
+        "text": "Verdadero",
+        "correct": true
+      },
+      {
+        "id": "false-1764208369549-3642sa5fv",
+        "text": "Falso",
+        "correct": false
+      }
+    ]
+  }
+]

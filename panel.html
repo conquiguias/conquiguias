@@ -2888,9 +2888,12 @@ transition: all 0.3s ease;
                   // Verificar si la fecha de cierre es válida
                   const esPeriodoActivo = !fechaFin || hoy <= fechaFin;
 
+                  // 🔹 VALIDACIÓN DE ASISTENCIA (MODIFICADO)
+                  const cumpleAsistencia = (formularioInfo.tomaAsistencia === false) || (asistenciasCompletadas >= 3);
+
                   if (!esPeriodoActivo) {
                     // PERIODO TERMINADO
-                    if (asistenciasCompletadas >= 3) {
+                    if (cumpleAsistencia) {
                       if (tieneEvaluacion) {
                         if (examenRealizado) {
                           estado = aprobado ? "Aprobado" : "Reprobado";
@@ -2909,7 +2912,7 @@ transition: all 0.3s ease;
                     }
                   } else {
                     // PERIODO EN CURSO
-                    if (asistenciasCompletadas >= 3) {
+                    if (cumpleAsistencia) {
                       if (tieneEvaluacion) {
                         if (examenRealizado) {
                           estado = aprobado ? "Aprobado" : "Reprobado";
@@ -6111,7 +6114,7 @@ transition: all 0.3s ease;
 
 
 
-      
+
     </script>
 
 

@@ -1299,6 +1299,53 @@
       margin-top: 20px;
     }
 
+    /* 🔹 OVERRIDE: CONTENEDOR DE LA TABLA CON SCROLL HORIZONTAL Y VERTICAL */
+    #certificacionesContent {
+      overflow: auto !important;
+      width: 100% !important;
+      max-width: none !important;
+      height: 75vh !important;
+      position: relative !important;
+    }
+
+    /* Sticky Header */
+    #tablaCertificaciones thead th {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: var(--bg-card);
+      box-shadow: 0 2px 2px var(--shadow-light);
+    }
+
+    /* Sticky Columns para pantallas grandes */
+    @media (min-width: 1024px) {
+
+      #tablaCertificaciones th:nth-child(1),
+      #tablaCertificaciones td:nth-child(1) {
+        position: sticky;
+        left: 0;
+        z-index: 10;
+        background-color: var(--bg-card);
+        border-right: 1px solid var(--border-color);
+        min-width: 50px;
+      }
+
+      #tablaCertificaciones th:nth-child(2),
+      #tablaCertificaciones td:nth-child(2) {
+        position: sticky;
+        left: 50px;
+        z-index: 10;
+        background-color: var(--bg-card);
+        border-right: 1px solid var(--border-color);
+        min-width: 200px;
+      }
+
+      #tablaCertificaciones thead th:nth-child(1),
+      #tablaCertificaciones thead th:nth-child(2) {
+        z-index: 30;
+      }
+    }
+
     /* 🔹 CORRECCIÓN: MANTENER COLORES ORIGINALES DE ESTADOS */
     .estado-completado {
       color: #27ae60 !important;

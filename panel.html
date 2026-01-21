@@ -3392,7 +3392,6 @@ transition: all 0.3s ease;
           .then(res => res.json())
           .then(data => {
             const asistencias = data.asistencias || [];
-            // Buscar CUALQUIER asistencia del usuario para obtener su nombre
             const asistenciaUsuario = asistencias.find(a =>
               a.visitanteId === resultado.visitanteId && a.nombre && a.nombre.trim() !== ''
             );
@@ -3401,12 +3400,10 @@ transition: all 0.3s ease;
             if (asistenciaUsuario && asistenciaUsuario.nombre) {
               nombreUsuario = asistenciaUsuario.nombre.trim();
             } else {
-              // Si no se encuentra en asistencias, intentar obtener del perfil del usuario
               const user = auth.currentUser;
               if (user && user.displayName) {
                 nombreUsuario = user.displayName;
               } else {
-                // Último recurso: usar el correo sin el dominio
                 const email = user.email;
                 if (email) {
                   nombreUsuario = email.split('@')[0];
@@ -3417,57 +3414,52 @@ transition: all 0.3s ease;
               }
             }
 
-            // Calcular estadísticas del examen
+            // Crear elemento temporal para PDF
+            const element = document.createElement('div');
+            element.style.width = '800px';
+            element.style.background = 'white';
+
+            const respuestasUsuario = resultado.respuestas || {};
             let correctas = 0;
             let total = examen.length;
-            const respuestasUsuario = resultado.respuestas || {};
 
             examen.forEach((pregunta, idx) => {
               let respuestaUsuario = respuestasUsuario[pregunta.id];
               if (respuestaUsuario === undefined) respuestaUsuario = respuestasUsuario[String(idx)];
               if (respuestaUsuario === undefined) respuestaUsuario = respuestasUsuario[idx];
 
-              const respuestaCorrecta = pregunta.options.find(opt => opt.correct);
-              if (respuestaCorrecta && respuestaUsuario === respuestaCorrecta.id) {
+              const opcionSeleccionada = pregunta.options.find(opt => opt.id === respuestaUsuario);
+              if (opcionSeleccionada && opcionSeleccionada.correct) {
                 correctas++;
               }
             });
 
             const porcentaje = (correctas / total) * 100;
-            //const aprobado = porcentaje >= 70; // Ya verificado antes
-
-            // Formatear fecha
             const fechaCreacion = new Date(formulario.creado);
             const opcionesFecha = { year: 'numeric', month: 'long', day: 'numeric' };
             const fechaFormateada = fechaCreacion.toLocaleDateString('es-ES', opcionesFecha);
-
-            // 🔹 CONSTRUIR CONTENIDO ORIGINAL PARA HTML2PDF
-            const element = document.createElement('div');
-            // Ancho optimizado para PDF A4 (aprox 800px)
-            element.style.width = '800px';
-            element.style.background = 'white';
 
             let contenidoImpresion = `
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>Examen y Certificación</title>
+                    <title>Examen y Certificación - ${formulario.titulo}</title>
                     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Great+Vibes&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
                     <style>
-                        /* ESTILOS ORIGINALES RESTAURADOS */
+                        /* ESTILOS PARA EL EXAMEN */
                         .examen-section { margin: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
                         .header-examen { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #2c3e50; padding-bottom: 20px; position: relative; }
-                        .imagen-especialidad-examen { position: absolute; top: 10px; right: 10px; max-width: 80px; max-height: 80px; }
+                        .imagen-especialidad-examen { position: absolute; top: 10px; right: 10px; max-width: 80px; max-height; 80px; }
                         .resumen-examen { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 30px; text-align: center; }
                         .pregunta { margin-bottom: 20px; padding: 15px; border-left: 4px solid #3498db; background: #f8f9fa; page-break-inside: avoid; }
                         .correcta { border-left-color: #28a745; }
                         .incorrecta { border-left-color: #dc3545; }
                         
-                        /* ESTILOS CERTIFICADO - HOJA SEPARADA */
+                        /* ESTILOS PARA EL CERTIFICADO (HOJA COMPLETA SEPARADA) */
                         .certificacion-page {
                             page-break-before: always;
                             width: 100%;
-                            min-height: 1120px; /* Altura A4 Aprox */
+                            min-height: 100vh;
                             margin: 0;
                             padding: 40px;
                             display: flex;
@@ -3476,47 +3468,54 @@ transition: all 0.3s ease;
                             align-items: center;
                             position: relative;
                             box-sizing: border-box;
-                            overflow: hidden;
                         }
                         
                         .decoracion-certificado { position: absolute; top: 0; height: 100%; z-index: 0; pointer-events: none; }
                         .decoracion-izquierda { left: 0; width: 140px; }
                         .decoracion-derecha { right: 0; width: 140px; }
-                        .decoracion-abajo { bottom: 0; width: 100%; height: auto; z-index: 0; position: absolute; left: 0; }
+                        .decoracion-abajo { position: relative; bottom: 0px; margin: auto; margin-top: -50px; margin-bottom: -50px; height: 200px; width: auto; z-index: 0; }
                         
                         .certificacion-contenido { position: relative; z-index: 1; text-align: center; width: 100%; max-width: 800px; margin: 0 auto; }
-                        .imagen-especialidad-certificado { position: absolute; top: 150px; right: 80px; max-width: 150px; max-height: 150px; z-index: 1; opacity: 0.9; }
-                        
-                        .certificacion-titulo { font-size: 18px; width: 80%; margin: auto; margin-bottom: 10px; letter-spacing: 1px; font-family: 'Montserrat', sans-serif; }
-                        .certificado-texto { font-size: 60px; color: #2c3e50; font-weight: 900; margin: 10px auto; text-transform: uppercase; font-family: 'Playfair Display', serif; letter-spacing: 5px; }
-                        .otorgado-a { font-size: 18px; margin-top: 30px; margin-bottom: 10px; font-weight: bold; font-family: 'Montserrat', sans-serif; }
-                        
+                        .imagen-especialidad-certificado { position: absolute; top: 250px; right: 20px; max-width: 180px; max-height: 180px; z-index: 1; }
+                        .certificacion-header { width: 100%; justify-content: center; margin-bottom: 40px; }
+                        .certificacion-titulo { font-size: 18px; width: 80%; margin: auto; margin-bottom: 10px; letter-spacing: 1px; }
+                        .certificado-texto { font-size: 50px; color: #2c3e50; font-weight: bold; margin: auto; text-transform: uppercase; }
+                        .otorgado-a { font-size: 18px; margin-bottom: 20px; font-weight: bold; }
                         .nombre-usuario {
                             font-family: "Great Vibes", cursive;
-                            font-size: 55px;
-                            font-weight: normal;
-                            margin: 10px 0 30px 0;
-                            padding: 10px 40px;
-                            border-bottom: 2px solid #2c3e50;
+                            font-size: 40px;
+                            font-weight: bold;
+                            margin: 30px 0;
+                            padding: 20px;
+                            border-bottom: 3px solid #2c3e50;
                             display: inline-block;
                             min-width: 400px;
-                            color: #1a1a1a;
+                            max-width: 600px;
+                            word-wrap: break-word;
                         }
+                        .linea-separadora { width: 400px; border-top: 2px solid #2c3e50; margin: 30px auto; }
+                        .texto-certificacion { font-size: 20px; line-height: 1.8; margin: 40px 0; max-width: 600px; margin-left: auto; margin-right: auto; }
                         
-                        .texto-certificacion { font-size: 20px; line-height: 1.8; margin: 20px auto; max-width: 650px; font-family: 'Playfair Display', serif; }
+                        .firmas-container {
+                            margin-top: 80px;
+                            display: flex;
+                            justify-content: space-around;
+                            align-items: flex-start;
+                            flex-wrap: wrap;
+                            width: 100%;
+                            gap: 20px;
+                        }
+                        .firma { text-align: center; margin: 10px; min-width: 150px; max-width: 200px; flex: 1; }
+                        .firma img { max-width: 140px; max-height: 80px; margin-bottom: 0px; object-fit: contain; }
+                        .linea-firma { width: 100%; max-width: 180px; border-top: 1px solid #2c3e50; margin: 5px auto; }
+                        .nombre-firma { font-weight: bold; font-size: 14px; margin-top: 8px; word-wrap: break-word; hyphens: auto; line-height: 1.2; }
+                        .cargo-firma { font-size: 12px; color: #666; margin-top: 5px; font-weight: bold; }
                         
-                        .firmas-container { margin-top: 60px; display: flex; justify-content: center; align-items: flex-end; flex-wrap: wrap; gap: 40px; width: 100%; }
-                        .firma { text-align: center; width: 180px; }
-                        .firma img { max-width: 140px; max-height: 70px; margin-bottom: 5px; object-fit: contain; }
-                        .linea-firma { width: 100%; border-top: 1px solid #2c3e50; margin: 5px auto; }
-                        .nombre-firma { font-weight: bold; font-size: 14px; margin-top: 5px; font-family: 'Montserrat', sans-serif; }
-                        .cargo-firma { font-size: 11px; color: #666; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
-
-                        /* AJUSTES DE IMPRESIÓN */
                         @media print {
                             body { margin: 0; padding: 0; }
+                            .examen-section { margin: 15px; }
+                            .certificacion-page { margin: 0; padding: 50px; border: none; }
                             .no-print { display: none !important; }
-                            .certificacion-page { page-break-before: always; height: 100vh; }
                         }
                     </style>
                 </head>
@@ -3529,6 +3528,7 @@ transition: all 0.3s ease;
                             ${formulario.imagenEspecialidad ? `<img src="${formulario.imagenEspecialidad}" class="imagen-especialidad-examen" alt="Especialidad">` : ''}
                         </div>
 
+                        <!-- RESUMEN DEL EXAMEN -->
                         <div class="resumen-examen">
                             <h2 style="margin: 0 0 15px 0; font-size: 24px;">📊 Resultados del Examen</h2>
                             <p style="margin: 8px 0; font-size: 18px;"><strong>Resumen:</strong> ${correctas} de ${total} preguntas correctas (${porcentaje.toFixed(1)}%)</p>
@@ -3540,7 +3540,6 @@ transition: all 0.3s ease;
                             <h3 style="color: #2c3e50; margin-bottom: 20px; text-align: center;">📝 Detalle de Preguntas</h3>
             `;
 
-            // Agregar preguntas del examen
             examen.forEach((pregunta, index) => {
               let respuestaUsuario = respuestasUsuario[pregunta.id];
               if (respuestaUsuario === undefined) respuestaUsuario = respuestasUsuario[String(index)];
@@ -3566,61 +3565,74 @@ transition: all 0.3s ease;
                 `;
             });
 
-            contenidoImpresion += `</div></div>`; // Cierre examen-section
-
-            // SECCIÓN CERTIFICADO - DISEÑO ORIGINAL MEJORADO
             contenidoImpresion += `
-                <div class="certificacion-page">
-                    <!-- IMÁGENES DECORATIVAS ORIGINALES -->
-                    <img src="images/decoracion/izquierda.png" class="decoracion-certificado decoracion-izquierda" alt="">
-                    <img src="images/decoracion/derecha.png" class="decoracion-certificado decoracion-derecha" alt="">
-                    <img src="images/decoracion/barnerLogos.png" class="decoracion-certificado decoracion-abajo" alt="">
-                    
-                    ${formulario.imagenEspecialidad ? `<img src="${formulario.imagenEspecialidad}" class="imagen-especialidad-certificado" alt="Especialidad">` : ''}
-                    
-                    <div class="certificacion-contenido">
-                        <p class="certificacion-titulo">LA ACADEMIA Y PLATAFORMA ONLINE CONQUIGUIAS WORLD EXTIENDE EL SIGUIENTE</p>
-                        <h1 class="certificado-texto">CERTIFICADO</h1>
-                        
-                        <p class="otorgado-a">OTORGADO A:</p>
-                        
-                        <div class="nombre-usuario">${nombreUsuario}</div>
-                        
-                        <div class="texto-certificacion">
-                            Por haber participado en la especialidad:<br>
-                            <strong style="color: #2c3e50; font-size: 24px; display:block; margin: 10px 0;">"${formulario.titulo}"</strong>
-                            impartido por <strong>${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma1) || 'el instructor')}</strong>,<br>
-                            el ${fechaFormateada}.
-                        </div>
-
-                        <!-- FIRMAS -->
-                        <div class="firmas-container">
-                            ${formulario.imagenFirma1 ? `
-                            <div class="firma">
-                                <img src="${formulario.imagenFirma1}">
-                                <div class="linea-firma"></div>
-                                <div class="nombre-firma">${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma1))}</div>
-                                <div class="cargo-firma">INSTRUCTOR</div>
-                            </div>` : ''}
-                            
-                            ${formulario.imagenFirma2 ? `
-                            <div class="firma">
-                                <img src="${formulario.imagenFirma2}">
-                                <div class="linea-firma"></div>
-                                <div class="nombre-firma">${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma2))}</div>
-                                <div class="cargo-firma">DIRECTOR</div>
-                            </div>` : ''}
-                            
-                            ${formulario.imagenFirma3 ? `
-                            <div class="firma">
-                                <img src="${formulario.imagenFirma3}">
-                                <div class="linea-firma"></div>
-                                <div class="nombre-firma">${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma3))}</div>
-                                <div class="cargo-firma">COORDINADOR</div>
-                            </div>` : ''}
                         </div>
                     </div>
-                </div>
+
+                    <!-- CERTIFICADO - HOJA COMPLETA SEPARADA -->
+                    <div class="certificacion-page">
+                        <!-- AGREGAR LAS IMÁGENES DECORATIVAS -->
+                        <img src="images/decoracion/izquierda.png" class="decoracion-certificado decoracion-izquierda" alt="Decoración izquierda">
+                        <img src="images/decoracion/derecha.png" class="decoracion-certificado decoracion-derecha" alt="Decoración derecha">
+                        <img src="images/decoracion/barnerLogos.png" class="decoracion-certificado decoracion-abajo" alt="Decoración abajo">
+                        
+                        ${formulario.imagenEspecialidad ? `<img src="${formulario.imagenEspecialidad}" class="imagen-especialidad-certificado" alt="Especialidad">` : ''}
+                        
+                        <div class="certificacion-contenido">
+                            <div class="certificacion-header">
+                                <p class="certificacion-titulo">
+                                    LA ACADEMIA Y PLATAFORMA ONLINE CONQUIGUIAS WORLD EXTIENDE EL SIGUIENTE
+                                </p>
+                                <h1 class="certificado-texto">CERTIFICADO</h1>
+                            </div>
+
+                            <div class="certificacion-cuerpo">
+                                <p class="otorgado-a">OTORGADO A:</p>
+                                
+                                <div class="nombre-usuario">${nombreUsuario}</div>
+
+                                <div class="texto-certificacion">
+                                    Por haber participado en la especialidad:<br>
+                                    <strong style="color: #2c3e50; font-size: 22px;">"${formulario.titulo}"</strong><br>
+                                    impartido por <strong>${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma1) || 'el instructor')}</strong>,<br>
+                                    el ${fechaFormateada}.
+                                </div>
+                            </div>
+
+                            <!-- REEMPLAZAR LA SECCIÓN DE FIRMAS ACTUAL CON ESTA VERSIÓN MEJORADA -->
+                            <div class="firmas-container">
+                                ${formulario.imagenFirma1 ? `
+                                <div class="firma">
+                                    <img src="${formulario.imagenFirma1}" alt="Firma Instructor">
+                                    <div class="linea-firma"></div>
+                                    <div class="nombre-firma" style="word-wrap: break-word; max-width: 180px;">
+                                        ${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma1))}
+                                    </div>
+                                    <div class="cargo-firma"><strong>INSTRUCTOR</strong></div>
+                                </div>` : ''}
+                                
+                                ${formulario.imagenFirma2 ? `
+                                <div class="firma">
+                                    <img src="${formulario.imagenFirma2}" alt="Firma Director">
+                                    <div class="linea-firma"></div>
+                                    <div class="nombre-firma" style="word-wrap: break-word; max-width: 180px;">
+                                        ${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma2))}
+                                    </div>
+                                    <div class="cargo-firma"><strong></strong></div>
+                                </div>` : ''}
+                                
+                                ${formulario.imagenFirma3 ? `
+                                <div class="firma">
+                                    <img src="${formulario.imagenFirma3}" alt="Firma Coordinador">
+                                    <div class="linea-firma"></div>
+                                    <div class="nombre-firma" style="word-wrap: break-word; max-width: 180px;">
+                                        ${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma3))}
+                                    </div>
+                                    <div class="cargo-firma"><strong></strong></div>
+                                </div>` : ''}
+                            </div>
+                        </div>
+                    </div>
                 </body>
                 </html>
             `;
@@ -3633,27 +3645,27 @@ transition: all 0.3s ease;
               filename: `Certificado_${formulario.titulo.replace(/\s+/g, '_')}.pdf`,
               image: { type: 'jpeg', quality: 0.98 },
               html2canvas: { scale: 2, useCORS: true },
-              jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait' } // A4 en px a 96dpi aprox
+              jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait' }
             };
 
-            // GENERAR Y DESCARGAR INVISIBLEMENTE
+            // GENERAR Y DESCARGAR PDF INVISIBLEMENTE
             html2pdf().from(element).set(opt).save().then(() => {
               btnImprimir.innerHTML = textoOriginal;
               btnImprimir.disabled = false;
-              mostrarMensaje('success', 'Descarga Completa', 'Tu certificado se ha descargado correctamente.');
+              mostrarMensaje('success', 'Descarga Completa', 'El certificado PDF se ha descargado correctamente.');
             }).catch(err => {
-              console.error("Error PDF:", err);
+              console.error("Error generando PDF:", err);
               btnImprimir.innerHTML = textoOriginal;
               btnImprimir.disabled = false;
-              mostrarMensaje('error', 'Error', 'No se pudo generar el PDF. Intenta nuevamente.');
+              mostrarMensaje('error', 'Error', 'No se pudo generar el PDF.');
             });
 
           })
           .catch(error => {
-            console.error('Error al generar certificado:', error);
+            console.error('Error al obtener asistencias:', error);
             btnImprimir.innerHTML = textoOriginal;
             btnImprimir.disabled = false;
-            mostrarMensaje('error', 'Error', 'Ocurrió un error al procesar el certificado.');
+            mostrarMensaje("error", "Error", "No se pudo generar el PDF: " + error.message);
           });
       }
 

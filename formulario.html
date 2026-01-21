@@ -1048,21 +1048,22 @@
 
       // Renderizar pregunta
       contenedor.innerHTML = `
-        <h3 style="font-size: 1.5rem; margin-bottom: 25px; color: white;">${p.text}</h3>
+        <h3 style="font-size: 1.5rem; margin-bottom: 25px; color: #F3F4F6; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">${p.text}</h3>
         <div style="display: grid; gap: 15px;">
           ${p.options.map((opt, i) => `
             <label style="
               display: flex; align-items: center; padding: 15px; 
-              background: ${respuestasExamen[preguntaActual] === opt.id ? 'rgba(16, 185, 129, 0.2)' : 'rgba(55, 65, 81, 0.5)'}; 
-              border: 2px solid ${respuestasExamen[preguntaActual] === opt.id ? 'var(--secondary)' : 'transparent'}; 
+              background: ${respuestasExamen[preguntaActual] === opt.id ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.1)'}; 
+              border: 1px solid ${respuestasExamen[preguntaActual] === opt.id ? 'var(--secondary)' : 'rgba(255, 255, 255, 0.2)'}; 
+              color: #F3F4F6;
               border-radius: 10px; cursor: pointer; transition: all 0.2s;
             ">
               <input type="radio" name="preguntaActual" value="${opt.id}" 
                 ${respuestasExamen[preguntaActual] === opt.id ? 'checked' : ''}
-                style="width: 20px; height: 20px; margin-right: 15px;"
+                style="width: 20px; height: 20px; margin-right: 15px; accent-color: var(--secondary);"
                 onchange="seleccionarRespuesta(${preguntaActual}, '${opt.id}')"
               >
-              <span style="font-size: 1.1rem;">${opt.text}</span>
+              <span style="font-size: 1.1rem; font-weight: 500;">${opt.text}</span>
             </label>
           `).join('')}
         </div>
@@ -1070,8 +1071,46 @@
     }
 
     function seleccionarRespuesta(idx, valor) {
+      if (respuestasExamen[idx]) return; // Evitar doble selección
       respuestasExamen[idx] = valor;
-      actualizarPregunta(); // Para refrescar estilos visuales
+
+      // Actualizar visualmente la selección actual
+      const p = preguntasExamen[preguntaActual];
+      const contenedor = document.getElementById('contenedorPregunta');
+      // Re-renderizamos solo para mostrar el seleccionado (sin reiniciar timer ni nada)
+      // Pero como actualizarPregunta reinicia el timer, mejor hacemos un update manual del DOM o llamamos actualizarPregunta con flag?
+      // Mejor: forzamos update visual rápido
+
+      // Para simplificar, re-renderizamos la pregunta actual sin reiniciar timer:
+      // Pero actualizarPregunta() si reinicia timer...
+      // Vamos a hackearlo: reiniciar timer está bien porque avanzamos de inmediato.
+      // Espera, si avanzamos, llamamos a (preguntaActual++) y luego actualizarPregunta().
+
+      // 1. Mostrar feedback visual corto en la opción seleccionada
+      // 2. Esperar 300-500ms
+      // 3. Avanzar
+
+      // Forzar redraw visual inmediato (sin llamar a actualizarPregunta completo)
+      const inputs = document.querySelectorAll(`input[name="preguntaActual"]`);
+      inputs.forEach(inp => {
+        const label = inp.parentElement;
+        if (inp.value === valor) {
+          label.style.background = 'rgba(16, 185, 129, 0.3)';
+          label.style.borderColor = 'var(--secondary)';
+        } else {
+          label.style.opacity = '0.5';
+        }
+        inp.disabled = true; // Bloquear cambios
+      });
+
+      setTimeout(() => {
+        if (preguntaActual < preguntasExamen.length - 1) {
+          preguntaActual++;
+          actualizarPregunta();
+        } else {
+          finalizarExamen();
+        }
+      }, 400); // 400ms de delay para ver la selección
     }
 
     function iniciarTimer() {

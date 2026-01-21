@@ -1003,25 +1003,16 @@
             <!-- Se llena dinámicamente -->
           </div>
 
+          
           <!-- Navegación -->
-          <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
-            <button id="btnSiguiente" class="action-btn btn-primary" style="width: 100%;">Siguiente ➡️</button>
+          <div style="display: none; justify-content: flex-end; margin-top: 20px;">
+             <!-- Botón eliminado por solicitud -->
           </div>
         </div>
       `;
 
       actualizarPregunta();
-      // Timer iniciado dentro de actualizarPregunta para reiniciar cada vez
-
-      // Eventos botones
-      document.getElementById('btnSiguiente').onclick = () => {
-        if (preguntaActual < preguntasExamen.length - 1) {
-          preguntaActual++;
-          actualizarPregunta();
-        } else {
-          finalizarExamen();
-        }
-      };
+      // TImer iniciado en actualizarPregunta
     }
 
     function actualizarPregunta() {
@@ -1037,14 +1028,8 @@
       document.getElementById('numPregunta').textContent = preguntaActual + 1;
       document.getElementById('progresoBarra').style.width = `${((preguntaActual + 1) / preguntasExamen.length) * 100}%`;
 
-      // Controlar visibilidad botones
-      document.getElementById('btnSiguiente').textContent = preguntaActual === preguntasExamen.length - 1 ? 'Finalizar Examen ✅' : 'Siguiente ➡️';
-
-      if (preguntaActual === preguntasExamen.length - 1) {
-        document.getElementById('btnSiguiente').className = "action-btn btn-secondary";
-      } else {
-        document.getElementById('btnSiguiente').className = "action-btn btn-primary";
-      }
+      // Controlar visibilidad botones (ELIMINADO)
+      // Botón eliminado por solicitud
 
       // Renderizar pregunta
       contenedor.innerHTML = `
@@ -1110,7 +1095,7 @@
         } else {
           finalizarExamen();
         }
-      }, 400); // 400ms de delay para ver la selección
+      }, 1000); // 1000ms de delay para ver la selección
     }
 
     function iniciarTimer() {

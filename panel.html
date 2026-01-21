@@ -3247,9 +3247,15 @@ transition: all 0.3s ease;
         let total = examen.length;
 
         // Calcular estadísticas
-        examen.forEach(pregunta => {
-          const respuestaUsuario = respuestasUsuario[pregunta.id];
+        // Calcular estadísticas
+        examen.forEach((pregunta, idx) => {
+          let respuestaUsuario = respuestasUsuario[pregunta.id];
+          if (respuestaUsuario === undefined) respuestaUsuario = respuestasUsuario[String(idx)];
+          if (respuestaUsuario === undefined) respuestaUsuario = respuestasUsuario[idx];
+
           const respuestaCorrecta = pregunta.options.find(opt => opt.correct);
+          // Verificar si esa opción es correcta
+          // Nota: Si respuestaUsuario es el ID de la opción correcta, es un acierto.
           if (respuestaCorrecta && respuestaUsuario === respuestaCorrecta.id) {
             correctas++;
           }
@@ -3732,7 +3738,11 @@ transition: all 0.3s ease;
 
             // Agregar preguntas del examen
             examen.forEach((pregunta, index) => {
-              const respuestaUsuario = respuestasUsuario[pregunta.id];
+              let respuestaUsuario = respuestasUsuario[pregunta.id];
+              // Robustez: buscar por ID, índice string o índice numérico
+              if (respuestaUsuario === undefined) respuestaUsuario = respuestasUsuario[String(index)];
+              if (respuestaUsuario === undefined) respuestaUsuario = respuestasUsuario[index];
+
               const respuestaCorrecta = pregunta.options.find(opt => opt.correct);
               const opcionUsuario = pregunta.options.find(opt => opt.id === respuestaUsuario);
               const esCorrecta = respuestaCorrecta && respuestaUsuario === respuestaCorrecta.id;

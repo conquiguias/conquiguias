@@ -939,10 +939,10 @@
         <div class="card" style="max-width: 500px; width: 90%; text-align: center; background: #1F2937; border: 1px solid #374151;">
           <h2 style="margin-bottom: 20px; font-size: 2rem;">📝 Instrucciones del Examen</h2>
           <div style="text-align: left; margin-bottom: 30px; line-height: 1.8; color: #D1D5DB;">
-            <p>ℹ️ <strong>Tiempo límite:</strong> 1 minuto en total.</p>
-            <p>ℹ️ <strong>Navegación:</strong> Puedes avanzar y retroceder entre preguntas.</p>
-            <p>ℹ️ <strong>Finalizar:</strong> Al terminar el tiempo se enviará automáticamente.</p>
-            <p>⚠️ <strong>Atención:</strong> No salgas de la pantalla completa.</p>
+            <p>ℹ️ <strong>Tiempo límite:</strong> 1 minuto por pregunta.</p>
+            <p>ℹ️ <strong>Navegación:</strong> No puedes regresar a preguntas anteriores.</p>
+            <p>ℹ️ <strong>Finalizar:</strong> Al responder la última se enviará el examen.</p>
+            <p>⚠️ <strong>Atención:</strong> Si el tiempo acaba, pasará a la siguiente.</p>
           </div>
           <button class="action-btn btn-primary" id="btnComenzar">¡Comenzar Examen!</button>
           <button class="action-btn" style="background: #4B5563; margin-top: 10px;" onclick="document.getElementById('examenOverlay').remove()">Cancelar</button>
@@ -1004,24 +1004,16 @@
           </div>
 
           <!-- Navegación -->
-          <div style="display: flex; justify-content: space-between; margin-top: 20px;">
-            <button id="btnAnterior" class="action-btn" style="width: 48%; background: #4B5563;">⬅️ Anterior</button>
-            <button id="btnSiguiente" class="action-btn btn-primary" style="width: 48%;">Siguiente ➡️</button>
+          <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+            <button id="btnSiguiente" class="action-btn btn-primary" style="width: 100%;">Siguiente ➡️</button>
           </div>
         </div>
       `;
 
       actualizarPregunta();
-      iniciarTimer();
+      // Timer iniciado dentro de actualizarPregunta para reiniciar cada vez
 
       // Eventos botones
-      document.getElementById('btnAnterior').onclick = () => {
-        if (preguntaActual > 0) {
-          preguntaActual--;
-          actualizarPregunta();
-        }
-      };
-
       document.getElementById('btnSiguiente').onclick = () => {
         if (preguntaActual < preguntasExamen.length - 1) {
           preguntaActual++;
@@ -1033,6 +1025,11 @@
     }
 
     function actualizarPregunta() {
+      // Reiniciar Timer por pregunta
+      tiempoRestante = 60;
+      clearInterval(timerInterval);
+      iniciarTimer();
+
       const p = preguntasExamen[preguntaActual];
       const contenedor = document.getElementById('contenedorPregunta');
 
@@ -1041,7 +1038,6 @@
       document.getElementById('progresoBarra').style.width = `${((preguntaActual + 1) / preguntasExamen.length) * 100}%`;
 
       // Controlar visibilidad botones
-      document.getElementById('btnAnterior').style.visibility = preguntaActual === 0 ? 'hidden' : 'visible';
       document.getElementById('btnSiguiente').textContent = preguntaActual === preguntasExamen.length - 1 ? 'Finalizar Examen ✅' : 'Siguiente ➡️';
 
       if (preguntaActual === preguntasExamen.length - 1) {
@@ -1090,12 +1086,20 @@
         if (tiempoRestante <= 10) {
           display.parentElement.style.background = "#DC2626"; // Rojo alerta
           display.parentElement.style.animation = "pulse 1s infinite";
+        } else {
+          display.parentElement.style.background = "#EF4444";
+          display.parentElement.style.animation = "none";
         }
 
         if (tiempoRestante <= 0) {
           clearInterval(timerInterval);
-          alert("⏰ ¡Tiempo terminado! Se enviarán tus respuestas actuales.");
-          finalizarExamen();
+          // Auto-avanzar cuando se acaba el tiempo
+          if (preguntaActual < preguntasExamen.length - 1) {
+            preguntaActual++;
+            actualizarPregunta();
+          } else {
+            finalizarExamen();
+          }
         }
       }, 1000);
     }

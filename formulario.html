@@ -869,7 +869,7 @@
           if (esYo && completo) {
             if (r.examen) {
               botonAccion = `
-                      <button onclick="verResultadosExamen()" style="background: #17a2b8; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">📊 Resultados</button>
+                      <button onclick="verResultadosExamen('${r.examen.puntaje}')" style="background: #17a2b8; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">📊 Resultados</button>
                       <button onclick="window.open('https://conquiguias.vercel.app/', '_blank')" style="background: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">📜 Certificado</button>
                     `;
             } else {
@@ -1142,12 +1142,12 @@
 
       const finalScore = (puntaje / preguntasExamen.length) * 100;
 
-      // Mapear respuestas al formato esperado por el backend (id_pregunta: id_respuesta)
-      // Nota: El backend anterior usaba índices, pero adaptaremos para que coincida
+      // Mapear respuestas al formato esperado por el backend
+      // Usaremos un objeto donde la clave es el índice de la pregunta (como string)
       const respuestasEnviar = {};
       preguntasExamen.forEach((p, idx) => {
-        // Usamos el índice como clave temporal si es necesario, o adaptamos según backend
-        respuestasEnviar[idx] = respuestasExamen[idx];
+        // Aseguramos que se envía aunque sea null si no respondió
+        respuestasEnviar[String(idx)] = respuestasExamen[idx] || null;
       });
 
       try {
@@ -1229,8 +1229,8 @@
       if (document.hidden) alert("⚠️ ¡No salgas de la pestaña del examen!");
     }
 
-    async function verResultadosExamen() {
-      alert("Ya has realizado el examen. Consulta tu certificación.");
+    async function verResultadosExamen(puntaje) {
+      alert(`📊 Tu calificación final es: ${parseFloat(puntaje).toFixed(0)} / 100`);
     }
   </script>
 </body>

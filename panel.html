@@ -3282,7 +3282,11 @@ transition: all 0.3s ease;
 
         // Agregar cada pregunta con retroalimentación
         examen.forEach((pregunta, index) => {
-          const respuestaUsuario = respuestasUsuario[pregunta.id];
+          // Lógica de recuperación de respuesta robusta
+          let respuestaUsuario = respuestasUsuario[pregunta.id];
+          if (respuestaUsuario === undefined) respuestaUsuario = respuestasUsuario[String(index)];
+          if (respuestaUsuario === undefined) respuestaUsuario = respuestasUsuario[index];
+
           const respuestaCorrecta = pregunta.options.find(opt => opt.correct);
           const opcionUsuario = pregunta.options.find(opt => opt.id === respuestaUsuario);
           const esCorrecta = respuestaCorrecta && respuestaUsuario === respuestaCorrecta.id;
@@ -3296,7 +3300,7 @@ transition: all 0.3s ease;
                     ${esCorrecta ? '✅ Correcta' : '❌ Incorrecta'}
                 </p>
                 <p style="margin: 0 0 8px 0; font-size: 14px; color: black;">
-                    <strong>Tu respuesta:</strong> ${opcionUsuario ? opcionUsuario.text : 'No respondida'}
+                    <strong>Tu respuesta:</strong> ${opcionUsuario ? opcionUsuario.text : '<span style="color: #999;">No respondida</span>'}
                 </p>
                 ${!esCorrecta && respuestaCorrecta ? `
                     <p style="margin: 0 0 5px 0; font-size: 14px; color: #28a745;">
@@ -3400,9 +3404,17 @@ transition: all 0.3s ease;
             let correctas = 0;
             let total = examen.length;
 
-            examen.forEach(pregunta => {
-              const respuestaUsuario = respuestasUsuario[pregunta.id];
+            examen.forEach((pregunta, idx) => {
+              // Intentar diferentes claves para encontrar la respuesta
+              let respuestaUsuario = respuestasUsuario[pregunta.id];
+
+              // Si no encuentra por ID, intentar por índice (string o número)
+              if (respuestaUsuario === undefined) respuestaUsuario = respuestasUsuario[String(idx)];
+              if (respuestaUsuario === undefined) respuestaUsuario = respuestasUsuario[idx];
+
               const respuestaCorrecta = pregunta.options.find(opt => opt.correct);
+
+              // Comparar respuesta
               if (respuestaCorrecta && respuestaUsuario === respuestaCorrecta.id) {
                 correctas++;
               }

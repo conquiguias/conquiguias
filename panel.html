@@ -3384,7 +3384,7 @@ transition: all 0.3s ease;
         const textoOriginal = btnImprimir.innerHTML;
 
         // Mostrar loading
-        btnImprimir.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando PDF...';
+        btnImprimir.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando certificado...';
         btnImprimir.disabled = true;
 
         // Obtener el nombre del usuario desde las asistencias
@@ -3414,12 +3414,11 @@ transition: all 0.3s ease;
               }
             }
 
-            // Crear elemento temporal para PDF
-            const element = document.createElement('div');
-            element.style.width = '800px';
-            element.style.background = 'white';
-
+            // Crear ventana de impresión
+            const ventanaImpresion = window.open('', '_blank');
             const respuestasUsuario = resultado.respuestas || {};
+
+            // Calcular estadísticas del examen
             let correctas = 0;
             let total = examen.length;
 
@@ -3435,6 +3434,9 @@ transition: all 0.3s ease;
             });
 
             const porcentaje = (correctas / total) * 100;
+            const aprobado = porcentaje >= 70;
+
+            // Formatear fecha
             const fechaCreacion = new Date(formulario.creado);
             const opcionesFecha = { year: 'numeric', month: 'long', day: 'numeric' };
             const fechaFormateada = fechaCreacion.toLocaleDateString('es-ES', opcionesFecha);
@@ -3445,13 +3447,42 @@ transition: all 0.3s ease;
                 <head>
                     <title>Examen y Certificación - ${formulario.titulo}</title>
                     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Great+Vibes&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
+                    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
                     <style>
                         /* ESTILOS PARA EL EXAMEN */
-                        .examen-section { margin: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-                        .header-examen { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #2c3e50; padding-bottom: 20px; position: relative; }
-                        .imagen-especialidad-examen { position: absolute; top: 10px; right: 10px; max-width: 80px; max-height; 80px; }
-                        .resumen-examen { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 30px; text-align: center; }
-                        .pregunta { margin-bottom: 20px; padding: 15px; border-left: 4px solid #3498db; background: #f8f9fa; page-break-inside: avoid; }
+                        .examen-section {
+                            margin: 20px;
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                        }
+                        .header-examen {
+                            text-align: center;
+                            margin-bottom: 30px;
+                            border-bottom: 2px solid #2c3e50;
+                            padding-bottom: 20px;
+                            position: relative;
+                        }
+                        .imagen-especialidad-examen {
+                            position: absolute;
+                            top: 10px;
+                            right: 10px;
+                            max-width: 80px;
+                            max-height: 80px;
+                        }
+                        .resumen-examen {
+                            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+                            color: white;
+                            padding: 25px;
+                            border-radius: 12px;
+                            margin-bottom: 30px;
+                            text-align: center;
+                        }
+                        .pregunta {
+                            margin-bottom: 20px;
+                            padding: 15px;
+                            border-left: 4px solid #3498db;
+                            background: #f8f9fa;
+                            page-break-inside: avoid;
+                        }
                         .correcta { border-left-color: #28a745; }
                         .incorrecta { border-left-color: #dc3545; }
                         
@@ -3470,17 +3501,66 @@ transition: all 0.3s ease;
                             box-sizing: border-box;
                         }
                         
-                        .decoracion-certificado { position: absolute; top: 0; height: 100%; z-index: 0; pointer-events: none; }
+                        .decoracion-certificado {
+                            position: absolute;
+                            top: 0;
+                            height: 100%;
+                            z-index: 0;
+                            pointer-events: none;
+                        }
                         .decoracion-izquierda { left: 0; width: 140px; }
                         .decoracion-derecha { right: 0; width: 140px; }
-                        .decoracion-abajo { position: relative; bottom: 0px; margin: auto; margin-top: -50px; margin-bottom: -50px; height: 200px; width: auto; z-index: 0; }
+                        .decoracion-abajo {
+                            position: relative;
+                            bottom: 0px;
+                            margin: auto;
+                            margin-top: -50px;
+                            margin-bottom: -50px;
+                            height: 200px;
+                            width: auto;
+                            z-index: 0;
+                        }
                         
-                        .certificacion-contenido { position: relative; z-index: 1; text-align: center; width: 100%; max-width: 800px; margin: 0 auto; }
-                        .imagen-especialidad-certificado { position: absolute; top: 250px; right: 20px; max-width: 180px; max-height: 180px; z-index: 1; }
-                        .certificacion-header { width: 100%; justify-content: center; margin-bottom: 40px; }
-                        .certificacion-titulo { font-size: 18px; width: 80%; margin: auto; margin-bottom: 10px; letter-spacing: 1px; }
-                        .certificado-texto { font-size: 50px; color: #2c3e50; font-weight: bold; margin: auto; text-transform: uppercase; }
-                        .otorgado-a { font-size: 18px; margin-bottom: 20px; font-weight: bold; }
+                        .certificacion-contenido {
+                            position: relative;
+                            z-index: 1;
+                            text-align: center;
+                            width: 100%;
+                            max-width: 800px;
+                            margin: 0 auto;
+                        }
+                        .imagen-especialidad-certificado {
+                            position: absolute;
+                            top: 250px;
+                            right: 20px;
+                            max-width: 180px;
+                            max-height: 180px;
+                            z-index: 1;
+                        }
+                        .certificacion-header {
+                            width: 100%;
+                            justify-content: center;
+                            margin-bottom: 40px;
+                        }
+                        .certificacion-titulo {
+                            font-size: 18px;
+                            width: 80%;
+                            margin: auto;
+                            margin-bottom: 10px;
+                            letter-spacing: 1px;
+                        }
+                        .certificado-texto {
+                            font-size: 50px;
+                            color: #2c3e50;
+                            font-weight: bold;
+                            margin: auto;
+                            text-transform: uppercase;
+                        }
+                        .otorgado-a {
+                            font-size: 18px;
+                            margin-bottom: 20px;
+                            font-weight: bold;
+                        }
                         .nombre-usuario {
                             font-family: "Great Vibes", cursive;
                             font-size: 40px;
@@ -3493,8 +3573,19 @@ transition: all 0.3s ease;
                             max-width: 600px;
                             word-wrap: break-word;
                         }
-                        .linea-separadora { width: 400px; border-top: 2px solid #2c3e50; margin: 30px auto; }
-                        .texto-certificacion { font-size: 20px; line-height: 1.8; margin: 40px 0; max-width: 600px; margin-left: auto; margin-right: auto; }
+                        .linea-separadora {
+                            width: 400px;
+                            border-top: 2px solid #2c3e50;
+                            margin: 30px auto;
+                        }
+                        .texto-certificacion {
+                            font-size: 20px;
+                            line-height: 1.8;
+                            margin: 40px 0;
+                            max-width: 600px;
+                            margin-left: auto;
+                            margin-right: auto;
+                        }
                         
                         .firmas-container {
                             margin-top: 80px;
@@ -3505,17 +3596,57 @@ transition: all 0.3s ease;
                             width: 100%;
                             gap: 20px;
                         }
-                        .firma { text-align: center; margin: 10px; min-width: 150px; max-width: 200px; flex: 1; }
-                        .firma img { max-width: 140px; max-height: 80px; margin-bottom: 0px; object-fit: contain; }
-                        .linea-firma { width: 100%; max-width: 180px; border-top: 1px solid #2c3e50; margin: 5px auto; }
-                        .nombre-firma { font-weight: bold; font-size: 14px; margin-top: 8px; word-wrap: break-word; hyphens: auto; line-height: 1.2; }
-                        .cargo-firma { font-size: 12px; color: #666; margin-top: 5px; font-weight: bold; }
+                        .firma {
+                            text-align: center;
+                            margin: 10px;
+                            min-width: 150px;
+                            max-width: 200px;
+                            flex: 1;
+                        }
+                        .firma img {
+                            max-width: 140px;
+                            max-height: 80px;
+                            margin-bottom: 0px;
+                            object-fit: contain;
+                        }
+                        .linea-firma {
+                            width: 100%;
+                            max-width: 180px;
+                            border-top: 1px solid #2c3e50;
+                            margin: 5px auto;
+                        }
+                        .nombre-firma {
+                            font-weight: bold;
+                            font-size: 14px;
+                            margin-top: 8px;
+                            word-wrap: break-word;
+                            hyphens: auto;
+                            line-height: 1.2;
+                        }
+                        .cargo-firma {
+                            font-size: 12px;
+                            color: #666;
+                            margin-top: 5px;
+                            font-weight: bold;
+                        }
                         
+                        /* ESTILOS GENERALES DE IMPRESIÓN */
                         @media print {
                             body { margin: 0; padding: 0; }
                             .examen-section { margin: 15px; }
-                            .certificacion-page { margin: 0; padding: 50px; border: none; }
+                            .certificacion-page {
+                                margin: 0;
+                                padding: 50px;
+                                border: none;
+                            }
                             .no-print { display: none !important; }
+                        }
+                        
+                        body {
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            margin: 0;
+                            padding: 0;
+                            color: #333;
                         }
                     </style>
                 </head>
@@ -3530,14 +3661,21 @@ transition: all 0.3s ease;
 
                         <!-- RESUMEN DEL EXAMEN -->
                         <div class="resumen-examen">
-                            <h2 style="margin: 0 0 15px 0; font-size: 24px;">📊 Resultados del Examen</h2>
-                            <p style="margin: 8px 0; font-size: 18px;"><strong>Resumen:</strong> ${correctas} de ${total} preguntas correctas (${porcentaje.toFixed(1)}%)</p>
-                            <p style="margin: 8px 0; font-size: 18px;"><strong>Estado:</strong> ✅ Aprobado</p>
-                            <p style="margin: 15px 0 0 0; font-size: 16px; font-weight: bold;">🎉 ¡Felicidades! Has aprobado el examen.</p>
+                            <h2 style="margin: 0 0 15px 0; font-size: 24px;"><i class="fas fa-chart-bar"></i> Resultados del Examen</h2>
+                            <p style="margin: 8px 0; font-size: 18px;">
+                                <strong>Resumen:</strong> ${correctas} de ${total} preguntas correctas (${porcentaje.toFixed(1)}%)
+                            </p>
+                            <p style="margin: 8px 0; font-size: 18px;">
+                                <strong>Estado:</strong> ${aprobado ? '<i class="fas fa-check-circle"></i> Aprobado' : '<i class="fas fa-times-circle"></i> Reprobado'}
+                            </p>
+                            ${aprobado ?
+                '<p style="margin: 15px 0 0 0; font-size: 16px; font-weight: bold;"><i class="fas fa-trophy"></i> ¡Felicidades! Has aprobado el examen.</p>' :
+                '<p style="margin: 15px 0 0 0; font-size: 16px;"><i class="fas fa-book"></i> Sigue estudiando para mejorar tus resultados.</p>'
+              }
                         </div>
 
                         <div style="margin: 30px 0; border-top: 2px dashed #ccc; padding-top: 20px;">
-                            <h3 style="color: #2c3e50; margin-bottom: 20px; text-align: center;">📝 Detalle de Preguntas</h3>
+                            <h3 style="color: #2c3e50; margin-bottom: 20px; text-align: center;"><i class="fas fa-clipboard-list"></i> Detalle de Preguntas</h3>
             `;
 
             examen.forEach((pregunta, index) => {
@@ -3555,12 +3693,16 @@ transition: all 0.3s ease;
                             <strong>Pregunta ${index + 1}:</strong> ${pregunta.text}
                         </p>
                         <p style="margin: 0 0 8px 0; font-size: 14px; color: ${esCorrecta ? '#28a745' : '#dc3545'}; font-weight: bold;">
-                            ${esCorrecta ? '✅ Correcta' : '❌ Incorrecta'}
+                            ${esCorrecta ? '<i class="fas fa-check"></i> Correcta' : '<i class="fas fa-times"></i> Incorrecta'}
                         </p>
                         <p style="margin: 0 0 8px 0; font-size: 14px;">
                             <strong>Tu respuesta:</strong> ${opcionUsuario ? opcionUsuario.text : 'No respondida'}
                         </p>
-                        ${!esCorrecta && respuestaCorrecta ? `<p style="margin: 0 0 5px 0; font-size: 14px; color: #28a745;"><strong>Respuesta correcta:</strong> ${respuestaCorrecta.text}</p>` : ''}
+                        ${!esCorrecta && respuestaCorrecta ? `
+                            <p style="margin: 0 0 5px 0; font-size: 14px; color: #28a745;">
+                                <strong>Respuesta correcta:</strong> ${respuestaCorrecta.text}
+                            </p>
+                        ` : ''}
                     </div>
                 `;
             });
@@ -3599,7 +3741,6 @@ transition: all 0.3s ease;
                                 </div>
                             </div>
 
-                            <!-- REEMPLAZAR LA SECCIÓN DE FIRMAS ACTUAL CON ESTA VERSIÓN MEJORADA -->
                             <div class="firmas-container">
                                 ${formulario.imagenFirma1 ? `
                                 <div class="firma">
@@ -3633,39 +3774,51 @@ transition: all 0.3s ease;
                             </div>
                         </div>
                     </div>
+
+                    <div class="no-print" style="text-align: center; margin: 30px; padding: 20px;">
+                        <button onclick="window.print()" style="
+                            padding: 12px 25px; 
+                            background: #007bff; 
+                            color: white; 
+                            border: none; 
+                            border-radius: 5px; 
+                            cursor: pointer;
+                            font-size: 16px;
+                            margin: 0 10px;
+                        ">
+                            <i class="fas fa-print"></i> Imprimir Documento Completo
+                        </button>
+                        <button onclick="window.close()" style="
+                            padding: 12px 25px; 
+                            background: #6c757d; 
+                            color: white; 
+                            border: none; 
+                            border-radius: 5px; 
+                            cursor: pointer;
+                            font-size: 16px;
+                            margin: 0 10px;
+                        ">
+                            Cerrar Ventana
+                        </button>
+                    </div>
                 </body>
                 </html>
             `;
 
-            element.innerHTML = contenidoImpresion;
+            ventanaImpresion.document.write(contenidoImpresion);
+            ventanaImpresion.document.close();
 
-            // OPCIONES PDF
-            const opt = {
-              margin: 0,
-              filename: `Certificado_${formulario.titulo.replace(/\s+/g, '_')}.pdf`,
-              image: { type: 'jpeg', quality: 0.98 },
-              html2canvas: { scale: 2, useCORS: true },
-              jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait' }
-            };
-
-            // GENERAR Y DESCARGAR PDF INVISIBLEMENTE
-            html2pdf().from(element).set(opt).save().then(() => {
-              btnImprimir.innerHTML = textoOriginal;
-              btnImprimir.disabled = false;
-              mostrarMensaje('success', 'Descarga Completa', 'El certificado PDF se ha descargado correctamente.');
-            }).catch(err => {
-              console.error("Error generando PDF:", err);
-              btnImprimir.innerHTML = textoOriginal;
-              btnImprimir.disabled = false;
-              mostrarMensaje('error', 'Error', 'No se pudo generar el PDF.');
-            });
+            // Restaurar botón
+            btnImprimir.innerHTML = textoOriginal;
+            btnImprimir.disabled = false;
 
           })
           .catch(error => {
             console.error('Error al obtener asistencias:', error);
+            // Restaurar botón en caso de error
             btnImprimir.innerHTML = textoOriginal;
             btnImprimir.disabled = false;
-            mostrarMensaje("error", "Error", "No se pudo generar el PDF: " + error.message);
+            mostrarMensaje("error", "Error", "No se pudo generar el certificado: " + error.message);
           });
       }
 

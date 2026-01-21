@@ -544,6 +544,7 @@
     <div class="modal-content">
       <h2 style="text-align: center; margin-bottom: 20px;">Acceso Instructores</h2>
       <input type="email" id="adminEmailInput" placeholder="ingresa.tu@correo.com" style="margin-bottom: 20px;">
+      <input type="password" id="adminPassInput" placeholder="Contraseña" style="margin-bottom: 20px;">
       <button class="action-btn btn-primary" onclick="validarAdmin()">Ingresar</button>
       <button onclick="document.getElementById('modalLoginAdmin').style.display='none'"
         style="width:100%; padding:10px; background:none; border:none; margin-top:10px; cursor:pointer; color:#666;">Cancelar</button>
@@ -687,17 +688,43 @@
       document.getElementById("modalLoginAdmin").style.display = "flex";
     }
 
-    function validarAdmin() {
+    async function validarAdmin() {
       const email = document.getElementById("adminEmailInput").value.trim();
-      if (email === "kendall.torres.17@gmail.com") {
-        isAdmin = true;
-        document.getElementById("modalLoginAdmin").style.display = "none";
-        document.getElementById("panelAdmin").style.display = "block";
-        document.getElementById("admin-float-btn").style.display = "none";
-        alert("✅ Bienvenido Admin");
-        actualizarUI();
-      } else {
-        alert("❌ Correo no autorizado");
+      const password = document.getElementById("adminPassInput").value;
+
+      const btn = document.querySelector('#modalLoginAdmin .action-btn');
+      const originalText = btn.textContent;
+      btn.textContent = "Verificando...";
+      btn.disabled = true;
+
+      try {
+        if (email !== "kendall.torres.17@gmail.com") {
+          alert("❌ Correo no autorizado");
+          return;
+        }
+
+        const res = await fetch('/api/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'verifyAdminPassword', data: { password } })
+        });
+
+        if (res.ok) {
+          isAdmin = true;
+          document.getElementById("modalLoginAdmin").style.display = "none";
+          document.getElementById("panelAdmin").style.display = "block";
+          document.getElementById("admin-float-btn").style.display = "none";
+          alert("✅ Bienvenido Admin");
+          actualizarUI();
+        } else {
+          alert("❌ Contraseña incorrecta");
+        }
+      } catch (error) {
+        console.error("Error validando admin:", error);
+        alert("Error de conexión al validar credenciales.");
+      } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
       }
     }
 

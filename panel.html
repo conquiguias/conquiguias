@@ -1833,57 +1833,7 @@ transition: all 0.3s ease;
       <span style="font-size: 24px; color: white;">+</span>
     </div>
 
-    <!-- 🔹 BOTÓN FLOTANTE ADMIN -->
-    <div id="floatingAdminBtn" style="
-      position: fixed;
-      bottom: 30px;
-      left: 30px;
-      width: 50px;
-      height: 50px;
-      background: #2c3e50;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-      z-index: 999;
-      transition: all 0.3s ease;
-    ">
-      <i class="fas fa-user-shield" style="font-size: 20px; color: white;"></i>
-    </div>
 
-    <!-- MODAL LOGIN ADMIN -->
-    <div id="adminLoginModal" class="hiddenX" style="
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.7); z-index: 2000;
-      display: flex; align-items: center; justify-content: center;
-    ">
-      <div
-        style="background: var(--bg-card); padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; position: relative;">
-        <button id="closeAdminModal"
-          style="position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 24px; color: var(--text-secondary); cursor: pointer;">&times;</button>
-        <h3 style="text-align: center; margin-bottom: 20px; color: var(--text-primary);">Acceso Administrativo</h3>
-
-        <div style="margin-bottom: 15px;">
-          <label style="display: block; margin-bottom: 5px; font-weight: bold;">Correo Electrónico</label>
-          <input type="email" id="adminEmailInput" placeholder="admin@ejemplo.com"
-            style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary);">
-        </div>
-
-        <div style="margin-bottom: 20px;">
-          <label style="display: block; margin-bottom: 5px; font-weight: bold;">Contraseña</label>
-          <input type="password" id="adminPassInput" placeholder="Contraseña de admin"
-            style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary);">
-        </div>
-
-        <button id="btnVerifyAdmin"
-          style="width: 100%; padding: 12px; background: #2c3e50; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer;">
-          Ingresar
-        </button>
-        <p id="adminLoginError" style="color: #ef4444; margin-top: 10px; text-align: center; display: none;"></p>
-      </div>
-    </div>
 
     <!-- Modal para crear publicación - INICIALMENTE OCULTO -->
     <div id="uploadModal" class="hiddenX">
@@ -3484,60 +3434,113 @@ transition: all 0.3s ease;
             });
 
             const porcentaje = (correctas / total) * 100;
-            const aprobado = porcentaje >= 70;
+            //const aprobado = porcentaje >= 70; // Ya verificado antes
 
             // Formatear fecha
             const fechaCreacion = new Date(formulario.creado);
             const opcionesFecha = { year: 'numeric', month: 'long', day: 'numeric' };
             const fechaFormateada = fechaCreacion.toLocaleDateString('es-ES', opcionesFecha);
 
-            // 🔹 CONSTRUIR CONTENIDO PARA HTML2PDF
-            // Creamos un elemento temporal
+            // 🔹 CONSTRUIR CONTENIDO ORIGINAL PARA HTML2PDF
             const element = document.createElement('div');
-            element.style.width = '800px'; // Ancho fijo para A4 aprox
-            element.style.fontFamily = "'Segoe UI', sans-serif";
-            element.style.color = "#333";
-            element.style.background = "white";
+            // Ancho optimizado para PDF A4 (aprox 800px)
+            element.style.width = '800px';
+            element.style.background = 'white';
 
             let contenidoImpresion = `
-                <!-- ESTILOS INLINE PARA PDF -->
-                <style>
-                    .pdf-container { padding: 40px; }
-                    .header-pdf { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #2c3e50; padding-bottom: 20px; }
-                    .titulo-principal { color: #2c3e50; font-size: 28px; margin: 0; }
-                    .subtitulo { color: #34495e; font-size: 22px; margin: 10px 0; }
-                    .resumen-box { background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 20px; border-radius: 8px; margin-bottom: 30px; text-align: center; }
-                    .pregunta-item { margin-bottom: 15px; padding: 10px; border-bottom: 1px solid #eee; page-break-inside: avoid; }
-                    .correcta-text { color: #28a745; font-weight: bold; }
-                    .incorrecta-text { color: #dc3545; font-weight: bold; }
-                    
-                    /* Certificado */
-                    .certificado-page { page-break-before: always; position: relative; padding: 40px; text-align: center; border: 10px solid #2c3e50; height: 900px; display: flex; flex-direction: column; justify-content: center; }
-                    .cert-title { font-family: 'Times New Roman', serif; font-size: 50px; color: #2c3e50; margin-bottom: 20px; text-transform: uppercase; }
-                    .cert-name { font-family: cursive; font-size: 40px; border-bottom: 2px solid #333; display: inline-block; margin: 20px 0; padding: 0 40px; }
-                    .cert-text { font-size: 18px; line-height: 1.6; margin: 20px 0; }
-                    .firmas-row { display: flex; justify-content: space-around; margin-top: 60px; }
-                    .firma-box { text-align: center; width: 30%; }
-                    .firma-img { max-height: 60px; display: block; margin: 0 auto; }
-                    .firma-line { border-top: 1px solid #333; margin-top: 5px; padding-top: 5px; font-size: 14px; }
-                </style>
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Examen y Certificación</title>
+                    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Great+Vibes&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
+                    <style>
+                        /* ESTILOS ORIGINALES RESTAURADOS */
+                        .examen-section { margin: 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+                        .header-examen { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #2c3e50; padding-bottom: 20px; position: relative; }
+                        .imagen-especialidad-examen { position: absolute; top: 10px; right: 10px; max-width: 80px; max-height: 80px; }
+                        .resumen-examen { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 30px; text-align: center; }
+                        .pregunta { margin-bottom: 20px; padding: 15px; border-left: 4px solid #3498db; background: #f8f9fa; page-break-inside: avoid; }
+                        .correcta { border-left-color: #28a745; }
+                        .incorrecta { border-left-color: #dc3545; }
+                        
+                        /* ESTILOS CERTIFICADO - HOJA SEPARADA */
+                        .certificacion-page {
+                            page-break-before: always;
+                            width: 100%;
+                            min-height: 1120px; /* Altura A4 Aprox */
+                            margin: 0;
+                            padding: 40px;
+                            display: flex;
+                            flex-direction: column;
+                            justify-content: center;
+                            align-items: center;
+                            position: relative;
+                            box-sizing: border-box;
+                            overflow: hidden;
+                        }
+                        
+                        .decoracion-certificado { position: absolute; top: 0; height: 100%; z-index: 0; pointer-events: none; }
+                        .decoracion-izquierda { left: 0; width: 140px; }
+                        .decoracion-derecha { right: 0; width: 140px; }
+                        .decoracion-abajo { bottom: 0; width: 100%; height: auto; z-index: 0; position: absolute; left: 0; }
+                        
+                        .certificacion-contenido { position: relative; z-index: 1; text-align: center; width: 100%; max-width: 800px; margin: 0 auto; }
+                        .imagen-especialidad-certificado { position: absolute; top: 150px; right: 80px; max-width: 150px; max-height: 150px; z-index: 1; opacity: 0.9; }
+                        
+                        .certificacion-titulo { font-size: 18px; width: 80%; margin: auto; margin-bottom: 10px; letter-spacing: 1px; font-family: 'Montserrat', sans-serif; }
+                        .certificado-texto { font-size: 60px; color: #2c3e50; font-weight: 900; margin: 10px auto; text-transform: uppercase; font-family: 'Playfair Display', serif; letter-spacing: 5px; }
+                        .otorgado-a { font-size: 18px; margin-top: 30px; margin-bottom: 10px; font-weight: bold; font-family: 'Montserrat', sans-serif; }
+                        
+                        .nombre-usuario {
+                            font-family: "Great Vibes", cursive;
+                            font-size: 55px;
+                            font-weight: normal;
+                            margin: 10px 0 30px 0;
+                            padding: 10px 40px;
+                            border-bottom: 2px solid #2c3e50;
+                            display: inline-block;
+                            min-width: 400px;
+                            color: #1a1a1a;
+                        }
+                        
+                        .texto-certificacion { font-size: 20px; line-height: 1.8; margin: 20px auto; max-width: 650px; font-family: 'Playfair Display', serif; }
+                        
+                        .firmas-container { margin-top: 60px; display: flex; justify-content: center; align-items: flex-end; flex-wrap: wrap; gap: 40px; width: 100%; }
+                        .firma { text-align: center; width: 180px; }
+                        .firma img { max-width: 140px; max-height: 70px; margin-bottom: 5px; object-fit: contain; }
+                        .linea-firma { width: 100%; border-top: 1px solid #2c3e50; margin: 5px auto; }
+                        .nombre-firma { font-weight: bold; font-size: 14px; margin-top: 5px; font-family: 'Montserrat', sans-serif; }
+                        .cargo-firma { font-size: 11px; color: #666; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
 
-                <div class="pdf-container">
-                    <div class="header-pdf">
-                        <h1 class="titulo-principal">Conquiguias World</h1>
-                        <h2 class="subtitulo">${formulario.titulo}</h2>
-                    </div>
+                        /* AJUSTES DE IMPRESIÓN */
+                        @media print {
+                            body { margin: 0; padding: 0; }
+                            .no-print { display: none !important; }
+                            .certificacion-page { page-break-before: always; height: 100vh; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <!-- SECCIÓN DEL EXAMEN -->
+                    <div class="examen-section">
+                        <div class="header-examen">
+                            <h1 style="color: #2c3e50; margin-bottom: 10px; font-size: 28px;">Conquiguias World</h1>
+                            <h2 style="color: #34495e; margin-bottom: 10px; font-size: 22px;">${formulario.titulo}</h2>
+                            ${formulario.imagenEspecialidad ? `<img src="${formulario.imagenEspecialidad}" class="imagen-especialidad-examen" alt="Especialidad">` : ''}
+                        </div>
 
-                    <div class="resumen-box">
-                        <h3>Resultados del Examen</h3>
-                        <p><strong>Puntaje:</strong> ${correctas} / ${total} (${porcentaje.toFixed(1)}%)</p>
-                        <p><strong>Estado:</strong> ${aprobado ? 'APROBADO' : 'REPROBADO'}</p>
-                    </div>
+                        <div class="resumen-examen">
+                            <h2 style="margin: 0 0 15px 0; font-size: 24px;">📊 Resultados del Examen</h2>
+                            <p style="margin: 8px 0; font-size: 18px;"><strong>Resumen:</strong> ${correctas} de ${total} preguntas correctas (${porcentaje.toFixed(1)}%)</p>
+                            <p style="margin: 8px 0; font-size: 18px;"><strong>Estado:</strong> ✅ Aprobado</p>
+                            <p style="margin: 15px 0 0 0; font-size: 16px; font-weight: bold;">🎉 ¡Felicidades! Has aprobado el examen.</p>
+                        </div>
 
-                    <h3>Detalle de Preguntas</h3>
+                        <div style="margin: 30px 0; border-top: 2px dashed #ccc; padding-top: 20px;">
+                            <h3 style="color: #2c3e50; margin-bottom: 20px; text-align: center;">📝 Detalle de Preguntas</h3>
             `;
 
-            // Agregar preguntas
+            // Agregar preguntas del examen
             examen.forEach((pregunta, index) => {
               let respuestaUsuario = respuestasUsuario[pregunta.id];
               if (respuestaUsuario === undefined) respuestaUsuario = respuestasUsuario[String(index)];
@@ -3548,62 +3551,79 @@ transition: all 0.3s ease;
               const esCorrecta = respuestaCorrecta && respuestaUsuario === respuestaCorrecta.id;
 
               contenidoImpresion += `
-                    <div class="pregunta-item">
-                        <p><strong>${index + 1}. ${pregunta.text}</strong></p>
-                        <p style="font-size: 14px;">Tu respuesta: ${opcionUsuario ? opcionUsuario.text : 'No respondida'} 
-                           ${esCorrecta ? '<span class="correcta-text">✔</span>' : '<span class="incorrecta-text">✘</span>'}
+                    <div class="pregunta ${esCorrecta ? 'correcta' : 'incorrecta'}">
+                        <p style="margin: 0 0 10px 0; font-weight: bold; font-size: 16px; color: #2c3e50;">
+                            <strong>Pregunta ${index + 1}:</strong> ${pregunta.text}
                         </p>
-                        ${!esCorrecta && respuestaCorrecta ? `<p style="font-size: 12px; color: #666;">Correcta: ${respuestaCorrecta.text}</p>` : ''}
+                        <p style="margin: 0 0 8px 0; font-size: 14px; color: ${esCorrecta ? '#28a745' : '#dc3545'}; font-weight: bold;">
+                            ${esCorrecta ? '✅ Correcta' : '❌ Incorrecta'}
+                        </p>
+                        <p style="margin: 0 0 8px 0; font-size: 14px;">
+                            <strong>Tu respuesta:</strong> ${opcionUsuario ? opcionUsuario.text : 'No respondida'}
+                        </p>
+                        ${!esCorrecta && respuestaCorrecta ? `<p style="margin: 0 0 5px 0; font-size: 14px; color: #28a745;"><strong>Respuesta correcta:</strong> ${respuestaCorrecta.text}</p>` : ''}
                     </div>
                 `;
             });
 
-            // Cerrar sección examen
-            contenidoImpresion += `</div>`;
+            contenidoImpresion += `</div></div>`; // Cierre examen-section
 
-            // SECCIÓN CERTIFICADO - Añadir al HTML
-            if (aprobado) {
-              contenidoImpresion += `
-                <div class="certificado-page">
-                    <div style="position: absolute; top:0; left:0; width:100%; height:100%; z-index:-1; opacity: 0.1;">
-                        <!-- Fondo marca de agua si necesario -->
-                    </div>
+            // SECCIÓN CERTIFICADO - DISEÑO ORIGINAL MEJORADO
+            contenidoImpresion += `
+                <div class="certificacion-page">
+                    <!-- IMÁGENES DECORATIVAS ORIGINALES -->
+                    <img src="images/decoracion/izquierda.png" class="decoracion-certificado decoracion-izquierda" alt="">
+                    <img src="images/decoracion/derecha.png" class="decoracion-certificado decoracion-derecha" alt="">
+                    <img src="images/decoracion/barnerLogos.png" class="decoracion-certificado decoracion-abajo" alt="">
                     
-                    <p>LA ACADEMIA Y PLATAFORMA ONLINE CONQUIGUIAS WORLD EXTIENDE EL SIGUIENTE</p>
-                    <h1 class="cert-title">CERTIFICADO</h1>
-                    <p>OTORGADO A:</p>
+                    ${formulario.imagenEspecialidad ? `<img src="${formulario.imagenEspecialidad}" class="imagen-especialidad-certificado" alt="Especialidad">` : ''}
                     
-                    <div class="cert-name">${nombreUsuario}</div>
-                    
-                    <div class="cert-text">
-                        Por haber participado en la especialidad:<br>
-                        <strong>"${formulario.titulo}"</strong><br>
-                        impartido por ${formulario.imagenFirma1 ? 'el instructor' : 'la academia'},<br>
-                        el ${fechaFormateada}.
-                    </div>
+                    <div class="certificacion-contenido">
+                        <p class="certificacion-titulo">LA ACADEMIA Y PLATAFORMA ONLINE CONQUIGUIAS WORLD EXTIENDE EL SIGUIENTE</p>
+                        <h1 class="certificado-texto">CERTIFICADO</h1>
+                        
+                        <p class="otorgado-a">OTORGADO A:</p>
+                        
+                        <div class="nombre-usuario">${nombreUsuario}</div>
+                        
+                        <div class="texto-certificacion">
+                            Por haber participado en la especialidad:<br>
+                            <strong style="color: #2c3e50; font-size: 24px; display:block; margin: 10px 0;">"${formulario.titulo}"</strong>
+                            impartido por <strong>${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma1) || 'el instructor')}</strong>,<br>
+                            el ${fechaFormateada}.
+                        </div>
 
-                    <div class="firmas-row">
-                        ${formulario.imagenFirma1 ? `
-                        <div class="firma-box">
-                            <img src="${formulario.imagenFirma1}" class="firma-img">
-                            <div class="firma-line">Instructor</div>
-                        </div>` : ''}
-                        
-                        ${formulario.imagenFirma2 ? `
-                        <div class="firma-box">
-                            <img src="${formulario.imagenFirma2}" class="firma-img">
-                            <div class="firma-line">Coordinador GM</div>
-                        </div>` : ''}
-                        
-                        ${formulario.imagenFirma3 ? `
-                        <div class="firma-box">
-                            <img src="${formulario.imagenFirma3}" class="firma-img">
-                            <div class="firma-line">Director</div>
-                        </div>` : ''}
+                        <!-- FIRMAS -->
+                        <div class="firmas-container">
+                            ${formulario.imagenFirma1 ? `
+                            <div class="firma">
+                                <img src="${formulario.imagenFirma1}">
+                                <div class="linea-firma"></div>
+                                <div class="nombre-firma">${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma1))}</div>
+                                <div class="cargo-firma">INSTRUCTOR</div>
+                            </div>` : ''}
+                            
+                            ${formulario.imagenFirma2 ? `
+                            <div class="firma">
+                                <img src="${formulario.imagenFirma2}">
+                                <div class="linea-firma"></div>
+                                <div class="nombre-firma">${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma2))}</div>
+                                <div class="cargo-firma">DIRECTOR</div>
+                            </div>` : ''}
+                            
+                            ${formulario.imagenFirma3 ? `
+                            <div class="firma">
+                                <img src="${formulario.imagenFirma3}">
+                                <div class="linea-firma"></div>
+                                <div class="nombre-firma">${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma3))}</div>
+                                <div class="cargo-firma">COORDINADOR</div>
+                            </div>` : ''}
+                        </div>
                     </div>
                 </div>
-              `;
-            }
+                </body>
+                </html>
+            `;
 
             element.innerHTML = contenidoImpresion;
 
@@ -3612,20 +3632,20 @@ transition: all 0.3s ease;
               margin: 0,
               filename: `Certificado_${formulario.titulo.replace(/\s+/g, '_')}.pdf`,
               image: { type: 'jpeg', quality: 0.98 },
-              html2canvas: { scale: 2 },
-              jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+              html2canvas: { scale: 2, useCORS: true },
+              jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait' } // A4 en px a 96dpi aprox
             };
 
-            // GENERAR Y DESCARGAR
+            // GENERAR Y DESCARGAR INVISIBLEMENTE
             html2pdf().from(element).set(opt).save().then(() => {
               btnImprimir.innerHTML = textoOriginal;
               btnImprimir.disabled = false;
-              mostrarMensaje('success', 'Éxito', 'El certificado se ha descargado correctamente.');
+              mostrarMensaje('success', 'Descarga Completa', 'Tu certificado se ha descargado correctamente.');
             }).catch(err => {
               console.error("Error PDF:", err);
               btnImprimir.innerHTML = textoOriginal;
               btnImprimir.disabled = false;
-              mostrarMensaje('error', 'Error', 'No se pudo generar el PDF.');
+              mostrarMensaje('error', 'Error', 'No se pudo generar el PDF. Intenta nuevamente.');
             });
 
           })
@@ -3633,7 +3653,7 @@ transition: all 0.3s ease;
             console.error('Error al generar certificado:', error);
             btnImprimir.innerHTML = textoOriginal;
             btnImprimir.disabled = false;
-            mostrarMensaje('error', 'Error', 'Ocurrió un error al preparar el certificado.');
+            mostrarMensaje('error', 'Error', 'Ocurrió un error al procesar el certificado.');
           });
       }
 
@@ -5932,83 +5952,7 @@ transition: all 0.3s ease;
 
 
 
-      // Event Listeners para Admin Modal
-      const adminLoginModal = document.getElementById('adminLoginModal');
-      const floatingAdminBtn = document.getElementById('floatingAdminBtn');
-      const closeAdminModal = document.getElementById('closeAdminModal');
-      const btnVerifyAdmin = document.getElementById('btnVerifyAdmin');
-      const adminEmailInput = document.getElementById('adminEmailInput');
-      const adminPassInput = document.getElementById('adminPassInput');
-      const adminLoginError = document.getElementById('adminLoginError');
 
-      // Abrir modal
-      if (floatingAdminBtn) {
-        floatingAdminBtn.addEventListener('click', () => {
-          // Pre-llenar email si el usuario está logueado
-          const user = auth.currentUser;
-          if (user && user.email) {
-            adminEmailInput.value = user.email;
-          }
-          adminLoginModal.classList.remove('hiddenX');
-          adminLoginError.style.display = 'none';
-          adminPassInput.value = '';
-        });
-      }
-
-      // Cerrar modal
-      if (closeAdminModal) {
-        closeAdminModal.addEventListener('click', () => {
-          adminLoginModal.classList.add('hiddenX');
-        });
-      }
-
-      // Verificar contraseña
-      if (btnVerifyAdmin) {
-        btnVerifyAdmin.addEventListener('click', async () => {
-          const email = adminEmailInput.value;
-          const password = adminPassInput.value;
-
-          if (!password) {
-            adminLoginError.textContent = 'Ingrese la contraseña';
-            adminLoginError.style.display = 'block';
-            return;
-          }
-
-          btnVerifyAdmin.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
-          btnVerifyAdmin.disabled = true;
-
-          try {
-            const res = await fetch('/api/auth', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ action: 'verifyAdminPassword', data: { password } })
-            });
-
-            if (res.ok) {
-              // Éxito: Habilitar admin
-              adminLoginModal.classList.add('hiddenX');
-              mostrarMensaje('success', 'Acceso Concedido', 'Bienvenido al panel de administración.');
-
-              // Habilitar la variable isAdmin localmente y mostrar menú
-              isAdmin = true;
-              document.getElementById('menuAdmin').classList.remove('hidden');
-              // Opcional: navegar directamente
-              // mostratSeccion(adminSection, document.getElementById('menuAdmin'));
-            } else {
-              const err = await res.json();
-              adminLoginError.textContent = err.error || 'Contraseña incorrecta';
-              adminLoginError.style.display = 'block';
-            }
-          } catch (e) {
-            console.error(e);
-            adminLoginError.textContent = 'Error de conexión';
-            adminLoginError.style.display = 'block';
-          } finally {
-            btnVerifyAdmin.innerHTML = 'Ingresar';
-            btnVerifyAdmin.disabled = false;
-          }
-        });
-      }
     </script>
 
 

@@ -1308,7 +1308,7 @@
       position: relative !important;
     }
 
-    
+
     /* Sticky Header */
     #tablaCertificaciones thead th {
       position: sticky;
@@ -2892,9 +2892,9 @@ transition: all 0.3s ease;
                   const numerosAsistencia = respuestasUsuario.map(r => r.asistenciaNumero);
                   const asistenciasUnicas = [...new Set(numerosAsistencia)];
 
-                  // Filtrar solo asistencias válidas (1, 2, 3) y que sean números
+                  // Filtrar solo asistencias válidas (1, 2) y que sean números
                   const asistenciasValidas = asistenciasUnicas.filter(num =>
-                    num === 1 || num === 2 || num === 3
+                    num === 1 || num === 2
                   );
 
                   const asistenciasCompletadas = asistenciasValidas.length;
@@ -2937,7 +2937,7 @@ transition: all 0.3s ease;
                   const esPeriodoActivo = !fechaFin || hoy <= fechaFin;
 
                   // 🔹 VALIDACIÓN DE ASISTENCIA (MODIFICADO)
-                  const cumpleAsistencia = (formularioInfo.tomaAsistencia === false) || (asistenciasCompletadas >= 3);
+                  const cumpleAsistencia = (formularioInfo.tomaAsistencia === false) || (asistenciasCompletadas >= 2);
 
                   if (!esPeriodoActivo) {
                     // PERIODO TERMINADO
@@ -3146,7 +3146,7 @@ transition: all 0.3s ease;
             <td>${index + 1}</td>
             <td>${titulo}</td>
             <td>${fecha}</td>
-            <td>${asistencias}/3</td>
+            <td>${asistencias}/2</td>
             <td>${cert.examenRealizado ? "Sí" : "No"}</td>
             <td class="${calificacionClase}">${calificacionTexto}</td>
             <td class="${cert.estadoClase || 'estado-pendiente'}">${cert.estado || 'En progreso'}</td>

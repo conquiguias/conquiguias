@@ -130,12 +130,10 @@ async function handleActualizarEstadoAsistencia(req, res, repo) {
     );
 
     if (update.ok) {
-      res
-        .status(200)
-        .json({
-          ok: true,
-          asistenciasActivas: formularios[id].asistenciasActivas,
-        });
+      res.status(200).json({
+        ok: true,
+        asistenciasActivas: formularios[id].asistenciasActivas,
+      });
     } else {
       throw new Error("Error al guardar en GitHub");
     }
@@ -425,6 +423,7 @@ async function handleGuardarFormulario(req, res, repo) {
       creado: new Date().toISOString(),
       tieneEvaluacion: !!(evaluation && evaluation.length > 0),
       tomaAsistencia: tomaAsistencia !== undefined ? tomaAsistencia : true,
+      asistenciasActivas: { 1: false, 2: false },
       imagenEspecialidad: imagenEspecialidad || null,
       imagenFirma1: imagenFirma1 || null,
       imagenFirma2: imagenFirma2 || null,

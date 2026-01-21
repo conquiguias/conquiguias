@@ -3412,10 +3412,11 @@ transition: all 0.3s ease;
               if (respuestaUsuario === undefined) respuestaUsuario = respuestasUsuario[String(idx)];
               if (respuestaUsuario === undefined) respuestaUsuario = respuestasUsuario[idx];
 
-              const respuestaCorrecta = pregunta.options.find(opt => opt.correct);
+              // Buscar la opción que seleccionó el usuario
+              const opcionSeleccionada = pregunta.options.find(opt => opt.id === respuestaUsuario);
 
-              // Comparar respuesta
-              if (respuestaCorrecta && respuestaUsuario === respuestaCorrecta.id) {
+              // Verificar si esa opción es correcta
+              if (opcionSeleccionada && opcionSeleccionada.correct) {
                 correctas++;
               }
             });

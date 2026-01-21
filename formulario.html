@@ -911,127 +911,238 @@
       mostrarInstruccionesExamen(currentIdFormulario);
     }
 
-    function mostrarInstruccionesExamen(idFormulario) {
-      if (document.getElementById('modalInstrucciones')) return;
+    // ==========================================
+    // SISTEMA DE EXAMEN RESTAURADO (UI ANTERIOR)
+    // ==========================================
+    let preguntasExamen = [];
+    let respuestasExamen = {};
+    let preguntaActual = 0;
+    let tiempoRestante = 60; // 1 minuto
+    let timerInterval = null;
 
-      const modal = document.createElement('div');
-      modal.id = 'modalInstrucciones';
-      modal.className = 'modal';
-      modal.style.display = 'flex';
-      modal.style.zIndex = '99999';
+    async function iniciarExamen() {
+      mostrarInstruccionesExamen(currentIdFormulario);
+    }
 
-      modal.innerHTML = `
-        <div class="modal-content" style="max-width: 600px;">
-          <h2>⚠️ INSTRUCCIONES DEL EXAMEN</h2>
-          <div style="background: #FEF3C7; color: #92400E; padding: 15px; border-radius:8px; margin: 15px 0;">
-            ⏱️ Este examen es cronometrado. Lee con atención.
+    function mostrarInstruccionesExamen(id) {
+      // Crear overlay de instrucciones
+      const overlay = document.createElement('div');
+      overlay.id = 'examenOverlay';
+      overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(17, 24, 39, 0.95); z-index: 10000;
+        display: flex; align-items: center; justify-content: center;
+        color: white; backdrop-filter: blur(5px);
+      `;
+
+      overlay.innerHTML = `
+        <div class="card" style="max-width: 500px; width: 90%; text-align: center; background: #1F2937; border: 1px solid #374151;">
+          <h2 style="margin-bottom: 20px; font-size: 2rem;">📝 Instrucciones del Examen</h2>
+          <div style="text-align: left; margin-bottom: 30px; line-height: 1.8; color: #D1D5DB;">
+            <p>ℹ️ <strong>Tiempo límite:</strong> 1 minuto en total.</p>
+            <p>ℹ️ <strong>Navegación:</strong> Puedes avanzar y retroceder entre preguntas.</p>
+            <p>ℹ️ <strong>Finalizar:</strong> Al terminar el tiempo se enviará automáticamente.</p>
+            <p>⚠️ <strong>Atención:</strong> No salgas de la pantalla completa.</p>
           </div>
-          <ul style="text-align: left; margin-bottom: 20px; line-height: 1.6;">
-            <li>Tienes 2 minutos por pregunta.</li>
-            <li>No puedes regresar a preguntas anteriores.</li>
-            <li>Si cambias de pestaña, se registrará como incidencia.</li>
-            <li>Se requiere concentración total.</li>
-          </ul>
-          <button class="action-btn btn-primary" id="btnStartExamen">Comenzar Ahora</button>
-          <button class="action-btn" style="background: #9CA3AF; margin-top:10px;" onclick="document.getElementById('modalInstrucciones').remove()">Cancelar - Estudiar Más</button>
+          <button class="action-btn btn-primary" id="btnComenzar">¡Comenzar Examen!</button>
+          <button class="action-btn" style="background: #4B5563; margin-top: 10px;" onclick="document.getElementById('examenOverlay').remove()">Cancelar</button>
         </div>
       `;
-      document.body.appendChild(modal);
 
-      document.getElementById('btnStartExamen').onclick = () => {
-        modal.remove();
-        comenzarExamenCronometrado(idFormulario);
+      document.body.appendChild(overlay);
+
+      document.getElementById('btnComenzar').onclick = async () => {
+        overlay.innerHTML = '<div class="loader"></div><p style="margin-top:20px;">Cargando examen...</p>';
+        await cargarExamen(id);
       };
     }
 
-    function comenzarExamenCronometrado(id) {
-      activarSeguridadExamen();
-      if (!examenModal) crearModalExamen();
-      cargarEvaluacion(id);
-    }
-
-    function crearModalExamen() {
-      examenModal = document.createElement('div');
-      examenModal.id = 'examenModal';
-      examenModal.className = 'modal';
-      examenModal.style.zIndex = '20000';
-      examenModal.innerHTML = `
-         <div class="modal-content" style="width: 95%; max-width: 800px; height: 90vh; overflow-y: auto;">
-            <h2 style="text-align: center;">📝 Examen</h2>
-            <div id="examenContent">Cargando preguntas...</div>
-            <div style="margin-top: 20px; text-align: center;">
-               <button id="btnEnviarExamen" class="action-btn btn-primary" style="display:none;">Finalizar Examen</button>
-               <button id="btnCerrarExamen" class="action-btn" style="background:#EF4444; margin-top:10px;">Salir</button>
-            </div>
-         </div>
-      `;
-      document.body.appendChild(examenModal);
-
-      document.getElementById('btnCerrarExamen').onclick = () => {
-        if (confirm("¿Seguro que quieres salir? Se perderá el progreso.")) {
-          examenModal.style.display = 'none';
-          desactivarSeguridadExamen();
-        }
-      };
-    }
-
-    async function cargarEvaluacion(id) {
-      examenModal.style.display = 'flex';
-      const content = document.getElementById('examenContent');
-      content.innerHTML = '<div class="loader"></div>';
-
+    async function cargarExamen(id) {
       try {
         const res = await fetch(`/api/formulario?action=obtenerEvaluacion&id=${id}`);
-        if (!res.ok) throw new Error("Error cargando evaluación");
-        const preguntas = await res.json();
+        if (!res.ok) throw new Error("Error cargando");
+        preguntasExamen = await res.json();
 
-        if (!preguntas || preguntas.length === 0) {
-          content.innerHTML = "<h3>No hay preguntas configuradas para este formulario.</h3>";
+        if (!preguntasExamen || preguntasExamen.length === 0) {
+          alert("No hay preguntas configuradas.");
+          document.getElementById('examenOverlay').remove();
           return;
         }
 
-        renderizarPreguntas(preguntas);
+        iniciarInterfazExamen();
       } catch (e) {
-        content.innerHTML = "Error al cargar las preguntas.";
-        console.error(e);
+        alert("Error al cargar el examen.");
+        document.getElementById('examenOverlay').remove();
       }
     }
 
-    function renderizarPreguntas(preguntas) {
-      const container = document.getElementById('examenContent');
-      container.innerHTML = "";
-      let respuestasUsuario = {};
+    function iniciarInterfazExamen() {
+      activarSeguridadExamen();
+      preguntaActual = 0;
+      respuestasExamen = {};
+      tiempoRestante = 60; // 1 minuto
 
-      preguntas.forEach((p, idx) => {
-        const div = document.createElement('div');
-        div.className = 'pregunta-examen';
-        div.innerHTML = `
-             <h3>${idx + 1}. ${p.text}</h3>
-             <div class="opciones">
-                ${p.options.map((opt, i) => `
-                   <div>
-                     <input type="radio" name="p_${idx}" id="p_${idx}_o_${i}" value="${opt.id}">
-                     <label for="p_${idx}_o_${i}">${opt.text}</label>
-                   </div>
-                `).join('')}
-             </div>
-          `;
-        container.appendChild(div);
+      const overlay = document.getElementById('examenOverlay');
+      overlay.innerHTML = `
+        <div style="width: 100%; max-width: 800px; padding: 20px;">
+          <!-- Header Examen -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div style="font-size: 1.2rem; font-weight: bold;">Pregunta <span id="numPregunta">1</span> de ${preguntasExamen.length}</div>
+            <div style="background: #EF4444; padding: 8px 15px; border-radius: 50px; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+              ⏰ <span id="timerCuenta">01:00</span>
+            </div>
+          </div>
 
-        div.querySelectorAll('input').forEach(input => {
-          input.addEventListener('change', (e) => {
-            respuestasUsuario[idx] = e.target.value;
-            checkCompleto(Object.keys(respuestasUsuario).length, preguntas.length);
-          });
-        });
+          <!-- Barra Progreso -->
+          <div style="width: 100%; height: 6px; background: #374151; border-radius: 3px; margin-bottom: 30px; overflow: hidden;">
+            <div id="progresoBarra" style="width: 0%; height: 100%; background: var(--secondary); transition: width 0.3s;"></div>
+          </div>
+
+          <!-- Contenedor Pregunta -->
+          <div id="contenedorPregunta" class="card" style="background: #1F2937; border: 1px solid #374151; min-height: 300px; display: flex; flex-direction: column; justify-content: center;">
+            <!-- Se llena dinámicamente -->
+          </div>
+
+          <!-- Navegación -->
+          <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+            <button id="btnAnterior" class="action-btn" style="width: 48%; background: #4B5563;">⬅️ Anterior</button>
+            <button id="btnSiguiente" class="action-btn btn-primary" style="width: 48%;">Siguiente ➡️</button>
+          </div>
+        </div>
+      `;
+
+      actualizarPregunta();
+      iniciarTimer();
+
+      // Eventos botones
+      document.getElementById('btnAnterior').onclick = () => {
+        if (preguntaActual > 0) {
+          preguntaActual--;
+          actualizarPregunta();
+        }
+      };
+
+      document.getElementById('btnSiguiente').onclick = () => {
+        if (preguntaActual < preguntasExamen.length - 1) {
+          preguntaActual++;
+          actualizarPregunta();
+        } else {
+          finalizarExamen();
+        }
+      };
+    }
+
+    function actualizarPregunta() {
+      const p = preguntasExamen[preguntaActual];
+      const contenedor = document.getElementById('contenedorPregunta');
+
+      // Actualizar contadores
+      document.getElementById('numPregunta').textContent = preguntaActual + 1;
+      document.getElementById('progresoBarra').style.width = `${((preguntaActual + 1) / preguntasExamen.length) * 100}%`;
+
+      // Controlar visibilidad botones
+      document.getElementById('btnAnterior').style.visibility = preguntaActual === 0 ? 'hidden' : 'visible';
+      document.getElementById('btnSiguiente').textContent = preguntaActual === preguntasExamen.length - 1 ? 'Finalizar Examen ✅' : 'Siguiente ➡️';
+
+      if (preguntaActual === preguntasExamen.length - 1) {
+        document.getElementById('btnSiguiente').className = "action-btn btn-secondary";
+      } else {
+        document.getElementById('btnSiguiente').className = "action-btn btn-primary";
+      }
+
+      // Renderizar pregunta
+      contenedor.innerHTML = `
+        <h3 style="font-size: 1.5rem; margin-bottom: 25px; color: white;">${p.text}</h3>
+        <div style="display: grid; gap: 15px;">
+          ${p.options.map((opt, i) => `
+            <label style="
+              display: flex; align-items: center; padding: 15px; 
+              background: ${respuestasExamen[preguntaActual] === opt.id ? 'rgba(16, 185, 129, 0.2)' : 'rgba(55, 65, 81, 0.5)'}; 
+              border: 2px solid ${respuestasExamen[preguntaActual] === opt.id ? 'var(--secondary)' : 'transparent'}; 
+              border-radius: 10px; cursor: pointer; transition: all 0.2s;
+            ">
+              <input type="radio" name="preguntaActual" value="${opt.id}" 
+                ${respuestasExamen[preguntaActual] === opt.id ? 'checked' : ''}
+                style="width: 20px; height: 20px; margin-right: 15px;"
+                onchange="seleccionarRespuesta(${preguntaActual}, '${opt.id}')"
+              >
+              <span style="font-size: 1.1rem;">${opt.text}</span>
+            </label>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function seleccionarRespuesta(idx, valor) {
+      respuestasExamen[idx] = valor;
+      actualizarPregunta(); // Para refrescar estilos visuales
+    }
+
+    function iniciarTimer() {
+      const display = document.getElementById('timerCuenta');
+      timerInterval = setInterval(() => {
+        tiempoRestante--;
+
+        const minutos = Math.floor(tiempoRestante / 60);
+        const segundos = tiempoRestante % 60;
+        display.textContent = `${minutos < 10 ? '0' : ''}${minutos}:${segundos < 10 ? '0' : ''}${segundos}`;
+
+        if (tiempoRestante <= 10) {
+          display.parentElement.style.background = "#DC2626"; // Rojo alerta
+          display.parentElement.style.animation = "pulse 1s infinite";
+        }
+
+        if (tiempoRestante <= 0) {
+          clearInterval(timerInterval);
+          alert("⏰ ¡Tiempo terminado! Se enviarán tus respuestas actuales.");
+          finalizarExamen();
+        }
+      }, 1000);
+    }
+
+    async function finalizarExamen() {
+      clearInterval(timerInterval);
+      const overlay = document.getElementById('examenOverlay');
+      overlay.innerHTML = '<div class="loader"></div><h2 style="margin-top:20px;">Enviando respuestas...</h2>';
+
+      // Calcular puntaje
+      let puntaje = 0;
+      preguntasExamen.forEach((p, idx) => {
+        const correcta = p.options.find(o => o.correct);
+        if (correcta && respuestasExamen[idx] === correcta.id) puntaje++;
       });
 
-      function checkCompleto(respondidas, total) {
-        if (respondidas === total) {
-          const btn = document.getElementById('btnEnviarExamen');
-          btn.style.display = 'block';
-          btn.onclick = () => enviarRespuestasExamen(respuestasUsuario, preguntas);
+      const finalScore = (puntaje / preguntasExamen.length) * 100;
+
+      // Mapear respuestas al formato esperado por el backend (id_pregunta: id_respuesta)
+      // Nota: El backend anterior usaba índices, pero adaptaremos para que coincida
+      const respuestasEnviar = {};
+      preguntasExamen.forEach((p, idx) => {
+        // Usamos el índice como clave temporal si es necesario, o adaptamos según backend
+        respuestasEnviar[idx] = respuestasExamen[idx];
+      });
+
+      try {
+        const res = await fetch("/api/formulario?action=guardarResultadoExamen", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: currentIdFormulario,
+            visitanteId: visitanteId,
+            respuestas: respuestasEnviar,
+            puntaje: finalScore
+          })
+        });
+
+        if (res.ok) {
+          alert(`🎉 Examen Completado.\nTu calificación: ${finalScore.toFixed(0)} / 100`);
+          location.reload();
+        } else {
+          throw new Error("Error enviando");
         }
+      } catch (e) {
+        alert("❌ Error al enviar resultados. Intenta de nuevo.");
+        overlay.remove(); // Permitir reintentar o cerrar
       }
     }
 

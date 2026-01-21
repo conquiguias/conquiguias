@@ -1,0 +1,36 @@
+[
+  {
+    "id": "q-1769025492047-9amc0ipcg",
+    "type": "truefalse",
+    "text": "H",
+    "options": [
+      {
+        "id": "true-1769025492047-rcfv8ygbm",
+        "text": "Verdadero",
+        "correct": true
+      },
+      {
+        "id": "false-1769025492047-tkf289klz",
+        "text": "Falso",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1769025493017-mv53x43pg",
+    "type": "truefalse",
+    "text": "HH",
+    "options": [
+      {
+        "id": "true-1769025493017-lhtvb5dz3",
+        "text": "Verdadero",
+        "correct": false
+      },
+      {
+        "id": "false-1769025493017-ur5rqduqg",
+        "text": "Falso",
+        "correct": true
+      }
+    ]
+  }
+]

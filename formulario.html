@@ -827,10 +827,19 @@
           await cargarInfoFormulario(); // Recargar todo
         } else {
           const txt = await res.text();
-          alert("Error: " + txt);
+
+          // Mostrar mensaje de error específico
+          if (txt.includes("Este correo ya registró la primera asistencia")) {
+            alert("❌ Este correo electrónico ya registró la primera asistencia desde otro dispositivo.\n\nSi deseas continuar con las siguientes asistencias, usa el mismo dispositivo donde registraste la primera.");
+          } else if (txt.includes("Esta asistencia ya fue registrada")) {
+            alert("❌ Ya registraste esta asistencia desde este dispositivo.");
+          } else {
+            alert("Error: " + txt);
+          }
         }
       } catch (err) {
-        alert("Error de conexión");
+        console.error("Error:", err);
+        alert("Error de conexión. Por favor, verifica tu internet e intenta nuevamente.");
       } finally {
         btn.disabled = false;
         btn.textContent = "Enviar Registro";

@@ -216,6 +216,22 @@ async function handleGuardar(req, res, repo) {
     return res.status(409).send("❌ Esta asistencia ya fue registrada");
   }
 
+  // NUEVA VALIDACIÓN: Verificar si el correo ya registró la asistencia 1 desde otro dispositivo
+  if (asistenciaNumero === 1 && correo) {
+    const asistenciaPorCorreo = registros.find(
+      (r) =>
+        r.correo &&
+        r.correo.toLowerCase() === correo.toLowerCase() &&
+        r.asistenciaNumero === 1,
+    );
+
+    if (asistenciaPorCorreo) {
+      return res
+        .status(409)
+        .send("❌ Este correo ya registró la primera asistencia");
+    }
+  }
+
   // Validar tiempos de asistencia
   if (asistenciaNumero > 1) {
     // Verificar que las asistencias anteriores estén completadas

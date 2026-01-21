@@ -522,9 +522,6 @@
             <th>#</th>
             <th>Nombre</th>
             <th>Correo</th>
-            <th>Edad</th>
-            <th>Teléfono</th>
-            <th>Asociación</th>
             <th>Fecha</th>
             <th># Asist.</th>
             <th>Estado</th>
@@ -563,13 +560,13 @@
         <div id="camposAsistencia1">
           <div class="form-group">
             <label>Nombre Completo</label>
-            <input type="text" name="nombre" placeholder="Tu nombre real">
+            <input type="text" name="nombre" placeholder="Tu nombre real" autocomplete="off">
           </div>
         </div>
 
         <div class="form-group">
           <label>Correo Electrónico</label>
-          <input type="email" name="correo" required placeholder="ejemplo@correo.com">
+          <input type="email" name="correo" required placeholder="ejemplo@correo.com" autocomplete="off">
         </div>
 
         <!-- Campos ocultos/opcionales para compatibilidad si fuera necesario -->
@@ -606,7 +603,7 @@
       }
 
       await cargarInfoFormulario();
-      iniciarPolling();
+      // Polling eliminado para ahorro de recursos
     });
 
     // === LÓGICA DE NEGOCIO ===
@@ -627,12 +624,7 @@
       }
     }
 
-    function iniciarPolling() {
-      // Verificar estado cada 5 segundos
-      pollInterval = setInterval(async () => {
-        await cargarInfoFormulario();
-      }, 5000);
-    }
+    // Polling function removed
 
     function actualizarUI() {
       // Verificar qué asistencias ya completó el usuario
@@ -896,9 +888,6 @@
                 <td>${idx + 1}</td>
                 <td>${r.nombre || "Anónimo"}</td>
                 <td>${esYo ? r.correo : ocultarEmail(r.correo)}</td>
-                <td>${r.edad || "-"}</td>
-                <td>${esYo ? r.telefono : ocultarTelefono(r.telefono)}</td>
-                <td>${r.asociacion || "-"}</td>
                 <td>${new Date(r.fecha).toLocaleDateString()}</td>
                 <td>${r.asistencias.join(", ")}</td>
                 <td>${completo ? "✅" : "⏳"}</td>
@@ -1017,12 +1006,12 @@
         const div = document.createElement('div');
         div.className = 'pregunta-examen';
         div.innerHTML = `
-             <h3>${idx + 1}. ${p.pregunta}</h3>
+             <h3>${idx + 1}. ${p.text}</h3>
              <div class="opciones">
-                ${p.opciones.map((opt, i) => `
+                ${p.options.map((opt, i) => `
                    <div>
-                     <input type="radio" name="p_${idx}" id="p_${idx}_o_${i}" value="${opt}">
-                     <label for="p_${idx}_o_${i}">${opt}</label>
+                     <input type="radio" name="p_${idx}" id="p_${idx}_o_${i}" value="${opt.id}">
+                     <label for="p_${idx}_o_${i}">${opt.text}</label>
                    </div>
                 `).join('')}
              </div>
@@ -1051,7 +1040,10 @@
       let total = preguntasOriginales.length;
 
       preguntasOriginales.forEach((p, idx) => {
-        if (respuestas[idx] === p.respuestaCorrecta) puntaje++;
+        // Encontrar la opción correcta
+        const opcionCorrecta = p.options.find(o => o.correct);
+        // Comparar el ID de la respuesta seleccionada con el ID de la opción correcta
+        if (opcionCorrecta && respuestas[idx] === opcionCorrecta.id) puntaje++;
       });
 
       const finalScore = (puntaje / total) * 100;

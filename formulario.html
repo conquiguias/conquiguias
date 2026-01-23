@@ -944,37 +944,37 @@
             body: JSON.stringify(data),
           });
 
+          const txt = await res.text();
+          let responseData = {};
+
+          try {
+            responseData = JSON.parse(txt);
+          } catch (e) {
+            // Fallback para texto plano
+          }
+
           if (res.ok) {
-            // Guardar correo para recuperación de sesión
-            if (data.correo) {
-              localStorage.setItem("userEmail", data.correo.toLowerCase());
-              userEmail = data.correo.toLowerCase();
+            // Éxito o Recuperación
+            const savedEmail = responseData.correo || data.correo;
+            if (savedEmail) {
+              localStorage.setItem("userEmail", savedEmail.toLowerCase());
+              userEmail = savedEmail.toLowerCase();
             }
-            alert("✅ Asistencia registrada correctamente");
+
+            alert(
+              responseData.message || "✅ Asistencia registrada correctamente",
+            );
             document.getElementById("modalFormulario").style.display = "none";
             form.reset();
-            await cargarInfoFormulario(); // Recargar todo
+            await cargarInfoFormulario();
           } else {
-            const txt = await res.text();
-
-            // Mostrar mensaje de error específico
-            if (txt.includes("Este correo ya registró la primera asistencia")) {
-              alert(
-                "❌ Este correo electrónico ya registró la primera asistencia desde otro dispositivo.\n\nSi deseas continuar con las siguientes asistencias, usa el mismo dispositivo donde registraste la primera.",
-              );
-            } else if (txt.includes("Esta asistencia ya fue registrada")) {
-              alert(
-                "❌ Ya registraste esta asistencia desde este dispositivo.",
-              );
-            } else {
-              alert("Error: " + txt);
-            }
+            // Errores
+            const errorMsg = responseData.error || responseData.message || txt;
+            alert(errorMsg.replace(/^"|"$/g, "")); // Limpiar comillas si es texto plano
           }
         } catch (err) {
           console.error("Error:", err);
-          alert(
-            "Error de conexión. Por favor, verifica tu internet e intenta nuevamente.",
-          );
+          alert("Error de conexión. Verifica tu internet.");
         } finally {
           btn.disabled = false;
           btn.textContent = "Enviar Registro";

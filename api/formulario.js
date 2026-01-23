@@ -317,12 +317,18 @@ async function handleGuardar(req, res, repo) {
     );
 
     if (result.ok) {
-      return res.status(200).send("✅ Asistencia registrada correctamente.");
+      // Devolver JSON para que el frontend actualice el localStorage
+      return res.status(200).json({
+        ok: true,
+        message: "✅ Asistencia registrada correctamente.",
+        correo: correo, // Importante para persistencia al recuperar
+      });
     }
   } catch (err) {
-    if (err.message.includes("❌")) return res.status(400).send(err.message);
+    if (err.message.includes("❌"))
+      return res.status(400).json({ error: err.message });
     console.error("Error en handleGuardar:", err);
-    return res.status(500).send("❌ Error al procesar asistencia.");
+    return res.status(500).json({ error: "❌ Error al procesar asistencia." });
   }
 }
 

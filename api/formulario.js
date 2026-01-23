@@ -192,6 +192,7 @@ async function handleActualizarEstadoAsistencia(req, res, repo) {
 
 // Handler para guardar.js
 async function handleGuardar(req, res, repo) {
+  console.log("Recibiendo petición guardar (v2 - recuperación)");
   if (req.method !== "POST") return res.status(405).send("Método no permitido");
 
   const {

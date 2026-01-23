@@ -1,80 +1,90 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ConquiGuías World - Acceso</title>
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ConquiGuías World - Acceso</title>
+    <script type="module">
+      // 🔒 Configuración mínima y segura - SOLO lo necesario
+      const firebaseConfig = {
+        apiKey: "AIzaSyB1YTwZM8wKlxZ8HhXb7EUse8YyLmcfeS8",
+        authDomain: "conquiguias-world-85ccd.firebaseapp.com",
+        projectId: "conquiguias-world-85ccd",
+      };
 
-  <script type="module">
-    // 🔒 Configuración mínima y segura - SOLO lo necesario
-    const firebaseConfig = {
-      apiKey: "AIzaSyB1YTwZM8wKlxZ8HhXb7EUse8YyLmcfeS8",
-      authDomain: "conquiguias-world-85ccd.firebaseapp.com",
-      projectId: "conquiguias-world-85ccd"
-    };
-
-    // Función para llamar a nuestra API segura
-    async function callAPI(action, data) {
-      try {
-        const response = await fetch('/api/auth.js', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ action, data })
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.error || 'Error en la API');
-        }
-
-        return result;
-      } catch (error) {
-        throw error;
-      }
-    }
-
-    // Función para convertir imagen a Base64
-    function fileToBase64(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-      });
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      const loginForm = document.getElementById("loginForm");
-      const registerForm = document.getElementById("registerForm");
-      const resetPasswordForm = document.getElementById("resetPasswordForm");
-      const loginBtn = document.getElementById("loginBtn");
-      const registerBtn = document.getElementById("registerBtn");
-      const resetPasswordBtn = document.getElementById("resetPasswordBtn");
-
-      // 🔹 LOGIN - MANTENEMOS FIREBASE AUTH (es seguro)
-      loginForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const email = loginForm.email.value.trim();
-        const password = loginForm.password.value.trim();
-
-        showLoader(loginBtn, "⏳ Iniciando sesión...");
-
+      // Función para llamar a nuestra API segura
+      async function callAPI(action, data) {
         try {
-          // Importamos Firebase Auth solo para login
-          const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js");
-          const { getAuth, signInWithEmailAndPassword, sendEmailVerification } = await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
+          const response = await fetch("/api/auth.js", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ action, data }),
+          });
 
-          const app = initializeApp(firebaseConfig);
-          const auth = getAuth(app);
+          const result = await response.json();
 
-          const userCredential = await signInWithEmailAndPassword(auth, email, password);
-          const user = userCredential.user;
+          if (!response.ok) {
+            throw new Error(result.error || "Error en la API");
+          }
 
-          // Verificar si el correo está verificado
+          return result;
+        } catch (error) {
+          throw error;
+        }
+      }
+
+      // Función para convertir imagen a Base64
+      function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = (error) => reject(error);
+        });
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const loginForm = document.getElementById("loginForm");
+        const registerForm = document.getElementById("registerForm");
+        const resetPasswordForm = document.getElementById("resetPasswordForm");
+        const loginBtn = document.getElementById("loginBtn");
+        const registerBtn = document.getElementById("registerBtn");
+        const resetPasswordBtn = document.getElementById("resetPasswordBtn");
+
+        // 🔹 LOGIN - MANTENEMOS FIREBASE AUTH (es seguro)
+        loginForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const email = loginForm.email.value.trim();
+          const password = loginForm.password.value.trim();
+
+          showLoader(loginBtn, "⏳ Iniciando sesión...");
+
+          try {
+            // Importamos Firebase Auth solo para login
+            const { initializeApp } =
+              await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js");
+            const {
+              getAuth,
+              signInWithEmailAndPassword,
+              sendEmailVerification,
+            } =
+              await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
+
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+
+            const userCredential = await signInWithEmailAndPassword(
+              auth,
+              email,
+              password,
+            );
+            const user = userCredential.user;
+
+            // Comentamos temporalmente la verificación de correo
+            /*
           if (!user.emailVerified) {
             hideLoader(loginBtn, "Entrar");
             mostrarMensaje("confirm", "📧 Verificación requerida",
@@ -86,464 +96,546 @@
               });
             return;
           }
+          */
 
-          console.log("✅ Bienvenido de nuevo");
-          showLoader(loginBtn, "✅ Redirigiendo...");
-          setTimeout(() => {
-            window.location.href = "panel.html";
-          }, 1000);
-
-        } catch (error) {
-          hideLoader(loginBtn, "Entrar");
-          mostrarMensaje("error", "⚠️ Error al iniciar sesión", "Verifica tus credenciales e intenta nuevamente.");
-        }
-      });
-
-      // 🔹 REGISTRO - USAMOS NUESTRA API SEGURA
-      registerForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        const nombre = registerForm.nombre.value.trim();
-        const apellido = registerForm.apellido.value.trim();
-        const edad = registerForm.edad.value.trim();
-        const sexo = registerForm.sexo.value;
-        const pais = registerForm.pais.value.trim();
-        const email = registerForm.email.value.trim();
-        const password = registerForm.password.value.trim();
-        const foto = registerForm.foto.files[0];
-
-        // 🔥 MOSTRAR LOADER
-        showLoader(registerBtn, "⏳ Creando cuenta...");
-
-        try {
-          // ✅ VALIDAR FOTO ANTES DE CREAR USUARIO
-          if (!foto) {
-            hideLoader(registerBtn, "Registrar");
-            mostrarMensaje("info", "⚠️ Debes seleccionar una foto de perfil.");
-            return;
+            console.log("✅ Bienvenido de nuevo");
+            showLoader(loginBtn, "✅ Redirigiendo...");
+            setTimeout(() => {
+              window.location.href = "panel.html";
+            }, 1000);
+          } catch (error) {
+            hideLoader(loginBtn, "Entrar");
+            mostrarMensaje(
+              "error",
+              "⚠️ Error al iniciar sesión",
+              "Verifica tus credenciales e intenta nuevamente.",
+            );
           }
+        });
 
-          if (foto.size > 1024 * 1024) {
-            hideLoader(registerBtn, "Registrar");
-            mostrarMensaje("info", "⚠️ La imagen no debe superar 1 MB.");
-            return;
-          }
+        // 🔹 REGISTRO - USAMOS NUESTRA API SEGURA
+        registerForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
 
-          // ✅ VALIDAR TIPO DE ARCHIVO
-          const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-          if (!allowedTypes.includes(foto.type)) {
-            hideLoader(registerBtn, "Registrar");
-            mostrarMensaje("info", "⚠️ Formato no válido", "Solo se permiten archivos JPG, JPEG y PNG.");
-            return;
-          }
+          const nombre = registerForm.nombre.value.trim();
+          const apellido = registerForm.apellido.value.trim();
+          const edad = registerForm.edad.value.trim();
+          const sexo = registerForm.sexo.value;
+          const pais = registerForm.pais.value.trim();
+          const email = registerForm.email.value.trim();
+          const password = registerForm.password.value.trim();
+          const foto = registerForm.foto.files[0];
 
-          // Convertir foto a Base64
-          updateLoader(registerBtn, "⏳ Procesando imagen...");
-          const fotoBase64 = await fileToBase64(foto);
-          const fileName = foto.name;
+          // 🔥 MOSTRAR LOADER
+          showLoader(registerBtn, "⏳ Creando cuenta...");
 
-          // Llamar a nuestra API segura
-          updateLoader(registerBtn, "⏳ Creando usuario...");
-          const result = await callAPI('register', {
-            nombre, apellido, edad, sexo, pais, email, password, fotoBase64, fileName
-          });
+          try {
+            // ✅ VALIDAR FOTO ANTES DE CREAR USUARIO
+            if (!foto) {
+              hideLoader(registerBtn, "Registrar");
+              mostrarMensaje(
+                "info",
+                "⚠️ Debes seleccionar una foto de perfil.",
+              );
+              return;
+            }
 
-          hideLoader(registerBtn, "Registrar");
-          mostrarMensaje("info", `🎉 Registro exitoso, ¡bienvenido ${nombre}!`,
-            "Te hemos enviado un correo de verificación. Por favor, verifica tu dirección de correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada y la carpeta de spam. Jesús te bendiga, nuestro Gran Guía Mayor.",
-            () => {
-              // Limpiar formulario
-              registerForm.reset();
-              // Volver al login
-              toggleForms();
+            if (foto.size > 1024 * 1024) {
+              hideLoader(registerBtn, "Registrar");
+              mostrarMensaje("info", "⚠️ La imagen no debe superar 1 MB.");
+              return;
+            }
+
+            // ✅ VALIDAR TIPO DE ARCHIVO
+            const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
+            if (!allowedTypes.includes(foto.type)) {
+              hideLoader(registerBtn, "Registrar");
+              mostrarMensaje(
+                "info",
+                "⚠️ Formato no válido",
+                "Solo se permiten archivos JPG, JPEG y PNG.",
+              );
+              return;
+            }
+
+            // Convertir foto a Base64
+            updateLoader(registerBtn, "⏳ Procesando imagen...");
+            const fotoBase64 = await fileToBase64(foto);
+            const fileName = foto.name;
+
+            // Llamar a nuestra API segura
+            updateLoader(registerBtn, "⏳ Creando usuario...");
+            const result = await callAPI("register", {
+              nombre,
+              apellido,
+              edad,
+              sexo,
+              pais,
+              email,
+              password,
+              fotoBase64,
+              fileName,
             });
 
-        } catch (error) {
-          hideLoader(registerBtn, "Registrar");
-          console.error("Error al registrarse:", error);
-          mostrarMensaje("error", "❌ Error en el registro", error.message);
-        }
+            hideLoader(registerBtn, "Registrar");
+            mostrarMensaje(
+              "info",
+              `🎉 Registro exitoso, ¡bienvenido ${nombre}!`,
+              "Tu cuenta ha sido creada exitosamente. Ahora puedes iniciar sesión directamente sin necesidad de verificar tu correo. Jesús te bendiga, nuestro Gran Guía Mayor.",
+              () => {
+                // Limpiar formulario
+                registerForm.reset();
+                // Volver al login
+                toggleForms();
+              },
+            );
+          } catch (error) {
+            hideLoader(registerBtn, "Registrar");
+            console.error("Error al registrarse:", error);
+            mostrarMensaje("error", "❌ Error en el registro", error.message);
+          }
+        });
+
+        // 🔹 RECUPERACIÓN DE CONTRASEÑA - USAMOS NUESTRA API SEGURA
+        resetPasswordForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const email = resetPasswordForm.email.value.trim();
+
+          // 🔥 MOSTRAR LOADER
+          showLoader(resetPasswordBtn, "⏳ Enviando enlace...");
+
+          try {
+            await callAPI("resetPassword", { email });
+            hideLoader(resetPasswordBtn, "Enviar enlace de recuperación");
+            mostrarMensaje(
+              "info",
+              "📧 Correo enviado",
+              "Te hemos enviado un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada y la carpeta de spam.",
+              () => {
+                document
+                  .getElementById("resetPasswordBox")
+                  .classList.add("hidden");
+                document.getElementById("loginBox").classList.remove("hidden");
+              },
+            );
+          } catch (error) {
+            hideLoader(resetPasswordBtn, "Enviar enlace de recuperación");
+            console.error("Error al enviar correo de recuperación:", error);
+            mostrarMensaje("error", "❌ Error", error.message);
+          }
+        });
       });
 
-      // 🔹 RECUPERACIÓN DE CONTRASEÑA - USAMOS NUESTRA API SEGURA
-      resetPasswordForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const email = resetPasswordForm.email.value.trim();
-
-        // 🔥 MOSTRAR LOADER
-        showLoader(resetPasswordBtn, "⏳ Enviando enlace...");
-
-        try {
-          await callAPI('resetPassword', { email });
-          hideLoader(resetPasswordBtn, "Enviar enlace de recuperación");
-          mostrarMensaje("info", "📧 Correo enviado",
-            "Te hemos enviado un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada y la carpeta de spam.",
-            () => {
-              document.getElementById("resetPasswordBox").classList.add("hidden");
-              document.getElementById("loginBox").classList.remove("hidden");
-            });
-        } catch (error) {
-          hideLoader(resetPasswordBtn, "Enviar enlace de recuperación");
-          console.error("Error al enviar correo de recuperación:", error);
-          mostrarMensaje("error", "❌ Error", error.message);
-        }
-      });
-    });
-
-    // 🔥 MANTENER TODAS TUS FUNCIONES EXISTENTES (NO CAMBIAR)
-    function showLoader(button, text) {
-      button.disabled = true;
-      button.innerHTML = `
+      // 🔥 MANTENER TODAS TUS FUNCIONES EXISTENTES (NO CAMBIAR)
+      function showLoader(button, text) {
+        button.disabled = true;
+        button.innerHTML = `
         <div class="loader-button">
           <div class="loader-spinner"></div>
           <span>${text}</span>
         </div>
       `;
-    }
+      }
 
-    function updateLoader(button, text) {
-      button.innerHTML = `
+      function updateLoader(button, text) {
+        button.innerHTML = `
         <div class="loader-button">
           <div class="loader-spinner"></div>
           <span>${text}</span>
         </div>
       `;
-    }
-
-    function hideLoader(button, originalText) {
-      button.disabled = false;
-      button.innerHTML = originalText;
-    }
-
-    // Alternar formularios
-    function toggleForms() {
-      document.getElementById("loginBox").classList.toggle("hidden");
-      document.getElementById("registerBox").classList.toggle("hidden");
-    }
-    window.toggleForms = toggleForms;
-
-    // Mostrar formulario de recuperación de contraseña
-    function showResetPassword() {
-      document.getElementById("loginBox").classList.add("hidden");
-      document.getElementById("resetPasswordBox").classList.remove("hidden");
-    }
-    window.showResetPassword = showResetPassword;
-
-    // Volver al login desde recuperación
-    function backToLogin() {
-      document.getElementById("resetPasswordBox").classList.add("hidden");
-      document.getElementById("loginBox").classList.remove("hidden");
-    }
-    window.backToLogin = backToLogin;
-
-    // Función para mostrar mensajes (MANTENER IGUAL)
-    function mostrarMensaje(tipo, titulo, mensaje, onConfirm = null) {
-      const modal = document.getElementById("mensajeModal");
-      const tituloEl = document.getElementById("mensajeTitulo");
-      const textoEl = document.getElementById("mensajeTexto");
-      const btnAceptar = document.getElementById("mensajeAceptar");
-      const btnCancelar = document.getElementById("mensajeCancelar");
-
-      tituloEl.textContent = titulo;
-      textoEl.textContent = mensaje;
-      modal.classList.remove("hiddenX");
-
-      // Configurar botones
-      btnCancelar.classList.toggle("hiddenX", tipo !== "confirm");
-
-      const cerrar = () => {
-        modal.classList.add("hiddenX");
-        btnAceptar.onclick = null;
-        btnCancelar.onclick = null;
-      };
-
-      btnAceptar.onclick = () => {
-        cerrar();
-        if (onConfirm && (tipo === "confirm" || tipo === "info")) onConfirm();
-      };
-
-      btnCancelar.onclick = cerrar;
-    }
-  </script>
-
-  <style>
-    body {
-      margin: 0;
-      font-family: "Segoe UI", sans-serif;
-      background: linear-gradient(135deg, #007bff, #00c2a8);
-      color: #fff;
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .container {
-      display: flex;
-      position: relative;
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(10px);
-      border-radius: 12px;
-      padding: 20px;
-      width: 300px;
-      text-align: center;
-    }
-
-    input,
-    select {
-      width: 100%;
-      margin: 6px 0;
-      padding: 8px;
-      border: none;
-      border-radius: 6px;
-    }
-
-    button {
-      width: 100%;
-      padding: 10px;
-      border: none;
-      border-radius: 6px;
-      background: #00e0a8;
-      color: #fff;
-      font-weight: bold;
-      cursor: pointer;
-      transition: 0.2s;
-      position: relative;
-      min-height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    button:hover:not(:disabled) {
-      background: #00d49a;
-    }
-
-    button:disabled {
-      background: #cccccc;
-      cursor: not-allowed;
-    }
-
-    .toggle {
-      color: #ffdf70;
-      margin-top: 8px;
-      cursor: pointer;
-    }
-
-    .forgot-password {
-      color: #ffdf70;
-      margin-top: 8px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    /* 🔹 LOADER PARA BOTONES */
-    .loader-button {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .loader-spinner {
-      width: 16px;
-      height: 16px;
-      border: 2px solid transparent;
-      border-top: 2px solid #ffffff;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      0% {
-        transform: rotate(0deg);
       }
 
-      100% {
-        transform: rotate(360deg);
+      function hideLoader(button, originalText) {
+        button.disabled = false;
+        button.innerHTML = originalText;
       }
-    }
 
-    /* 🔹 Fondo del modal */
-    #mensajeModal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.6);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 2000;
-    }
+      // Alternar formularios
+      function toggleForms() {
+        document.getElementById("loginBox").classList.toggle("hidden");
+        document.getElementById("registerBox").classList.toggle("hidden");
+      }
+      window.toggleForms = toggleForms;
 
-    /* 🔹 Caja del mensaje */
-    .mensaje-content {
-      background: #fff;
-      padding: 25px 30px;
-      border-radius: 12px;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
-      text-align: center;
-      width: 90%;
-      max-width: 400px;
-      animation: fadeIn 0.25s ease;
-    }
+      // Mostrar formulario de recuperación de contraseña
+      function showResetPassword() {
+        document.getElementById("loginBox").classList.add("hidden");
+        document.getElementById("resetPasswordBox").classList.remove("hidden");
+      }
+      window.showResetPassword = showResetPassword;
 
-    .mensaje-content h3 {
-      margin-bottom: 12px;
-      color: #1976d2;
-    }
+      // Volver al login desde recuperación
+      function backToLogin() {
+        document.getElementById("resetPasswordBox").classList.add("hidden");
+        document.getElementById("loginBox").classList.remove("hidden");
+      }
+      window.backToLogin = backToLogin;
 
-    .mensaje-content p {
-      margin-bottom: 20px;
-      color: #333;
-    }
+      // Función para mostrar mensajes (MANTENER IGUAL)
+      function mostrarMensaje(tipo, titulo, mensaje, onConfirm = null) {
+        const modal = document.getElementById("mensajeModal");
+        const tituloEl = document.getElementById("mensajeTitulo");
+        const textoEl = document.getElementById("mensajeTexto");
+        const btnAceptar = document.getElementById("mensajeAceptar");
+        const btnCancelar = document.getElementById("mensajeCancelar");
 
-    /* 🔹 Botones */
-    #mensajeBotones {
-      display: flex;
-      justify-content: center;
-      gap: 15px;
-    }
+        tituloEl.textContent = titulo;
+        textoEl.textContent = mensaje;
+        modal.classList.remove("hiddenX");
 
-    #mensajeBotones button {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 15px;
-      transition: transform 0.2s, background 0.3s;
-    }
+        // Configurar botones
+        btnCancelar.classList.toggle("hiddenX", tipo !== "confirm");
 
-    #mensajeAceptar {
-      background: #1976d2;
-      color: white;
-    }
+        const cerrar = () => {
+          modal.classList.add("hiddenX");
+          btnAceptar.onclick = null;
+          btnCancelar.onclick = null;
+        };
 
-    #mensajeCancelar {
-      background: #e53935;
-      color: white;
-    }
+        btnAceptar.onclick = () => {
+          cerrar();
+          if (onConfirm && (tipo === "confirm" || tipo === "info")) onConfirm();
+        };
 
-    #mensajeBotones button:hover {
-      transform: scale(1.05);
-    }
+        btnCancelar.onclick = cerrar;
+      }
+    </script>
 
-    .hiddenX {
-      display: none !important;
-    }
+    <style>
+      body {
+        margin: 0;
+        font-family: "Segoe UI", sans-serif;
+        background: linear-gradient(135deg, #007bff, #00c2a8);
+        color: #fff;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
 
-    .contenedor-password {
-      display: flex;
-      position: relative;
-      flex-direction: row;
-      margin: 0%;
-      padding: 0%;
-      overflow: hidden;
-      padding-bottom: 10px;
-    }
+      .container {
+        display: flex;
+        position: relative;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border-radius: 12px;
+        padding: 20px;
+        width: 300px;
+        text-align: center;
+      }
 
-    .password {
-      width: 100%;
-    }
+      input,
+      select {
+        width: 100%;
+        margin: 6px 0;
+        padding: 8px;
+        border: none;
+        border-radius: 6px;
+      }
 
-    .chkShow {
-      display: flex;
-      position: relative;
-      width: 30px;
-      margin-left: 10px;
-    }
+      button {
+        width: 100%;
+        padding: 10px;
+        border: none;
+        border-radius: 6px;
+        background: #00e0a8;
+        color: #fff;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+        position: relative;
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
 
-    .container {
-      flex-direction: column;
-      position: relative;
-    }
+      button:hover:not(:disabled) {
+        background: #00d49a;
+      }
 
-    .back-link {
-      color: #ffdf70;
-      margin-top: 8px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-  </style>
-</head>
+      button:disabled {
+        background: #cccccc;
+        cursor: not-allowed;
+      }
 
-<body>
-  <!-- Login -->
-  <div class="container" id="loginBox">
-    <h1>Iniciar Sesión</h1>
-    <form id="loginForm">
-      <input class="email" type="email" name="email" placeholder="Correo electrónico" required>
-      <div class="contenedor-password">
-        <input class="password" id="password" type="password" name="password" placeholder="Contraseña" required>
-        <input class="chkShow" id="chkShow" type="checkbox">
+      .toggle {
+        color: #ffdf70;
+        margin-top: 8px;
+        cursor: pointer;
+      }
+
+      .forgot-password {
+        color: #ffdf70;
+        margin-top: 8px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      /* 🔹 LOADER PARA BOTONES */
+      .loader-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .loader-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid transparent;
+        border-top: 2px solid #ffffff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* 🔹 Fondo del modal */
+      #mensajeModal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+      }
+
+      /* 🔹 Caja del mensaje */
+      .mensaje-content {
+        background: #fff;
+        padding: 25px 30px;
+        border-radius: 12px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+        text-align: center;
+        width: 90%;
+        max-width: 400px;
+        animation: fadeIn 0.25s ease;
+      }
+
+      .mensaje-content h3 {
+        margin-bottom: 12px;
+        color: #1976d2;
+      }
+
+      .mensaje-content p {
+        margin-bottom: 20px;
+        color: #333;
+      }
+
+      /* 🔹 Botones */
+      #mensajeBotones {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+      }
+
+      #mensajeBotones button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 15px;
+        transition:
+          transform 0.2s,
+          background 0.3s;
+      }
+
+      #mensajeAceptar {
+        background: #1976d2;
+        color: white;
+      }
+
+      #mensajeCancelar {
+        background: #e53935;
+        color: white;
+      }
+
+      #mensajeBotones button:hover {
+        transform: scale(1.05);
+      }
+
+      .hiddenX {
+        display: none !important;
+      }
+
+      .contenedor-password {
+        display: flex;
+        position: relative;
+        flex-direction: row;
+        margin: 0%;
+        padding: 0%;
+        overflow: hidden;
+        padding-bottom: 10px;
+      }
+
+      .password {
+        width: 100%;
+      }
+
+      .chkShow {
+        display: flex;
+        position: relative;
+        width: 30px;
+        margin-left: 10px;
+      }
+
+      .container {
+        flex-direction: column;
+        position: relative;
+      }
+
+      .back-link {
+        color: #ffdf70;
+        margin-top: 8px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Login -->
+    <div class="container" id="loginBox">
+      <h1>Iniciar Sesión</h1>
+      <form id="loginForm">
+        <input
+          class="email"
+          type="email"
+          name="email"
+          placeholder="Correo electrónico"
+          required
+        />
+        <div class="contenedor-password">
+          <input
+            class="password"
+            id="password"
+            type="password"
+            name="password"
+            placeholder="Contraseña"
+            required
+          />
+          <input class="chkShow" id="chkShow" type="checkbox" />
+        </div>
+        <button type="submit" id="loginBtn" style="font-size: 20px">
+          Entrar
+        </button>
+      </form>
+      <div class="forgot-password" onclick="showResetPassword()">
+        ¿Olvidaste tu contraseña?
       </div>
-      <button type="submit" id="loginBtn" style="font-size: 20px;">Entrar</button>
-    </form>
-    <div class="forgot-password" onclick="showResetPassword()">¿Olvidaste tu contraseña?</div>
-    <div class="toggle" onclick="toggleForms()">¿No tienes cuenta? Regístrate</div>
-  </div>
-
-  <!-- Registro -->
-  <div class="container hidden" id="registerBox">
-    <h1 style="margin: 0%;">Crear Cuenta</h1>
-    <form id="registerForm">
-      <input type="text" name="nombre" placeholder="Nombre o como deseas aparecer" required>
-      <input type="text" name="apellido" placeholder="Apellido o como deseas aparecer" required>
-      <input type="number" name="edad" placeholder="Edad" required>
-      <select name="sexo" required>
-        <option value="">Sexo</option>
-        <option>Masculino</option>
-        <option>Femenino</option>
-      </select>
-      <input type="text" name="pais" placeholder="País" required>
-      <input type="email" name="email" placeholder="Correo" required>
-      <div class="contenedor-password">
-        <input class="password" id="passwordX" type="password" name="password" placeholder="Contraseña" required>
-        <input class="chkShow" id="chkShowX" type="checkbox">
-      </div>
-      <h2 style="margin: 0%;">Subir Foto:</h2>
-      <input type="file" name="foto" accept="image/jpg, image/jpeg, image/png" required>
-      <button type="submit" id="registerBtn">Registrar</button>
-    </form>
-    <div class="toggle" onclick="toggleForms()">¿Ya tienes cuenta? Inicia sesión</div>
-  </div>
-
-  <!-- Recuperación de contraseña -->
-  <div class="container hidden" id="resetPasswordBox">
-    <h1>Recuperar Contraseña</h1>
-    <form id="resetPasswordForm">
-      <input type="email" name="email" placeholder="Correo electrónico" required>
-      <button type="submit" id="resetPasswordBtn">Enviar enlace de recuperación</button>
-    </form>
-    <div class="back-link" onclick="backToLogin()">Volver al inicio de sesión</div>
-  </div>
-
-  <!-- 🔹 Contenedor general de mensajes -->
-  <div id="mensajeModal" class="hiddenX">
-    <div class="mensaje-content">
-      <h3 id="mensajeTitulo">Título</h3>
-      <p id="mensajeTexto">Texto del mensaje</p>
-      <div id="mensajeBotones">
-        <button id="mensajeAceptar">Aceptar</button>
-        <button id="mensajeCancelar" class="hiddenX">Cancelar</button>
+      <div class="toggle" onclick="toggleForms()">
+        ¿No tienes cuenta? Regístrate
       </div>
     </div>
-  </div>
-</body>
-<script>
-  document.getElementById('chkShow').addEventListener('change', (e) => {
-    document.getElementById('password').type = e.target.checked ? 'text' : 'password';
-  });
-  document.getElementById('chkShowX').addEventListener('change', (e) => {
-    document.getElementById('passwordX').type = e.target.checked ? 'text' : 'password';
-  });
-</script>
 
+    <!-- Registro -->
+    <div class="container hidden" id="registerBox">
+      <h1 style="margin: 0%">Crear Cuenta</h1>
+      <form id="registerForm">
+        <input
+          type="text"
+          name="nombre"
+          placeholder="Nombre o como deseas aparecer"
+          required
+        />
+        <input
+          type="text"
+          name="apellido"
+          placeholder="Apellido o como deseas aparecer"
+          required
+        />
+        <input type="number" name="edad" placeholder="Edad" required />
+        <select name="sexo" required>
+          <option value="">Sexo</option>
+          <option>Masculino</option>
+          <option>Femenino</option>
+        </select>
+        <input type="text" name="pais" placeholder="País" required />
+        <input type="email" name="email" placeholder="Correo" required />
+        <div class="contenedor-password">
+          <input
+            class="password"
+            id="passwordX"
+            type="password"
+            name="password"
+            placeholder="Contraseña"
+            required
+          />
+          <input class="chkShow" id="chkShowX" type="checkbox" />
+        </div>
+        <h2 style="margin: 0%">Subir Foto:</h2>
+        <input
+          type="file"
+          name="foto"
+          accept="image/jpg, image/jpeg, image/png"
+          required
+        />
+        <button type="submit" id="registerBtn">Registrar</button>
+      </form>
+      <div class="toggle" onclick="toggleForms()">
+        ¿Ya tienes cuenta? Inicia sesión
+      </div>
+    </div>
 
+    <!-- Recuperación de contraseña -->
+    <div class="container hidden" id="resetPasswordBox">
+      <h1>Recuperar Contraseña</h1>
+      <form id="resetPasswordForm">
+        <input
+          type="email"
+          name="email"
+          placeholder="Correo electrónico"
+          required
+        />
+        <button type="submit" id="resetPasswordBtn">
+          Enviar enlace de recuperación
+        </button>
+      </form>
+      <div class="back-link" onclick="backToLogin()">
+        Volver al inicio de sesión
+      </div>
+    </div>
+
+    <!-- 🔹 Contenedor general de mensajes -->
+    <div id="mensajeModal" class="hiddenX">
+      <div class="mensaje-content">
+        <h3 id="mensajeTitulo">Título</h3>
+        <p id="mensajeTexto">Texto del mensaje</p>
+        <div id="mensajeBotones">
+          <button id="mensajeAceptar">Aceptar</button>
+          <button id="mensajeCancelar" class="hiddenX">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </body>
+  <script>
+    document.getElementById("chkShow").addEventListener("change", (e) => {
+      document.getElementById("password").type = e.target.checked
+        ? "text"
+        : "password";
+    });
+    document.getElementById("chkShowX").addEventListener("change", (e) => {
+      document.getElementById("passwordX").type = e.target.checked
+        ? "text"
+        : "password";
+    });
+  </script>
 </html>

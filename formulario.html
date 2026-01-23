@@ -1,926 +1,1081 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registro de Asistencia</title>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-  <style>
-    /* === BASE STYLES === */
-    :root {
-      --primary: #4F46E5;
-      --secondary: #10B981;
-      --accent: #F59E0B;
-      --bg: #F3F4F6;
-      --text: #1F2937;
-      --white: #ffffff;
-      --glass: rgba(255, 255, 255, 0.95);
-      --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Outfit', sans-serif;
-    }
-
-    body {
-      background-color: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      padding: 20px;
-      min-height: 100vh;
-      background-image:
-        radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.1) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
-      background-attachment: fixed;
-    }
-
-    .container {
-      max-width: 1000px;
-      margin: 0 auto;
-      padding-bottom: 80px;
-    }
-
-    /* === HEADER === */
-    header {
-      text-align: center;
-      margin-bottom: 40px;
-      animation: fadeIn 0.8s ease-out;
-    }
-
-    .logo {
-      max-width: 180px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      box-shadow: var(--shadow);
-    }
-
-    h1 {
-      font-size: 2.5rem;
-      color: #111827;
-      margin-bottom: 10px;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    /* === CARDS === */
-    .card {
-      background: var(--glass);
-      border-radius: 20px;
-      padding: 30px;
-      margin-bottom: 30px;
-      box-shadow: var(--shadow);
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      backdrop-filter: blur(10px);
-      transition: transform 0.3s ease;
-    }
-
-    .card:hover {
-      transform: translateY(-2px);
-    }
-
-    /* === ACTION BUTTONS === */
-    .action-btn {
-      display: block;
-      width: 100%;
-      padding: 20px;
-      font-size: 1.25rem;
-      font-weight: 800;
-      color: white;
-      text-align: center;
-      border: none;
-      border-radius: 15px;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-top: 10px;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--primary), #4338ca);
-    }
-
-    .btn-secondary {
-      background: linear-gradient(135deg, var(--secondary), #059669);
-    }
-
-    .btn-disabled {
-      background: #9CA3AF;
-      cursor: not-allowed;
-      opacity: 0.7;
-      transform: none !important;
-      box-shadow: none;
-    }
-
-    .action-btn:hover:not(.btn-disabled) {
-      transform: translateY(-4px) scale(1.02);
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    }
-
-    /* === STATUS INDICATORS === */
-    .status-container {
-      text-align: center;
-      padding: 20px;
-    }
-
-    .status-badge {
-      display: inline-block;
-      padding: 8px 16px;
-      border-radius: 50px;
-      font-weight: 600;
-      font-size: 0.9rem;
-      margin-bottom: 15px;
-    }
-
-    .status-active {
-      background: #D1FAE5;
-      color: #065F46;
-      border: 1px solid #34D399;
-    }
-
-    .status-waiting {
-      background: #FEF3C7;
-      color: #92400E;
-      border: 1px solid #F59E0B;
-    }
-
-    .status-closed {
-      background: #F3F4F6;
-      color: #374151;
-      border: 1px solid #D1D5DB;
-    }
-
-    /* === FORMS === */
-    .form-group {
-      margin-bottom: 20px;
-    }
-
-    label {
-      display: block;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: #374151;
-    }
-
-    input {
-      width: 100%;
-      padding: 15px;
-      border: 2px solid #E5E7EB;
-      border-radius: 12px;
-      font-size: 1rem;
-      transition: all 0.3s;
-      background: #F9FAFB;
-    }
-
-    input:focus {
-      border-color: var(--primary);
-      outline: none;
-      background: white;
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
-    }
-
-    /* === ADMIN CONTROLS === */
-    #admin-float-btn {
-      position: fixed;
-      bottom: 30px;
-      right: 30px;
-      background: #111827;
-      color: white;
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      cursor: pointer;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-      transition: all 0.3s;
-      z-index: 9000;
-    }
-
-    #admin-float-btn:hover {
-      transform: scale(1.1);
-    }
-
-    .admin-panel {
-      background: #1F2937;
-      color: white;
-      padding: 20px;
-      border-radius: 15px;
-      margin-bottom: 30px;
-      display: none;
-      border: 1px solid #374151;
-    }
-
-    .admin-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      border-bottom: 1px solid #374151;
-      padding-bottom: 10px;
-    }
-
-    .admin-controls {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-    }
-
-    .switch-btn {
-      padding: 15px;
-      border-radius: 10px;
-      border: none;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .switch-on {
-      background: var(--secondary);
-      color: white;
-    }
-
-    .switch-off {
-      background: #EF4444;
-      color: white;
-    }
-
-    .switch-neutral {
-      background: #4B5563;
-      color: white;
-    }
-
-    /* === MODALS === */
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(5px);
-      z-index: 10000;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .modal-content {
-      background: white;
-      padding: 40px;
-      border-radius: 20px;
-      width: 90%;
-      max-width: 500px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-      animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Registro de Asistencia</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* === BASE STYLES === */
+      :root {
+        --primary: #4f46e5;
+        --secondary: #10b981;
+        --accent: #f59e0b;
+        --bg: #f3f4f6;
+        --text: #1f2937;
+        --white: #ffffff;
+        --glass: rgba(255, 255, 255, 0.95);
+        --shadow:
+          0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          0 4px 6px -2px rgba(0, 0, 0, 0.05);
       }
 
-      to {
-        opacity: 1;
-      }
-    }
-
-    @keyframes slideUp {
-      from {
-        transform: translateY(20px);
-        opacity: 0;
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: "Outfit", sans-serif;
       }
 
-      to {
-        transform: translateY(0);
-        opacity: 1;
-      }
-    }
-
-    /* === LOADING === */
-    .loader {
-      width: 48px;
-      height: 48px;
-      border: 5px solid #FFF;
-      border-bottom-color: var(--primary);
-      border-radius: 50%;
-      display: inline-block;
-      box-sizing: border-box;
-      animation: rotation 1s linear infinite;
-    }
-
-    @keyframes rotation {
-      0% {
-        transform: rotate(0deg);
+      body {
+        background-color: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        padding: 20px;
+        min-height: 100vh;
+        background-image:
+          radial-gradient(
+            at 0% 0%,
+            rgba(79, 70, 229, 0.1) 0px,
+            transparent 50%
+          ),
+          radial-gradient(
+            at 100% 100%,
+            rgba(16, 185, 129, 0.1) 0px,
+            transparent 50%
+          );
+        background-attachment: fixed;
       }
 
-      100% {
-        transform: rotate(360deg);
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding-bottom: 80px;
       }
-    }
 
-    /* === TABLE ORIGINAL STYLES === */
-    #tablaRespuestas {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 20px 0;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      border-radius: 8px;
-      overflow: hidden;
-      background: white;
-    }
+      /* === HEADER === */
+      header {
+        text-align: center;
+        margin-bottom: 40px;
+        animation: fadeIn 0.8s ease-out;
+      }
 
-    #tablaRespuestas thead {
-      background-color: #34495e;
-      color: white;
-    }
+      .logo {
+        max-width: 180px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        box-shadow: var(--shadow);
+      }
 
-    #tablaRespuestas th {
-      padding: 15px;
-      text-align: left;
-      font-weight: 600;
-    }
+      h1 {
+        font-size: 2.5rem;
+        color: #111827;
+        margin-bottom: 10px;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
 
-    #tablaRespuestas tbody tr {
-      border-bottom: 1px solid #ddd;
-      transition: background-color 0.3s ease;
-    }
+      /* === CARDS === */
+      .card {
+        background: var(--glass);
+        border-radius: 20px;
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: var(--shadow);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(10px);
+        transition: transform 0.3s ease;
+      }
 
-    #tablaRespuestas tbody tr:nth-child(even) {
-      background-color: #f8f9fa;
-    }
+      .card:hover {
+        transform: translateY(-2px);
+      }
 
-    #tablaRespuestas tbody tr:hover {
-      background-color: #e8f4fd;
-    }
-
-    #tablaRespuestas td {
-      padding: 12px 15px;
-    }
-
-    #tablaRespuestas button {
-      margin: 2px;
-      white-space: nowrap;
-      transition: all 0.3s ease;
-    }
-
-    #tablaRespuestas button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    }
-
-    @media (max-width: 768px) {
-      #tablaRespuestas button {
+      /* === ACTION BUTTONS === */
+      .action-btn {
         display: block;
         width: 100%;
-        margin: 5px 0;
-        padding: 10px;
-        font-size: 14px;
+        padding: 20px;
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: white;
+        text-align: center;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 10px;
       }
 
-      #tablaRespuestas {
+      .btn-primary {
+        background: linear-gradient(135deg, var(--primary), #4338ca);
+      }
+
+      .btn-secondary {
+        background: linear-gradient(135deg, var(--secondary), #059669);
+      }
+
+      .btn-disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+        opacity: 0.7;
+        transform: none !important;
+        box-shadow: none;
+      }
+
+      .action-btn:hover:not(.btn-disabled) {
+        transform: translateY(-4px) scale(1.02);
+        box-shadow:
+          0 20px 25px -5px rgba(0, 0, 0, 0.1),
+          0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      }
+
+      /* === STATUS INDICATORS === */
+      .status-container {
+        text-align: center;
+        padding: 20px;
+      }
+
+      .status-badge {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-bottom: 15px;
+      }
+
+      .status-active {
+        background: #d1fae5;
+        color: #065f46;
+        border: 1px solid #34d399;
+      }
+
+      .status-waiting {
+        background: #fef3c7;
+        color: #92400e;
+        border: 1px solid #f59e0b;
+      }
+
+      .status-closed {
+        background: #f3f4f6;
+        color: #374151;
+        border: 1px solid #d1d5db;
+      }
+
+      /* === FORMS === */
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      label {
         display: block;
-        overflow-x: auto;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #374151;
       }
-    }
 
-    /* === ESTILOS EXAMEN === */
-    .pregunta-examen {
-      padding: 15px;
-      border-bottom: 1px solid #eee;
-      transition: all 0.3s ease;
-    }
+      input {
+        width: 100%;
+        padding: 15px;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        font-size: 1rem;
+        transition: all 0.3s;
+        background: #f9fafb;
+      }
 
-    .pregunta-examen:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    }
+      input:focus {
+        border-color: var(--primary);
+        outline: none;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+      }
 
-    .opciones label {
-      display: block;
-      padding: 10px;
-      margin: 5px 0;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
+      /* === ADMIN CONTROLS === */
+      #admin-float-btn {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: #111827;
+        color: white;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        cursor: pointer;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s;
+        z-index: 9000;
+      }
 
-    .opciones label:hover {
-      background: #e8f4fd;
-      border-color: var(--primary);
-    }
+      #admin-float-btn:hover {
+        transform: scale(1.1);
+      }
 
-    .opciones input[type="radio"]:checked+label {
-      background: #d1fae5;
-      border-color: var(--secondary);
-      color: #065f46;
-      font-weight: bold;
-    }
-  </style>
-</head>
+      .admin-panel {
+        background: #1f2937;
+        color: white;
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        display: none;
+        border: 1px solid #374151;
+      }
 
-<body>
+      .admin-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #374151;
+        padding-bottom: 10px;
+      }
 
-  <div class="container">
+      .admin-controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+      }
 
-    <!-- HEADER -->
-    <header>
-      <img src="logo1.png" alt="Logo" class="logo">
-      <h1 id="tituloFormulario">Cargando evento...</h1>
-      <p id="subtitulo" style="color: #6B7280; font-size: 1.1rem;">Por favor espere las indicaciones del instructor.</p>
-    </header>
+      .switch-btn {
+        padding: 15px;
+        border-radius: 10px;
+        border: none;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
 
-    <!-- MENSAJES -->
-    <div id="mensajeSistema"
-      style="display: none; padding: 15px; margin-bottom: 20px; border-radius: 10px; text-align: center; font-weight: bold;">
-    </div>
+      .switch-on {
+        background: var(--secondary);
+        color: white;
+      }
 
-    <!-- ADMIN PANEL -->
-    <div id="panelAdmin" class="admin-panel">
-      <div class="admin-header">
-        <h3>🛠️ Panel de Admistrador</h3>
-        <button onclick="cerrarSesionAdmin()"
-          style="background:none; border:none; color: #9CA3AF; cursor:pointer;">Cerrar Sesión</button>
-      </div>
-      <p style="margin-bottom: 15px; font-size: 0.9rem; color: #D1D5DB;">Controla la activación de las asistencias en
-        tiempo real.</p>
+      .switch-off {
+        background: #ef4444;
+        color: white;
+      }
 
-      <div class="admin-controls">
-        <div style="background: #111827; padding: 15px; border-radius: 10px;">
-          <h4 style="margin-bottom: 10px;">Primera Asistencia</h4>
-          <button id="btnAdminAsis1" class="switch-btn switch-neutral" onclick="toggleAsistencia(1)">
-            DESACTIVADO
+      .switch-neutral {
+        background: #4b5563;
+        color: white;
+      }
+
+      /* === MODALS === */
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal-content {
+        background: white;
+        padding: 40px;
+        border-radius: 20px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes slideUp {
+        from {
+          transform: translateY(20px);
+          opacity: 0;
+        }
+
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      /* === LOADING === */
+      .loader {
+        width: 48px;
+        height: 48px;
+        border: 5px solid #fff;
+        border-bottom-color: var(--primary);
+        border-radius: 50%;
+        display: inline-block;
+        box-sizing: border-box;
+        animation: rotation 1s linear infinite;
+      }
+
+      @keyframes rotation {
+        0% {
+          transform: rotate(0deg);
+        }
+
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* === TABLE ORIGINAL STYLES === */
+      #tablaRespuestas {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        overflow: hidden;
+        background: white;
+      }
+
+      #tablaRespuestas thead {
+        background-color: #34495e;
+        color: white;
+      }
+
+      #tablaRespuestas th {
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+      }
+
+      #tablaRespuestas tbody tr {
+        border-bottom: 1px solid #ddd;
+        transition: background-color 0.3s ease;
+      }
+
+      #tablaRespuestas tbody tr:nth-child(even) {
+        background-color: #f8f9fa;
+      }
+
+      #tablaRespuestas tbody tr:hover {
+        background-color: #e8f4fd;
+      }
+
+      #tablaRespuestas td {
+        padding: 12px 15px;
+      }
+
+      #tablaRespuestas button {
+        margin: 2px;
+        white-space: nowrap;
+        transition: all 0.3s ease;
+      }
+
+      #tablaRespuestas button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      }
+
+      @media (max-width: 768px) {
+        #tablaRespuestas button {
+          display: block;
+          width: 100%;
+          margin: 5px 0;
+          padding: 10px;
+          font-size: 14px;
+        }
+
+        #tablaRespuestas {
+          display: block;
+          overflow-x: auto;
+        }
+      }
+
+      /* === ESTILOS EXAMEN === */
+      .pregunta-examen {
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+        transition: all 0.3s ease;
+      }
+
+      .pregunta-examen:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .opciones label {
+        display: block;
+        padding: 10px;
+        margin: 5px 0;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .opciones label:hover {
+        background: #e8f4fd;
+        border-color: var(--primary);
+      }
+
+      .opciones input[type="radio"]:checked + label {
+        background: #d1fae5;
+        border-color: var(--secondary);
+        color: #065f46;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <!-- HEADER -->
+      <header>
+        <img src="logo1.png" alt="Logo" class="logo" />
+        <h1 id="tituloFormulario">Cargando evento...</h1>
+        <p id="subtitulo" style="color: #6b7280; font-size: 1.1rem">
+          Por favor espere las indicaciones del instructor.
+        </p>
+      </header>
+
+      <!-- MENSAJES -->
+      <div
+        id="mensajeSistema"
+        style="
+          display: none;
+          padding: 15px;
+          margin-bottom: 20px;
+          border-radius: 10px;
+          text-align: center;
+          font-weight: bold;
+        "
+      ></div>
+
+      <!-- ADMIN PANEL -->
+      <div id="panelAdmin" class="admin-panel">
+        <div class="admin-header">
+          <h3>🛠️ Panel de Admistrador</h3>
+          <button
+            onclick="cerrarSesionAdmin()"
+            style="
+              background: none;
+              border: none;
+              color: #9ca3af;
+              cursor: pointer;
+            "
+          >
+            Cerrar Sesión
           </button>
         </div>
-        <div style="background: #111827; padding: 15px; border-radius: 10px;">
-          <h4 style="margin-bottom: 10px;">Segunda Asistencia</h4>
-          <button id="btnAdminAsis2" class="switch-btn switch-neutral" onclick="toggleAsistencia(2)">
-            DESACTIVADO
-          </button>
-        </div>
-      </div>
-    </div>
+        <p style="margin-bottom: 15px; font-size: 0.9rem; color: #d1d5db">
+          Controla la activación de las asistencias en tiempo real.
+        </p>
 
-    <!-- USER INTERFACE -->
-    <div id="zonaUsuario" class="card">
-      <div class="status-container">
-
-        <!-- Estado inicial -->
-        <div id="estadoEspera">
-          <div style="font-size: 3rem; margin-bottom: 10px;">⏳</div>
-          <h3>Esperando activación...</h3>
-          <p style="color: #6B7280;">El registro de asistencia aún no está disponible.</p>
-        </div>
-
-        <!-- Botón Asistencia 1 -->
-        <div id="accionAsistencia1" style="display: none;">
-          <div style="font-size: 3rem; margin-bottom: 10px;">👋</div>
-          <h3 style="color: var(--primary);">¡Primera Asistencia Abierta!</h3>
-          <p style="margin-bottom: 20px;">Registra tu llegada ahora.</p>
-          <button class="action-btn btn-primary" onclick="abrirFormulario(1)">
-            📝 Registrar Primera Asistencia
-          </button>
-        </div>
-
-        <!-- Botón Asistencia 2 -->
-        <div id="accionAsistencia2" style="display: none;">
-          <div style="font-size: 3rem; margin-bottom: 10px;">🏁</div>
-          <h3 style="color: var(--secondary);">¡Segunda Asistencia Abierta!</h3>
-          <p style="margin-bottom: 20px;">Confirma tu asistencia final.</p>
-          <button class="action-btn btn-secondary" onclick="abrirFormulario(2)">
-            ✅ Registrar Segunda Asistencia
-          </button>
-        </div>
-
-        <!-- Mensaje Completado -->
-        <div id="estadoCompletado" style="display: none;">
-          <div style="font-size: 3rem; margin-bottom: 10px;">🎉</div>
-          <h3>¡Todo listo!</h3>
-          <p>Has completado tus registros de hoy.</p>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- TABLA RESPUESTAS -->
-    <div class="card">
-      <h3 style="margin-bottom: 15px;">📊 Registros en tiempo real</h3>
-      <p style="font-size: 0.9rem; margin-bottom: 10px; color: #666;">Se actualiza automáticamente cada 30 segundos.</p>
-      <table border="1" id="tablaRespuestas">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Nombre</th>
-            <th>Correo</th>
-            <th>Fecha</th>
-            <th># Asist.</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-
-  </div>
-
-  <!-- ADMIN BUTTON -->
-  <div id="admin-float-btn" onclick="abrirLoginAdmin()" title="Acceso Admin">
-    🛡️
-  </div>
-
-  <!-- MODAL LOGIN ADMIN -->
-  <div id="modalLoginAdmin" class="modal">
-    <div class="modal-content">
-      <h2 style="text-align: center; margin-bottom: 20px;">Acceso Instructores</h2>
-      <input type="email" id="adminEmailInput" placeholder="ingresa.tu@correo.com" style="margin-bottom: 20px;">
-      <input type="password" id="adminPassInput" placeholder="Contraseña" style="margin-bottom: 20px;">
-      <button class="action-btn btn-primary" onclick="validarAdmin()">Ingresar</button>
-      <button onclick="document.getElementById('modalLoginAdmin').style.display='none'"
-        style="width:100%; padding:10px; background:none; border:none; margin-top:10px; cursor:pointer; color:#666;">Cancelar</button>
-    </div>
-  </div>
-
-  <!-- MODAL FORMULARIO -->
-  <div id="modalFormulario" class="modal">
-    <div class="modal-content">
-      <h2 id="modalFormTitle" style="text-align: center; margin-bottom: 20px;">Registrar Asistencia</h2>
-      <form id="formRegistro" onsubmit="enviarAsistencia(event)">
-        <input type="hidden" id="asistenciaNumInput">
-
-        <div id="camposAsistencia1">
-          <div class="form-group">
-            <label>Nombre Completo</label>
-            <input type="text" name="nombre" placeholder="Tu nombre real" autocomplete="off">
+        <div class="admin-controls">
+          <div style="background: #111827; padding: 15px; border-radius: 10px">
+            <h4 style="margin-bottom: 10px">Primera Asistencia</h4>
+            <button
+              id="btnAdminAsis1"
+              class="switch-btn switch-neutral"
+              onclick="toggleAsistencia(1)"
+            >
+              DESACTIVADO
+            </button>
+          </div>
+          <div style="background: #111827; padding: 15px; border-radius: 10px">
+            <h4 style="margin-bottom: 10px">Segunda Asistencia</h4>
+            <button
+              id="btnAdminAsis2"
+              class="switch-btn switch-neutral"
+              onclick="toggleAsistencia(2)"
+            >
+              DESACTIVADO
+            </button>
           </div>
         </div>
+      </div>
 
-        <div class="form-group">
-          <label>Correo Electrónico</label>
-          <input type="email" name="correo" required placeholder="ejemplo@correo.com" autocomplete="off">
+      <!-- USER INTERFACE -->
+      <div id="zonaUsuario" class="card">
+        <div class="status-container">
+          <!-- Estado inicial -->
+          <div id="estadoEspera">
+            <div style="font-size: 3rem; margin-bottom: 10px">⏳</div>
+            <h3>Esperando activación...</h3>
+            <p style="color: #6b7280">
+              El registro de asistencia aún no está disponible.
+            </p>
+          </div>
+
+          <!-- Botón Asistencia 1 -->
+          <div id="accionAsistencia1" style="display: none">
+            <div style="font-size: 3rem; margin-bottom: 10px">👋</div>
+            <h3 style="color: var(--primary)">¡Primera Asistencia Abierta!</h3>
+            <p style="margin-bottom: 20px">Registra tu llegada ahora.</p>
+            <button class="action-btn btn-primary" onclick="abrirFormulario(1)">
+              📝 Registrar Primera Asistencia
+            </button>
+          </div>
+
+          <!-- Botón Asistencia 2 -->
+          <div id="accionAsistencia2" style="display: none">
+            <div style="font-size: 3rem; margin-bottom: 10px">🏁</div>
+            <h3 style="color: var(--secondary)">
+              ¡Segunda Asistencia Abierta!
+            </h3>
+            <p style="margin-bottom: 20px">Confirma tu asistencia final.</p>
+            <button
+              class="action-btn btn-secondary"
+              onclick="abrirFormulario(2)"
+            >
+              ✅ Registrar Segunda Asistencia
+            </button>
+          </div>
+
+          <!-- Mensaje Completado -->
+          <div id="estadoCompletado" style="display: none">
+            <div style="font-size: 3rem; margin-bottom: 10px">🎉</div>
+            <h3>¡Todo listo!</h3>
+            <p>Has completado tus registros de hoy.</p>
+          </div>
         </div>
+      </div>
 
-        <!-- Campos ocultos/opcionales para compatibilidad si fuera necesario -->
-        <input type="hidden" name="edad" value="">
-        <input type="hidden" name="telefono" value="">
-        <input type="hidden" name="asociacion" value="">
-
-        <button type="submit" class="action-btn btn-primary" id="btnSubmitForm">Enviar Registro</button>
-        <button type="button" onclick="document.getElementById('modalFormulario').style.display='none'"
-          style="width:100%; padding:10px; background:none; border:none; margin-top:10px; cursor:pointer; color:#666;">Cancelar</button>
-      </form>
+      <!-- TABLA RESPUESTAS -->
+      <div class="card">
+        <h3 style="margin-bottom: 15px">📊 Registros en tiempo real</h3>
+        <p style="font-size: 0.9rem; margin-bottom: 10px; color: #666">
+          Se actualiza automáticamente cada 30 segundos.
+        </p>
+        <table border="1" id="tablaRespuestas">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nombre</th>
+              <th>Correo</th>
+              <th>Fecha</th>
+              <th># Asist.</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </div>
-  </div>
 
-  <script>
-    // === CONFIGURACIÓN ===
-    let visitanteId = localStorage.getItem("visitanteId");
-    if (!visitanteId) {
-      visitanteId = crypto.randomUUID();
-      localStorage.setItem("visitanteId", visitanteId);
-    }
+    <!-- ADMIN BUTTON -->
+    <div id="admin-float-btn" onclick="abrirLoginAdmin()" title="Acceso Admin">
+      🛡️
+    </div>
 
-    let currentIdFormulario = new URLSearchParams(location.search).get("id");
-    let isAdmin = false;
-    let pollInterval = null;
-    let estadoAsistencias = { 1: false, 2: false };
-    let misAsistencias = []; // [1, 2]
+    <!-- MODAL LOGIN ADMIN -->
+    <div id="modalLoginAdmin" class="modal">
+      <div class="modal-content">
+        <h2 style="text-align: center; margin-bottom: 20px">
+          Acceso Instructores
+        </h2>
+        <input
+          type="email"
+          id="adminEmailInput"
+          placeholder="ingresa.tu@correo.com"
+          style="margin-bottom: 20px"
+        />
+        <input
+          type="password"
+          id="adminPassInput"
+          placeholder="Contraseña"
+          style="margin-bottom: 20px"
+        />
+        <button class="action-btn btn-primary" onclick="validarAdmin()">
+          Ingresar
+        </button>
+        <button
+          onclick="
+            document.getElementById('modalLoginAdmin').style.display = 'none'
+          "
+          style="
+            width: 100%;
+            padding: 10px;
+            background: none;
+            border: none;
+            margin-top: 10px;
+            cursor: pointer;
+            color: #666;
+          "
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
 
-    // === INICIALIZACIÓN ===
-    document.addEventListener("DOMContentLoaded", async () => {
-      if (!currentIdFormulario) {
-        document.body.innerHTML = "<h2 style='text-align:center; margin-top:50px;'>Error: ID no especificado</h2>";
-        return;
+    <!-- MODAL FORMULARIO -->
+    <div id="modalFormulario" class="modal">
+      <div class="modal-content">
+        <h2 id="modalFormTitle" style="text-align: center; margin-bottom: 20px">
+          Registrar Asistencia
+        </h2>
+        <form id="formRegistro" onsubmit="enviarAsistencia(event)">
+          <input type="hidden" id="asistenciaNumInput" />
+
+          <div id="camposAsistencia1">
+            <div class="form-group">
+              <label>Nombre Completo</label>
+              <input
+                type="text"
+                name="nombre"
+                placeholder="Tu nombre real"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Correo Electrónico</label>
+            <input
+              type="email"
+              name="correo"
+              required
+              placeholder="ejemplo@correo.com"
+              autocomplete="off"
+            />
+          </div>
+
+          <!-- Campos ocultos/opcionales para compatibilidad si fuera necesario -->
+          <input type="hidden" name="edad" value="" />
+          <input type="hidden" name="telefono" value="" />
+          <input type="hidden" name="asociacion" value="" />
+
+          <button
+            type="submit"
+            class="action-btn btn-primary"
+            id="btnSubmitForm"
+          >
+            Enviar Registro
+          </button>
+          <button
+            type="button"
+            onclick="
+              document.getElementById('modalFormulario').style.display = 'none'
+            "
+            style="
+              width: 100%;
+              padding: 10px;
+              background: none;
+              border: none;
+              margin-top: 10px;
+              cursor: pointer;
+              color: #666;
+            "
+          >
+            Cancelar
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      // === CONFIGURACIÓN ===
+      let visitanteId = localStorage.getItem("visitanteId");
+      if (!visitanteId) {
+        visitanteId = crypto.randomUUID();
+        localStorage.setItem("visitanteId", visitanteId);
       }
+      let userEmail = localStorage.getItem("userEmail") || "";
 
-      await cargarInfoFormulario();
-      // Polling eliminado para ahorro de recursos
-    });
+      let currentIdFormulario = new URLSearchParams(location.search).get("id");
+      let isAdmin = false;
+      let pollInterval = null;
+      let estadoAsistencias = { 1: false, 2: false };
+      let misAsistencias = []; // [1, 2]
 
-    // === LÓGICA DE NEGOCIO ===
-    async function cargarInfoFormulario() {
-      try {
-        const res = await fetch(`/api/formulario?action=obtenerFormulario&id=${currentIdFormulario}`);
-        if (!res.ok) throw new Error("Formulario no encontrado");
-
-        const data = await res.json();
-        document.getElementById("tituloFormulario").textContent = data.titulo || "Formulario";
-
-        // Actualizar estados
-        estadoAsistencias = data.asistenciasActivas || { 1: false, 2: false };
-        actualizarUI();
-        cargarRespuestas();
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    // Polling function removed
-
-    function actualizarUI() {
-      // Verificar qué asistencias ya completó el usuario
-      if (isAdmin) {
-        actualizarBotonAdmin(1, estadoAsistencias[1]);
-        actualizarBotonAdmin(2, estadoAsistencias[2]);
-      }
-
-      // Lógica de visualización del usuario
-      const zona1 = document.getElementById("accionAsistencia1");
-      const zona2 = document.getElementById("accionAsistencia2");
-      const zonaEspera = document.getElementById("estadoEspera");
-      const zonaCompletado = document.getElementById("estadoCompletado");
-
-      zona1.style.display = "none";
-      zona2.style.display = "none";
-      zonaEspera.style.display = "none";
-      zonaCompletado.style.display = "none";
-
-      const yaHizo1 = misAsistencias.includes(1);
-      const yaHizo2 = misAsistencias.includes(2);
-
-      let mostrandoAlgo = false;
-
-      // Si ya tiene todo hecho
-      if (yaHizo1 && yaHizo2) {
-        zonaCompletado.style.display = "block";
-        return;
-      }
-
-      // Si hay algo activo que no ha hecho, mostrarlo
-
-      // Asistencia 2 activa
-      if (estadoAsistencias[2] && !yaHizo2) {
-        if (yaHizo1) {
-          zona2.style.display = "block";
-          mostrandoAlgo = true;
-        }
-      }
-
-      // Asistencia 1 activa (y no la ha hecho) - Prioridad normal
-      if (estadoAsistencias[1] && !yaHizo1 && !mostrandoAlgo) {
-        zona1.style.display = "block";
-        mostrandoAlgo = true;
-      }
-
-      if (!mostrandoAlgo) {
-        if (yaHizo1 && !estadoAsistencias[2]) {
-          zonaEspera.innerHTML = "<h3>⏳ Esperando segunda asistencia...</h3>";
-          zonaEspera.style.display = "block";
-        } else {
-          zonaEspera.innerHTML = "<h3>⏳ Esperando activación...</h3><p>El instructor iniciará la asistencia pronto.</p>";
-          zonaEspera.style.display = "block";
-        }
-      }
-    }
-
-    // === FUNCIONES ADMIN ===
-    function abrirLoginAdmin() {
-      document.getElementById("modalLoginAdmin").style.display = "flex";
-    }
-
-    async function validarAdmin() {
-      const email = document.getElementById("adminEmailInput").value.trim();
-      const password = document.getElementById("adminPassInput").value;
-
-      const btn = document.querySelector('#modalLoginAdmin .action-btn');
-      const originalText = btn.textContent;
-      btn.textContent = "Verificando...";
-      btn.disabled = true;
-
-      try {
-        if (email !== "kendall.torres.17@gmail.com") {
-          alert("❌ Correo no autorizado");
+      // === INICIALIZACIÓN ===
+      document.addEventListener("DOMContentLoaded", async () => {
+        if (!currentIdFormulario) {
+          document.body.innerHTML =
+            "<h2 style='text-align:center; margin-top:50px;'>Error: ID no especificado</h2>";
           return;
         }
 
-        const res = await fetch('/api/auth', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'verifyAdminPassword', data: { password } })
-        });
+        await cargarInfoFormulario();
+        // Polling eliminado para ahorro de recursos
+      });
 
-        if (res.ok) {
-          isAdmin = true;
-          document.getElementById("modalLoginAdmin").style.display = "none";
-          document.getElementById("panelAdmin").style.display = "block";
-          document.getElementById("admin-float-btn").style.display = "none";
-          alert("✅ Bienvenido Admin");
-          actualizarUI();
-        } else {
-          alert("❌ Contraseña incorrecta");
-        }
-      } catch (error) {
-        console.error("Error validando admin:", error);
-        alert("Error de conexión al validar credenciales.");
-      } finally {
-        btn.textContent = originalText;
-        btn.disabled = false;
-      }
-    }
+      // === LÓGICA DE NEGOCIO ===
+      async function cargarInfoFormulario() {
+        try {
+          const res = await fetch(
+            `/api/formulario?action=obtenerFormulario&id=${currentIdFormulario}`,
+          );
+          if (!res.ok) throw new Error("Formulario no encontrado");
 
-    function cerrarSesionAdmin() {
-      isAdmin = false;
-      document.getElementById("panelAdmin").style.display = "none";
-      document.getElementById("admin-float-btn").style.display = "flex";
-    }
-
-    async function toggleAsistencia(num) {
-      if (!isAdmin) return;
-      const nuevoEstado = !estadoAsistencias[num];
-
-      // UI Optimista
-      actualizarBotonAdmin(num, nuevoEstado);
-
-      try {
-        const res = await fetch("/api/formulario?action=actualizarEstadoAsistencia", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: currentIdFormulario,
-            asistencia: num,
-            activo: nuevoEstado,
-            adminEmail: "kendall.torres.17@gmail.com"
-          })
-        });
-
-        if (res.ok) {
           const data = await res.json();
-          estadoAsistencias = data.asistenciasActivas;
+          document.getElementById("tituloFormulario").textContent =
+            data.titulo || "Formulario";
+
+          // Actualizar estados
+          estadoAsistencias = data.asistenciasActivas || { 1: false, 2: false };
           actualizarUI();
-        } else {
-          throw new Error("Falló actualización");
+          cargarRespuestas();
+        } catch (err) {
+          console.error(err);
         }
-      } catch (e) {
-        alert("Error al cambiar estado");
-        console.error(e);
-        // Revertir UI
-        actualizarBotonAdmin(num, !nuevoEstado);
-      }
-    }
-
-    function actualizarBotonAdmin(num, activo) {
-      const btn = document.getElementById(`btnAdminAsis${num}`);
-      if (activo) {
-        btn.className = "switch-btn switch-on";
-        btn.textContent = "ACTIVADO (Click para desactivar)";
-      } else {
-        btn.className = "switch-btn switch-off";
-        btn.textContent = "DESACTIVADO (Click para activar)";
-      }
-    }
-
-    // === FUNCIONES USUARIO ===
-    function abrirFormulario(num) {
-      document.getElementById("asistenciaNumInput").value = num;
-      document.getElementById("modalFormulario").style.display = "flex";
-
-      // Configurar campos
-      const campos1 = document.getElementById("camposAsistencia1");
-      if (num === 1) {
-        campos1.style.display = "block";
-        document.querySelector("input[name='nombre']").required = true;
-      } else {
-        campos1.style.display = "none";
-        document.querySelector("input[name='nombre']").required = false;
       }
 
-      document.getElementById("modalFormTitle").textContent = num === 1
-        ? "Registro Primera Asistencia"
-        : "Registro Segunda Asistencia";
-    }
+      // Polling function removed
 
-    async function enviarAsistencia(e) {
-      e.preventDefault();
-      const form = e.target;
-      const formData = new FormData(form);
-      const data = Object.fromEntries(formData.entries());
+      function actualizarUI() {
+        // Verificar qué asistencias ya completó el usuario
+        if (isAdmin) {
+          actualizarBotonAdmin(1, estadoAsistencias[1]);
+          actualizarBotonAdmin(2, estadoAsistencias[2]);
+        }
 
-      data.id = currentIdFormulario;
-      data.visitanteId = visitanteId;
-      data.asistenciaNumero = parseInt(document.getElementById("asistenciaNumInput").value);
+        // Lógica de visualización del usuario
+        const zona1 = document.getElementById("accionAsistencia1");
+        const zona2 = document.getElementById("accionAsistencia2");
+        const zonaEspera = document.getElementById("estadoEspera");
+        const zonaCompletado = document.getElementById("estadoCompletado");
 
-      const btn = document.getElementById("btnSubmitForm");
-      btn.disabled = true;
-      btn.textContent = "Enviando...";
+        zona1.style.display = "none";
+        zona2.style.display = "none";
+        zonaEspera.style.display = "none";
+        zonaCompletado.style.display = "none";
 
-      try {
-        const res = await fetch("/api/formulario?action=guardar", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        });
+        const yaHizo1 = misAsistencias.includes(1);
+        const yaHizo2 = misAsistencias.includes(2);
 
-        if (res.ok) {
-          alert("✅ Asistencia registrada correctamente");
-          document.getElementById("modalFormulario").style.display = "none";
-          form.reset();
-          await cargarInfoFormulario(); // Recargar todo
-        } else {
-          const txt = await res.text();
+        let mostrandoAlgo = false;
 
-          // Mostrar mensaje de error específico
-          if (txt.includes("Este correo ya registró la primera asistencia")) {
-            alert("❌ Este correo electrónico ya registró la primera asistencia desde otro dispositivo.\n\nSi deseas continuar con las siguientes asistencias, usa el mismo dispositivo donde registraste la primera.");
-          } else if (txt.includes("Esta asistencia ya fue registrada")) {
-            alert("❌ Ya registraste esta asistencia desde este dispositivo.");
+        // Si ya tiene todo hecho
+        if (yaHizo1 && yaHizo2) {
+          zonaCompletado.style.display = "block";
+          return;
+        }
+
+        // Si hay algo activo que no ha hecho, mostrarlo
+
+        // Asistencia 2 activa
+        if (estadoAsistencias[2] && !yaHizo2) {
+          if (yaHizo1) {
+            zona2.style.display = "block";
+            mostrandoAlgo = true;
+          }
+        }
+
+        // Asistencia 1 activa (y no la ha hecho) - Prioridad normal
+        if (estadoAsistencias[1] && !yaHizo1 && !mostrandoAlgo) {
+          zona1.style.display = "block";
+          mostrandoAlgo = true;
+        }
+
+        if (!mostrandoAlgo) {
+          if (yaHizo1 && !estadoAsistencias[2]) {
+            zonaEspera.innerHTML =
+              "<h3>⏳ Esperando segunda asistencia...</h3>";
+            zonaEspera.style.display = "block";
           } else {
-            alert("Error: " + txt);
+            zonaEspera.innerHTML =
+              "<h3>⏳ Esperando activación...</h3><p>El instructor iniciará la asistencia pronto.</p>";
+            zonaEspera.style.display = "block";
           }
         }
-      } catch (err) {
-        console.error("Error:", err);
-        alert("Error de conexión. Por favor, verifica tu internet e intenta nuevamente.");
-      } finally {
-        btn.disabled = false;
-        btn.textContent = "Enviar Registro";
       }
-    }
 
-    // === TABLA Y DATOS ===
-    // (Mantenemos la lógica de visualización de tabla)
-    function ocultarEmail(email) {
-      if (!email || email === 'N/A') return '***@***.***';
-      const [u, d] = email.split('@');
-      return u.substring(0, 2) + '***@' + d;
-    }
-    function ocultarTelefono(t) {
-      if (!t || t === 'N/A') return '***';
-      return '***-' + t.slice(-4);
-    }
+      // === FUNCIONES ADMIN ===
+      function abrirLoginAdmin() {
+        document.getElementById("modalLoginAdmin").style.display = "flex";
+      }
 
-    async function cargarRespuestas() {
-      const tbody = document.querySelector("#tablaRespuestas tbody");
-      try {
-        const res = await fetch(`/api/formulario?action=verRespuestas&id=${currentIdFormulario}`);
-        if (!res.ok) return;
+      async function validarAdmin() {
+        const email = document.getElementById("adminEmailInput").value.trim();
+        const password = document.getElementById("adminPassInput").value;
 
-        const data = await res.json();
-        const respuestas = data.asistencias || [];
-        const examenes = data.examenes || [];
+        const btn = document.querySelector("#modalLoginAdmin .action-btn");
+        const originalText = btn.textContent;
+        btn.textContent = "Verificando...";
+        btn.disabled = true;
 
-        // Identificar mis asistencias
-        misAsistencias = respuestas
-          .filter(r => r.visitanteId === visitanteId)
-          .map(r => r.asistenciaNumero);
-
-        actualizarUI();
-
-        // Agrupar para tabla
-        const agrupadas = {};
-        respuestas.forEach(r => {
-          if (!agrupadas[r.visitanteId]) {
-            agrupadas[r.visitanteId] = { ...r, maxAsistencia: 0, asistencias: [], examen: null };
+        try {
+          if (email !== "kendall.torres.17@gmail.com") {
+            alert("❌ Correo no autorizado");
+            return;
           }
-          if (r.asistenciaNumero) {
-            agrupadas[r.visitanteId].asistencias.push(r.asistenciaNumero);
-            agrupadas[r.visitanteId].maxAsistencia = Math.max(agrupadas[r.visitanteId].maxAsistencia, r.asistenciaNumero);
+
+          const res = await fetch("/api/auth", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "verifyAdminPassword",
+              data: { password },
+            }),
+          });
+
+          if (res.ok) {
+            isAdmin = true;
+            document.getElementById("modalLoginAdmin").style.display = "none";
+            document.getElementById("panelAdmin").style.display = "block";
+            document.getElementById("admin-float-btn").style.display = "none";
+            alert("✅ Bienvenido Admin");
+            actualizarUI();
+          } else {
+            alert("❌ Contraseña incorrecta");
           }
-        });
+        } catch (error) {
+          console.error("Error validando admin:", error);
+          alert("Error de conexión al validar credenciales.");
+        } finally {
+          btn.textContent = originalText;
+          btn.disabled = false;
+        }
+      }
 
-        // Combinar examenes
-        examenes.forEach(ex => {
-          if (agrupadas[ex.visitanteId]) {
-            agrupadas[ex.visitanteId].examen = ex;
+      function cerrarSesionAdmin() {
+        isAdmin = false;
+        document.getElementById("panelAdmin").style.display = "none";
+        document.getElementById("admin-float-btn").style.display = "flex";
+      }
+
+      async function toggleAsistencia(num) {
+        if (!isAdmin) return;
+        const nuevoEstado = !estadoAsistencias[num];
+
+        // UI Optimista
+        actualizarBotonAdmin(num, nuevoEstado);
+
+        try {
+          const res = await fetch(
+            "/api/formulario?action=actualizarEstadoAsistencia",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                id: currentIdFormulario,
+                asistencia: num,
+                activo: nuevoEstado,
+                adminEmail: "kendall.torres.17@gmail.com",
+              }),
+            },
+          );
+
+          if (res.ok) {
+            const data = await res.json();
+            estadoAsistencias = data.asistenciasActivas;
+            actualizarUI();
+          } else {
+            throw new Error("Falló actualización");
           }
-        });
+        } catch (e) {
+          alert("Error al cambiar estado");
+          console.error(e);
+          // Revertir UI
+          actualizarBotonAdmin(num, !nuevoEstado);
+        }
+      }
 
-        // Render tabla
-        tbody.innerHTML = "";
-        Object.values(agrupadas).forEach((r, idx) => {
-          const esYo = r.visitanteId === visitanteId;
-          const completo = r.maxAsistencia >= 2;
+      function actualizarBotonAdmin(num, activo) {
+        const btn = document.getElementById(`btnAdminAsis${num}`);
+        if (activo) {
+          btn.className = "switch-btn switch-on";
+          btn.textContent = "ACTIVADO (Click para desactivar)";
+        } else {
+          btn.className = "switch-btn switch-off";
+          btn.textContent = "DESACTIVADO (Click para activar)";
+        }
+      }
 
-          let botonAccion = "";
+      // === FUNCIONES USUARIO ===
+      function abrirFormulario(num) {
+        document.getElementById("asistenciaNumInput").value = num;
+        document.getElementById("modalFormulario").style.display = "flex";
 
-          if (esYo && completo) {
-            if (r.examen) {
-              botonAccion = `
+        // Configurar campos
+        const campos1 = document.getElementById("camposAsistencia1");
+        if (num === 1) {
+          campos1.style.display = "block";
+          document.querySelector("input[name='nombre']").required = true;
+        } else {
+          campos1.style.display = "none";
+          document.querySelector("input[name='nombre']").required = false;
+        }
+
+        document.getElementById("modalFormTitle").textContent =
+          num === 1
+            ? "Registro Primera Asistencia"
+            : "Registro Segunda Asistencia";
+      }
+
+      async function enviarAsistencia(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+
+        data.id = currentIdFormulario;
+        data.visitanteId = visitanteId;
+        data.asistenciaNumero = parseInt(
+          document.getElementById("asistenciaNumInput").value,
+        );
+
+        const btn = document.getElementById("btnSubmitForm");
+        btn.disabled = true;
+        btn.textContent = "Enviando...";
+
+        try {
+          const res = await fetch("/api/formulario?action=guardar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+
+          if (res.ok) {
+            // Guardar correo para recuperación de sesión
+            if (data.correo) {
+              localStorage.setItem("userEmail", data.correo.toLowerCase());
+              userEmail = data.correo.toLowerCase();
+            }
+            alert("✅ Asistencia registrada correctamente");
+            document.getElementById("modalFormulario").style.display = "none";
+            form.reset();
+            await cargarInfoFormulario(); // Recargar todo
+          } else {
+            const txt = await res.text();
+
+            // Mostrar mensaje de error específico
+            if (txt.includes("Este correo ya registró la primera asistencia")) {
+              alert(
+                "❌ Este correo electrónico ya registró la primera asistencia desde otro dispositivo.\n\nSi deseas continuar con las siguientes asistencias, usa el mismo dispositivo donde registraste la primera.",
+              );
+            } else if (txt.includes("Esta asistencia ya fue registrada")) {
+              alert(
+                "❌ Ya registraste esta asistencia desde este dispositivo.",
+              );
+            } else {
+              alert("Error: " + txt);
+            }
+          }
+        } catch (err) {
+          console.error("Error:", err);
+          alert(
+            "Error de conexión. Por favor, verifica tu internet e intenta nuevamente.",
+          );
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Enviar Registro";
+        }
+      }
+
+      // === TABLA Y DATOS ===
+      // (Mantenemos la lógica de visualización de tabla)
+      function ocultarEmail(email) {
+        if (!email || email === "N/A") return "***@***.***";
+        const [u, d] = email.split("@");
+        return u.substring(0, 2) + "***@" + d;
+      }
+      function ocultarTelefono(t) {
+        if (!t || t === "N/A") return "***";
+        return "***-" + t.slice(-4);
+      }
+
+      async function cargarRespuestas() {
+        const tbody = document.querySelector("#tablaRespuestas tbody");
+        try {
+          const res = await fetch(
+            `/api/formulario?action=verRespuestas&id=${currentIdFormulario}`,
+          );
+          if (!res.ok) return;
+
+          const data = await res.json();
+          const respuestas = data.asistencias || [];
+          const examenes = data.examenes || [];
+
+          // Identificar mis asistencias (Por ID de dispositivo o por Correo)
+          misAsistencias = respuestas
+            .filter(
+              (r) =>
+                r.visitanteId === visitanteId ||
+                (userEmail &&
+                  r.correo &&
+                  r.correo.toLowerCase() === userEmail.toLowerCase()),
+            )
+            .map((r) => r.asistenciaNumero);
+
+          actualizarUI();
+
+          // Agrupar para tabla
+          const agrupadas = {};
+          respuestas.forEach((r) => {
+            if (!agrupadas[r.visitanteId]) {
+              agrupadas[r.visitanteId] = {
+                ...r,
+                maxAsistencia: 0,
+                asistencias: [],
+                examen: null,
+              };
+            }
+            if (r.asistenciaNumero) {
+              agrupadas[r.visitanteId].asistencias.push(r.asistenciaNumero);
+              agrupadas[r.visitanteId].maxAsistencia = Math.max(
+                agrupadas[r.visitanteId].maxAsistencia,
+                r.asistenciaNumero,
+              );
+            }
+          });
+
+          // Combinar examenes
+          examenes.forEach((ex) => {
+            if (agrupadas[ex.visitanteId]) {
+              agrupadas[ex.visitanteId].examen = ex;
+            }
+          });
+
+          // Render tabla
+          tbody.innerHTML = "";
+          Object.values(agrupadas).forEach((r, idx) => {
+            const esYo =
+              r.visitanteId === visitanteId ||
+              (userEmail &&
+                r.correo &&
+                r.correo.toLowerCase() === userEmail.toLowerCase());
+            const completo = r.maxAsistencia >= 2;
+
+            let botonAccion = "";
+
+            if (esYo && completo) {
+              if (r.examen) {
+                botonAccion = `
                       <button onclick="verResultadosExamen('${r.examen.puntaje}')" style="background: #17a2b8; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">📊 Resultados</button>
                       <button onclick="window.open('https://conquiguias.vercel.app/', '_blank')" style="background: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">📜 Certificado</button>
                     `;
+              } else {
+                botonAccion = `<button onclick="iniciarExamen()" style="background: #F59E0B; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">📝 Hacer Examen</button>`;
+              }
+            } else if (completo && r.examen) {
+              botonAccion = `<span class="status-active">✅ Examen Listo</span>`;
+            } else if (completo) {
+              botonAccion = `<span class="status-waiting">Pendiente Examen</span>`;
             } else {
-              botonAccion = `<button onclick="iniciarExamen()" style="background: #F59E0B; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">📝 Hacer Examen</button>`;
+              botonAccion = `<span class="status-closed">Faltan Asistencias</span>`;
             }
-          } else if (completo && r.examen) {
-            botonAccion = `<span class="status-active">✅ Examen Listo</span>`;
-          } else if (completo) {
-            botonAccion = `<span class="status-waiting">Pendiente Examen</span>`;
-          } else {
-            botonAccion = `<span class="status-closed">Faltan Asistencias</span>`;
-          }
 
-          const fila = `
-              <tr style="${esYo ? 'background:#eff6ff;' : ''}">
+            const fila = `
+              <tr style="${esYo ? "background:#eff6ff;" : ""}">
                 <td>${idx + 1}</td>
                 <td>${r.nombre || "Anónimo"}</td>
                 <td>${esYo ? r.correo : ocultarEmail(r.correo)}</td>
@@ -930,48 +1085,49 @@
                 <td>${botonAccion}</td>
               </tr>
             `;
-          tbody.insertAdjacentHTML("beforeend", fila);
-        });
+            tbody.insertAdjacentHTML("beforeend", fila);
+          });
+        } catch (e) {
+          console.error("Error cargando respuestas", e);
+        }
+      }
 
-      } catch (e) { console.error("Error cargando respuestas", e); }
-    }
+      // ==========================================
+      // SISTEMA DE EXAMEN Y SEGURIDAD (RESTORED)
+      // ==========================================
 
-    // ==========================================
-    // SISTEMA DE EXAMEN Y SEGURIDAD (RESTORED)
-    // ==========================================
+      let examenModal = null;
+      let examenActual = null;
 
-    let examenModal = null;
-    let examenActual = null;
+      async function iniciarExamen() {
+        mostrarInstruccionesExamen(currentIdFormulario);
+      }
 
-    async function iniciarExamen() {
-      mostrarInstruccionesExamen(currentIdFormulario);
-    }
+      // ==========================================
+      // SISTEMA DE EXAMEN RESTAURADO (UI ANTERIOR)
+      // ==========================================
+      let preguntasExamen = [];
+      let respuestasExamen = {};
+      let preguntaActual = 0;
+      let tiempoRestante = 60; // 1 minuto
+      let timerInterval = null;
 
-    // ==========================================
-    // SISTEMA DE EXAMEN RESTAURADO (UI ANTERIOR)
-    // ==========================================
-    let preguntasExamen = [];
-    let respuestasExamen = {};
-    let preguntaActual = 0;
-    let tiempoRestante = 60; // 1 minuto
-    let timerInterval = null;
+      async function iniciarExamen() {
+        mostrarInstruccionesExamen(currentIdFormulario);
+      }
 
-    async function iniciarExamen() {
-      mostrarInstruccionesExamen(currentIdFormulario);
-    }
-
-    function mostrarInstruccionesExamen(id) {
-      // Crear overlay de instrucciones
-      const overlay = document.createElement('div');
-      overlay.id = 'examenOverlay';
-      overlay.style.cssText = `
+      function mostrarInstruccionesExamen(id) {
+        // Crear overlay de instrucciones
+        const overlay = document.createElement("div");
+        overlay.id = "examenOverlay";
+        overlay.style.cssText = `
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: rgba(17, 24, 39, 0.95); z-index: 10000;
         display: flex; align-items: center; justify-content: center;
         color: white; backdrop-filter: blur(5px);
       `;
 
-      overlay.innerHTML = `
+        overlay.innerHTML = `
         <div class="card" style="max-width: 500px; width: 90%; text-align: center; background: #1F2937; border: 1px solid #374151;">
           <h2 style="margin-bottom: 20px; font-size: 2rem;">📝 Instrucciones del Examen</h2>
           <div style="text-align: left; margin-bottom: 30px; line-height: 1.8; color: #D1D5DB;">
@@ -985,41 +1141,44 @@
         </div>
       `;
 
-      document.body.appendChild(overlay);
+        document.body.appendChild(overlay);
 
-      document.getElementById('btnComenzar').onclick = async () => {
-        overlay.innerHTML = '<div class="loader"></div><p style="margin-top:20px;">Cargando examen...</p>';
-        await cargarExamen(id);
-      };
-    }
-
-    async function cargarExamen(id) {
-      try {
-        const res = await fetch(`/api/formulario?action=obtenerEvaluacion&id=${id}`);
-        if (!res.ok) throw new Error("Error cargando");
-        preguntasExamen = await res.json();
-
-        if (!preguntasExamen || preguntasExamen.length === 0) {
-          alert("No hay preguntas configuradas.");
-          document.getElementById('examenOverlay').remove();
-          return;
-        }
-
-        iniciarInterfazExamen();
-      } catch (e) {
-        alert("Error al cargar el examen.");
-        document.getElementById('examenOverlay').remove();
+        document.getElementById("btnComenzar").onclick = async () => {
+          overlay.innerHTML =
+            '<div class="loader"></div><p style="margin-top:20px;">Cargando examen...</p>';
+          await cargarExamen(id);
+        };
       }
-    }
 
-    function iniciarInterfazExamen() {
-      activarSeguridadExamen();
-      preguntaActual = 0;
-      respuestasExamen = {};
-      tiempoRestante = 60; // 1 minuto
+      async function cargarExamen(id) {
+        try {
+          const res = await fetch(
+            `/api/formulario?action=obtenerEvaluacion&id=${id}`,
+          );
+          if (!res.ok) throw new Error("Error cargando");
+          preguntasExamen = await res.json();
 
-      const overlay = document.getElementById('examenOverlay');
-      overlay.innerHTML = `
+          if (!preguntasExamen || preguntasExamen.length === 0) {
+            alert("No hay preguntas configuradas.");
+            document.getElementById("examenOverlay").remove();
+            return;
+          }
+
+          iniciarInterfazExamen();
+        } catch (e) {
+          alert("Error al cargar el examen.");
+          document.getElementById("examenOverlay").remove();
+        }
+      }
+
+      function iniciarInterfazExamen() {
+        activarSeguridadExamen();
+        preguntaActual = 0;
+        respuestasExamen = {};
+        tiempoRestante = 60; // 1 minuto
+
+        const overlay = document.getElementById("examenOverlay");
+        overlay.innerHTML = `
         <div style="width: 100%; max-width: 800px; padding: 20px;">
           <!-- Header Examen -->
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -1047,228 +1206,248 @@
         </div>
       `;
 
-      actualizarPregunta();
-      // TImer iniciado en actualizarPregunta
-    }
+        actualizarPregunta();
+        // TImer iniciado en actualizarPregunta
+      }
 
-    function actualizarPregunta() {
-      // Reiniciar Timer por pregunta
-      tiempoRestante = 60;
-      clearInterval(timerInterval);
-      iniciarTimer();
+      function actualizarPregunta() {
+        // Reiniciar Timer por pregunta
+        tiempoRestante = 60;
+        clearInterval(timerInterval);
+        iniciarTimer();
 
-      const p = preguntasExamen[preguntaActual];
-      const contenedor = document.getElementById('contenedorPregunta');
+        const p = preguntasExamen[preguntaActual];
+        const contenedor = document.getElementById("contenedorPregunta");
 
-      // Actualizar contadores
-      document.getElementById('numPregunta').textContent = preguntaActual + 1;
-      document.getElementById('progresoBarra').style.width = `${((preguntaActual + 1) / preguntasExamen.length) * 100}%`;
+        // Actualizar contadores
+        document.getElementById("numPregunta").textContent = preguntaActual + 1;
+        document.getElementById("progresoBarra").style.width =
+          `${((preguntaActual + 1) / preguntasExamen.length) * 100}%`;
 
-      // Controlar visibilidad botones (ELIMINADO)
-      // Botón eliminado por solicitud
+        // Controlar visibilidad botones (ELIMINADO)
+        // Botón eliminado por solicitud
 
-      // Renderizar pregunta
-      contenedor.innerHTML = `
+        // Renderizar pregunta
+        contenedor.innerHTML = `
         <h3 style="font-size: 1.5rem; margin-bottom: 25px; color: #F3F4F6; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">${p.text}</h3>
         <div style="display: grid; gap: 15px;">
-          ${p.options.map((opt, i) => `
+          ${p.options
+            .map(
+              (opt, i) => `
             <label style="
               display: flex; align-items: center; padding: 15px; 
-              background: ${respuestasExamen[preguntaActual] === opt.id ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.1)'}; 
-              border: 1px solid ${respuestasExamen[preguntaActual] === opt.id ? 'var(--secondary)' : 'rgba(255, 255, 255, 0.2)'}; 
+              background: ${respuestasExamen[preguntaActual] === opt.id ? "rgba(16, 185, 129, 0.3)" : "rgba(255, 255, 255, 0.1)"}; 
+              border: 1px solid ${respuestasExamen[preguntaActual] === opt.id ? "var(--secondary)" : "rgba(255, 255, 255, 0.2)"}; 
               color: #F3F4F6;
               border-radius: 10px; cursor: pointer; transition: all 0.2s;
             ">
               <input type="radio" name="preguntaActual" value="${opt.id}" 
-                ${respuestasExamen[preguntaActual] === opt.id ? 'checked' : ''}
+                ${respuestasExamen[preguntaActual] === opt.id ? "checked" : ""}
                 style="width: 20px; height: 20px; margin-right: 15px; accent-color: var(--secondary);"
                 onchange="seleccionarRespuesta(${preguntaActual}, '${opt.id}')"
               >
               <span style="font-size: 1.1rem; font-weight: 500;">${opt.text}</span>
             </label>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </div>
       `;
-    }
+      }
 
-    function seleccionarRespuesta(idx, valor) {
-      if (respuestasExamen[idx]) return; // Evitar doble selección
-      respuestasExamen[idx] = valor;
+      function seleccionarRespuesta(idx, valor) {
+        if (respuestasExamen[idx]) return; // Evitar doble selección
+        respuestasExamen[idx] = valor;
 
-      // Actualizar visualmente la selección actual
-      const p = preguntasExamen[preguntaActual];
-      const contenedor = document.getElementById('contenedorPregunta');
-      // Re-renderizamos solo para mostrar el seleccionado (sin reiniciar timer ni nada)
-      // Pero como actualizarPregunta reinicia el timer, mejor hacemos un update manual del DOM o llamamos actualizarPregunta con flag?
-      // Mejor: forzamos update visual rápido
+        // Actualizar visualmente la selección actual
+        const p = preguntasExamen[preguntaActual];
+        const contenedor = document.getElementById("contenedorPregunta");
+        // Re-renderizamos solo para mostrar el seleccionado (sin reiniciar timer ni nada)
+        // Pero como actualizarPregunta reinicia el timer, mejor hacemos un update manual del DOM o llamamos actualizarPregunta con flag?
+        // Mejor: forzamos update visual rápido
 
-      // Para simplificar, re-renderizamos la pregunta actual sin reiniciar timer:
-      // Pero actualizarPregunta() si reinicia timer...
-      // Vamos a hackearlo: reiniciar timer está bien porque avanzamos de inmediato.
-      // Espera, si avanzamos, llamamos a (preguntaActual++) y luego actualizarPregunta().
+        // Para simplificar, re-renderizamos la pregunta actual sin reiniciar timer:
+        // Pero actualizarPregunta() si reinicia timer...
+        // Vamos a hackearlo: reiniciar timer está bien porque avanzamos de inmediato.
+        // Espera, si avanzamos, llamamos a (preguntaActual++) y luego actualizarPregunta().
 
-      // 1. Mostrar feedback visual corto en la opción seleccionada
-      // 2. Esperar 300-500ms
-      // 3. Avanzar
+        // 1. Mostrar feedback visual corto en la opción seleccionada
+        // 2. Esperar 300-500ms
+        // 3. Avanzar
 
-      // Forzar redraw visual inmediato (sin llamar a actualizarPregunta completo)
-      const inputs = document.querySelectorAll(`input[name="preguntaActual"]`);
-      inputs.forEach(inp => {
-        const label = inp.parentElement;
-        if (inp.value === valor) {
-          label.style.background = 'rgba(16, 185, 129, 0.3)';
-          label.style.borderColor = 'var(--secondary)';
-        } else {
-          label.style.opacity = '0.5';
-        }
-        inp.disabled = true; // Bloquear cambios
-      });
+        // Forzar redraw visual inmediato (sin llamar a actualizarPregunta completo)
+        const inputs = document.querySelectorAll(
+          `input[name="preguntaActual"]`,
+        );
+        inputs.forEach((inp) => {
+          const label = inp.parentElement;
+          if (inp.value === valor) {
+            label.style.background = "rgba(16, 185, 129, 0.3)";
+            label.style.borderColor = "var(--secondary)";
+          } else {
+            label.style.opacity = "0.5";
+          }
+          inp.disabled = true; // Bloquear cambios
+        });
 
-      setTimeout(() => {
-        if (preguntaActual < preguntasExamen.length - 1) {
-          preguntaActual++;
-          actualizarPregunta();
-        } else {
-          finalizarExamen();
-        }
-      }, 1000); // 1000ms de delay para ver la selección
-    }
-
-    function iniciarTimer() {
-      const display = document.getElementById('timerCuenta');
-      timerInterval = setInterval(() => {
-        tiempoRestante--;
-
-        const minutos = Math.floor(tiempoRestante / 60);
-        const segundos = tiempoRestante % 60;
-        display.textContent = `${minutos < 10 ? '0' : ''}${minutos}:${segundos < 10 ? '0' : ''}${segundos}`;
-
-        if (tiempoRestante <= 10) {
-          display.parentElement.style.background = "#DC2626"; // Rojo alerta
-          display.parentElement.style.animation = "pulse 1s infinite";
-        } else {
-          display.parentElement.style.background = "#EF4444";
-          display.parentElement.style.animation = "none";
-        }
-
-        if (tiempoRestante <= 0) {
-          clearInterval(timerInterval);
-          // Auto-avanzar cuando se acaba el tiempo
+        setTimeout(() => {
           if (preguntaActual < preguntasExamen.length - 1) {
             preguntaActual++;
             actualizarPregunta();
           } else {
             finalizarExamen();
           }
-        }
-      }, 1000);
-    }
+        }, 1000); // 1000ms de delay para ver la selección
+      }
 
-    async function finalizarExamen() {
-      clearInterval(timerInterval);
-      const overlay = document.getElementById('examenOverlay');
-      overlay.innerHTML = '<div class="loader"></div><h2 style="margin-top:20px;">Enviando respuestas...</h2>';
+      function iniciarTimer() {
+        const display = document.getElementById("timerCuenta");
+        timerInterval = setInterval(() => {
+          tiempoRestante--;
 
-      // Calcular puntaje
-      let puntaje = 0;
-      preguntasExamen.forEach((p, idx) => {
-        const correcta = p.options.find(o => o.correct);
-        if (correcta && respuestasExamen[idx] === correcta.id) puntaje++;
-      });
+          const minutos = Math.floor(tiempoRestante / 60);
+          const segundos = tiempoRestante % 60;
+          display.textContent = `${minutos < 10 ? "0" : ""}${minutos}:${segundos < 10 ? "0" : ""}${segundos}`;
 
-      const finalScore = (puntaje / preguntasExamen.length) * 100;
+          if (tiempoRestante <= 10) {
+            display.parentElement.style.background = "#DC2626"; // Rojo alerta
+            display.parentElement.style.animation = "pulse 1s infinite";
+          } else {
+            display.parentElement.style.background = "#EF4444";
+            display.parentElement.style.animation = "none";
+          }
 
-      // Mapear respuestas al formato esperado por el backend
-      // Usaremos un objeto donde la clave es el índice de la pregunta (como string)
-      const respuestasEnviar = {};
-      preguntasExamen.forEach((p, idx) => {
-        // Aseguramos que se envía aunque sea null si no respondió
-        respuestasEnviar[String(idx)] = respuestasExamen[idx] || null;
-      });
+          if (tiempoRestante <= 0) {
+            clearInterval(timerInterval);
+            // Auto-avanzar cuando se acaba el tiempo
+            if (preguntaActual < preguntasExamen.length - 1) {
+              preguntaActual++;
+              actualizarPregunta();
+            } else {
+              finalizarExamen();
+            }
+          }
+        }, 1000);
+      }
 
-      try {
-        const res = await fetch("/api/formulario?action=guardarResultadoExamen", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: currentIdFormulario,
-            visitanteId: visitanteId,
-            respuestas: respuestasEnviar,
-            puntaje: finalScore
-          })
+      async function finalizarExamen() {
+        clearInterval(timerInterval);
+        const overlay = document.getElementById("examenOverlay");
+        overlay.innerHTML =
+          '<div class="loader"></div><h2 style="margin-top:20px;">Enviando respuestas...</h2>';
+
+        // Calcular puntaje
+        let puntaje = 0;
+        preguntasExamen.forEach((p, idx) => {
+          const correcta = p.options.find((o) => o.correct);
+          if (correcta && respuestasExamen[idx] === correcta.id) puntaje++;
         });
 
-        if (res.ok) {
-          alert(`🎉 Examen Completado.\nTu calificación: ${finalScore.toFixed(0)} / 100`);
-          location.reload();
-        } else {
-          throw new Error("Error enviando");
-        }
-      } catch (e) {
-        alert("❌ Error al enviar resultados. Intenta de nuevo.");
-        overlay.remove(); // Permitir reintentar o cerrar
-      }
-    }
+        const finalScore = (puntaje / preguntasExamen.length) * 100;
 
-    async function enviarRespuestasExamen(respuestas, preguntasOriginales) {
-      let puntaje = 0;
-      let total = preguntasOriginales.length;
-
-      preguntasOriginales.forEach((p, idx) => {
-        // Encontrar la opción correcta
-        const opcionCorrecta = p.options.find(o => o.correct);
-        // Comparar el ID de la respuesta seleccionada con el ID de la opción correcta
-        if (opcionCorrecta && respuestas[idx] === opcionCorrecta.id) puntaje++;
-      });
-
-      const finalScore = (puntaje / total) * 100;
-
-      try {
-        const res = await fetch("/api/formulario?action=guardarResultadoExamen", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: currentIdFormulario,
-            visitanteId: visitanteId,
-            respuestas: respuestas,
-            puntaje: finalScore
-          })
+        // Mapear respuestas al formato esperado por el backend
+        // Usaremos un objeto donde la clave es el índice de la pregunta (como string)
+        const respuestasEnviar = {};
+        preguntasExamen.forEach((p, idx) => {
+          // Aseguramos que se envía aunque sea null si no respondió
+          respuestasEnviar[String(idx)] = respuestasExamen[idx] || null;
         });
 
-        if (res.ok) {
-          alert(`Examen enviado. Tu puntaje: ${finalScore.toFixed(0)}/100`);
-          examenModal.style.display = 'none';
-          desactivarSeguridadExamen();
-          cargarRespuestas();
-        } else {
-          alert("Error al enviar resultados.");
+        try {
+          const res = await fetch(
+            "/api/formulario?action=guardarResultadoExamen",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                id: currentIdFormulario,
+                visitanteId: visitanteId,
+                respuestas: respuestasEnviar,
+                puntaje: finalScore,
+              }),
+            },
+          );
+
+          if (res.ok) {
+            alert(
+              `🎉 Examen Completado.\nTu calificación: ${finalScore.toFixed(0)} / 100`,
+            );
+            location.reload();
+          } else {
+            throw new Error("Error enviando");
+          }
+        } catch (e) {
+          alert("❌ Error al enviar resultados. Intenta de nuevo.");
+          overlay.remove(); // Permitir reintentar o cerrar
         }
-      } catch (e) {
-        alert("Error de conexión");
       }
-    }
 
-    function activarSeguridadExamen() {
-      document.addEventListener('contextmenu', preventDefault);
-      document.addEventListener('copy', preventDefault);
-      document.addEventListener('visibilitychange', handleVisibility);
-    }
+      async function enviarRespuestasExamen(respuestas, preguntasOriginales) {
+        let puntaje = 0;
+        let total = preguntasOriginales.length;
 
-    function desactivarSeguridadExamen() {
-      document.removeEventListener('contextmenu', preventDefault);
-      document.removeEventListener('copy', preventDefault);
-      document.removeEventListener('visibilitychange', handleVisibility);
-    }
+        preguntasOriginales.forEach((p, idx) => {
+          // Encontrar la opción correcta
+          const opcionCorrecta = p.options.find((o) => o.correct);
+          // Comparar el ID de la respuesta seleccionada con el ID de la opción correcta
+          if (opcionCorrecta && respuestas[idx] === opcionCorrecta.id)
+            puntaje++;
+        });
 
-    function preventDefault(e) { e.preventDefault(); }
-    function handleVisibility() {
-      if (document.hidden) alert("⚠️ ¡No salgas de la pestaña del examen!");
-    }
+        const finalScore = (puntaje / total) * 100;
 
-    async function verResultadosExamen(puntaje) {
-      alert(`📊 Tu calificación final es: ${parseFloat(puntaje).toFixed(0)} / 100`);
-    }
-  </script>
-</body>
+        try {
+          const res = await fetch(
+            "/api/formulario?action=guardarResultadoExamen",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                id: currentIdFormulario,
+                visitanteId: visitanteId,
+                respuestas: respuestas,
+                puntaje: finalScore,
+              }),
+            },
+          );
 
+          if (res.ok) {
+            alert(`Examen enviado. Tu puntaje: ${finalScore.toFixed(0)}/100`);
+            examenModal.style.display = "none";
+            desactivarSeguridadExamen();
+            cargarRespuestas();
+          } else {
+            alert("Error al enviar resultados.");
+          }
+        } catch (e) {
+          alert("Error de conexión");
+        }
+      }
+
+      function activarSeguridadExamen() {
+        document.addEventListener("contextmenu", preventDefault);
+        document.addEventListener("copy", preventDefault);
+        document.addEventListener("visibilitychange", handleVisibility);
+      }
+
+      function desactivarSeguridadExamen() {
+        document.removeEventListener("contextmenu", preventDefault);
+        document.removeEventListener("copy", preventDefault);
+        document.removeEventListener("visibilitychange", handleVisibility);
+      }
+
+      function preventDefault(e) {
+        e.preventDefault();
+      }
+      function handleVisibility() {
+        if (document.hidden) alert("⚠️ ¡No salgas de la pestaña del examen!");
+      }
+
+      async function verResultadosExamen(puntaje) {
+        alert(
+          `📊 Tu calificación final es: ${parseFloat(puntaje).toFixed(0)} / 100`,
+        );
+      }
+    </script>
+  </body>
 </html>

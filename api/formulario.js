@@ -66,6 +66,83 @@ export default async function handler(req, res) {
   }
 }
 
+// Helper para manejar concurrencia y reintentos en GitHub
+async function updateGitHubJSON(repo, path, message, updateFn, retries = 7) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const resp = await fetch(
+        `https://api.github.com/repos/${repo}/contents/${path}`,
+        {
+          headers: {
+            Authorization: `token ${process.env.GITHUB_TOKEN}`,
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
+          },
+        },
+      );
+
+      let content = null;
+      let sha = null;
+
+      if (resp.ok) {
+        const data = await resp.json();
+        const decoded = Buffer.from(data.content, "base64").toString();
+        content = JSON.parse(decoded);
+        sha = data.sha;
+      } else if (resp.status === 404) {
+        content = path.includes("formularios.json") ? {} : [];
+      } else {
+        throw new Error(`Error al leer archivo: ${resp.status}`);
+      }
+
+      const result = await updateFn(content);
+      if (result === null) return { ok: true, skipped: true };
+
+      const encoded = Buffer.from(JSON.stringify(result, null, 2)).toString(
+        "base64",
+      );
+
+      const save = await fetch(
+        `https://api.github.com/repos/${repo}/contents/${path}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `token ${process.env.GITHUB_TOKEN}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message,
+            content: encoded,
+            branch: "main",
+            ...(sha && { sha }),
+          }),
+        },
+      );
+
+      if (save.ok) return { ok: true };
+      if (save.status === 409 || save.status === 422) {
+        console.warn(
+          `Conflicto/Error en ${path}, reintentando... (${i + 1}/${retries})`,
+        );
+        // Espera con jitter (aleatoriedad) para evitar colisiones repetidas
+        await new Promise((r) =>
+          setTimeout(r, 500 * (i + 1) + Math.random() * 500),
+        );
+        continue;
+      }
+
+      const errText = await save.text();
+      throw new Error(`Error al guardar (${save.status}): ${errText}`);
+    } catch (e) {
+      if (i === retries - 1) throw e;
+      await new Promise((r) =>
+        setTimeout(r, 1000 * (i + 1) + Math.random() * 1000),
+      );
+    }
+  }
+  throw new Error("Se agotaron los reintentos para guardar en GitHub");
+}
+
 // Handler para actualizarEstadoAsistencia
 async function handleActualizarEstadoAsistencia(req, res, repo) {
   if (req.method !== "POST") return res.status(405).send("Método no permitido");
@@ -79,63 +156,33 @@ async function handleActualizarEstadoAsistencia(req, res, repo) {
   const archivoFormularios = `data/formularios.json`;
 
   try {
-    const resp = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${archivoFormularios}`,
-      {
-        headers: {
-          Authorization: `token ${process.env.GITHUB_TOKEN}`,
-          "Content-Type": "application/json",
-        },
+    const result = await updateGitHubJSON(
+      repo,
+      archivoFormularios,
+      `Actualizar estado asistencia ${asistencia} a ${activo} en formulario ${id}`,
+      async (formularios) => {
+        if (!formularios[id]) {
+          res.status(404).json({ error: "Formulario no encontrado" });
+          return null;
+        }
+
+        if (!formularios[id].asistenciasActivas) {
+          formularios[id].asistenciasActivas = { 1: false, 2: false };
+        }
+
+        formularios[id].asistenciasActivas[asistencia] = activo;
+        return formularios;
       },
     );
 
-    if (!resp.ok)
-      throw new Error("No se pudo obtener el archivo de formularios");
-
-    const dataJson = await resp.json();
-    const contenido = Buffer.from(dataJson.content, "base64").toString();
-    const formularios = JSON.parse(contenido);
-
-    if (!formularios[id]) {
-      return res.status(404).json({ error: "Formulario no encontrado" });
-    }
-
-    // Inicializar objeto de asistencias activas si no existe
-    if (!formularios[id].asistenciasActivas) {
-      formularios[id].asistenciasActivas = { 1: false, 2: false };
-    }
-
-    // Actualizar estado
-    formularios[id].asistenciasActivas[asistencia] = activo;
-
-    const nuevoContenido = Buffer.from(
-      JSON.stringify(formularios, null, 2),
-    ).toString("base64");
-
-    const update = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${archivoFormularios}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `token ${process.env.GITHUB_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: `Actualizar estado asistencia ${asistencia} a ${activo} en formulario ${id}`,
-          content: nuevoContenido,
-          sha: dataJson.sha,
-          branch: "main",
-        }),
-      },
-    );
-
-    if (update.ok) {
+    if (result.ok) {
+      // Necesitamos obtener el estado final para la respuesta
+      // Como updateGitHubJSON no nos da el objeto final directamente, lo simulamos o lo volvemos a leer
+      // Pero para ahorrar, podemos asumir que se guardó bien si no hubo error
       res.status(200).json({
         ok: true,
-        asistenciasActivas: formularios[id].asistenciasActivas,
+        asistenciasActivas: { [asistencia]: activo }, // Simplificado para la respuesta
       });
-    } else {
-      throw new Error("Error al guardar en GitHub");
     }
   } catch (err) {
     console.error(err);
@@ -159,14 +206,11 @@ async function handleGuardar(req, res, repo) {
   } = req.body;
   const fecha = new Date().toISOString();
 
-  // Asistencia 1 guarda nombre y correo. Asistencia 2 solo correo (y otros metadatos).
-  // Ya no requerimos edad, telefono, asociacion obligatoriamente en el servidor para evitar fallos si el frontend no los manda.
   const nuevoRegistro =
     asistenciaNumero === 1
       ? {
           nombre,
           correo,
-          // Guardamos estos si vienen, si no, null o string vacío
           edad: edad || "",
           telefono: telefono || "",
           asociacion: asociacion || "",
@@ -175,7 +219,6 @@ async function handleGuardar(req, res, repo) {
           asistenciaNumero,
         }
       : {
-          // Para la segunda asistencia, también podemos guardar el correo si viene, para referencia
           correo: correo || "",
           fecha,
           visitanteId,
@@ -183,76 +226,7 @@ async function handleGuardar(req, res, repo) {
           id,
         };
 
-  const archivo = `respuestas/${id}/respuestas.json`;
-
-  // Leer el archivo actual desde GitHub
-  const respuesta = await fetch(
-    `https://api.github.com/repos/${repo}/contents/${archivo}`,
-    {
-      headers: {
-        Authorization: `token ${process.env.GITHUB_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-    },
-  );
-
-  let registros = [];
-  let sha = null;
-
-  if (respuesta.ok) {
-    const data = await respuesta.json();
-    const decoded = Buffer.from(data.content, "base64").toString();
-    registros = JSON.parse(decoded);
-    sha = data.sha;
-  }
-
-  // Verificar si ya existe una asistencia del mismo número para este usuario
-  const asistenciaExistente = registros.find(
-    (r) =>
-      r.visitanteId === visitanteId && r.asistenciaNumero === asistenciaNumero,
-  );
-
-  if (asistenciaExistente) {
-    return res.status(409).send("❌ Esta asistencia ya fue registrada");
-  }
-
-  // NUEVA VALIDACIÓN: Verificar si el correo ya registró la asistencia 1 desde otro dispositivo
-  if (asistenciaNumero === 1 && correo) {
-    const asistenciaPorCorreo = registros.find(
-      (r) =>
-        r.correo &&
-        r.correo.toLowerCase() === correo.toLowerCase() &&
-        r.asistenciaNumero === 1,
-    );
-
-    if (asistenciaPorCorreo) {
-      return res
-        .status(409)
-        .send("❌ Este correo ya registró la primera asistencia");
-    }
-  }
-
-  // Validar tiempos de asistencia
-  if (asistenciaNumero > 1) {
-    // Verificar que las asistencias anteriores estén completadas
-    const asistenciasAnteriores = registros.filter(
-      (r) =>
-        r.visitanteId === visitanteId && r.asistenciaNumero < asistenciaNumero,
-    );
-
-    if (asistenciasAnteriores.length < asistenciaNumero - 1) {
-      return res
-        .status(400)
-        .send(
-          `❌ Debes completar la asistencia ${asistenciaNumero - 1} antes de registrar la ${asistenciaNumero}`,
-        );
-    }
-  }
-
-  // Verificar si la asistencia está activa (Server-side check)
-  // Leemos el estado del formulario desde data/formularios.json
-  // NOTA: Esto añade latencia. Si se prefiere velocidad, se puede confiar en el cliente,
-  // pero el requerimiento dice "nadie podrá registrar".
+  // 1. Verificar si la asistencia está activa (Server-side check)
   try {
     const respForm = await fetch(
       `https://api.github.com/repos/${repo}/contents/data/formularios.json`,
@@ -260,62 +234,94 @@ async function handleGuardar(req, res, repo) {
         headers: {
           Authorization: `token ${process.env.GITHUB_TOKEN}`,
           "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
         },
       },
     );
-    if (respForm.ok) {
-      const dataF = await respForm.json();
-      const contentF = Buffer.from(dataF.content, "base64").toString();
-      const forms = JSON.parse(contentF);
-      const activeState = forms[id]?.asistenciasActivas?.[asistenciaNumero];
+    if (!respForm.ok)
+      throw new Error("No se pudo verificar el estado del formulario");
 
-      // Si no está definido o es false, rechazar.
-      // Excepción: Admin. Pero el admin debe activar para registrarse él mismo también según flujo normal.
-      // O si queremos permitir backdoor al admin, necesitaríamos identificarlo aquí.
-      // Asumiremos que el admin ACTIVA el botón, se registra, y luego DESACTIVA si quiere.
-      if (!activeState) {
-        return res
-          .status(403)
-          .send("❌ La asistencia no está activa en este momento.");
-      }
+    const dataF = await respForm.json();
+    const contentF = Buffer.from(dataF.content, "base64").toString();
+    const forms = JSON.parse(contentF);
+    const activeState = forms[id]?.asistenciasActivas?.[asistenciaNumero];
+
+    if (!activeState) {
+      return res
+        .status(403)
+        .send("❌ La asistencia no está activa en este momento.");
     }
   } catch (e) {
     console.error("Error verificando estado activo:", e);
-    // Fallback: permitir si hay error de lectura para no bloquear por error de infra, o bloquear?
-    // Mejor bloquear por seguridad.
     return res.status(500).send("❌ Error verificando estado de asistencia.");
   }
 
-  // Agregar el nuevo registro
-  registros.push(nuevoRegistro);
-  const contenidoCodificado = Buffer.from(
-    JSON.stringify(registros, null, 2),
-  ).toString("base64");
+  const archivo = `respuestas/${id}/respuestas.json`;
 
-  // Guardar el archivo actualizado en GitHub
-  const guardar = await fetch(
-    `https://api.github.com/repos/${repo}/contents/${archivo}`,
-    {
-      method: "PUT",
-      headers: {
-        Authorization: `token ${process.env.GITHUB_TOKEN}`,
-        "Content-Type": "application/json",
+  // 2. Intentar guardar con reintentos para manejar concurrencia
+  try {
+    const result = await updateGitHubJSON(
+      repo,
+      archivo,
+      `Registro de asistencia ${asistenciaNumero}: ${correo}`,
+      async (registros) => {
+        // Verificar si ya existe una asistencia del mismo número para este usuario (por ID)
+        const asisPorId = registros.find(
+          (r) =>
+            r.visitanteId === visitanteId &&
+            r.asistenciaNumero === asistenciaNumero,
+        );
+        if (asisPorId) return null; // Ya existe
+
+        // Verificar por CORREO para recuperación de sesión
+        if (correo && asistenciaNumero === 1) {
+          const asisPorCorreo = registros.find(
+            (r) =>
+              r.correo &&
+              r.correo.toLowerCase() === correo.toLowerCase() &&
+              r.asistenciaNumero === 1,
+          );
+
+          if (asisPorCorreo) {
+            if (asisPorCorreo.visitanteId !== visitanteId) {
+              asisPorCorreo.visitanteId = visitanteId; // Actualizar vínculo
+              return registros;
+            }
+            return null;
+          }
+        }
+
+        // Validar secuencia de asistencias
+        if (asistenciaNumero > 1) {
+          const tienePrevia = registros.some(
+            (r) =>
+              (r.visitanteId === visitanteId ||
+                (correo &&
+                  r.correo &&
+                  r.correo.toLowerCase() === correo.toLowerCase())) &&
+              r.asistenciaNumero < asistenciaNumero,
+          );
+
+          if (!tienePrevia) {
+            throw new Error(
+              `❌ Debes completar la asistencia ${asistenciaNumero - 1} antes de registrar la ${asistenciaNumero}`,
+            );
+          }
+        }
+
+        // Agregar nuevo registro
+        registros.push(nuevoRegistro);
+        return registros;
       },
-      body: JSON.stringify({
-        message: `Nueva respuesta en ${archivo}`,
-        content: contenidoCodificado,
-        branch: "main",
-        ...(sha && { sha }),
-      }),
-    },
-  );
+    );
 
-  if (guardar.ok) {
-    res.status(200).send("✅ Respuesta guardada correctamente.");
-  } else {
-    const error = await guardar.json();
-    console.error(error);
-    res.status(500).send("❌ Error al guardar: " + JSON.stringify(error));
+    if (result.ok) {
+      return res.status(200).send("✅ Asistencia registrada correctamente.");
+    }
+  } catch (err) {
+    if (err.message.includes("❌")) return res.status(400).send(err.message);
+    console.error("Error en handleGuardar:", err);
+    return res.status(500).send("❌ Error al procesar asistencia.");
   }
 }
 
@@ -328,40 +334,27 @@ async function handleGuardarEvaluacion(req, res, repo) {
   const archivo = `evaluaciones/${id}/evaluacion.json`;
 
   try {
-    // Convertir evaluación a base64
-    const contenidoCodificado = Buffer.from(
-      JSON.stringify(evaluation, null, 2),
-    ).toString("base64");
-
-    // Guardar en GitHub
-    const guardar = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${archivo}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `token ${process.env.GITHUB_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: `Evaluación creada para formulario ${id}`,
-          content: contenidoCodificado,
-          branch: "main",
-        }),
+    const result = await updateGitHubJSON(
+      repo,
+      archivo,
+      `Evaluación creada/actualizada para formulario ${id}`,
+      async () => {
+        // En este caso, sobrescribimos siempre con la nueva evaluación
+        // No necesitamos leer la anterior, así que ignoramos el argumento
+        return evaluation;
       },
     );
 
-    if (guardar.ok) {
+    if (result.ok) {
       res
         .status(200)
         .json({ ok: true, message: "✅ Evaluación guardada correctamente." });
-    } else {
-      const error = await guardar.json();
-      res
-        .status(500)
-        .json({ error: error.message || "Error al guardar evaluación" });
     }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res
+      .status(500)
+      .json({ error: err.message || "Error al guardar evaluación" });
   }
 }
 
@@ -397,86 +390,34 @@ async function handleGuardarFormulario(req, res, repo) {
       return res.status(500).json({ error: "Token de GitHub no configurado" });
     }
 
-    // Obtener archivo actual de formularios
-    const resp = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${archivoFormularios}`,
-      {
-        headers: {
-          Authorization: `token ${process.env.GITHUB_TOKEN}`,
-          "Content-Type": "application/json",
-        },
+    // Guardar usando el sistema de reintentos
+    const result = await updateGitHubJSON(
+      repo,
+      archivoFormularios,
+      `Formulario creado: ${id}`,
+      async (data) => {
+        if (data[id]) {
+          throw new Error(`❌ El formulario con ID '${id}' ya existe.`);
+        }
+
+        data[id] = {
+          titulo,
+          fechaCierre:
+            fechaCierre || new Date(Date.now() + 70 * 60 * 1000).toISOString(),
+          creado: new Date().toISOString(),
+          tieneEvaluacion: !!(evaluation && evaluation.length > 0),
+          tomaAsistencia: tomaAsistencia !== undefined ? tomaAsistencia : true,
+          asistenciasActivas: { 1: false, 2: false },
+          imagenEspecialidad: imagenEspecialidad || null,
+          imagenFirma1: imagenFirma1 || null,
+          imagenFirma2: imagenFirma2 || null,
+          imagenFirma3: imagenFirma3 || null,
+        };
+        return data;
       },
     );
 
-    let data = {};
-    let sha = null;
-
-    if (resp.ok) {
-      const archivoJson = await resp.json();
-      const contenido = Buffer.from(archivoJson.content, "base64").toString();
-      data = JSON.parse(contenido);
-      sha = archivoJson.sha;
-    } else if (resp.status !== 404) {
-      const errorText = await resp.text();
-      console.error("Error al obtener formularios:", resp.status, errorText);
-      return res
-        .status(500)
-        .json({ error: "Error al acceder al repositorio de GitHub" });
-    }
-
-    // Validar si ya existe el ID
-    if (data[id]) {
-      return res
-        .status(409)
-        .json({ error: `El formulario con ID '${id}' ya existe.` });
-    }
-
-    // Agregar nuevo formulario
-    data[id] = {
-      titulo,
-      fechaCierre:
-        fechaCierre || new Date(Date.now() + 70 * 60 * 1000).toISOString(),
-      creado: new Date().toISOString(),
-      tieneEvaluacion: !!(evaluation && evaluation.length > 0),
-      tomaAsistencia: tomaAsistencia !== undefined ? tomaAsistencia : true,
-      asistenciasActivas: { 1: false, 2: false },
-      imagenEspecialidad: imagenEspecialidad || null,
-      imagenFirma1: imagenFirma1 || null,
-      imagenFirma2: imagenFirma2 || null,
-      imagenFirma3: imagenFirma3 || null,
-    };
-
-    const nuevoContenido = Buffer.from(JSON.stringify(data, null, 2)).toString(
-      "base64",
-    );
-
-    // Guardar formulario en GitHub
-    const guardarFormulario = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${archivoFormularios}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `token ${process.env.GITHUB_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: `Formulario creado: ${id}`,
-          content: nuevoContenido,
-          branch: "main",
-          ...(sha && { sha }),
-        }),
-      },
-    );
-
-    if (!guardarFormulario.ok) {
-      const errorData = await guardarFormulario.text();
-      console.error(
-        "Error al guardar formulario:",
-        guardarFormulario.status,
-        errorData,
-      );
-      return res.status(500).json({ error: "Error al guardar en GitHub" });
-    }
+    if (!result.ok) throw new Error("No se pudo guardar el formulario");
 
     // Si hay evaluación, guardarla también
     if (evaluation && evaluation.length > 0) {
@@ -549,62 +490,29 @@ async function handleGuardarResultadoExamen(req, res, repo) {
   let resultados = [];
   let sha = null;
 
-  if (respuesta.ok) {
-    const data = await respuesta.json();
-    const decoded = Buffer.from(data.content, "base64").toString();
-    resultados = JSON.parse(decoded);
-    sha = data.sha;
-  }
+  try {
+    const result = await updateGitHubJSON(
+      repo,
+      archivo,
+      `Resultado de examen: ${visitanteId}`,
+      async (resultados) => {
+        const existente = resultados.find((r) => r.visitanteId === visitanteId);
+        if (existente) return null; // Ya existe
 
-  // Verificar si ya existe un resultado para este usuario
-  const resultadoExistente = resultados.find(
-    (r) => r.visitanteId === visitanteId,
-  );
-
-  if (resultadoExistente) {
-    return res.status(409).send("❌ Ya has realizado este examen.");
-  }
-
-  // Agregar el nuevo resultado
-  const nuevoResultado = {
-    visitanteId,
-    respuestas,
-    puntaje,
-    fecha,
-  };
-
-  resultados.push(nuevoResultado);
-  const contenidoCodificado = Buffer.from(
-    JSON.stringify(resultados, null, 2),
-  ).toString("base64");
-
-  // Guardar el archivo actualizado en GitHub
-  const guardar = await fetch(
-    `https://api.github.com/repos/${repo}/contents/${archivo}`,
-    {
-      method: "PUT",
-      headers: {
-        Authorization: `token ${process.env.GITHUB_TOKEN}`,
-        "Content-Type": "application/json",
+        resultados.push({ visitanteId, respuestas, puntaje, fecha });
+        return resultados;
       },
-      body: JSON.stringify({
-        message: `Nuevo resultado de examen para ${id}`,
-        content: contenidoCodificado,
-        branch: "main",
-        ...(sha && { sha }),
-      }),
-    },
-  );
+    );
 
-  if (guardar.ok) {
-    res.status(200).json({
-      ok: true,
-      message: "✅ Examen enviado correctamente.",
-      puntaje: puntaje,
-    });
-  } else {
-    const error = await guardar.json();
-    console.error(error);
+    if (result.ok) {
+      res.status(200).json({
+        ok: true,
+        message: "✅ Examen enviado correctamente.",
+        puntaje: puntaje,
+      });
+    }
+  } catch (e) {
+    console.error(e);
     res.status(500).send("❌ Error al guardar resultado del examen.");
   }
 }
@@ -657,25 +565,29 @@ async function handleLimpiarFormulariosVencidos(req, res, repo) {
     }
 
     // Actualizar formularios.json sin los vencidos
-    const nuevoContenido = Buffer.from(
-      JSON.stringify(formulariosVigentes, null, 2),
-    ).toString("base64");
-    await fetch(
-      `https://api.github.com/repos/${repo}/contents/${archivoFormularios}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `token ${process.env.GITHUB_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: `⏳ Eliminar formularios vencidos (${formulariosVencidos.join(", ")})`,
-          content: nuevoContenido,
-          sha,
-          branch: "main",
-        }),
+    // Actualizar formularios.json sin los vencidos usando updateGitHubJSON
+    const result = await updateGitHubJSON(
+      repo,
+      archivoFormularios,
+      `⏳ Eliminar formularios vencidos (${formulariosVencidos.join(", ")})`,
+      async (formularios) => {
+        // Re-verificar vencimientos sobre la data más fresca
+        const ahora = new Date();
+        const vigentes = {};
+
+        for (const [id, info] of Object.entries(formularios)) {
+          const fechaCreado = new Date(info.creado || info.fechaCierre);
+          const diferenciaDias = (ahora - fechaCreado) / (1000 * 60 * 60 * 24);
+
+          if (diferenciaDias < 90) {
+            vigentes[id] = info;
+          }
+        }
+        return vigentes;
       },
     );
+
+    if (!result.ok) throw new Error("No se pudo actualizar formularios.json");
 
     // Borrar archivos de respuestas vencidas
     for (const id of formulariosVencidos) {

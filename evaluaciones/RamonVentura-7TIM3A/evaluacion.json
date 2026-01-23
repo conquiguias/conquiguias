@@ -1,0 +1,268 @@
+[
+  {
+    "id": "q-1769126288012-229ecwzoo",
+    "type": "multiple",
+    "text": "1. ¿De qué está compuesta una molécula de agua (H₂O)?",
+    "options": [
+      {
+        "id": "opt-1769126288012-hy3w4jo60",
+        "text": "a) Dos hidrógenos y un oxígeno",
+        "correct": true
+      },
+      {
+        "id": "opt-1769126288012-5hmwqu77l",
+        "text": "b) Dos oxígenos y un hidrógeno",
+        "correct": false
+      },
+      {
+        "id": "opt-1769126291723-rb3tg4kv2",
+        "text": "c) Tres hidrógenos",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1769126311652-hig1gphzk",
+    "type": "multiple",
+    "text": "2. El enlace entre los átomos de hidrógeno y oxígeno en el agua es:",
+    "options": [
+      {
+        "id": "opt-1769126311652-sa63at010",
+        "text": "a) Iónico",
+        "correct": false
+      },
+      {
+        "id": "opt-1769126311652-oz44hr9a3",
+        "text": "b) Metálico",
+        "correct": false
+      },
+      {
+        "id": "opt-1769126340963-1ojjh0d8g",
+        "text": "c) Covalente",
+        "correct": true
+      }
+    ]
+  },
+  {
+    "id": "q-1769126355443-6kp8jmxyf",
+    "type": "multiple",
+    "text": "3. ¿Cuál es una característica especial del agua?",
+    "options": [
+      {
+        "id": "opt-1769126355443-92cnervs2",
+        "text": "a) Se evapora fácilmente",
+        "correct": false
+      },
+      {
+        "id": "opt-1769126355443-ykiwkvai7",
+        "text": "b) Es un excelente disolvente",
+        "correct": true
+      },
+      {
+        "id": "opt-1769126356613-9f1oabdlf",
+        "text": "c) No cambia de estado  Respuesta: b",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1769126388227-nu7t921ks",
+    "type": "multiple",
+    "text": "4. El estado sólido del agua es:",
+    "options": [
+      {
+        "id": "opt-1769126388227-mrc2wd4kr",
+        "text": "a) Vapor",
+        "correct": false
+      },
+      {
+        "id": "opt-1769126388227-3zrnbky68",
+        "text": "b) Líquido",
+        "correct": false
+      },
+      {
+        "id": "opt-1769126390491-w1ox3nh8q",
+        "text": "c) Hielo",
+        "correct": true
+      }
+    ]
+  },
+  {
+    "id": "q-1769126426697-tqs6sx4ju",
+    "type": "multiple",
+    "text": "5. ¿En qué estado se encuentra el agua en las nubes?",
+    "options": [
+      {
+        "id": "opt-1769126426697-14o49mufe",
+        "text": "a) Solo sólido",
+        "correct": false
+      },
+      {
+        "id": "opt-1769126426697-ugdn8qfuf",
+        "text": "b) Líquido y gaseoso",
+        "correct": true
+      },
+      {
+        "id": "opt-1769126430860-j14lm62vr",
+        "text": "c) Solo líquido",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1769126478140-dh2odv864",
+    "type": "truefalse",
+    "text": "Toda el agua de la Tierra es apta para beber.",
+    "options": [
+      {
+        "id": "true-1769126478140-0k2r0eukj",
+        "text": "Verdadero",
+        "correct": false
+      },
+      {
+        "id": "false-1769126478140-knk4hqpee",
+        "text": "Falso",
+        "correct": true
+      }
+    ]
+  },
+  {
+    "id": "q-1769126483011-npv8qowov",
+    "type": "truefalse",
+    "text": "La mayor parte del agua de la Tierra es salada.",
+    "options": [
+      {
+        "id": "true-1769126483011-bj4gunxku",
+        "text": "Verdadero",
+        "correct": true
+      },
+      {
+        "id": "false-1769126483011-5ptqynquu",
+        "text": "Falso",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1769126492427-a0nwohzie",
+    "type": "truefalse",
+    "text": "El agua dulce se encuentra solo en ríos y lagos.",
+    "options": [
+      {
+        "id": "true-1769126492427-t8l4a5ad2",
+        "text": "Verdadero",
+        "correct": false
+      },
+      {
+        "id": "false-1769126492427-fkdwgao8z",
+        "text": "Falso",
+        "correct": true
+      }
+    ]
+  },
+  {
+    "id": "q-1769126504691-5vlusnb01",
+    "type": "truefalse",
+    "text": "Es posible convertir agua salada en potable mediante desalinización.",
+    "options": [
+      {
+        "id": "true-1769126504691-fsuzmpzli",
+        "text": "Verdadero",
+        "correct": true
+      },
+      {
+        "id": "false-1769126504691-fe4nlzg56",
+        "text": "Falso",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1769126565243-s457ua853",
+    "type": "multiple",
+    "text": "La lluvia se produce cuando:",
+    "options": [
+      {
+        "id": "opt-1769126565243-lh4b54jg8",
+        "text": "a) El agua se congela",
+        "correct": false
+      },
+      {
+        "id": "opt-1769126565243-s8qgzwr7n",
+        "text": "b) El vapor se condensa y cae",
+        "correct": true
+      },
+      {
+        "id": "opt-1769126566731-9r2pi6xzd",
+        "text": "c) El agua hierve",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1769126589387-0y1ozcybl",
+    "type": "multiple",
+    "text": "¿Cuál de los siguientes es un tipo de precipitación?",
+    "options": [
+      {
+        "id": "opt-1769126589387-nqzaj277y",
+        "text": "a) Rocío",
+        "correct": false
+      },
+      {
+        "id": "opt-1769126589387-tsuw9devb",
+        "text": "b) Granizo",
+        "correct": true
+      },
+      {
+        "id": "opt-1769126590595-yhg6f7lke",
+        "text": "c) Vapor",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1769126615811-mweaci3k4",
+    "type": "multiple",
+    "text": "El punto de congelación del agua es:",
+    "options": [
+      {
+        "id": "opt-1769126615811-y605sh1hl",
+        "text": "a) 0 °C",
+        "correct": true
+      },
+      {
+        "id": "opt-1769126615811-kbtka0e4r",
+        "text": "b) 50 °C",
+        "correct": false
+      },
+      {
+        "id": "opt-1769126617810-ndet4d4ds",
+        "text": "c) 100 °C",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1769126648475-2q9v8xt9z",
+    "type": "multiple",
+    "text": "El punto de ebullición del agua es:",
+    "options": [
+      {
+        "id": "opt-1769126648475-14cjp62zt",
+        "text": "a) 90 °C",
+        "correct": false
+      },
+      {
+        "id": "opt-1769126648475-6obt8hnya",
+        "text": "b) 100 °C",
+        "correct": true
+      },
+      {
+        "id": "opt-1769126650859-3z3gcn4vc",
+        "text": "c) 120 °C",
+        "correct": false
+      }
+    ]
+  }
+]

@@ -266,30 +266,32 @@ async function handleGuardar(req, res, repo) {
       archivo,
       `Registro de asistencia ${asistenciaNumero}: ${correo}`,
       async (registros) => {
-        // Verificar si ya existe una asistencia del mismo número para este usuario (por ID)
-        const asisPorId = registros.find(
+        let modificado = false;
+
+        // Sincronizar IDs por correo si existe (para unificar sesiones)
+        if (correo) {
+          registros.forEach((r) => {
+            if (
+              r.correo &&
+              r.correo.toLowerCase() === correo.toLowerCase() &&
+              r.visitanteId !== visitanteId
+            ) {
+              r.visitanteId = visitanteId;
+              modificado = true;
+            }
+          });
+        }
+
+        // Verificar si ya existe el registro (por ID y número)
+        // Nota: Si hubo sincronización arriba, ahora coincidirá aquí
+        const existePorId = registros.find(
           (r) =>
             r.visitanteId === visitanteId &&
             r.asistenciaNumero === asistenciaNumero,
         );
-        if (asisPorId) return null; // Ya existe
 
-        // Verificar por CORREO para recuperación de sesión
-        if (correo && asistenciaNumero === 1) {
-          const asisPorCorreo = registros.find(
-            (r) =>
-              r.correo &&
-              r.correo.toLowerCase() === correo.toLowerCase() &&
-              r.asistenciaNumero === 1,
-          );
-
-          if (asisPorCorreo) {
-            if (asisPorCorreo.visitanteId !== visitanteId) {
-              asisPorCorreo.visitanteId = visitanteId; // Actualizar vínculo
-              return registros;
-            }
-            return null;
-          }
+        if (existePorId) {
+          return modificado ? registros : null; // Guardar si hubo cambios, sino ignorar
         }
 
         // Validar secuencia de asistencias

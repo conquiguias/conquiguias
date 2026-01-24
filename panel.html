@@ -6903,6 +6903,7 @@ const diffMins = Math.floor(diffMs / 60000);
 
             // Botón eliminar imagen
             const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button'; // IMPORTANTE: Evita que envíe el formulario
             deleteBtn.innerHTML = '🗑️';
             deleteBtn.className = 'delete-image-btn';
             deleteBtn.title = 'Eliminar imagen permanentemente';

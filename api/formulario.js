@@ -56,6 +56,14 @@ export default async function handler(req, res) {
         await handleActualizarEstadoAsistencia(req, res, repo);
         break;
 
+      case "eliminarFormulario":
+        await handleEliminarFormulario(req, res, repo);
+        break;
+
+      case "eliminarImagen":
+        await handleEliminarImagen(req, res, repo);
+        break;
+
       default:
         res.status(400).json({ error: "Acción no válida" });
         break;
@@ -989,5 +997,147 @@ async function handleVerRespuestas(req, res, repo) {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Error al obtener respuestas" });
+  }
+}
+
+// Handler para eliminarFormulario
+async function handleEliminarFormulario(req, res, repo) {
+  if (req.method !== "POST")
+    return res.status(405).json({ error: "Método no permitido" });
+
+  const { id } = req.body;
+  if (!id) return res.status(400).json({ error: "ID requerido" });
+
+  const archivoFormularios = `data/formularios.json`;
+
+  try {
+    // 1. Eliminar del índice (formularios.json)
+    const result = await updateGitHubJSON(
+      repo,
+      archivoFormularios,
+      `Eliminar formulario ${id}`,
+      async (formularios) => {
+        if (!formularios[id]) return null; // No existe, nada que borrar
+
+        // Copiar para no mutar directo si fuera referencia (aunque aquí se pasa objeto nuevo)
+        const nuevos = { ...formularios };
+        delete nuevos[id];
+        return nuevos;
+      },
+    );
+
+    if (!result.ok && !result.skipped)
+      throw new Error("Error al actualizar índice de formularios");
+
+    // 2. Eliminar archivos asociados (Best effort)
+    const rutasBorrar = [
+      `respuestas/${id}/respuestas.json`,
+      `evaluaciones/${id}/evaluacion.json`,
+      `evaluaciones/${id}/resultados.json`,
+    ];
+
+    // Intentar borrar también la carpeta (GitHub API no borra carpetas vacías automáticamente a menos que se borren todos los archivos)
+    // Pero como borramos archivos específicos, si eran los únicos, la carpeta desaparece 'virtualmente'.
+
+    for (const ruta of rutasBorrar) {
+      try {
+        const archivoRes = await fetch(
+          `https://api.github.com/repos/${repo}/contents/${ruta}`,
+          {
+            headers: {
+              Authorization: `token ${process.env.GITHUB_TOKEN}`,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        if (archivoRes.ok) {
+          const datos = await archivoRes.json();
+          await fetch(`https://api.github.com/repos/${repo}/contents/${ruta}`, {
+            method: "DELETE",
+            headers: {
+              Authorization: `token ${process.env.GITHUB_TOKEN}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              message: `Eliminar datos asociados a formulario ${id}`,
+              sha: datos.sha,
+              branch: "main",
+            }),
+          });
+        }
+      } catch (e) {
+        console.warn(`No se pudo borrar ${ruta} (tal vez no existía):`, e);
+      }
+    }
+
+    res
+      .status(200)
+      .json({ ok: true, message: "Formulario eliminado correctamente" });
+  } catch (err) {
+    console.error("Error al eliminar formulario:", err);
+    res.status(500).json({ error: "Error interno al eliminar formulario" });
+  }
+}
+
+// Handler para eliminarImagen
+async function handleEliminarImagen(req, res, repo) {
+  if (req.method !== "POST")
+    return res.status(405).json({ error: "Método no permitido" });
+
+  const { carpeta, nombre } = req.body;
+  if (!carpeta || !nombre)
+    return res.status(400).json({ error: "Carpeta y nombre requeridos" });
+
+  // Validar carpeta para seguridad
+  if (carpeta !== "especialidades" && carpeta !== "firmas") {
+    return res.status(400).json({ error: "Carpeta inválida" });
+  }
+
+  const ruta = `images/${carpeta}/${nombre}`;
+
+  try {
+    // Obtener SHA del archivo
+    const getRes = await fetch(
+      `https://api.github.com/repos/${repo}/contents/${ruta}`,
+      {
+        headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` },
+      },
+    );
+
+    if (!getRes.ok) {
+      if (getRes.status === 404)
+        return res.status(404).json({ error: "Imagen no encontrada" });
+      throw new Error("Error al buscar imagen");
+    }
+
+    const data = await getRes.json();
+
+    // Eliminar archivo
+    const delRes = await fetch(
+      `https://api.github.com/repos/${repo}/contents/${ruta}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `token ${process.env.GITHUB_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: `Eliminar imagen ${nombre}`,
+          sha: data.sha,
+          branch: "main",
+        }),
+      },
+    );
+
+    if (delRes.ok) {
+      res.status(200).json({ ok: true, message: "Imagen eliminada" });
+    } else {
+      const errText = await delRes.text();
+      throw new Error(`Error GitHub: ${errText}`);
+    }
+  } catch (err) {
+    console.error("Error al eliminar imagen:", err);
+    res.status(500).json({ error: "Error al procesar eliminación" });
   }
 }

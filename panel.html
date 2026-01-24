@@ -183,6 +183,24 @@
         gap: 10px;
         margin-bottom: 8px;
     }
+    /* FIX: Asegurar que el input de texto dentro de las opciones se vea bien */
+    .option-item input[type="text"] {
+        flex: 1;
+        width: auto !important; /* Sobrescribir el width: 100% global */
+        margin: 0 !important;   /* Quitar márgenes globales */
+        min-width: 0;           /* Permitir que flexbox maneje el ancho */
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+    }
+    /* Ajustar radio button y checkbox */
+    .option-item input[type="radio"],
+    .option-item input[type="checkbox"] {
+        width: auto !important;
+        margin: 0 !important;
+        cursor: pointer;
+    }
+
     .btn-add-option, .btn-remove {
         background: transparent;
         border: 1px solid var(--border-color);
@@ -7377,24 +7395,26 @@ const diffMins = Math.floor(diffMs / 60000);
     // Función para ver examen de un formulario existente
     window.verExamen = async function(id) {
         try {
-            const res = await fetch(`/api/formulario?action=obtenerFormulario&id=${id}`);
-            if(!res.ok) throw new Error("Error al obtener formulario");
-            const data = await res.json();
+            // 1. Obtener detalles del formulario (para el título)
+            const resForm = await fetch(`/api/formulario?action=obtenerFormulario&id=${id}`);
+            if(!resForm.ok) throw new Error("Error al obtener formulario");
+            const dataForm = await resForm.json();
             
-            if(!data.evaluation || data.evaluation.length === 0) {
-                alert("Este formulario no tiene preguntas registradas.");
+            // 2. Obtener las preguntas de la evaluación
+            const resEval = await fetch(`/api/formulario?action=obtenerEvaluacion&id=${id}`);
+            const questions = resEval.ok ? await resEval.json() : [];
+            
+            if(!questions || questions.length === 0) {
+                alert("Este formulario no tiene preguntas registradas o no se pudieron cargar.");
                 return;
             }
-            
-            // Reutilizamos la variable global 'questions' AUNQUE esto sobreescribirá lo que esté editando actualmente.
-            // Para evitar perder datos en edición, mejor usamos una variable temporal o mostramos directo en el modal de preview sin afectar 'questions'.
             
             const previewContainer = document.getElementById('previewQuestions');
             const previewModal = document.getElementById('previewModal');
             
-            previewContainer.innerHTML = `<h3>Examen del formulario: ${data.titulo}</h3>`;
+            previewContainer.innerHTML = `<h3>Examen del formulario: ${dataForm.titulo}</h3>`;
             
-            data.evaluation.forEach((question, index) => {
+            questions.forEach((question, index) => {
               const questionHtml = `
                 <div class="exam-question" style="background: var(--bg-secondary); padding: 15px; margin-bottom: 10px; border-radius: 8px;">
                   <p style="margin-bottom: 10px;"><strong>Pregunta ${index + 1}:</strong> ${question.text}</p>

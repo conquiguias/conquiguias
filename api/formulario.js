@@ -167,7 +167,7 @@ async function handleActualizarEstadoAsistencia(req, res, repo) {
     const result = await updateGitHubJSON(
       repo,
       archivoFormularios,
-      `Actualizar estado asistencia ${asistencia} a ${activo} en formulario ${id}`,
+      `Actualizar estado asistencia ${asistencia} a ${activo} en formulario ${id} [skip ci]`,
       async (formularios) => {
         if (!formularios[id]) {
           res.status(404).json({ error: "Formulario no encontrado" });
@@ -273,7 +273,7 @@ async function handleGuardar(req, res, repo) {
     const result = await updateGitHubJSON(
       repo,
       archivo,
-      `Registro de asistencia ${asistenciaNumero}: ${correo}`,
+      `Registro de asistencia ${asistenciaNumero}: ${correo} [skip ci]`,
       async (registros) => {
         let modificado = false;
 
@@ -335,7 +335,7 @@ async function handleGuardar(req, res, repo) {
         await updateGitHubJSON(
           repo,
           archivoResultados,
-          `Sincronización de examen para ID actualizado: ${visitanteId}`,
+          `Sincronización de examen para ID actualizado: ${visitanteId} [skip ci]`,
           async (resultados) => {
             let resModificado = false;
             if (Array.isArray(resultados)) {
@@ -388,7 +388,7 @@ async function handleGuardarEvaluacion(req, res, repo) {
     const result = await updateGitHubJSON(
       repo,
       archivo,
-      `Evaluación creada/actualizada para formulario ${id}`,
+      `Evaluación creada/actualizada para formulario ${id} [skip ci]`,
       async () => {
         // En este caso, sobrescribimos siempre con la nueva evaluación
         // No necesitamos leer la anterior, así que ignoramos el argumento
@@ -445,7 +445,7 @@ async function handleGuardarFormulario(req, res, repo) {
     const result = await updateGitHubJSON(
       repo,
       archivoFormularios,
-      `Formulario creado: ${id}`,
+      `Formulario creado: ${id} [skip ci]`,
       async (data) => {
         if (data[id]) {
           throw new Error(`❌ El formulario con ID '${id}' ya existe.`);
@@ -487,7 +487,7 @@ async function handleGuardarFormulario(req, res, repo) {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              message: `Evaluación creada para formulario ${id}`,
+              message: `Evaluación creada para formulario ${id} [skip ci]`,
               content: contenidoEvaluacion,
               branch: "main",
             }),
@@ -545,7 +545,7 @@ async function handleGuardarResultadoExamen(req, res, repo) {
     const result = await updateGitHubJSON(
       repo,
       archivo,
-      `Resultado de examen: ${visitanteId}`,
+      `Resultado de examen: ${visitanteId} [skip ci]`,
       async (resultados) => {
         const existente = resultados.find((r) => r.visitanteId === visitanteId);
         if (existente) return null; // Ya existe
@@ -620,7 +620,7 @@ async function handleLimpiarFormulariosVencidos(req, res, repo) {
     const result = await updateGitHubJSON(
       repo,
       archivoFormularios,
-      `⏳ Eliminar formularios vencidos (${formulariosVencidos.join(", ")})`,
+      `⏳ Eliminar formularios vencidos (${formulariosVencidos.join(", ")}) [skip ci]`,
       async (formularios) => {
         // Re-verificar vencimientos sobre la data más fresca
         const ahora = new Date();
@@ -663,7 +663,7 @@ async function handleLimpiarFormulariosVencidos(req, res, repo) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            message: `⏳ Eliminar respuestas de formulario vencido ${id}`,
+            message: `⏳ Eliminar respuestas de formulario vencido ${id} [skip ci]`,
             sha: datosArchivo.sha,
             branch: "main",
           }),
@@ -917,7 +917,7 @@ async function handleSubirImagen(req, res, repo) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          message: `Subir imagen: ${nombre} en ${carpeta}`,
+          message: `Subir imagen: ${nombre} en ${carpeta} [skip ci]`,
           content: contenido,
           branch: "main",
           ...(sha && { sha }), // Incluir SHA si existe para hacer update
@@ -1028,7 +1028,7 @@ async function handleEliminarFormulario(req, res, repo) {
     const result = await updateGitHubJSON(
       repo,
       archivoFormularios,
-      `Eliminar formulario ${id}`,
+      `Eliminar formulario ${id} [skip ci]`,
       async (formularios) => {
         if (!formularios[id]) return null; // No existe, nada que borrar
 
@@ -1073,7 +1073,7 @@ async function handleEliminarFormulario(req, res, repo) {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              message: `Eliminar datos asociados a formulario ${id}`,
+              message: `Eliminar datos asociados a formulario ${id} [skip ci]`,
               sha: datos.sha,
               branch: "main",
             }),
@@ -1139,7 +1139,7 @@ async function handleEliminarImagen(req, res, repo) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          message: `Eliminar imagen ${nombre}`,
+          message: `Eliminar imagen ${nombre} [skip ci]`,
           sha: data.sha,
           branch: "main",
         }),

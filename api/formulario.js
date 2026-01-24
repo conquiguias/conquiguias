@@ -891,11 +891,12 @@ async function handleSubirImagen(req, res, repo) {
   try {
     // 1. Verificar si existe para obtener SHA (para sobrescritura)
     const verificar = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${path}`,
+      `https://api.github.com/repos/${repo}/contents/${path}?t=${Date.now()}`,
       {
         headers: {
           Authorization: `token ${process.env.GITHUB_TOKEN}`,
           "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
         },
       },
     );
@@ -1111,9 +1112,12 @@ async function handleEliminarImagen(req, res, repo) {
   try {
     // Obtener SHA del archivo
     const getRes = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${ruta}`,
+      `https://api.github.com/repos/${repo}/contents/${ruta}?t=${Date.now()}`,
       {
-        headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` },
+        headers: {
+          Authorization: `token ${process.env.GITHUB_TOKEN}`,
+          "Cache-Control": "no-cache",
+        },
       },
     );
 

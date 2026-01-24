@@ -1,5 +1,0 @@
-{
-  "git": {
-    "ignoreCommand": "git show -s --format=%B HEAD | grep -q \"skip ci\""
-  }
-}

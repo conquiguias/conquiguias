@@ -1784,7 +1784,301 @@
       text-decoration: underline !important;
     }
 
-    /* Efecto de transición suave cuando se expande/contrae */
+    /* ============================================
+       ESTILOS SECCIÓN INSTRUCTOR (Adaptado de admin.html)
+       ============================================ */
+    .evaluation-creator {
+      background: var(--bg-secondary);
+      border: 2px dashed var(--border-color);
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+
+    .evaluation-creator h3 {
+      color: var(--text-primary);
+      margin-bottom: 15px;
+    }
+
+    .question-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 15px;
+      margin: 10px 0;
+      position: relative;
+    }
+
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      color: var(--text-primary);
+    }
+
+    .question-type {
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .multiple-choice {
+      background: rgba(59, 130, 246, 0.2);
+      color: #93c5fd;
+    }
+
+    .true-false {
+      background: rgba(168, 85, 247, 0.2);
+      color: #d8b4fe;
+    }
+
+    .option-item {
+      display: flex;
+      align-items: center;
+      margin: 8px 0;
+      padding: 8px;
+      background: var(--bg-secondary);
+      border-radius: 5px;
+    }
+
+    .option-item input[type="text"] {
+      flex: 1;
+      margin: 0 10px;
+      padding: 8px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+
+    .option-item input[type="radio"] {
+      margin-right: 10px;
+    }
+
+    .btn-add-question,
+    .btn-add-option,
+    .btn-remove {
+      padding: 8px 15px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: opacity 0.2s;
+    }
+
+    .btn-add-question:hover,
+    .btn-add-option:hover,
+    .btn-remove:hover {
+      opacity: 0.8;
+    }
+
+    .btn-add-question {
+      background: var(--success-color);
+      color: white;
+    }
+
+    .btn-add-option {
+      background: var(--accent-color);
+      color: white;
+    }
+
+    .btn-remove {
+      background: var(--danger-color);
+      color: white;
+    }
+
+    .preview-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 3000;
+    }
+
+    .preview-content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--bg-card);
+      padding: 20px;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .exam-question {
+      margin: 15px 0;
+      padding: 15px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--bg-secondary);
+    }
+
+    .error-message {
+      color: #f87171;
+      background: rgba(239, 68, 68, 0.1);
+      padding: 20px;
+      border-radius: 10px;
+      margin: 20px 0;
+      border: 2px solid var(--danger-color);
+    }
+
+    /* Estilos para selectores de imágenes */
+    .image-selector {
+      background: rgba(59, 130, 246, 0.05);
+      border: 2px solid var(--accent-color);
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+
+    .image-selector h3 {
+      color: var(--text-primary);
+    }
+
+    .selector-group {
+      margin: 15px 0;
+    }
+
+    .selector-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: var(--text-primary);
+    }
+
+    .selector-container {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .custom-select {
+      flex: 1;
+      padding: 10px;
+      border: 2px solid var(--border-color);
+      border-radius: 5px;
+      background: var(--bg-secondary);
+      max-height: 220px;
+      min-height: 220px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .image-option {
+      display: flex;
+      align-items: center;
+      padding: 8px;
+      margin: 0;
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s;
+      min-height: 60px;
+      flex-shrink: 0;
+      background: var(--bg-primary);
+    }
+
+    .image-option:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .image-option.selected {
+      border-color: var(--accent-color);
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    .image-option img {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      margin-right: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 3px;
+      flex-shrink: 0;
+      background: white;
+      /* Keep images on white for visibility */
+    }
+
+    .image-name {
+      font-size: 14px;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+
+    .upload-section {
+      margin-top: 10px;
+      padding: 10px;
+      background: var(--bg-secondary);
+      border-radius: 5px;
+    }
+
+    .upload-btn {
+      background: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 5px;
+    }
+
+    .upload-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .firma-group {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid var(--warning-color);
+      border-radius: 8px;
+      padding: 15px;
+      margin: 10px 0;
+    }
+
+    .firma-group h4 {
+      margin: 0 0 10px 0;
+      color: var(--warning-color);
+    }
+
+    /* Adaptaciones tabla formularios */
+    #tablaFormularios {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      color: var(--text-primary);
+    }
+
+    #tablaFormularios th,
+    #tablaFormularios td {
+      padding: 12px;
+      border: 1px solid var(--border-color);
+      text-align: left;
+    }
+
+    #tablaFormularios th {
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    #tablaFormularios tr:nth-child(even) {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    
     .post-description {
       transition: all 0.3s ease;
     }
@@ -1801,6 +2095,7 @@
     <button id="menuCertificaciones">Certificaciones</button>
     <button id="menuEspecialidades">Especialidades Storage</button>
     <button id="menuPerfil">Perfil</button>
+    <button id="menuInstructor" class="hidden">👨‍🏫 Instructor</button>
     <button id="menuAdmin" class="hidden">🔧 Admin</button>
     <button id="logoutBtn">Cerrar sesión</button>
   </div>
@@ -2034,6 +2329,201 @@ transition: all 0.3s ease;
       </div>
     </div>
 
+    <!-- 🔹 SECCIÓN INSTRUCTOR (Antiguo admin.html) -->
+    <div id="instructorSection" class="card hidden">
+      <h2>👨‍🏫 Panel de Instructor</h2>
+      <p>Gestión de formularios de asistencia y exámenes</p>
+
+      <form id="crearFormulario">
+
+        <input type="hidden" id="formId">
+        <input type="hidden" id="titulo">
+
+        <input type="hidden" id="fechaCierre">
+
+        <!-- Configuración de asistencia -->
+        <div style="background: var(--bg-secondary); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid var(--accent-color);">
+          <label style="display: flex; align-items: center; cursor: pointer; font-size: 16px;">
+            <input type="checkbox" id="tomaAsistencia" checked style="margin-right: 10px; width: 20px; height: 20px; cursor: pointer;">
+            <span>
+              <strong>¿Este formulario requiere tomar asistencia?</strong>
+              <br>
+              <small style="color: var(--text-secondary); margin-left: 30px;">
+                Si está marcado: Se requerirán 2 asistencias para poder hacer el examen.<br>
+                Si está desmarcado: Con solo registrar la primera asistencia, ya podrán hacer el examen.
+              </small>
+            </span>
+          </label>
+        </div>
+
+        <!-- Selector de Imágenes -->
+        <div class="image-selector">
+          <h3>🖼️ Selección de Imágenes para el Formulario</h3>
+
+          <!-- Selector de Especialidad -->
+          <div class="selector-group">
+            <label>Especialidad:</label>
+            <div class="selector-container">
+              <div class="custom-select" id="selectEspecialidad">
+                <div style="padding: 10px; text-align: center; color: var(--text-secondary);">
+                  Cargando especialidades...
+                </div>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 5px;">
+                  <input type="file" id="uploadEspecialidad" accept="image/*" style="display: none;" onchange="document.getElementById('fileNameEsp').textContent = this.files[0]?.name || 'Ningún archivo seleccionado'">
+                  <button type="button" class="upload-btn" onclick="document.getElementById('uploadEspecialidad').click()" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
+                    📂 Seleccionar Archivo
+                  </button>
+                  <span id="fileNameEsp" style="font-size: 11px; color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Ningún archivo seleccionado</span>
+              </div>
+            </div>
+            <div class="upload-section" style="display: flex; gap: 10px; align-items: center;">
+              <input type="text" id="nombreEspecialidad" placeholder="Nombre para la especialidad" class="upload-input" style="flex: 1; padding: 8px;">
+              <button type="button" id="btnSubirEspReal" class="upload-btn" style="background: var(--success-color);">⬆️ Subir</button>
+            </div>
+            <div id="mensajeEspecialidad" style="margin-top: 5px; font-size: 12px;"></div>
+          </div>
+
+          <!-- Selector de Firmas -->
+          <div class="firma-group">
+            <h4>Firmas Requeridas:</h4>
+
+            <!-- Firma 1 - Instructor -->
+            <div class="selector-group">
+              <label>Firma del Instructor:</label>
+              <div class="selector-container">
+                <div class="custom-select" id="selectFirma1">
+                  <div style="padding: 10px; text-align: center; color: var(--text-secondary);">
+                    Cargando firmas...
+                  </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                    <input type="file" id="uploadFirma1" accept="image/*" style="display: none;" onchange="document.getElementById('fileNameF1').textContent = this.files[0]?.name || 'Ningún archivo seleccionado'">
+                    <button type="button" class="upload-btn" onclick="document.getElementById('uploadFirma1').click()" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
+                      📂 Seleccionar Archivo
+                    </button>
+                    <span id="fileNameF1" style="font-size: 11px; color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Ningún archivo seleccionado</span>
+                </div>
+              </div>
+              <div class="upload-section" style="display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="nombreFirma1" placeholder="Nombre firma instructor" class="upload-input" style="flex: 1; padding: 8px;">
+                <button type="button" id="btnSubirF1Real" class="upload-btn" style="background: var(--success-color);">⬆️ Subir</button>
+              </div>
+              <div id="mensajeFirma1" style="margin-top: 5px; font-size: 12px;"></div>
+            </div>
+
+            <!-- Firma 2 -->
+            <div class="selector-group">
+              <label>Firma 2:</label>
+              <div class="selector-container">
+                <div class="custom-select" id="selectFirma2">
+                  <div style="padding: 10px; text-align: center; color: var(--text-secondary);">
+                    Cargando firmas...
+                  </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                    <input type="file" id="uploadFirma2" accept="image/*" style="display: none;" onchange="document.getElementById('fileNameF2').textContent = this.files[0]?.name || 'Ningún archivo seleccionado'">
+                    <button type="button" class="upload-btn" onclick="document.getElementById('uploadFirma2').click()" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
+                      📂 Seleccionar Archivo
+                    </button>
+                    <span id="fileNameF2" style="font-size: 11px; color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Ningún archivo seleccionado</span>
+                </div>
+              </div>
+              <div class="upload-section" style="display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="nombreFirma2" placeholder="Nombre firma 2" class="upload-input" style="flex: 1; padding: 8px;">
+                <button type="button" id="btnSubirF2Real" class="upload-btn" style="background: var(--success-color);">⬆️ Subir</button>
+              </div>
+              <div id="mensajeFirma2" style="margin-top: 5px; font-size: 12px;"></div>
+            </div>
+
+            <!-- Firma 3 -->
+            <div class="selector-group">
+              <label>Firma 3:</label>
+              <div class="selector-container">
+                <div class="custom-select" id="selectFirma3">
+                  <div style="padding: 10px; text-align: center; color: var(--text-secondary);">
+                    Cargando firmas...
+                  </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                    <input type="file" id="uploadFirma3" accept="image/*" style="display: none;" onchange="document.getElementById('fileNameF3').textContent = this.files[0]?.name || 'Ningún archivo seleccionado'">
+                    <button type="button" class="upload-btn" onclick="document.getElementById('uploadFirma3').click()" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
+                      📂 Seleccionar Archivo
+                    </button>
+                    <span id="fileNameF3" style="font-size: 11px; color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Ningún archivo seleccionado</span>
+                </div>
+              </div>
+              <div class="upload-section" style="display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="nombreFirma3" placeholder="Nombre firma 3" class="upload-input" style="flex: 1; padding: 8px;">
+                <button type="button" id="btnSubirF3Real" class="upload-btn" style="background: var(--success-color);">⬆️ Subir</button>
+              </div>
+              <div id="mensajeFirma3" style="margin-top: 5px; font-size: 12px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sistema de creación de evaluación -->
+        <div class="evaluation-creator">
+          <h3>📝 Crear Evaluación para esta Especialidad</h3>
+          <div id="questionsContainer">
+            <!-- Las preguntas se agregarán aquí dinámicamente -->
+            <p style="color: var(--text-secondary); text-align: center;">No hay preguntas agregadas aún.</p>
+          </div>
+
+          <button type="button" class="btn-add-question" onclick="addQuestion('multiple')">
+            ➕ Agregar Pregunta de Opción Múltiple
+          </button>
+          <button type="button" class="btn-add-question" onclick="addQuestion('truefalse')">
+            ➕ Agregar Pregunta Verdadero/Falso
+          </button>
+
+          <div style="margin-top: 20px;">
+            <button type="button" onclick="previewExam()" style="background: var(--text-secondary); color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer;">
+              👁️ Previsualizar Examen
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="saveBtn">Crear Formulario con Evaluación</button>
+      </form>
+
+      <p id="mensajeInstructor"></p>
+
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+        <button id="btnLimpiarFormularios" style="background: var(--warning-color); margin-bottom: 20px;">🧹 Limpiar formularios vencidos</button>
+        <p id="resultadoLimpieza"></p>
+
+        <h3>📋 Formularios creados:</h3>
+        <div style="overflow-x: auto;">
+            <table id="tablaFormularios" border="1">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>ID</th>
+                  <th>Título</th>
+                  <th>Fecha de cierre</th>
+                  <th>Creado</th>
+                  <th>Acción</th>
+                  <th>Evaluación</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+        </div>
+      </div>
+      
+      <!-- Modal para previsualizar examen -->
+      <div id="previewModal" class="preview-modal">
+        <div class="preview-content">
+          <h3>Previsualización del Examen</h3>
+          <div id="previewQuestions"></div>
+          <button onclick="closePreview()" style="background: var(--text-secondary); color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; margin-top: 15px;">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 🔧 SECCIÓN ADMIN -->
     <div id="adminSection" class="card hidden">
       <h2>🔧 Panel de Administración</h2>
@@ -2246,6 +2736,10 @@ transition: all 0.3s ease;
         if (isAdmin) {
           setupAdminSection();
           setupAdminEventListeners();
+          const menuInstructor = document.getElementById('menuInstructor');
+          if (menuInstructor) menuInstructor.classList.remove('hidden');
+          // Start Instructor panel
+          if (typeof inicializarPanelInstructor === 'function') inicializarPanelInstructor();
         }
 
         currentUserId = user.uid;
@@ -2531,8 +3025,15 @@ transition: all 0.3s ease;
 
       function mostrarSeccion(seccion, botonActivo) {
         pausarTodosLosVideos();
-        [inicioSection, perfilSection, especialidadesSection, clubesSection, certificacionesSection, adminSection].forEach(sec => sec.classList.add("hidden"));
-        [menuInicio, menuPerfil, menuEspecialidades, menuClubes, menuCertificaciones, menuAdmin].forEach(btn => btn.classList.remove("active"));
+        const instructorSection = document.getElementById("instructorSection");
+        const menuInstructor = document.getElementById("menuInstructor");
+        
+        [inicioSection, perfilSection, especialidadesSection, clubesSection, certificacionesSection, adminSection, instructorSection].forEach(sec => {
+          if (sec) sec.classList.add("hidden");
+        });
+        [menuInicio, menuPerfil, menuEspecialidades, menuClubes, menuCertificaciones, menuAdmin, menuInstructor].forEach(btn => {
+          if (btn) btn.classList.remove("active");
+        });
 
         seccion.classList.remove("hidden");
         botonActivo.classList.add("active");
@@ -6188,24 +6689,630 @@ const diffMins = Math.floor(diffMs / 60000);
                                 // Modificar handleUpload para cerrar el modal después de publicar
                                 const originalHandleUpload = handleUpload;
                                 handleUpload = async function () {
-                                try {
-                                await originalHandleUpload.call(this);
-                                // Cerrar modal solo si la publicación fue exitosa
-                                hideUploadModal();
-                                } catch (error) {
-                                // No cerrar el modal si hubo error
-                                console.error('Error en la publicación:', error);
-                                }
+                                  try {
+                                    await originalHandleUpload.call(this);
+                                    // Cerrar modal solo si la publicación fue exitosa
+                                    hideUploadModal();
+                                  } catch (error) {
+                                    // No cerrar el modal si hubo error
+                                    console.error('Error en la publicación:', error);
+                                  }
                                 };
-
-
-
-
-
-
                                 </script>
 
+<script>
 
-                                </body>
 
-                                </html>
+
+
+
+
+
+    // ==========================================
+    // LÓGICA DEL PANEL DE INSTRUCTOR (Migrada)
+    // ==========================================
+    let questions = [];
+    let questionCounter = 0;
+    let optionCounter = 0;
+
+    // Variables globales para las imágenes seleccionadas
+    let imagenEspecialidadSeleccionada = null;
+    let imagenFirma1Seleccionada = null;
+    let imagenFirma2Seleccionada = null;
+    let imagenFirma3Seleccionada = null;
+
+    // Función para generar IDs únicos
+    function generateId() {
+      return Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    }
+    
+    // Función para filtrar imágenes (Buscador)
+    function filtrarImagenes(selectId, busqueda) {
+        const opciones = document.querySelectorAll(`#${selectId} .image-option`);
+        const textoBusqueda = busqueda.toLowerCase();
+        
+        // Mover el scroll al principio
+        const container = document.getElementById(selectId);
+        if(container) container.scrollTop = 0;
+
+        opciones.forEach(opcion => {
+            const nombre = opcion.querySelector('.image-name').textContent.toLowerCase();
+            if (nombre.includes(textoBusqueda)) {
+                opcion.style.display = 'flex';
+            } else {
+                opcion.style.display = 'none';
+            }
+        });
+    }
+
+    // Función para cargar imágenes en un select
+    async function cargarImagenesInstructor(carpeta, selectId) {
+      const select = document.getElementById(selectId);
+      if (!select) return;
+
+      try {
+        const res = await fetch(`/api/formulario?action=listarImagenes&carpeta=${carpeta}`);
+
+        if (res.ok) {
+          const imagenes = await res.json();
+          select.innerHTML = '';
+
+          if (imagenes.length === 0) {
+            select.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--text-secondary);">No hay imágenes disponibles</div>';
+            return;
+          }
+          
+          // Crear contenedor de búsqueda
+          const searchContainer = document.createElement('div');
+          searchContainer.style.position = 'sticky';
+          searchContainer.style.top = '0';
+          searchContainer.style.background = 'var(--bg-secondary)';
+          searchContainer.style.zIndex = '10';
+          searchContainer.style.paddingBottom = '5px';
+          
+          const searchInput = document.createElement('input');
+          searchInput.type = 'text';
+          searchInput.placeholder = '🔍 Buscar...';
+          searchInput.style.width = '100%';
+          searchInput.style.padding = '8px';
+          searchInput.style.marginBottom = '5px';
+          searchInput.style.border = '1px solid var(--border-color)';
+          searchInput.style.borderRadius = '4px';
+          
+          searchInput.addEventListener('input', (e) => {
+             filtrarImagenes(selectId, e.target.value);
+          });
+          
+          searchContainer.appendChild(searchInput);
+          select.appendChild(searchContainer);
+
+          imagenes.forEach(imagen => {
+            const option = document.createElement('div');
+            option.className = 'image-option';
+            
+            // Guardar nombre limpio para búsqueda
+            const nombreLimpio = imagen.nombre.replace(/\.[^/.]+$/, "");
+
+            const img = document.createElement('img');
+            img.src = imagen.url;
+            img.alt = imagen.nombre;
+            img.loading = "lazy"; // Mejora de rendimiento
+            img.onerror = function () {
+              this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAxMUMyMi43NjE0IDExIDI1IDEzLjIzODYgMjUgMTZDMjUgMTguNzYxNCAyMi43NjE0IDIxIDIwIDIxQzE3LjIzODYgMjEgMTUgMTguNzYxNCAxNSAxNkMxNSAxMy4yMzg2IDE3LjIzODYgMTEgMjAgMTFaIiBmaWxsPSIjOTRBQkNEIi8+CjxwYXRoIGQ9Ik0xMSAyOUMyOSAyOSAyOSAyOSAyOSAyOUMyOSAzMS4yMDkxIDI3LjIwOTEgMzMgMjUgMzNIMTVDMTIuNzkwOSAzMyAxMSAzMS4yMDkxIDExIDI5QzExIDI5IDExIDI5IDExIDI5WiIgZmlsbD0iIzk0QUJDRCIvPgo8L3N2Zz4K';
+            };
+
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'image-name';
+            nameDiv.textContent = nombreLimpio;
+
+            option.appendChild(img);
+            option.appendChild(nameDiv);
+
+            option.addEventListener('click', () => {
+              // Remover selección anterior
+              document.querySelectorAll(`#${selectId} .image-option`).forEach(opt => {
+                opt.classList.remove('selected');
+              });
+
+              // Seleccionar actual
+              option.classList.add('selected');
+
+              // Guardar selección y actualizar campos correspondientes
+              if (carpeta === 'especialidades') {
+                imagenEspecialidadSeleccionada = imagen;
+                // Auto-rellenar titulo y ID (ocultos)
+                const nombre = imagen.nombre.replace(/\.[^/.]+$/, "");
+                const tituloInput = document.getElementById('titulo');
+                const idInput = document.getElementById('formId');
+                if(tituloInput) tituloInput.value = nombre;
+                // Generar un ID base
+                if(idInput) idInput.value = nombre.replace(/\s+/g, '');
+                
+              } else if (carpeta === 'firmas') {
+                if (selectId === 'selectFirma1') {
+                  imagenFirma1Seleccionada = imagen;
+                } else if (selectId === 'selectFirma2') {
+                  imagenFirma2Seleccionada = imagen;
+                } else if (selectId === 'selectFirma3') {
+                  imagenFirma3Seleccionada = imagen;
+                }
+              }
+            });
+
+            select.appendChild(option);
+          });
+        } else {
+          select.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--danger-color);">Error al cargar imágenes</div>';
+        }
+      } catch (error) {
+        console.error(`Error al cargar imágenes de ${carpeta}:`, error);
+        select.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--danger-color);">Error de conexión</div>';
+      }
+    }
+
+    // Función para subir imagen (MODIFICADA: Ahora se llama explícitamente desde el botón)
+    async function procesarSubidaImagen(carpeta, fileInputId, nombreInputId, mensajeId, selectId) {
+        const fileInput = document.getElementById(fileInputId);
+        const file = fileInput.files[0];
+        const nombreInput = document.getElementById(nombreInputId);
+        const mensaje = document.getElementById(mensajeId);
+        
+        if (!file) {
+            mensaje.innerHTML = '❌ Selecciona un archivo primero.';
+            return;
+        }
+        
+        const nombrePersonalizado = nombreInput.value.trim();
+        if (!nombrePersonalizado) {
+            mensaje.innerHTML = '❌ Ingresa un nombre para la imagen.';
+            return;
+        }
+        
+        const formatosPermitidos = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp'];
+        if (!formatosPermitidos.includes(file.type)) {
+            mensaje.innerHTML = '❌ Formato no válido. Use JPG, PNG, GIF o WEBP.';
+            return;
+        }
+
+        const extension = file.name.split('.').pop();
+        const nombreArchivo = `${nombrePersonalizado}.${extension}`;
+
+        const reader = new FileReader();
+        reader.onload = async function (e) {
+            const contenidoBase64 = e.target.result.split(',')[1];
+            mensaje.innerHTML = '⏳ Subiendo imagen...';
+
+            try {
+                const res = await fetch('/api/formulario?action=subirImagen', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        carpeta,
+                        nombre: nombreArchivo,
+                        contenido: contenidoBase64
+                    })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    mensaje.innerHTML = '✅ Imagen subida correctamente';
+                    nombreInput.value = '';
+                    fileInput.value = ''; // Limpiar input file
+                    cargarImagenesInstructor(carpeta, selectId);
+                } else {
+                    mensaje.innerHTML = `❌ ${data.error}`;
+                }
+            } catch (error) {
+                console.error('Error al subir imagen:', error);
+                mensaje.innerHTML = '❌ Error de conexión';
+            }
+        };
+
+        reader.readAsDataURL(file);
+    }
+
+    // Función para agregar pregunta (AHORA CON 3 OPCIONES POR DEFECTO)
+    window.addQuestion = function(type) {
+      const questionId = 'q-' + generateId();
+      const question = {
+        id: questionId,
+        type: type,
+        text: '',
+        options: type === 'multiple' ?
+          [
+            { id: 'opt-' + generateId(), text: '', correct: false },
+            { id: 'opt-' + generateId(), text: '', correct: false },
+            { id: 'opt-' + generateId(), text: '', correct: false }
+          ] :
+          [
+            { id: 'true-' + generateId(), text: 'Verdadero', correct: false },
+            { id: 'false-' + generateId(), text: 'Falso', correct: false }
+          ]
+      };
+
+      questions.push(question);
+      renderQuestions();
+    };
+
+    // Función para renderizar preguntas
+    function renderQuestions() {
+      const container = document.getElementById('questionsContainer');
+      if (!container) return;
+      
+      container.innerHTML = '';
+
+      if (questions.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">No hay preguntas agregadas aún.</p>';
+        return;
+      }
+
+      questions.forEach((question, index) => {
+        const questionHtml = `
+          <div class="question-item" data-question-id="${question.id}">
+            <div class="question-header">
+              <strong>Pregunta ${index + 1}</strong>
+              <span class="question-type ${question.type === 'multiple' ? 'multiple-choice' : 'true-false'}">
+                ${question.type === 'multiple' ? 'Opción Múltiple' : 'Verdadero/Falso'}
+              </span>
+            </div>
+            
+            <input type="text" 
+                   placeholder="Escribe la pregunta aquí..." 
+                   value="${question.text}"
+                   oninput="updateQuestionText('${question.id}', this.value)"
+                   style="width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-primary); color: var(--text-primary);">
+            
+            <div class="options-container">
+              ${question.options.map(option => `
+                <div class="option-item">
+                  <input type="radio" 
+                         name="${question.id}" 
+                         ${option.correct ? 'checked' : ''}
+                         onchange="setCorrectAnswer('${question.id}', '${option.id}')">
+                  <input type="text" 
+                         value="${option.text}" 
+                         ${question.type === 'truefalse' ? 'readonly style="background: rgba(255,255,255,0.1);"' : ''}
+                         oninput="updateOptionText('${question.id}', '${option.id}', this.value)"
+                         style="flex: 1; padding: 5px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-primary); color: var(--text-primary);">
+                  ${question.type === 'multiple' ? `
+                    <button type="button" class="btn-remove" onclick="removeOption('${question.id}', '${option.id}')">❌</button>
+                  ` : ''}
+                </div>
+              `).join('')}
+            </div>
+
+            ${question.type === 'multiple' ? `
+              <button type="button" class="btn-add-option" onclick="addOption('${question.id}')">
+                ➕ Agregar Opción
+              </button>
+            ` : ''}
+            
+            <button type="button" class="btn-remove" onclick="removeQuestion('${question.id}')" style="margin-top: 10px;">
+              🗑️ Eliminar Pregunta
+            </button>
+          </div>
+        `;
+        container.innerHTML += questionHtml;
+      });
+    }
+
+    // Funciones globales para que sean accesibles desde el HTML
+    window.updateQuestionText = function(questionId, text) {
+      const question = questions.find(q => q.id === questionId);
+      if (question) question.text = text;
+    };
+
+    window.updateOptionText = function(questionId, optionId, text) {
+      const question = questions.find(q => q.id === questionId);
+      if (question) {
+        const option = question.options.find(opt => opt.id === optionId);
+        if (option) option.text = text;
+      }
+    };
+
+    window.setCorrectAnswer = function(questionId, optionId) {
+      const question = questions.find(q => q.id === questionId);
+      if (question) {
+        question.options.forEach(option => {
+          option.correct = option.id === optionId;
+        });
+      }
+    };
+
+    window.addOption = function(questionId) {
+      const question = questions.find(q => q.id === questionId);
+      if (question) {
+        const newOptionId = 'opt-' + generateId();
+        question.options.push({ id: newOptionId, text: '', correct: false });
+        renderQuestions();
+      }
+    };
+
+    window.removeOption = function(questionId, optionId) {
+      const question = questions.find(q => q.id === questionId);
+      if (question && question.options.length > 2) {
+        question.options = question.options.filter(opt => opt.id !== optionId);
+        renderQuestions();
+      } else if (question.options.length <= 2) {
+        alert('Cada pregunta debe tener al menos 2 opciones.');
+      }
+    };
+
+    window.removeQuestion = function(questionId) {
+      if (confirm('¿Estás seguro de que quieres eliminar esta pregunta?')) {
+        questions = questions.filter(q => q.id !== questionId);
+        renderQuestions();
+      }
+    };
+
+    window.previewExam = function() {
+      const previewContainer = document.getElementById('previewQuestions');
+      if(previewContainer) previewContainer.innerHTML = '';
+      const previewModal = document.getElementById('previewModal');
+
+      if (questions.length === 0) {
+        if(previewContainer) previewContainer.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">No hay preguntas para mostrar.</p>';
+      } else {
+        questions.forEach((question, index) => {
+          const questionHtml = `
+            <div class="exam-question">
+              <p><strong>Pregunta ${index + 1}:</strong> ${question.text || '[Pregunta sin texto]'}</p>
+              <div>
+                ${question.options.map(option => `
+                  <div style="margin: 5px 0;">
+                    <input type="radio" name="preview_${question.id}" disabled>
+                    <label>${option.text}</label>
+                    ${option.correct ? ' <span style="color: var(--success-color);">✅ Correcta</span>' : ''}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+          if(previewContainer) previewContainer.innerHTML += questionHtml;
+        });
+      }
+
+      if(previewModal) previewModal.style.display = 'block';
+    };
+
+    window.closePreview = function() {
+      const previewModal = document.getElementById('previewModal');
+      if(previewModal) previewModal.style.display = 'none';
+    };
+
+    // Guardar formulario
+    const crearFormulario = document.getElementById("crearFormulario");
+    if(crearFormulario) {
+        crearFormulario.addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          if (!imagenEspecialidadSeleccionada || !imagenFirma1Seleccionada || !imagenFirma2Seleccionada || !imagenFirma3Seleccionada) {
+            alert('❌ Debes seleccionar una especialidad y las tres firmas requeridas.');
+            return;
+          }
+
+          const formId = document.getElementById("formId").value.trim();
+          const titulo = document.getElementById("titulo").value.trim();
+
+          if (!formId || !titulo) {
+            alert('❌ Error: ID o Título faltante (asegúrate de seleccionar una especialidad).');
+            return;
+          }
+
+          // Validar preguntas
+          let isValid = true;
+          let errorMessage = '';
+
+          if (questions.length === 0) {
+            if (!confirm('⚠️ No has creado ninguna pregunta. ¿Continuar sin evaluación?')) {
+              return;
+            }
+          } else {
+            questions.forEach((question, index) => {
+              if (!question.text.trim()) {
+                isValid = false;
+                errorMessage = `Pregunta ${index + 1} sin texto.`;
+                return;
+              }
+              const hasCorrectAnswer = question.options.some(opt => opt.correct);
+              if (!hasCorrectAnswer) {
+                isValid = false;
+                errorMessage = `Pregunta ${index + 1} sin respuesta correcta.`;
+                return;
+              }
+            });
+          }
+
+          if (!isValid) {
+            alert('❌ Error en evaluación: ' + errorMessage);
+            return;
+          }
+
+          // Generar ID final
+          const idPalabras = formId.split(/\s+/).filter(Boolean);
+          const normalizedFormId = idPalabras.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join("");
+          
+          function generarIdAlfanumerico() {
+            const caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            let res = "";
+            for (let i = 0; i < 6; i++) res += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+            return res;
+          }
+          
+          let id = normalizedFormId + "-" + generarIdAlfanumerico();
+          const fechaCierre = new Date(Date.now() + 70 * 60 * 1000).toISOString();
+
+          try {
+            const response = await fetch("/api/formulario?action=guardarFormulario", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                id,
+                titulo,
+                fechaCierre: fechaCierre,
+                evaluation: questions.length > 0 ? questions : null,
+                tomaAsistencia: document.getElementById("tomaAsistencia").checked,
+                imagenEspecialidad: imagenEspecialidadSeleccionada.url,
+                imagenFirma1: imagenFirma1Seleccionada.url,
+                imagenFirma2: imagenFirma2Seleccionada.url,
+                imagenFirma3: imagenFirma3Seleccionada.url
+              })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.ok) {
+              const enlace = `${location.origin}/formulario.html?id=${encodeURIComponent(id)}`;
+              document.getElementById("mensajeInstructor").innerHTML = `
+                <div style="color: #155724; background: #d4edda; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                    <h3>✅ ¡Formulario Creado!</h3>
+                    <p>Enlace: <a href="${enlace}" target="_blank">${enlace}</a></p>
+                    <button onclick="navigator.clipboard.writeText('${enlace}')">📋 Copiar Enlace</button>
+                </div>
+              `;
+              
+              // Resetear todo
+              questions = [];
+              renderQuestions();
+              cargarFormulariosInstructor();
+              
+              imagenEspecialidadSeleccionada = null;
+              imagenFirma1Seleccionada = null;
+              imagenFirma2Seleccionada = null;
+              imagenFirma3Seleccionada = null;
+              
+              document.getElementById("crearFormulario").reset();
+              document.querySelectorAll('.image-option.selected').forEach(opt => opt.classList.remove('selected'));
+              
+            } else {
+              throw new Error(result.error || "Error desconocido");
+            }
+          } catch (err) {
+            console.error(err);
+            document.getElementById("mensajeInstructor").innerHTML = `<div class="error-message">Error: ${err.message}</div>`;
+          }
+        });
+    }
+
+    // Cargar formularios existentes
+    async function cargarFormulariosInstructor() {
+      const tabla = document.querySelector("#tablaFormularios tbody");
+      if(!tabla) return;
+      
+      tabla.innerHTML = "<tr><td colspan='7' style='text-align:center'>Cargando...</td></tr>";
+
+      try {
+        const res = await fetch("/api/formulario?action=listarFormularios");
+        if (!res.ok) throw new Error("No se pudo cargar");
+
+        const data = await res.json();
+        const claves = Object.keys(data);
+
+        if (!claves.length) {
+          tabla.innerHTML = "<tr><td colspan='7' style='text-align:center'>No hay formularios.</td></tr>";
+          return;
+        }
+
+        tabla.innerHTML = "";
+        claves.forEach((id, i) => {
+          const f = data[id];
+          const fila = `
+            <tr>
+              <td>${i + 1}</td>
+              <td>${id}</td>
+              <td>${f.titulo}</td>
+              <td>${new Date(f.fechaCierre).toLocaleString()}</td>
+              <td>${f.creado ? new Date(f.creado).toLocaleString() : '―'}</td>
+              <td>
+                <a href="formulario.html?id=${id}" target="_blank"><button>👁 Ver</button></a>
+                <button onclick="navigator.clipboard.writeText('${location.origin}/formulario.html?id=${id}')">📋 Copiar</button>
+              </td>
+              <td>${f.tieneEvaluacion ? '✅ Sí' : '❌ No'}</td>
+            </tr>
+          `;
+          tabla.insertAdjacentHTML("beforeend", fila);
+        });
+      } catch (e) {
+        console.error(e);
+        tabla.innerHTML = "<tr><td colspan='7'>❌ Error al cargar.</td></tr>";
+      }
+    }
+    
+    // Inicializar panel instructor
+    function inicializarPanelInstructor() {
+        if(isAdmin) {
+            cargarFormulariosInstructor();
+            cargarImagenesInstructor('especialidades', 'selectEspecialidad');
+            cargarImagenesInstructor('firmas', 'selectFirma1');
+            cargarImagenesInstructor('firmas', 'selectFirma2');
+            cargarImagenesInstructor('firmas', 'selectFirma3');
+            
+            // Eventos upload (ACTUALIZADO: Ahora usan click y la función procesarSubida)
+            const upEspBtn = document.querySelector("button[onclick=\"document.getElementById('uploadEspecialidad').click()\"]");
+            if(upEspBtn) {
+               // Reemplazar onclick del botón de subir real (no el de seleccionar archivo)
+               // El HTML tiene: button -> click -> input file.
+               // Necesitamos un boton "Subir" aparte o cambiar la logica.
+               // El usuario pidio: "has un botón de Subir en cada apartado, solo cuando precione ese botón se sube todo"
+               // Actualmente hay un <button> que dice "Subir Nueva" que abre el file picker.
+               // Y hay un input text.
+               // Voy a cambiar el listener del input 'change' para que SOLO guarde el archivo en variable, y agregar un nuevo listener al boton.
+               // PERO el HTML actual es:
+               // <input file ... style=none>
+               // <button ... onclick=click()> Subir Nueva </button>
+               // <input text ...>
+               // Falta un boton "Confirmar Subida" o similar. 
+               // Voy a modificar el HTML desde JS para agregar ese boton si no existe, o mejor,
+               // Reutilizar el bloque existente? No, necesito inyectar el boton de confirmacion.
+               // Espera, el usuario dice "has un botón de Subir en cada apartado". 
+               // Voy a asumir que puedo modificar el HTML de la sección de instructor aqui mismo con JS o modificarlo arriba.
+            }
+            
+            // Re-asignar eventos de botones de subida (que agregare ahora al HTML)
+            // Para "Especialidad"
+            const btnSubirEsp = document.getElementById('btnSubirEspReal');
+            if(btnSubirEsp) btnSubirEsp.addEventListener('click', () => procesarSubidaImagen('especialidades', 'uploadEspecialidad', 'nombreEspecialidad', 'mensajeEspecialidad', 'selectEspecialidad'));
+
+            const btnSubirF1 = document.getElementById('btnSubirF1Real');
+            if(btnSubirF1) btnSubirF1.addEventListener('click', () => procesarSubidaImagen('firmas', 'uploadFirma1', 'nombreFirma1', 'mensajeFirma1', 'selectFirma1'));
+
+            const btnSubirF2 = document.getElementById('btnSubirF2Real');
+            if(btnSubirF2) btnSubirF2.addEventListener('click', () => procesarSubidaImagen('firmas', 'uploadFirma2', 'nombreFirma2', 'mensajeFirma2', 'selectFirma2'));
+
+            const btnSubirF3 = document.getElementById('btnSubirF3Real');
+            if(btnSubirF3) btnSubirF3.addEventListener('click', () => procesarSubidaImagen('firmas', 'uploadFirma3', 'nombreFirma3', 'mensajeFirma3', 'selectFirma3'));
+            
+            // Limpieza
+            const btnLimpiar = document.getElementById("btnLimpiarFormularios");
+            if(btnLimpiar) {
+                btnLimpiar.addEventListener('click', async () => {
+                   try {
+                     document.getElementById("resultadoLimpieza").textContent = "Limpiando...";
+                     const res = await fetch("/api/formulario?action=limpiarFormulariosVencidos");
+                     const data = await res.json();
+                     document.getElementById("resultadoLimpieza").textContent = res.ok ? data.mensaje : data.error;
+                     if(res.ok) cargarFormulariosInstructor();
+                   } catch(e) {
+                     document.getElementById("resultadoLimpieza").textContent = "Error al limpiar";
+                   }
+                });
+            }
+        }
+    }
+
+    // Navegación menú instructor
+    const menuInstructor = document.getElementById("menuInstructor");
+    const instructorSection = document.getElementById("instructorSection");
+    
+    if(menuInstructor) {
+        menuInstructor.addEventListener("click", () => {
+            mostrarSeccion(instructorSection, menuInstructor);
+            // Asegurar que se carguen los datos si no se habían cargado
+            inicializarPanelInstructor();
+        });
+    }
+
+  </script>
+</body>
+</html>

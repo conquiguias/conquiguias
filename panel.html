@@ -177,6 +177,71 @@
     .question-type.multiple-choice { background: #e3f2fd; color: #1976d2; }
     .question-type.true-false { background: #e8f5e9; color: #2e7d32; }
 
+    /* Estilos del Modal de Previsualización */
+    .preview-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85); /* Fondo más oscuro */
+        z-index: 10000;
+        backdrop-filter: blur(5px);
+        overflow-y: auto; /* Permitir scroll si el contenido es largo */
+    }
+
+    .preview-content-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start; /* Alinear arriba con margen */
+        min-height: 100%;
+        padding: 40px 20px;
+        box-sizing: border-box;
+    }
+
+    .preview-content {
+        background: var(--bg-primary);
+        padding: 30px;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 800px;
+        position: relative;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        border: 1px solid var(--border-color);
+        animation: modalFadeIn 0.3s ease;
+    }
+
+    @keyframes modalFadeIn {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .close-modal-btn {
+        position: absolute;
+        top: -15px; 
+        right: -15px;
+        background: var(--danger-color);
+        color: white;
+        border: 2px solid var(--bg-primary); 
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        font-size: 18px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        transition: transform 0.2s;
+        z-index: 10;
+    }
+
+    .close-modal-btn:hover {
+        transform: scale(1.1);
+        background: #ff4444;
+    }
+
     .option-item {
         display: flex;
         align-items: center;
@@ -2633,13 +2698,16 @@ transition: all 0.3s ease;
       </div>
       
       <!-- Modal para previsualizar examen -->
-      <div id="previewModal" class="preview-modal">
-        <div class="preview-content">
-          <h3>Previsualización del Examen</h3>
-          <div id="previewQuestions"></div>
-          <button onclick="closePreview()" style="background: var(--text-secondary); color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; margin-top: 15px;">
-            Cerrar
-          </button>
+      <!-- Modal para previsualizar examen -->
+      <div id="previewModal" class="preview-modal" onclick="if(event.target === this) closePreview()">
+        <div class="preview-content-wrapper" onclick="if(event.target === this) closePreview()">
+            <div class="preview-content">
+              <button class="close-modal-btn" onclick="closePreview()">✕</button>
+              <h3 style="margin-top: 0; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); color: var(--accent-color);">
+                  Previsualización del Examen
+              </h3>
+              <div id="previewQuestions" style="margin-top: 20px;"></div>
+            </div>
         </div>
       </div>
     </div>
@@ -7412,25 +7480,60 @@ const diffMins = Math.floor(diffMs / 60000);
             const previewContainer = document.getElementById('previewQuestions');
             const previewModal = document.getElementById('previewModal');
             
-            previewContainer.innerHTML = `<h3>Examen del formulario: ${dataForm.titulo}</h3>`;
+            previewContainer.innerHTML = `<h4 style="margin-bottom: 20px; color: var(--text-secondary);">📝 Formulario: ${dataForm.titulo}</h4>`;
             
-            questions.forEach((question, index) => {
-              const questionHtml = `
-                <div class="exam-question" style="background: var(--bg-secondary); padding: 15px; margin-bottom: 10px; border-radius: 8px;">
-                  <p style="margin-bottom: 10px;"><strong>Pregunta ${index + 1}:</strong> ${question.text}</p>
-                  <div>
-                    ${question.options.map(option => `
-                      <div style="margin: 5px 0; display: flex; align-items: center; gap: 8px;">
-                        <input type="radio" disabled>
-                        <span>${option.text}</span>
-                        ${option.correct ? ' <span style="background: var(--success-color); color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">CORRECTA</span>' : ''}
+            // Ordenar preguntas por índice si existe esa propiedad, o mantener orden de llegada
+            // Asumimos que questions ya viene en orden, pero aseguramos layout limpio
+            
+            if (questions.length > 0) {
+                questions.forEach((question, index) => {
+                  const questionHtml = `
+                    <div class="exam-question" style="background: var(--bg-secondary); padding: 20px; margin-bottom: 20px; border-radius: 12px; border: 1px solid var(--border-color);">
+                      <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                          <h4 style="margin: 0; color: var(--text-primary);">Pregunta ${index + 1}</h4>
+                          <span class="question-type ${question.uniqueId ? 'multiple-choice' : ''}" style="opacity: 0.7;">
+                              ${question.options.length > 0 ? 'Opción Múltiple' : 'Texto'}
+                          </span>
                       </div>
-                    `).join('')}
-                  </div>
-                </div>
-              `;
-              previewContainer.innerHTML += questionHtml;
-            });
+                      <p style="margin-bottom: 15px; font-size: 1.1em; line-height: 1.5;">${question.text}</p>
+                      
+                      <div style="display: grid; gap: 10px;">
+                        ${question.options.map((option, optIdx) => `
+                          <div style="
+                                display: flex; 
+                                align-items: center; 
+                                gap: 12px; 
+                                padding: 12px; 
+                                background: ${option.correct ? 'rgba(76, 175, 80, 0.1)' : 'var(--bg-primary)'}; 
+                                border: 1px solid ${option.correct ? 'var(--success-color)' : 'var(--border-color)'}; 
+                                border-radius: 8px;
+                            ">
+                            <span style="
+                                width: 24px; 
+                                height: 24px; 
+                                display: flex; 
+                                align-items: center; 
+                                justify-content: center; 
+                                background: ${option.correct ? 'var(--success-color)' : '#ddd'}; 
+                                color: ${option.correct ? 'white' : '#666'}; 
+                                border-radius: 50%; 
+                                font-size: 12px; 
+                                font-weight: bold;
+                            ">
+                                ${String.fromCharCode(65 + optIdx)}
+                            </span>
+                            <span style="flex: 1; ${option.correct ? 'font-weight: 500; color: var(--success-color);' : ''}">${option.text}</span>
+                            ${option.correct ? ' <span style="font-size: 18px;">✅</span>' : ''}
+                          </div>
+                        `).join('')}
+                      </div>
+                    </div>
+                  `;
+                  previewContainer.innerHTML += questionHtml;
+                });
+            } else {
+                 previewContainer.innerHTML += `<p style="text-align: center; color: var(--text-secondary); padding: 40px;">No hay preguntas para mostrar.</p>`;
+            }
             
             previewModal.style.display = 'block';
             

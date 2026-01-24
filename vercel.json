@@ -1,5 +1,5 @@
 {
   "git": {
-    "ignoreCommand": "if echo \"$VERCEL_GIT_COMMIT_MESSAGE\" | grep -q \"\\[skip ci\\]\"; then exit 0; else exit 1; fi"
+    "ignoreCommand": "if git log -1 --pretty=%B | grep -q 'skip ci'; then exit 0; else exit 1; fi"
   }
 }

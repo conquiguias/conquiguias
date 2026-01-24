@@ -107,6 +107,109 @@
     }
 
     /* ============================================
+       ESTILOS DEL PANEL INSTRUCTOR
+       ============================================ */
+    .image-option {
+        display: flex;
+        align-items: center;
+        padding: 5px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--border-color);
+        transition: background 0.2s;
+        position: relative;
+    }
+    .image-option:hover {
+        background: var(--bg-hover);
+    }
+    .image-option.selected {
+        background: rgba(25, 118, 210, 0.2);
+        border-left: 4px solid var(--accent-color);
+    }
+    .image-option img {
+        width: 40px;
+        height: 40px;
+        border-radius: 4px;
+        object-fit: cover;
+        margin-right: 10px;
+    }
+    .image-option .image-name {
+        font-size: 13px;
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .delete-image-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 5px;
+        font-size: 14px;
+        opacity: 0.6;
+        transition: opacity 0.2s;
+    }
+    .delete-image-btn:hover {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+
+    /* Estilos para preguntas */
+    .question-item {
+        background: var(--bg-secondary);
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        position: relative;
+    }
+    .question-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    .question-type {
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-weight: bold;
+    }
+    .question-type.multiple-choice { background: #e3f2fd; color: #1976d2; }
+    .question-type.true-false { background: #e8f5e9; color: #2e7d32; }
+
+    .option-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+    }
+    .btn-add-option, .btn-remove {
+        background: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        padding: 5px 10px;
+        font-size: 12px;
+        cursor: pointer;
+        border-radius: 4px;
+    }
+    .btn-remove:hover {
+        border-color: var(--danger-color);
+        color: var(--danger-color);
+    }
+    .upload-btn {
+        background: var(--accent-color); 
+        color: white; 
+        padding: 8px 12px; 
+        border-radius: 6px; 
+        cursor: pointer; 
+        border: none;
+        font-size: 13px;
+        transition: background 0.3s;
+    }
+    .upload-btn:hover { background: var(--accent-hover); }
+
+
+    /* ============================================
    CONTENIDO PRINCIPAL - MODO NOCHE
    ============================================ */
     #mainContent {
@@ -2490,8 +2593,7 @@ transition: all 0.3s ease;
       <p id="mensajeInstructor"></p>
 
       <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color);">
-        <button id="btnLimpiarFormularios" style="background: var(--warning-color); margin-bottom: 20px;">🧹 Limpiar formularios vencidos</button>
-        <p id="resultadoLimpieza"></p>
+
 
         <h3>📋 Formularios creados:</h3>
         <div style="overflow-x: auto;">
@@ -6799,6 +6901,39 @@ const diffMins = Math.floor(diffMs / 60000);
             option.appendChild(img);
             option.appendChild(nameDiv);
 
+            // Botón eliminar imagen
+            const deleteBtn = document.createElement('button');
+            deleteBtn.innerHTML = '🗑️';
+            deleteBtn.className = 'delete-image-btn';
+            deleteBtn.title = 'Eliminar imagen permanentemente';
+            deleteBtn.onclick = async (e) => {
+                e.stopPropagation();
+                if(confirm(`¿Estás seguro de eliminar "${nombreLimpio}" permanentemente?`)) {
+                    try {
+                        const res = await fetch('/api/formulario?action=eliminarImagen', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ carpeta, nombre: imagen.nombre })
+                        });
+                        if(res.ok) {
+                            cargarImagenesInstructor(carpeta, selectId);
+                            // Limpiar selección si era la actual
+                            if(carpeta === 'especialidades' && imagenEspecialidadSeleccionada?.nombre === imagen.nombre) {
+                                imagenEspecialidadSeleccionada = null;
+                                document.getElementById('mensajeEspecialidad').textContent = '';
+                            }
+                            // (Logica similar para firmas si fuera necesario)
+                        } else {
+                            alert('No se pudo eliminar la imagen.');
+                        }
+                    } catch(err) {
+                        console.error(err);
+                        alert('Error al eliminar.');
+                    }
+                }
+            };
+            option.appendChild(deleteBtn);
+
             option.addEventListener('click', () => {
               // Remover selección anterior
               document.querySelectorAll(`#${selectId} .image-option`).forEach(opt => {
@@ -6819,13 +6954,19 @@ const diffMins = Math.floor(diffMs / 60000);
                 // Generar un ID base
                 if(idInput) idInput.value = nombre.replace(/\s+/g, '');
                 
+                // Mostrar mensaje de selección
+                document.getElementById('mensajeEspecialidad').innerHTML = `<span style="color: var(--success-color); font-weight: bold;">✅ Seleccionado: ${nombre}</span>`;
+                
               } else if (carpeta === 'firmas') {
                 if (selectId === 'selectFirma1') {
                   imagenFirma1Seleccionada = imagen;
+                  document.getElementById('mensajeFirma1').innerHTML = `<span style="color: var(--success-color); font-weight: bold;">✅ Seleccionado: ${imagen.nombre}</span>`;
                 } else if (selectId === 'selectFirma2') {
                   imagenFirma2Seleccionada = imagen;
+                  document.getElementById('mensajeFirma2').innerHTML = `<span style="color: var(--success-color); font-weight: bold;">✅ Seleccionado: ${imagen.nombre}</span>`;
                 } else if (selectId === 'selectFirma3') {
                   imagenFirma3Seleccionada = imagen;
+                  document.getElementById('mensajeFirma3').innerHTML = `<span style="color: var(--success-color); font-weight: bold;">✅ Seleccionado: ${imagen.nombre}</span>`;
                 }
               }
             });
@@ -7218,6 +7359,8 @@ const diffMins = Math.floor(diffMs / 60000);
               <td>
                 <a href="formulario.html?id=${id}" target="_blank"><button>👁 Ver</button></a>
                 <button onclick="navigator.clipboard.writeText('${location.origin}/formulario.html?id=${id}')">📋 Copiar</button>
+                ${f.tieneEvaluacion ? `<button onclick="verExamen('${id}')" style="background: var(--info-color); margin-left: 5px;">❓ Preguntas</button>` : ''}
+                <button onclick="eliminarFormulario('${id}')" style="background: var(--danger-color); margin-left: 5px;">🗑️ Eliminar</button>
               </td>
               <td>${f.tieneEvaluacion ? '✅ Sí' : '❌ No'}</td>
             </tr>
@@ -7229,6 +7372,77 @@ const diffMins = Math.floor(diffMs / 60000);
         tabla.innerHTML = "<tr><td colspan='7'>❌ Error al cargar.</td></tr>";
       }
     }
+    
+    // Función para ver examen de un formulario existente
+    window.verExamen = async function(id) {
+        try {
+            const res = await fetch(`/api/formulario?action=obtenerFormulario&id=${id}`);
+            if(!res.ok) throw new Error("Error al obtener formulario");
+            const data = await res.json();
+            
+            if(!data.evaluation || data.evaluation.length === 0) {
+                alert("Este formulario no tiene preguntas registradas.");
+                return;
+            }
+            
+            // Reutilizamos la variable global 'questions' AUNQUE esto sobreescribirá lo que esté editando actualmente.
+            // Para evitar perder datos en edición, mejor usamos una variable temporal o mostramos directo en el modal de preview sin afectar 'questions'.
+            
+            const previewContainer = document.getElementById('previewQuestions');
+            const previewModal = document.getElementById('previewModal');
+            
+            previewContainer.innerHTML = `<h3>Examen del formulario: ${data.titulo}</h3>`;
+            
+            data.evaluation.forEach((question, index) => {
+              const questionHtml = `
+                <div class="exam-question" style="background: var(--bg-secondary); padding: 15px; margin-bottom: 10px; border-radius: 8px;">
+                  <p style="margin-bottom: 10px;"><strong>Pregunta ${index + 1}:</strong> ${question.text}</p>
+                  <div>
+                    ${question.options.map(option => `
+                      <div style="margin: 5px 0; display: flex; align-items: center; gap: 8px;">
+                        <input type="radio" disabled>
+                        <span>${option.text}</span>
+                        ${option.correct ? ' <span style="background: var(--success-color); color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">CORRECTA</span>' : ''}
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              `;
+              previewContainer.innerHTML += questionHtml;
+            });
+            
+            previewModal.style.display = 'block';
+            
+        } catch(e) {
+            console.error(e);
+            alert("No se pudo cargar el examen.");
+        }
+    };
+
+    // Función para eliminar formulario
+    window.eliminarFormulario = async function(id) {
+        if(confirm(`¿Estás seguro de eliminar el formulario "${id}"? Esta acción borrará todas las asistencias y resultados asociados.`)) {
+            try {
+                const res = await fetch('/api/formulario?action=eliminarFormulario', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ id })
+                });
+                
+                const data = await res.json();
+                
+                if(res.ok) {
+                    alert('✅ Formulario eliminado correctamente.');
+                    cargarFormulariosInstructor();
+                } else {
+                     alert(`❌ Error al eliminar: ${data.error || 'Error desconocido'}`);
+                }
+            } catch(e) {
+                console.error(e);
+                alert('❌ Error de conexión al intentar eliminar.');
+            }
+        }
+    };
     
     // Inicializar panel instructor
     function inicializarPanelInstructor() {
@@ -7243,21 +7457,6 @@ const diffMins = Math.floor(diffMs / 60000);
             const upEspBtn = document.querySelector("button[onclick=\"document.getElementById('uploadEspecialidad').click()\"]");
             if(upEspBtn) {
                // Reemplazar onclick del botón de subir real (no el de seleccionar archivo)
-               // El HTML tiene: button -> click -> input file.
-               // Necesitamos un boton "Subir" aparte o cambiar la logica.
-               // El usuario pidio: "has un botón de Subir en cada apartado, solo cuando precione ese botón se sube todo"
-               // Actualmente hay un <button> que dice "Subir Nueva" que abre el file picker.
-               // Y hay un input text.
-               // Voy a cambiar el listener del input 'change' para que SOLO guarde el archivo en variable, y agregar un nuevo listener al boton.
-               // PERO el HTML actual es:
-               // <input file ... style=none>
-               // <button ... onclick=click()> Subir Nueva </button>
-               // <input text ...>
-               // Falta un boton "Confirmar Subida" o similar. 
-               // Voy a modificar el HTML desde JS para agregar ese boton si no existe, o mejor,
-               // Reutilizar el bloque existente? No, necesito inyectar el boton de confirmacion.
-               // Espera, el usuario dice "has un botón de Subir en cada apartado". 
-               // Voy a asumir que puedo modificar el HTML de la sección de instructor aqui mismo con JS o modificarlo arriba.
             }
             
             // Re-asignar eventos de botones de subida (que agregare ahora al HTML)
@@ -7274,21 +7473,6 @@ const diffMins = Math.floor(diffMs / 60000);
             const btnSubirF3 = document.getElementById('btnSubirF3Real');
             if(btnSubirF3) btnSubirF3.addEventListener('click', () => procesarSubidaImagen('firmas', 'uploadFirma3', 'nombreFirma3', 'mensajeFirma3', 'selectFirma3'));
             
-            // Limpieza
-            const btnLimpiar = document.getElementById("btnLimpiarFormularios");
-            if(btnLimpiar) {
-                btnLimpiar.addEventListener('click', async () => {
-                   try {
-                     document.getElementById("resultadoLimpieza").textContent = "Limpiando...";
-                     const res = await fetch("/api/formulario?action=limpiarFormulariosVencidos");
-                     const data = await res.json();
-                     document.getElementById("resultadoLimpieza").textContent = res.ok ? data.mensaje : data.error;
-                     if(res.ok) cargarFormulariosInstructor();
-                   } catch(e) {
-                     document.getElementById("resultadoLimpieza").textContent = "Error al limpiar";
-                   }
-                });
-            }
         }
     }
 

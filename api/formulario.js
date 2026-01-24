@@ -167,7 +167,7 @@ async function handleActualizarEstadoAsistencia(req, res, repo) {
     const result = await updateGitHubJSON(
       repo,
       archivoFormularios,
-      `[skip ci] Actualizar estado asistencia ${asistencia} a ${activo} en formulario ${id}`,
+      `[skip vercel] Actualizar estado asistencia ${asistencia} a ${activo} en formulario ${id}`,
       async (formularios) => {
         if (!formularios[id]) {
           res.status(404).json({ error: "Formulario no encontrado" });
@@ -388,7 +388,7 @@ async function handleGuardarEvaluacion(req, res, repo) {
     const result = await updateGitHubJSON(
       repo,
       archivo,
-      `[skip ci] Evaluación creada/actualizada para formulario ${id}`,
+      `[skip vercel] Evaluación creada/actualizada para formulario ${id}`,
       async () => {
         // En este caso, sobrescribimos siempre con la nueva evaluación
         // No necesitamos leer la anterior, así que ignoramos el argumento
@@ -445,7 +445,7 @@ async function handleGuardarFormulario(req, res, repo) {
     const result = await updateGitHubJSON(
       repo,
       archivoFormularios,
-      `[skip ci] Formulario creado: ${id}`,
+      `[skip vercel] Formulario creado: ${id}`,
       async (data) => {
         if (data[id]) {
           throw new Error(`❌ El formulario con ID '${id}' ya existe.`);
@@ -487,7 +487,7 @@ async function handleGuardarFormulario(req, res, repo) {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              message: `[skip ci] Evaluación creada para formulario ${id}`,
+              message: `[skip vercel] Evaluación creada para formulario ${id}`,
               content: contenidoEvaluacion,
               branch: "main",
             }),
@@ -545,7 +545,7 @@ async function handleGuardarResultadoExamen(req, res, repo) {
     const result = await updateGitHubJSON(
       repo,
       archivo,
-      `[skip ci] Resultado de examen: ${visitanteId}`,
+      `[skip vercel] Resultado de examen: ${visitanteId}`,
       async (resultados) => {
         const existente = resultados.find((r) => r.visitanteId === visitanteId);
         if (existente) return null; // Ya existe
@@ -620,7 +620,7 @@ async function handleLimpiarFormulariosVencidos(req, res, repo) {
     const result = await updateGitHubJSON(
       repo,
       archivoFormularios,
-      `[skip ci] ⏳ Eliminar formularios vencidos (${formulariosVencidos.join(", ")})`,
+      `[skip vercel] ⏳ Eliminar formularios vencidos (${formulariosVencidos.join(", ")})`,
       async (formularios) => {
         // Re-verificar vencimientos sobre la data más fresca
         const ahora = new Date();
@@ -663,7 +663,7 @@ async function handleLimpiarFormulariosVencidos(req, res, repo) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            message: `[skip ci] ⏳ Eliminar respuestas de formulario vencido ${id}`,
+            message: `[skip vercel] ⏳ Eliminar respuestas de formulario vencido ${id}`,
             sha: datosArchivo.sha,
             branch: "main",
           }),
@@ -917,7 +917,7 @@ async function handleSubirImagen(req, res, repo) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          message: `[skip ci] Subir imagen: ${nombre} en ${carpeta}`,
+          message: `[skip vercel] Subir imagen: ${nombre} en ${carpeta}`,
           content: contenido,
           branch: "main",
           ...(sha && { sha }), // Incluir SHA si existe para hacer update
@@ -1028,7 +1028,7 @@ async function handleEliminarFormulario(req, res, repo) {
     const result = await updateGitHubJSON(
       repo,
       archivoFormularios,
-      `[skip ci] Eliminar formulario ${id}`,
+      `[skip vercel] Eliminar formulario ${id}`,
       async (formularios) => {
         if (!formularios[id]) return null; // No existe, nada que borrar
 
@@ -1073,7 +1073,7 @@ async function handleEliminarFormulario(req, res, repo) {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              message: `[skip ci] Eliminar datos asociados a formulario ${id}`,
+              message: `[skip vercel] Eliminar datos asociados a formulario ${id}`,
               sha: datos.sha,
               branch: "main",
             }),
@@ -1139,7 +1139,7 @@ async function handleEliminarImagen(req, res, repo) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          message: `[skip ci] Eliminar imagen ${nombre}`,
+          message: `[skip vercel] Eliminar imagen ${nombre}`,
           sha: data.sha,
           branch: "main",
         }),

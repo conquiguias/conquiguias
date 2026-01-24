@@ -833,7 +833,8 @@
             document.getElementById("panelAdmin").style.display = "block";
             document.getElementById("admin-float-btn").style.display = "none";
             alert("✅ Bienvenido Admin");
-            actualizarUI();
+            // Recargar información del formulario para obtener estados actualizados
+            await cargarInfoFormulario();
           } else {
             alert("❌ Contraseña incorrecta");
           }

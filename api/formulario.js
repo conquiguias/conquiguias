@@ -877,18 +877,21 @@ async function handleObtenerFormulario(req, res, repo) {
 async function handleSubirImagen(req, res, repo) {
   if (req.method !== "POST") return res.status(405).send("Método no permitido");
 
-  const { carpeta, nombre, contenido, tipo } = req.body;
+  const { carpeta, nombre, contenido } = req.body;
 
   if (!carpeta || !nombre || !contenido) {
     return res.status(400).json({ error: "Datos incompletos" });
   }
 
-  const archivo = `images/${carpeta}/${nombre}`;
+  // Sanitizar y codificar nombre de archivo para URL
+  const safeName = nombre.replace(/[^a-zA-Z0-9._-]/g, "_");
+  // O usar el nombre original pero URI encoded
+  const path = `images/${encodeURIComponent(carpeta)}/${encodeURIComponent(nombre)}`;
 
   try {
-    // Verificar si la imagen ya existe
+    // 1. Verificar si existe para obtener SHA (para sobrescritura)
     const verificar = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${archivo}`,
+      `https://api.github.com/repos/${repo}/contents/${path}`,
       {
         headers: {
           Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -897,15 +900,15 @@ async function handleSubirImagen(req, res, repo) {
       },
     );
 
+    let sha = null;
     if (verificar.ok) {
-      return res
-        .status(409)
-        .json({ error: "❌ Ya existe una imagen con ese nombre" });
+      const data = await verificar.json();
+      sha = data.sha;
     }
 
-    // Subir la imagen
+    // 2. Subir (Crear o Actualizar)
     const guardar = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${archivo}`,
+      `https://api.github.com/repos/${repo}/contents/${path}`,
       {
         method: "PUT",
         headers: {
@@ -916,23 +919,32 @@ async function handleSubirImagen(req, res, repo) {
           message: `Subir imagen: ${nombre} en ${carpeta}`,
           content: contenido,
           branch: "main",
+          ...(sha && { sha }), // Incluir SHA si existe para hacer update
         }),
       },
     );
 
     if (guardar.ok) {
+      // Usar la 'content.download_url' de la respuesta si es posible, o construirla
+      const respData = await guardar.json();
       res.status(200).json({
         ok: true,
         message: "✅ Imagen subida correctamente",
-        url: `https://conquiguias.vercel.app/images/${carpeta}/${nombre}`,
+        url: respData.content
+          ? respData.content.download_url
+          : `https://conquiguias.vercel.app/images/${carpeta}/${nombre}`,
       });
     } else {
       const error = await guardar.json();
-      res.status(500).json({ error: error.message || "Error al subir imagen" });
+      // Si el error es SHA needed y no lo teníamos (race condition?), intentar una vez más?
+      // Por ahora devolvemos el error.
+      throw new Error(error.message || "Error al guardar en GitHub");
     }
   } catch (err) {
     console.error("Error al subir imagen:", err);
-    res.status(500).json({ error: "Error al subir imagen" });
+    res
+      .status(500)
+      .json({ error: err.message || "Error interno al subir imagen" });
   }
 }
 

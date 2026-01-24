@@ -261,6 +261,7 @@ async function handleGuardar(req, res, repo) {
 
   // 2. Intentar guardar con reintentos para manejar concurrencia
   try {
+    let visitantesReemplazados = new Set();
     const result = await updateGitHubJSON(
       repo,
       archivo,
@@ -276,6 +277,7 @@ async function handleGuardar(req, res, repo) {
               r.correo.toLowerCase() === correo.toLowerCase() &&
               r.visitanteId !== visitanteId
             ) {
+              visitantesReemplazados.add(r.visitanteId);
               r.visitanteId = visitanteId;
               modificado = true;
             }
@@ -317,6 +319,38 @@ async function handleGuardar(req, res, repo) {
         return registros;
       },
     );
+
+    // Si hubo reemplazo de ID, intentar actualizar también los resultados de exámenes
+    if (visitantesReemplazados.size > 0) {
+      try {
+        const archivoResultados = `evaluaciones/${id}/resultados.json`;
+        await updateGitHubJSON(
+          repo,
+          archivoResultados,
+          `Sincronización de examen para ID actualizado: ${visitanteId}`,
+          async (resultados) => {
+            let resModificado = false;
+            if (Array.isArray(resultados)) {
+              resultados.forEach((r) => {
+                if (visitantesReemplazados.has(r.visitanteId)) {
+                  r.visitanteId = visitanteId;
+                  // Opcional: Agregar correo si no lo tiene, para futuras referencias
+                  if (!r.correo && correo) r.correo = correo;
+                  resModificado = true;
+                }
+              });
+            }
+            return resModificado ? resultados : null;
+          },
+        ).catch(() => {
+          // Ignorar error si no existe el archivo de resultados o falla
+          // (Es un best-effort para recuperar notas)
+          console.log("No se pudo sincronizar examenes o no existían.");
+        });
+      } catch (e) {
+        // Ignorar
+      }
+    }
 
     if (result.ok) {
       // Devolver JSON para que el frontend actualice el localStorage

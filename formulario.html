@@ -1007,13 +1007,29 @@
           const respuestas = data.asistencias || [];
           const examenes = data.examenes || [];
 
-          // Identificar mis asistencias (Lógica Estricta)
+          // Identificar mis asistencias (Lógica Híbrida)
           misAsistencias = respuestas
             .filter((r) => {
+              // Trimmed and lowercase versions
               const rEmail = r.correo ? r.correo.trim().toLowerCase() : null;
               const uEmail = userEmail ? userEmail.trim().toLowerCase() : null;
-              if (rEmail && uEmail) return rEmail === uEmail;
-              if (!rEmail) return r.visitanteId === visitanteId;
+
+              // 1. Si ambos tienen email, deben coincidir
+              if (rEmail && uEmail) {
+                return rEmail === uEmail;
+              }
+
+              // 2. Si el usuario tiene email pero el registro no, verificar visitanteId
+              // (permite compatibilidad con registros antiguos del mismo dispositivo)
+              if (uEmail && !rEmail) {
+                return r.visitanteId === visitanteId;
+              }
+
+              // 3. Si el usuario NO tiene email aún (primera vez), usar solo visitanteId
+              if (!uEmail) {
+                return r.visitanteId === visitanteId;
+              }
+
               return false;
             })
             .map((r) => r.asistenciaNumero);
@@ -1052,12 +1068,13 @@
           Object.values(agrupadas).forEach((r, idx) => {
             const rEmail = r.correo ? r.correo.trim().toLowerCase() : null;
             const uEmail = userEmail ? userEmail.trim().toLowerCase() : null;
-            let esYo = false;
 
+            let esYo = false;
             if (rEmail && uEmail) {
               esYo = rEmail === uEmail;
-            } else if (!rEmail) {
-              // Si el registro no tiene email, usamos el visitanteId
+            } else if (uEmail && !rEmail) {
+              esYo = r.visitanteId === visitanteId;
+            } else if (!uEmail) {
               esYo = r.visitanteId === visitanteId;
             }
             const completo = r.maxAsistencia >= 2;

@@ -7467,6 +7467,23 @@ const diffMins = Math.floor(diffMs / 60000);
         });
     }
 
+    // Función auxiliar para copiar enlace
+    window.copiarEnlaceBtn = function(id, btn) {
+        const enlace = `${location.origin}/formulario.html?id=${id}`;
+        navigator.clipboard.writeText(enlace).then(() => {
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i> Copiado';
+            btn.disabled = true;
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fas fa-copy"></i> Copiar';
+                btn.disabled = false;
+            }, 2000);
+        }).catch(err => {
+            console.error('Error al copiar:', err);
+            alert('No se pudo copiar el enlace');
+        });
+    };
+
     // Cargar formularios existentes
     async function cargarFormulariosInstructor() {
       const tabla = document.querySelector("#tablaFormularios tbody");
@@ -7515,7 +7532,7 @@ const diffMins = Math.floor(diffMs / 60000);
                     <i class="fas fa-eye" style="font-size: 11px;"></i> Ver
                   </button>
                 </a>
-                <button onclick="navigator.clipboard.writeText('${location.origin}/formulario.html?id=${id}'); this.innerHTML='<i class=\"fas fa-check\"></i> Copiado'; setTimeout(() => this.innerHTML='<i class=\"fas fa-copy\"></i> Copiar', 2000);" style="
+                <button onclick="copiarEnlaceBtn('${id}', this)" style="
                   background: linear-gradient(135deg, #48c6ef 0%, #6f86d6 100%);
                   color: white;
                   border: none;

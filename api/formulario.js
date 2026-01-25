@@ -76,10 +76,12 @@ export default async function handler(req, res) {
 
 // Helper para manejar concurrencia y reintentos en GitHub
 async function updateGitHubJSON(repo, path, message, updateFn, retries = 7) {
+  const BRANCH = "data"; // Usar rama 'data' para almacenamiento silencioso
+
   for (let i = 0; i < retries; i++) {
     try {
       const resp = await fetch(
-        `https://api.github.com/repos/${repo}/contents/${path}`,
+        `https://api.github.com/repos/${repo}/contents/${path}?ref=${BRANCH}`, // Leer de 'data'
         {
           headers: {
             Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -98,6 +100,7 @@ async function updateGitHubJSON(repo, path, message, updateFn, retries = 7) {
         content = JSON.parse(decoded);
         sha = data.sha;
       } else if (resp.status === 404) {
+        // Inicializar vacío si no existe
         content = path.includes("formularios.json") ? {} : [];
       } else {
         throw new Error(`Error al leer archivo: ${resp.status}`);
@@ -121,7 +124,7 @@ async function updateGitHubJSON(repo, path, message, updateFn, retries = 7) {
           body: JSON.stringify({
             message,
             content: encoded,
-            branch: "main",
+            branch: BRANCH, // Guardar en 'data'
             ...(sha && { sha }),
           }),
         },
@@ -132,7 +135,7 @@ async function updateGitHubJSON(repo, path, message, updateFn, retries = 7) {
         console.warn(
           `Conflicto/Error en ${path}, reintentando... (${i + 1}/${retries})`,
         );
-        // Espera con jitter (aleatoriedad) para evitar colisiones repetidas
+        // Espera con jitter
         await new Promise((r) =>
           setTimeout(r, 500 * (i + 1) + Math.random() * 500),
         );

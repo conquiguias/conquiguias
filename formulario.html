@@ -1007,15 +1007,15 @@
           const respuestas = data.asistencias || [];
           const examenes = data.examenes || [];
 
-          // Identificar mis asistencias (Por ID de dispositivo o por Correo)
+          // Identificar mis asistencias (Lógica Estricta)
           misAsistencias = respuestas
-            .filter(
-              (r) =>
-                r.visitanteId === visitanteId ||
-                (userEmail &&
-                  r.correo &&
-                  r.correo.toLowerCase() === userEmail.toLowerCase()),
-            )
+            .filter((r) => {
+              const rEmail = r.correo ? r.correo.trim().toLowerCase() : null;
+              const uEmail = userEmail ? userEmail.trim().toLowerCase() : null;
+              if (rEmail && uEmail) return rEmail === uEmail;
+              if (!rEmail) return r.visitanteId === visitanteId;
+              return false;
+            })
             .map((r) => r.asistenciaNumero);
 
           actualizarUI();
@@ -1050,11 +1050,16 @@
           // Render tabla
           tbody.innerHTML = "";
           Object.values(agrupadas).forEach((r, idx) => {
-            const esYo =
-              r.visitanteId === visitanteId ||
-              (userEmail &&
-                r.correo &&
-                r.correo.toLowerCase() === userEmail.toLowerCase());
+            const rEmail = r.correo ? r.correo.trim().toLowerCase() : null;
+            const uEmail = userEmail ? userEmail.trim().toLowerCase() : null;
+            let esYo = false;
+
+            if (rEmail && uEmail) {
+              esYo = rEmail === uEmail;
+            } else if (!rEmail) {
+              // Si el registro no tiene email, usamos el visitanteId
+              esYo = r.visitanteId === visitanteId;
+            }
             const completo = r.maxAsistencia >= 2;
 
             let botonAccion = "";

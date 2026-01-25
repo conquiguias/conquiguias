@@ -1368,14 +1368,26 @@ async function handleObtenerEstadoUsuario(req, res, repo) {
             Buffer.from(dAsist.content, "base64").toString(),
           );
 
-          // Filtrar registros que pertenecen a este usuario
-          const registrosPropios = todosReg.filter(
-            (r) =>
-              r.visitanteId === visitanteId ||
-              (email &&
-                r.correo &&
-                r.correo.toLowerCase() === email.toLowerCase()),
-          );
+          // Filtrar registros que pertenecen a este usuario (Lógica Estricta)
+          const registrosPropios = todosReg.filter((r) => {
+            const rEmail = r.correo ? r.correo.trim().toLowerCase() : null;
+            const uEmail = email ? email.trim().toLowerCase() : null;
+
+            // 1. Si el registro tiene correo y el usuario logueado también
+            if (rEmail && uEmail) {
+              return rEmail === uEmail; // DEBE coincidir el correo
+            }
+
+            // 2. Si el registro NO tiene correo (asistencia antigua o anónima), usamos ID
+            // O si el usuario actual NO tiene correo (caso raro, pero posible)
+            if (!rEmail) {
+              return r.visitanteId === visitanteId;
+            }
+
+            // 3. Si el registro tiene correo pero el usuario actual NO (improbable si hay auth)
+            // No lo mostramos para evitar intrusión
+            return false;
+          });
 
           // Recolectar todos los IDs usados por este usuario
           registrosPropios.forEach((r) => {

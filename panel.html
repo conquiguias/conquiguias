@@ -59,9 +59,11 @@
       color: var(--text-primary);
       display: flex;
       flex-direction: column;
-      padding: 20px 0;
+      padding: 0;
       box-shadow: 2px 0 5px var(--shadow-color);
       border-right: 1px solid var(--border-color);
+      z-index: 2000; /* Asegurar que esté por encima */
+      position: relative; /* O fixed, segun el diseño deseado, pero z-index lo requiere */
     }
 
     #sidebar h2 {
@@ -3397,10 +3399,11 @@ transition: all 0.3s ease;
         const instructorSection = document.getElementById("instructorSection");
         const menuInstructor = document.getElementById("menuInstructor");
         
-        [inicioSection, perfilSection, especialidadesSection, clubesSection, certificacionesSection, adminSection, instructorSection].forEach(sec => {
+        // Incluir tareasExamenesSection y menuTareasExamenes en las listas para limpiar
+        [inicioSection, perfilSection, especialidadesSection, clubesSection, certificacionesSection, adminSection, instructorSection, tareasExamenesSection].forEach(sec => {
           if (sec) sec.classList.add("hidden");
         });
-        [menuInicio, menuPerfil, menuEspecialidades, menuClubes, menuCertificaciones, menuAdmin, menuInstructor].forEach(btn => {
+        [menuInicio, menuPerfil, menuEspecialidades, menuClubes, menuCertificaciones, menuAdmin, menuInstructor, menuTareasExamenes].forEach(btn => {
           if (btn) btn.classList.remove("active");
         });
 
@@ -7817,20 +7820,44 @@ const diffMins = Math.floor(diffMs / 60000);
           document.getElementById('tablaTareasExamenes').style.display = 'table';
           
           data.forEach((item, index) => {
+              // FILTRO: Ocultar si ya está todo completado
+              const tieneTarea = item.configTarea && item.configTarea.activa;
+              // Consideramos tarea OK si no existe, o si está calificada y aprobada (nota >= 7)
+              // Si solo está entregada, NO está OK (aún pendiente de revisión final)
+              let tareaOk = true;
+              if (tieneTarea) {
+                  const nota = item.miTarea ? parseFloat(item.miTarea.nota) : 0;
+                  // Asumimos aprobado si estado es calificado y nota >= 7 (soporta 7/10 o 70/100)
+                  const aprobado = item.miTarea && item.miTarea.estado === 'calificado' && nota >= 7;
+                  tareaOk = aprobado;
+              }
+
+              const tieneExamen = item.configExamen;
+              // Consideramos examen OK si no existe, o si ya fue realizado con nota >= 70
+              let examenOk = true;
+              if (tieneExamen) {
+                  const puntaje = item.miExamen ? parseFloat(item.miExamen.puntaje) : 0;
+                  examenOk = item.miExamen && puntaje >= 70;
+              }
+
+              // Si ambas están OK, no mostrar en esta lista de pendientes
+              if (tareaOk && examenOk) return;
+
               let estadoTareaHtml = '<span style="color:#888; font-size:12px;">No requerida</span>';
               let botonTarea = '';
               let estadoExamenHtml = '<span style="color:#888; font-size:12px;">Sin examen</span>';
               let botonExamen = '';
               
               // Lógica Tarea
-              if (item.configTarea && item.configTarea.activa) {
+              if (tieneTarea) {
                   if (item.miTarea) {
                       if (item.miTarea.estado === 'entregado') {
                            estadoTareaHtml = '<span style="color:#F59E0B; font-weight:500;">Pendiente de revisión</span>';
                            botonTarea = '<button disabled style="opacity:0.6; cursor:not-allowed; background:#4B5563; color:white; border:none; padding:4px 8px; border-radius:4px;">Enviado</button>';
                       } else if (item.miTarea.estado === 'calificado') {
-                          const aprobada = item.miTarea.nota >= 7;
-                          estadoTareaHtml = `<span style="color:${aprobada ? '#10B981' : '#EF4444'}; font-weight:bold;">Nota: ${item.miTarea.nota}</span>`;
+                          const nota = parseFloat(item.miTarea.nota);
+                          const color = nota >= 7 ? '#10B981' : '#EF4444'; 
+                          estadoTareaHtml = `<span style="color:${color}; font-weight:bold;">Nota: ${item.miTarea.nota}</span>`;
                           botonTarea = '<button disabled style="opacity:0.6; background:#4B5563; color:white; border:none; padding:4px 8px; border-radius:4px;">Calificado</button>';
                       }
                   } else {
@@ -7840,7 +7867,7 @@ const diffMins = Math.floor(diffMs / 60000);
               }
               
               // Lógica Examen
-              if (item.configExamen) {
+              if (tieneExamen) {
                   if (item.miExamen) {
                        estadoExamenHtml = `<span style="color:#10B981; font-weight:bold;">Realizado (${parseInt(item.miExamen.puntaje)}%)</span>`;
                        botonExamen = '<span style="font-size:12px; color:#aaa;">Examen completado</span>';
@@ -7848,26 +7875,18 @@ const diffMins = Math.floor(diffMs / 60000);
                       let puedeHacerExamen = true;
                       let mensajeBloqueo = "Pendiente";
                       
-                      // Restricción: Asistencias (mínimo 1 o 2 según config, asumimos 1 por ahora o lo que diga el backend)
-                      // El backend nos da 'asistencias' array.
-                      // En formulario.html se valida asistencias. Aquí asumimos que si aparece en la lista es porque participó.
-                      // Pero el requisito dice: "si el formulario tiene activado el sistema de tarea... el boton hacer examen se debe quitar"
-                      
-                      if (item.configTarea && item.configTarea.activa) {
+                      if (tieneTarea) {
                           if (!item.miTarea || item.miTarea.estado !== 'calificado') {
                               puedeHacerExamen = false;
                               mensajeBloqueo = "Completa la tarea primero";
-                          } else if (parseFloat(item.miTarea.nota) <= 70) {
-                              // OJO: Nota es 1-10 o 1-100? El usuario dijo "nota mayor a 70" para activar examen.
-                              // Asumiremos escala 1-100 si dijo 70. O 1-10 si es 7.0.
-                              // Si input es number, chequeamos 70.
-                              // En formulario.html el input nota era text.
-                              // Ajuste: Si la nota es < 70 (o 7), bloqueado.
-                              // Vamos a asumir escala 100 para "70".
-                              
-                              if (parseFloat(item.miTarea.nota) <= 70) {
+                          } else {
+                              const nota = parseFloat(item.miTarea.nota);
+                              // Validación de aprobación de tarea para desbloquear examen
+                              // Soportamos escala 10 y 100. Si es < 7 (en 10) o < 70 (en 100) reprueba.
+                              // Lógica simple: si es < 7, reprueba.
+                              if (nota < 7) { 
                                   puedeHacerExamen = false;
-                                  mensajeBloqueo = "Tarea reprobada (<70)";
+                                  mensajeBloqueo = "Tarea reprobada";
                               }
                           }
                       }

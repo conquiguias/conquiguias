@@ -2497,22 +2497,24 @@ transition: all 0.3s ease;
             <p>Especialidades completadas: <span id="especialidadesCompletadas">0</span></p>
           </div>
 
-          <table id="tablaCertificaciones" border="1" style="border-collapse: collapse; width: 100%; margin-top: 20px;">
+            <table id="tablaCertificaciones" border="1" style="border-collapse: collapse; width: 100%; margin-top: 20px;">
             <thead>
               <tr>
                 <th>#</th>
-                <th>Especialidad</th>
-                <th>Fecha de Participación</th>
-                <th>Asistencias Completadas</th>
+                <th style="text-align: left;">Especialidad</th>
+                <th>Fecha</th>
+                <th>Asist.</th>
                 <th>Tarea</th>
-                <th>Examen Realizado</th>
-                <th>Calificación</th>
+                <th>Examen</th>
+                <th>Calif.</th>
                 <th>Estado</th>
+                <th>Ver</th>
               </tr>
             </thead>
             <tbody id="cuerpoTablaCertificaciones">
               <!-- Las filas se llenarán dinámicamente -->
             </tbody>
+          </table>
           </table>
 
           <div id="sinCertificaciones" style="display: none; text-align: center; padding: 30px; color: #666;">
@@ -2850,7 +2852,6 @@ transition: all 0.3s ease;
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <h4>Entregas</h4>
                     <div>
-                        <button onclick="guardarNotasLocales()" style="font-size: 12px; padding: 5px 10px; background: #607d8b; color: white; border: none; border-radius: 4px; cursor: pointer;">💾 Guardar Local</button>
                         <button onclick="enviarNotasBackend()" style="font-size: 12px; padding: 5px 10px; background: var(--success-color); color: white; border: none; border-radius: 4px; cursor: pointer;">📤 Enviar Notas</button>
                     </div>
                 </div>
@@ -3635,13 +3636,31 @@ transition: all 0.3s ease;
             });
             
             if(!res.ok) throw new Error("Error de conexión");
-            const data = await res.json();
+            const rawData = await res.json();
             
-            if(!data || data.length === 0) {
+            if(!rawData || rawData.length === 0) {
                 if(loading) loading.style.display = 'none';
                 if(sinCert) sinCert.style.display = 'block';
                 return;
             }
+
+            // Agrupar y filtrar únicos (Si el backend devuelve duplicados)
+            const mapUnicos = new Map();
+            rawData.forEach(item => {
+                if(!mapUnicos.has(item.id)) {
+                    mapUnicos.set(item.id, item);
+                } else {
+                    // Si ya existe, nos quedamos con el que tenga más progreso
+                    const existing = mapUnicos.get(item.id);
+                    const newProgress = (item.miExamen ? 1 : 0) + (item.miTarea ? 1 : 0) + item.asistencias.length;
+                    const oldProgress = (existing.miExamen ? 1 : 0) + (existing.miTarea ? 1 : 0) + existing.asistencias.length;
+                    if(newProgress > oldProgress) {
+                        mapUnicos.set(item.id, item);
+                    }
+                }
+            });
+            const data = Array.from(mapUnicos.values());
+            
             
             if(loading) loading.style.display = 'none';
             if(content) content.style.display = 'block';
@@ -3665,44 +3684,64 @@ transition: all 0.3s ease;
                 // Info Tarea
                 const tieneTarea = item.configTarea && item.configTarea.activa;
                 const tareaHecha = item.miTarea && (item.miTarea.estado === 'calificado' || item.miTarea.estado === 'entregado');
-                const tareaAprobada = item.miTarea && item.miTarea.estado === 'calificado' && Number(item.miTarea.nota) >= 7; // Asumimos escala 10 o 100, >7 suele ser safe
+                const tareaAprobada = item.miTarea && item.miTarea.estado === 'calificado' && parseFloat(item.miTarea.nota) >= 7; 
                 
                 if(tieneTarea) {
                     if(item.miTarea) {
-                        notaTareaTexto = item.miTarea.nota ? item.miTarea.nota : (item.miTarea.estado === 'entregado' ? 'Revisión' : 'Pendiente');
+                         if(item.miTarea.estado === 'calificado') {
+                             const aprob = parseFloat(item.miTarea.nota) >= 7;
+                             notaTareaTexto = `<span style="color:${aprob?'var(--success-color)':'var(--danger-color)'}; font-weight:bold;">${item.miTarea.nota}</span>`;
+                         } else if (item.miTarea.estado === 'entregado') {
+                             notaTareaTexto = `<span style="color:var(--warning-color);">Revisión</span>`;
+                         } else {
+                             notaTareaTexto = "Pendiente";
+                         }
                     } else {
-                        notaTareaTexto = "No entregado";
+                        notaTareaTexto = `<span style="color:var(--text-secondary); font-size:12px;">No entregado</span>`;
                     }
                 } else {
-                    notaTareaTexto = "N/A";
+                    notaTareaTexto = `<span style="color:var(--text-secondary); font-size:12px;">N/A</span>`; // No requiere tarea
                 }
                 
                 // Info Examen
                 const tieneExamen = item.configExamen;
                 const examenHecho = !!item.miExamen;
-                const examenAprobado = item.miExamen && item.miExamen.puntaje >= 70;
+                // Examen aprobado si >= 70
+                const examenAprobado = item.miExamen && parseFloat(item.miExamen.puntaje) >= 70;
                 
                 if(examenHecho) {
-                    califExamen = item.miExamen.puntaje.toFixed(1) + "%";
+                    const score = parseFloat(item.miExamen.puntaje);
+                    const color = score >= 70 ? 'var(--success-color)' : 'var(--danger-color)';
+                    califExamen = `<span style="color:${color}; font-weight:bold;">${score.toFixed(0)}%</span>`;
                 } else if(!tieneExamen) {
-                    califExamen = "N/A";
+                    califExamen = `<span style="color:var(--text-secondary); font-size:12px;">N/A</span>`;
                 } else {
                     califExamen = "Pendiente";
                 }
 
+                // Info Examen Realizado (Sí/No) visual
+                const examenRealizadoTexto = examenHecho ? 
+                    `<strong style="color:var(--success-color)">Sí</strong>` : 
+                    (tieneExamen ? 'No' : '<span style="color:#aaa">N/A</span>');
+
+                // Asistencias
+                const numAsist = item.asistencias.length;
+                const reqAsist = item.tomaAsistencia ? 2 : 1; // Asumiendo lógica básica
+                // A veces puede tener más, limitamos visualmente
+                const asistStr = numAsist >= 2 ? "2/2" : `${numAsist}/2`;
+
                 // Estado General
-                // Prioridad: Reprobado > Completado > Pendiente
                 if (tieneExamen && examenHecho && !examenAprobado) {
                     estado = "Reprobado";
                     estadoClass = "calificacion-reprobada";
                 } else if (tieneTarea && item.miTarea && item.miTarea.estado === 'calificado' && !tareaAprobada) {
-                    estado = "Reprobado (Tarea)";
+                    estado = "Reprobado Tarea";
                     estadoClass = "calificacion-reprobada";
                 } else {
-                    // Si todo lo requerido está OK
                     let todoOk = true;
                     if (tieneTarea && !tareaAprobada) todoOk = false;
                     if (tieneExamen && !examenAprobado) todoOk = false;
+                    if (numAsist < reqAsist) todoOk = false;
                     
                     if (todoOk) {
                         estado = "Aprobado";
@@ -3714,17 +3753,17 @@ transition: all 0.3s ease;
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
                     <td>${index + 1}</td>
-                    <td>${item.titulo}</td>
+                    <td style="text-align: left; font-weight: 500;">${item.titulo}</td>
                     <td>${new Date(item.creado).toLocaleDateString()}</td>
-                    <td>${item.asistencias.length}</td>
+                    <td style="text-align:center;">${asistStr}</td>
                     <td style="text-align:center;">${notaTareaTexto}</td>
-                    <td style="text-align:center;">${examenHecho ? 'Sí' : 'No'}</td>
-                    <td class="${examenHecho ? (examenAprobado ? 'calificacion-aprobada':'calificacion-reprobada') : ''}">${califExamen}</td>
+                    <td style="text-align:center;">${examenRealizadoTexto}</td>
+                    <td style="text-align:center;">${califExamen}</td>
                     <td class="${estadoClass}">${estado}</td>
-                    <td>
-                        ${examenHecho && item.miExamen.visitanteId ? // Usar ID del examen por si difiere
+                    <td style="text-align:center;">
+                        ${examenHecho && item.miExamen.visitanteId ? 
                       `<button onclick="verCertificacionCompleta('${item.id}', '${item.miExamen.visitanteId}')" 
-                                 style="background: #17a2b8; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size:12px;">
+                                 style="background: #17a2b8; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size:12px;">
                             Ver
                         </button>`
                       : '-'

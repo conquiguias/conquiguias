@@ -7968,14 +7968,36 @@ const diffMins = Math.floor(diffMs / 60000);
       viewEvaluar.id = 'viewEvaluarTareas';
       viewEvaluar.className = 'hidden';
       viewEvaluar.innerHTML = `
-          <div style="background: var(--bg-secondary); padding: 20px; border-radius: 12px; margin-bottom: 20px; text-align:center;">
-              <h3 style="margin-bottom:15px; color:var(--text-primary);">Evaluación de Tareas</h3>
-              <select id="selectFormEvaluar" style="width: 100%; max-width: 500px; padding: 12px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-primary); font-size:16px;">
-                  <option value="">-- Seleccione una especialidad para evaluar --</option>
-              </select>
+          <div style="background: var(--bg-secondary); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+              <h3 style="margin-bottom:15px; color:var(--text-primary);">📋 Evaluación de Tareas por Especialidad</h3>
+              <p style="color:var(--text-secondary); margin-bottom:20px;">Todas las especialidades con tareas pendientes de revisión</p>
+              
+              <!-- Tabla de Especialidades -->
+              <div id="tablaEspecialidadesContainer" style="overflow-x: auto;">
+                  <table id="tablaEspecialidadesTareas" style="width:100%; border-collapse:collapse; background:var(--bg-card); border-radius:8px; overflow:hidden;">
+                      <thead style="background:rgba(59,130,246,0.1);">
+                          <tr>
+                              <th style="padding:12px; text-align:left; border-bottom:1px solid var(--border-color);">#</th>
+                              <th style="padding:12px; text-align:left; border-bottom:1px solid var(--border-color);">Especialidad</th>
+                              <th style="padding:12px; text-align:center; border-bottom:1px solid var(--border-color);">Pendientes</th>
+                              <th style="padding:12px; text-align:center; border-bottom:1px solid var(--border-color);">Calificadas</th>
+                              <th style="padding:12px; text-align:center; border-bottom:1px solid var(--border-color);">Total</th>
+                              <th style="padding:12px; text-align:center; border-bottom:1px solid var(--border-color);">Acciones</th>
+                          </tr>
+                      </thead>
+                      <tbody id="cuerpoTablaEspecialidadesTareas">
+                          <tr>
+                              <td colspan="6" style="text-align:center; padding:20px; color:var(--text-secondary);">
+                                  Cargando especialidades...
+                              </td>
+                          </tr>
+                      </tbody>
+                  </table>
+              </div>
           </div>
-          <div id="listaEntregasContainer">
-              <p style="text-align:center; color:var(--text-secondary);">Selecciona un formulario arriba para ver las entregas pendientes.</p>
+          
+          <div id="listaEntregasContainer" style="display:none;">
+              <!-- Se llenará dinámicamente al seleccionar una especialidad -->
           </div>
           
           <!-- Modal Calificación Individual -->
@@ -7983,7 +8005,7 @@ const diffMins = Math.floor(diffMs / 60000);
               <div style="height:50px; background:#111; display:flex; align-items:center; justify-content:space-between; padding:0 20px; color:white;">
                   <span>Evaluando a ID: <b id="labelAlumnoActual"></b></span>
                   <div>
-                      <input type="number" id="inputNotaIndividual" placeholder="Nota (0-100)" style="width:100px; padding:5px; border-radius:4px; border:none; margin-right:10px;">
+                      <input type="number" id="inputNotaIndividual" placeholder="Nota (0-10)" min="0" max="10" step="0.1" style="width:100px; padding:5px; border-radius:4px; border:none; margin-right:10px;">
                       <button onclick="cerrarCalificador()" style="background:red; color:white; border:none; padding:5px 15px; border-radius:4px; cursor:pointer;">Cerrar</button>
                   </div>
               </div>
@@ -8006,47 +8028,119 @@ const diffMins = Math.floor(diffMs / 60000);
           tabCrear.classList.remove('active'); tabCrear.style.backgroundColor = 'transparent'; tabCrear.style.color = 'var(--text-primary)';
           viewEvaluar.classList.remove('hidden'); viewEvaluar.style.display = 'block';
           viewCrear.classList.add('hidden'); viewCrear.style.display = 'none';
-          cargarFormulariosParaEvaluar();
+          cargarTablaEspecialidadesParaEvaluar();
       });
   }
 
-  async function cargarFormulariosParaEvaluar() {
-      const select = document.getElementById('selectFormEvaluar');
-      if(!select) return;
+  async function cargarTablaEspecialidadesParaEvaluar() {
+      const tbody = document.getElementById('cuerpoTablaEspecialidadesTareas');
+      if(!tbody) return;
       
-      select.innerHTML = '<option value="">Cargando...</option>';
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-secondary);">Cargando especialidades...</td></tr>';
       
       try {
+          // 1. Obtener todos los formularios
           const resp = await fetch("/api/formulario?action=listarFormularios");
           if(!resp.ok) throw new Error("Error al cargar formularios");
           
-          const data = await resp.json();
-          select.innerHTML = '<option value="">-- Seleccione una especialidad --</option>';
+          const formularios = await resp.json();
           
-          let count = 0;
-          Object.entries(data).forEach(([id, f]) => {
-              // Mostrar si tiene tarea activa configurada
-              const tieneTareaActiva = f.tarea && f.tarea.activa;
-              
-              if (tieneTareaActiva) {
-                  const opt = document.createElement('option');
-                  opt.value = id;
-                  opt.textContent = `${f.titulo || 'Sin título'}`;
-                  select.appendChild(opt);
-                  count++;
+          // 2. Filtrar solo los que tienen tareas activas y obtener estadísticas
+          const especialidadesConTareas = [];
+          
+          for (const [id, form] of Object.entries(formularios)) {
+              if (form.tarea && form.tarea.activa) {
+                  try {
+                      // Obtener las entregas de esta especialidad
+                      const resEntregas = await fetch(`/api/formulario?action=listarEntregas&id=${id}`);
+                      let entregas = {};
+                      
+                      if(resEntregas.ok) {
+                          entregas = await resEntregas.json();
+                      }
+                      
+                      // Contar pendientes y calificadas
+                      const entregasArray = Object.entries(entregas);
+                      const pendientes = entregasArray.filter(([k,v]) => v.estado === 'entregado').length;
+                      const calificadas = entregasArray.filter(([k,v]) => v.estado === 'calificado').length;
+                      const total = entregasArray.length;
+                      
+                      // Solo agregar si hay entregas
+                      if(total > 0) {
+                          especialidadesConTareas.push({
+                              id,
+                              titulo: form.titulo || 'Sin título',
+                              pendientes,
+                              calificadas,
+                              total
+                          });
+                      }
+                  } catch(e) {
+                      console.error(`Error cargando entregas de ${id}:`, e);
+                  }
               }
-          });
-          
-          if(count === 0) {
-              select.innerHTML = '<option value="">No hay especialidades con tareas activas</option>';
           }
           
-          select.onchange = () => cargarEntregasInstructor(select.value);
+          // 3. Renderizar tabla
+          tbody.innerHTML = '';
+          
+          if(especialidadesConTareas.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--text-secondary);">No hay especialidades con tareas entregadas para revisar.</td></tr>';
+              return;
+          }
+          
+          especialidadesConTareas.forEach((esp, index) => {
+              const fila = document.createElement('tr');
+              fila.style.borderBottom = '1px solid var(--border-color)';
+              fila.style.transition = 'background 0.2s';
+              fila.onmouseover = () => fila.style.background = 'rgba(59,130,246,0.05)';
+              fila.onmouseout = () => fila.style.background = 'transparent';
+              
+              fila.innerHTML = `
+                  <td style="padding:12px;">${index + 1}</td>
+                  <td style="padding:12px; font-weight:500;">${esp.titulo}</td>
+                  <td style="padding:12px; text-align:center;">
+                      <span style="background:#F59E0B; color:white; padding:4px 12px; border-radius:12px; font-weight:600; font-size:12px;">
+                          ${esp.pendientes}
+                      </span>
+                  </td>
+                  <td style="padding:12px; text-align:center;">
+                      <span style="background:#10B981; color:white; padding:4px 12px; border-radius:12px; font-weight:600; font-size:12px;">
+                          ${esp.calificadas}
+                      </span>
+                  </td>
+                  <td style="padding:12px; text-align:center; font-weight:600;">${esp.total}</td>
+                  <td style="padding:12px; text-align:center;">
+                      <button onclick="verEntregasEspecialidad('${esp.id}', '${esp.titulo}')" 
+                              style="background:var(--accent-color); color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:600; transition: all 0.2s;"
+                              onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(59,130,246,0.3)';"
+                              onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                          <i class="fas fa-eye"></i> Revisar
+                      </button>
+                  </td>
+              `;
+              
+              tbody.appendChild(fila);
+          });
+          
       } catch(e) {
-          console.error("Error cargando formularios:", e);
-          select.innerHTML = '<option value="">Error al cargar</option>';
+          console.error("Error cargando tabla de especialidades:", e);
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:red;">Error al cargar especialidades. Intenta recargar la página.</td></tr>';
       }
   }
+  
+  // Función auxiliar para ver entregas de una especialidad específica
+  window.verEntregasEspecialidad = function(formId, titulo) {
+      currentEvalFormId = formId;
+      cargarEntregasInstructor(formId);
+      
+      // Mostrar el contenedor de entregas
+      const container = document.getElementById('listaEntregasContainer');
+      if(container) {
+          container.style.display = 'block';
+          container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+  };
 
   let entregasCurrentForm = {}; 
   let currentEvalFormId = null;

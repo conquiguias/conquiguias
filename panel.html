@@ -3612,7 +3612,7 @@ transition: all 0.3s ease;
       });
 
       //////////////////////////////////////////////////////
-      // Función para cargar las certificaciones del usuario (OPTIMIZADA)
+      // Función para cargar las certificaciones del usuario (OPTIMIZADA Y CONSTRUIDA DINAMICAMENTE)
       async function cargarCertificaciones() {
         const loading = document.getElementById("certificacionesLoading");
         const content = document.getElementById("certificacionesContent");
@@ -3628,7 +3628,6 @@ transition: all 0.3s ease;
             
             const vid = localStorage.getItem('visitanteId');
             
-            // Usar el endpoint optimizado que busca por email y variantes
             const res = await fetch('/api/formulario?action=obtenerEstadoUsuario', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -3644,13 +3643,12 @@ transition: all 0.3s ease;
                 return;
             }
 
-            // Agrupar y filtrar únicos (Si el backend devuelve duplicados)
+            // Agrupar y filtrar únicos
             const mapUnicos = new Map();
             rawData.forEach(item => {
                 if(!mapUnicos.has(item.id)) {
                     mapUnicos.set(item.id, item);
                 } else {
-                    // Si ya existe, nos quedamos con el que tenga más progreso
                     const existing = mapUnicos.get(item.id);
                     const newProgress = (item.miExamen ? 1 : 0) + (item.miTarea ? 1 : 0) + item.asistencias.length;
                     const oldProgress = (existing.miExamen ? 1 : 0) + (existing.miTarea ? 1 : 0) + existing.asistencias.length;
@@ -3661,13 +3659,33 @@ transition: all 0.3s ease;
             });
             const data = Array.from(mapUnicos.values());
             
-            
             if(loading) loading.style.display = 'none';
             if(content) content.style.display = 'block';
             
-            const tbody = document.getElementById("cuerpoTablaCertificaciones");
-            if(!tbody) return;
-            tbody.innerHTML = "";
+            // 🔹 RECONSTRUCCIÓN TOTAL DE LA TABLA PARA EVITAR DESALINEACIÓN DE CACHÉ
+            const tablaContainer = document.getElementById("tablaCertificaciones"); // Usamos la referencia a la tabla
+            if(!tablaContainer) return;
+
+            // Definir estructura segura
+            tablaContainer.innerHTML = `
+            <thead>
+              <tr>
+                <th>#</th>
+                <th style="text-align: left;">Especialidad</th>
+                <th>Fecha</th>
+                <th>Asist.</th>
+                <th>Tarea</th>
+                <th>Examen</th>
+                <th>Calif.</th>
+                <th>Estado</th>
+                <th>Ver</th>
+              </tr>
+            </thead>
+            <tbody id="cuerpoTablaCertificacionesGenerado">
+            </tbody>
+            `;
+            
+            const tbody = document.getElementById("cuerpoTablaCertificacionesGenerado");
             
             let countTotal = 0;
             let countCompleted = 0;
@@ -3683,7 +3701,6 @@ transition: all 0.3s ease;
                 
                 // Info Tarea
                 const tieneTarea = item.configTarea && item.configTarea.activa;
-                const tareaHecha = item.miTarea && (item.miTarea.estado === 'calificado' || item.miTarea.estado === 'entregado');
                 const tareaAprobada = item.miTarea && item.miTarea.estado === 'calificado' && parseFloat(item.miTarea.nota) >= 7; 
                 
                 if(tieneTarea) {
@@ -3700,13 +3717,12 @@ transition: all 0.3s ease;
                         notaTareaTexto = `<span style="color:var(--text-secondary); font-size:12px;">No entregado</span>`;
                     }
                 } else {
-                    notaTareaTexto = `<span style="color:var(--text-secondary); font-size:12px;">N/A</span>`; // No requiere tarea
+                    notaTareaTexto = `<span style="color:var(--text-secondary); font-size:12px;">N/A</span>`; 
                 }
                 
                 // Info Examen
                 const tieneExamen = item.configExamen;
                 const examenHecho = !!item.miExamen;
-                // Examen aprobado si >= 70
                 const examenAprobado = item.miExamen && parseFloat(item.miExamen.puntaje) >= 70;
                 
                 if(examenHecho) {
@@ -3726,8 +3742,7 @@ transition: all 0.3s ease;
 
                 // Asistencias
                 const numAsist = item.asistencias.length;
-                const reqAsist = item.tomaAsistencia ? 2 : 1; // Asumiendo lógica básica
-                // A veces puede tener más, limitamos visualmente
+                const reqAsist = item.tomaAsistencia ? 2 : 1; 
                 const asistStr = numAsist >= 2 ? "2/2" : `${numAsist}/2`;
 
                 // Estado General
@@ -3777,6 +3792,10 @@ transition: all 0.3s ease;
             const completadasEl = document.getElementById("especialidadesCompletadas");
             if(totalEl) totalEl.innerText = countTotal;
             if(completadasEl) completadasEl.innerText = countCompleted;
+
+            // Extra: asegurar que botón guardar local no exista
+            const btnGuardarLocal = document.querySelector("button[onclick='guardarNotasLocales()']");
+            if(btnGuardarLocal) btnGuardarLocal.style.display = 'none';
             
         } catch(e) {
             console.error(e);

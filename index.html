@@ -10,29 +10,128 @@
     <title>ConquiGuías World - Acceso</title>
 
     <script type="module">
+      // ==========================================
+      // 1. FUNCIONES DE UTILIDAD (Deben estar al principio)
+      // ==========================================
+
+      // Función para mostrar mensajes
+      window.mostrarMensaje = function (
+        tipo,
+        titulo,
+        mensaje,
+        onConfirm = null,
+      ) {
+        const modal = document.getElementById("mensajeModal");
+        if (!modal) return console.error("Modal no encontrado");
+
+        const tituloEl = document.getElementById("mensajeTitulo");
+        const textoEl = document.getElementById("mensajeTexto");
+        const btnAceptar = document.getElementById("mensajeAceptar");
+        const btnCancelar = document.getElementById("mensajeCancelar");
+
+        tituloEl.textContent = titulo;
+        textoEl.textContent = mensaje;
+        modal.classList.remove("hiddenX");
+
+        // Configurar botones
+        btnCancelar.classList.toggle("hiddenX", tipo !== "confirm");
+
+        const cerrar = () => {
+          modal.classList.add("hiddenX");
+          btnAceptar.onclick = null;
+          btnCancelar.onclick = null;
+        };
+
+        btnAceptar.onclick = () => {
+          cerrar();
+          if (onConfirm && (tipo === "confirm" || tipo === "info")) onConfirm();
+        };
+
+        btnCancelar.onclick = cerrar;
+      };
+
+      // Alternar formularios
+      window.toggleForms = function () {
+        document.getElementById("loginBox").classList.toggle("hidden");
+        document.getElementById("registerBox").classList.toggle("hidden");
+      };
+
+      // Mostrar formulario de recuperación de contraseña
+      window.showResetPassword = function () {
+        document.getElementById("loginBox").classList.add("hidden");
+        document.getElementById("resetPasswordBox").classList.remove("hidden");
+      };
+
+      // Volver al login desde recuperación
+      window.backToLogin = function () {
+        document.getElementById("resetPasswordBox").classList.add("hidden");
+        document.getElementById("loginBox").classList.remove("hidden");
+      };
+
+      function showLoader(button, text) {
+        button.disabled = true;
+        button.innerHTML = `
+        <div class="loader-button">
+          <div class="loader-spinner"></div>
+          <span>${text}</span>
+        </div>
+      `;
+      }
+
+      function updateLoader(button, text) {
+        button.innerHTML = `
+        <div class="loader-button">
+          <div class="loader-spinner"></div>
+          <span>${text}</span>
+        </div>
+      `;
+      }
+
+      function hideLoader(button, originalText) {
+        button.disabled = false;
+        button.innerHTML = originalText;
+      }
+
+      // ==========================================
+      // 2. CONFIGURACIÓN E INICIALIZACIÓN
+      // ==========================================
+
       // 🔒 OBTENER CONFIGURACIÓN DE MANERA SEGURA
       let firebaseConfig;
-      try {
-        const configResponse = await fetch("/api/auth", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "get-config" }),
-        });
 
-        if (!configResponse.ok) {
-          throw new Error("Error cargando configuración segura");
+      // Función autoejecutable para inicialización asíncrona segura
+      (async function initConfig() {
+        try {
+          const configResponse = await fetch("/api/auth", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "get-config" }),
+          });
+
+          if (!configResponse.ok) {
+            throw new Error("Error cargando configuración segura");
+          }
+
+          firebaseConfig = await configResponse.json();
+        } catch (error) {
+          console.error("[ERROR] No se pudo cargar la configuración:", error);
+          if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", () => {
+              mostrarMensaje(
+                "error",
+                "Error de Sistema",
+                "No se pudo conectar de forma segura. Intenta más tarde.",
+              );
+            });
+          } else {
+            mostrarMensaje(
+              "error",
+              "Error de Sistema",
+              "No se pudo conectar de forma segura. Intenta más tarde.",
+            );
+          }
         }
-
-        firebaseConfig = await configResponse.json();
-      } catch (error) {
-        console.error("[ERROR] No se pudo cargar la configuración:", error);
-        mostrarMensaje(
-          "error",
-          "Error de Sistema",
-          "No se pudo conectar de forma segura. Intenta más tarde.",
-        );
-        return;
-      }
+      })();
 
       // Función para llamar a nuestra API segura
       async function callAPI(action, data) {
@@ -84,14 +183,17 @@
           showLoader(loginBtn, "⏳ Iniciando sesión...");
 
           try {
+            if (!firebaseConfig) {
+              // Intentar esperar un poco si la config aun no carga
+              await new Promise((r) => setTimeout(r, 1000));
+              if (!firebaseConfig)
+                throw new Error("Configuración de seguridad no cargada");
+            }
+
             // Importamos Firebase Auth solo para login
             const { initializeApp } =
               await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js");
-            const {
-              getAuth,
-              signInWithEmailAndPassword,
-              sendEmailVerification,
-            } =
+            const { getAuth, signInWithEmailAndPassword } =
               await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
 
             const app = initializeApp(firebaseConfig);
@@ -102,22 +204,6 @@
               email,
               password,
             );
-            const user = userCredential.user;
-
-            // Comentamos temporalmente la verificación de correo
-            /*
-          if (!user.emailVerified) {
-            hideLoader(loginBtn, "Entrar");
-            mostrarMensaje("confirm", "📧 Verificación requerida",
-              "Debes verificar tu correo electrónico antes de acceder. ¿Quieres que te reenviemos el correo de verificación?",
-              () => {
-                // Reenviar verificación
-                sendEmailVerification(user);
-                mostrarMensaje("info", "📧 Correo reenviado", "Te hemos enviado nuevamente el correo de verificación.");
-              });
-            return;
-          }
-          */
 
             console.log("✅ Bienvenido de nuevo");
             showLoader(loginBtn, "✅ Redirigiendo...");
@@ -126,6 +212,7 @@
             }, 1000);
           } catch (error) {
             hideLoader(loginBtn, "Entrar");
+            console.error(error);
             mostrarMensaje(
               "error",
               "⚠️ Error al iniciar sesión",
@@ -147,11 +234,9 @@
           const password = registerForm.password.value.trim();
           const foto = registerForm.foto.files[0];
 
-          // 🔥 MOSTRAR LOADER
           showLoader(registerBtn, "⏳ Creando cuenta...");
 
           try {
-            // ✅ VALIDAR FOTO ANTES DE CREAR USUARIO
             if (!foto) {
               hideLoader(registerBtn, "Registrar");
               mostrarMensaje(
@@ -167,24 +252,10 @@
               return;
             }
 
-            // ✅ VALIDAR TIPO DE ARCHIVO
-            const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
-            if (!allowedTypes.includes(foto.type)) {
-              hideLoader(registerBtn, "Registrar");
-              mostrarMensaje(
-                "info",
-                "⚠️ Formato no válido",
-                "Solo se permiten archivos JPG, JPEG y PNG.",
-              );
-              return;
-            }
-
-            // Convertir foto a Base64
             updateLoader(registerBtn, "⏳ Procesando imagen...");
             const fotoBase64 = await fileToBase64(foto);
             const fileName = foto.name;
 
-            // Llamar a nuestra API segura
             updateLoader(registerBtn, "⏳ Creando usuario...");
             const result = await callAPI("register", {
               nombre,
@@ -202,11 +273,9 @@
             mostrarMensaje(
               "info",
               `🎉 Registro exitoso, ¡bienvenido ${nombre}!`,
-              "Tu cuenta ha sido creada exitosamente. Ahora puedes iniciar sesión directamente sin necesidad de verificar tu correo. Jesús te bendiga, nuestro Gran Guía Mayor.",
+              "Tu cuenta ha sido creada exitosamente. Ahora puedes iniciar sesión directamente.",
               () => {
-                // Limpiar formulario
                 registerForm.reset();
-                // Volver al login
                 toggleForms();
               },
             );
@@ -217,12 +286,11 @@
           }
         });
 
-        // 🔹 RECUPERACIÓN DE CONTRASEÑA - USAMOS NUESTRA API SEGURA
+        // 🔹 RECUPERACIÓN DE CONTRASEÑA
         resetPasswordForm.addEventListener("submit", async (e) => {
           e.preventDefault();
           const email = resetPasswordForm.email.value.trim();
 
-          // 🔥 MOSTRAR LOADER
           showLoader(resetPasswordBtn, "⏳ Enviando enlace...");
 
           try {
@@ -231,7 +299,7 @@
             mostrarMensaje(
               "info",
               "📧 Correo enviado",
-              "Te hemos enviado un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada y la carpeta de spam.",
+              "Te hemos enviado un enlace para restablecer tu contraseña.",
               () => {
                 document
                   .getElementById("resetPasswordBox")
@@ -241,563 +309,344 @@
             );
           } catch (error) {
             hideLoader(resetPasswordBtn, "Enviar enlace de recuperación");
-            console.error("Error al enviar correo de recuperación:", error);
+            console.error("Error al enviar correo:", error);
             mostrarMensaje("error", "❌ Error", error.message);
           }
         });
       });
-
-      // 🔥 MANTENER TODAS TUS FUNCIONES EXISTENTES (NO CAMBIAR)
-      function showLoader(button, text) {
-        button.disabled = true;
-        button.innerHTML = `
-        <div class="loader-button">
-          <div class="loader-spinner"></div>
-          <span>${text}</span>
-        </div>
-      `;
-      }
-
-      function updateLoader(button, text) {
-        button.innerHTML = `
-        <div class="loader-button">
-          <div class="loader-spinner"></div>
-          <span>${text}</span>
-        </div>
-      `;
-      }
-
-      function hideLoader(button, originalText) {
-        button.disabled = false;
-        button.innerHTML = originalText;
-      }
-
-      // Alternar formularios
-      function toggleForms() {
-        document.getElementById("loginBox").classList.toggle("hidden");
-        document.getElementById("registerBox").classList.toggle("hidden");
-      }
-      window.toggleForms = toggleForms;
-
-      // Mostrar formulario de recuperación de contraseña
-      function showResetPassword() {
-        document.getElementById("loginBox").classList.add("hidden");
-        document.getElementById("resetPasswordBox").classList.remove("hidden");
-      }
-      window.showResetPassword = showResetPassword;
-
-      // Volver al login desde recuperación
-      function backToLogin() {
-        document.getElementById("resetPasswordBox").classList.add("hidden");
-        document.getElementById("loginBox").classList.remove("hidden");
-      }
-      window.backToLogin = backToLogin;
-
-      // Función para mostrar mensajes (MANTENER IGUAL)
-      function mostrarMensaje(tipo, titulo, mensaje, onConfirm = null) {
-        const modal = document.getElementById("mensajeModal");
-        const tituloEl = document.getElementById("mensajeTitulo");
-        const textoEl = document.getElementById("mensajeTexto");
-        const btnAceptar = document.getElementById("mensajeAceptar");
-        const btnCancelar = document.getElementById("mensajeCancelar");
-
-        tituloEl.textContent = titulo;
-        textoEl.textContent = mensaje;
-        modal.classList.remove("hiddenX");
-
-        // Configurar botones
-        btnCancelar.classList.toggle("hiddenX", tipo !== "confirm");
-
-        const cerrar = () => {
-          modal.classList.add("hiddenX");
-          btnAceptar.onclick = null;
-          btnCancelar.onclick = null;
-        };
-
-        btnAceptar.onclick = () => {
-          cerrar();
-          if (onConfirm && (tipo === "confirm" || tipo === "info")) onConfirm();
-        };
-
-        btnCancelar.onclick = cerrar;
-      }
     </script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+      /* ============================================
+      ESTILOS UNIFICADOS CON PANEL.HTML (MODO OSCURO)
+      ============================================ */
+      :root {
+        --bg-primary: #0f172a;
+        --bg-secondary: #1e293b;
+        --bg-card: #1e293b;
+        --text-primary: #e2e8f0;
+        --text-secondary: #94a3b8;
+        --accent-color: #3b82f6;
+        --accent-hover: #2563eb;
+        --danger-color: #ef4444;
+        --success-color: #10b981;
+        --border-color: #334155;
+        --shadow-color: rgba(0, 0, 0, 0.3);
+      }
 
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      /* Header simple y profesional */
+      .header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        padding: 20px 40px;
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-color);
+        z-index: 1000;
+        box-shadow: 0 4px 6px var(--shadow-color);
+      }
+
+      .header-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .logo-icon {
+        width: 40px;
+        height: 40px;
+        background: var(--accent-color);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        color: white;
+      }
+
+      .site-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+
+      .header-tagline {
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+
+      /* Contenedor principal */
+      .main-wrapper {
+        margin-top: 100px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .container {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 40px;
+        width: 100%;
+        max-width: 400px;
+        box-shadow: 0 10px 25px var(--shadow-color);
+        text-align: center;
+        animation: fadeIn 0.5s ease-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
         }
-
-        body {
-          margin: 0;
-          font-family: 'Poppins', 'Segoe UI', sans-serif;
-          background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
-          background-attachment: fixed;
-          color: #fff;
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-          overflow-x: hidden;
-        }
-
-        /* Efecto de partículas en el fondo */
-        body::before {
-          content: '';
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background-image:
-            radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-            radial-gradient(circle at 80% 80%, rgba(88, 86, 214, 0.3) 0%, transparent 50%),
-            radial-gradient(circle at 40% 20%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
-          animation: float 20s ease-in-out infinite;
-          pointer-events: none;
-          z-index: 0;
-        }
-
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) translateX(0px); }
-          50% { transform: translateY(-20px) translateX(10px); }
-        }
-
-        /* Header con título */
-        .header {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          padding: 25px 40px;
-          background: rgba(15, 23, 42, 0.7);
-          backdrop-filter: blur(20px);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-          z-index: 1000;
-          box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        .header-content {
-          max-width: 1400px;
-          margin: 0 auto;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        .logo-section {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-        }
-
-        .logo-icon {
-          width: 50px;
-          height: 50px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 24px;
-          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-          animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-        }
-
-        .site-title {
-          font-size: 28px;
-          font-weight: 700;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          letter-spacing: -0.5px;
-          text-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
-        }
-
-        .header-tagline {
-          font-size: 12px;
-          color: rgba(255, 255, 255, 0.6);
-          font-weight: 300;
-          margin-top: -5px;
-        }
-
-        /* Contenedor principal */
-        .main-wrapper {
-          margin-top: 120px;
-          width: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-          position: relative;
-          z-index: 1;
-        }
-
-        .container {
-          background: rgba(255, 255, 255, 0.08);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          border-radius: 24px;
-          padding: 40px;
-          width: 100%;
-          max-width: 420px;
-          box-shadow:
-            0 8px 32px rgba(0, 0, 0, 0.3),
-            inset 0 1px 0 rgba(255, 255, 255, 0.1);
-          text-align: center;
-          animation: slideUp 0.6s ease-out;
-          position: relative;
-          overflow: hidden;
-        }
-
-        @keyframes slideUp {
-          0% {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .container::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-          transition: 0.5s;
-        }
-
-        .container:hover::before {
-          left: 100%;
-        }
-
-        .container h1 {
-          font-size: 32px;
-          font-weight: 700;
-          margin-bottom: 10px;
-          background: linear-gradient(135deg, #fff 0%, #e0e7ff 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-
-        .container p {
-          color: rgba(255, 255, 255, 0.7);
-          font-size: 14px;
-          margin-bottom: 30px;
-          font-weight: 300;
-        }
-
-        /* Inputs modernos */
-        input,
-        select {
-          width: 100%;
-          margin: 10px 0;
-          padding: 14px 18px;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          border-radius: 12px;
-          background: rgba(255, 255, 255, 0.1);
-          color: #fff;
-          font-size: 15px;
-          font-family: 'Poppins', sans-serif;
-          transition: all 0.3s ease;
-        }
-
-        input::placeholder {
-          color: rgba(255, 255, 255, 0.5);
-        }
-
-        input:focus,
-        select:focus {
-          outline: none;
-          border-color: #667eea;
-          background: rgba(255, 255, 255, 0.15);
-          box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
-        }
-
-        select {
-          cursor: pointer;
-        }
-
-        select option {
-          background: #1e3c72;
-          color: #fff;
-        }
-
-        /* Botones modernos */
-        button {
-          width: 100%;
-          padding: 14px;
-          border: none;
-          border-radius: 12px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: #fff;
-          font-weight: 600;
-          font-size: 16px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          position: relative;
-          min-height: 50px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-          font-family: 'Poppins', sans-serif;
-          margin-top: 10px;
-        }
-
-        button:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
-        }
-
-        button:active:not(:disabled) {
+        to {
+          opacity: 1;
           transform: translateY(0);
         }
+      }
 
-        button:disabled {
-          background: rgba(100, 100, 100, 0.5);
-          cursor: not-allowed;
-          transform: none;
+      .container h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 10px;
+        color: var(--text-primary);
+      }
+
+      .container p {
+        color: var(--text-secondary);
+        font-size: 14px;
+        margin-bottom: 30px;
+      }
+
+      /* Inputs estilo panel */
+      input,
+      select {
+        width: 100%;
+        margin: 8px 0;
+        padding: 12px;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        color: var(--text-primary);
+        font-size: 14px;
+        transition: border 0.3s;
+      }
+
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+      }
+
+      input::placeholder {
+        color: var(--text-secondary);
+      }
+
+      select option {
+        background: var(--bg-primary);
+      }
+
+      /* Botones estilo panel */
+      button {
+        width: 100%;
+        padding: 12px;
+        margin-top: 15px;
+        border: none;
+        border-radius: 6px;
+        background: var(--accent-color);
+        color: white;
+        font-weight: 600;
+        font-size: 15px;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+
+      button:hover:not(:disabled) {
+        background: var(--accent-hover);
+      }
+
+      button:disabled {
+        background: var(--border-color);
+        color: var(--text-secondary);
+        cursor: not-allowed;
+      }
+
+      /* Links */
+      .toggle,
+      .forgot-password,
+      .back-link {
+        color: var(--accent-color);
+        margin-top: 15px;
+        cursor: pointer;
+        font-size: 14px;
+        display: inline-block;
+      }
+
+      .toggle:hover,
+      .forgot-password:hover,
+      .back-link:hover {
+        text-decoration: underline;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      /* Utilidades */
+      .contenedor-password {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .chkShow {
+        width: auto;
+        margin: 0;
+      }
+
+      /* Input File */
+      input[type="file"] {
+        border: 1px dashed var(--border-color);
+        cursor: pointer;
+      }
+      input[type="file"]:hover {
+        border-color: var(--accent-color);
+      }
+
+      /* Loader */
+      .loader-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      .loader-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid transparent;
+        border-top: 2px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
         }
-
-        /* Enlaces y toggles */
-        .toggle,
-        .forgot-password,
-        .back-link {
-          color: #a5b4fc;
-          margin-top: 15px;
-          cursor: pointer;
-          font-size: 14px;
-          font-weight: 400;
-          transition: all 0.3s ease;
-          display: inline-block;
+        100% {
+          transform: rotate(360deg);
         }
+      }
 
-        .toggle:hover,
-        .forgot-password:hover,
-        .back-link:hover {
-          color: #fff;
-          text-decoration: underline;
+      /* Modal mensajes */
+      #mensajeModal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+      }
+
+      .mensaje-content {
+        background: var(--bg-card);
+        padding: 30px;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        max-width: 400px;
+        text-align: center;
+        color: var(--text-primary);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      }
+
+      .mensaje-content h3 {
+        color: var(--accent-color);
+        margin-bottom: 10px;
+      }
+      #mensajeBotones {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      #mensajeAceptar {
+        background: var(--success-color);
+        margin: 0;
+        width: auto;
+        padding: 10px 20px;
+        transform: none;
+        box-shadow: none;
+      }
+      #mensajeCancelar {
+        background: var(--danger-color);
+        margin: 0;
+        width: auto;
+        padding: 10px 20px;
+        transform: none;
+        box-shadow: none;
+      }
+
+      #mensajeAceptar:hover,
+      #mensajeCancelar:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+      }
+
+      .hiddenX {
+        display: none !important;
+      }
+
+      /* Responsive */
+      @media (max-width: 600px) {
+        .header {
+          padding: 15px 20px;
         }
-
-        .hidden {
-          display: none !important;
+        .header-tagline {
+          display: none;
         }
-
-        /* Contenedor de password con checkbox */
-        .contenedor-password {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          margin: 10px 0;
+        .site-title {
+          font-size: 20px;
         }
-
-        .password {
-          flex: 1;
-        }
-
-        .chkShow {
-          width: 20px;
-          height: 20px;
-          cursor: pointer;
-          accent-color: #667eea;
-        }
-
-        /* Input de archivo modernizado */
-        input[type="file"] {
-          padding: 10px;
-          background: rgba(255, 255, 255, 0.05);
-          border: 2px dashed rgba(255, 255, 255, 0.3);
-          cursor: pointer;
-          font-size: 13px;
-        }
-
-        input[type="file"]:hover {
-          border-color: #667eea;
-          background: rgba(102, 126, 234, 0.1);
-        }
-
-        .container h2 {
-          font-size: 16px;
-          margin: 20px 0 10px;
-          color: rgba(255, 255, 255, 0.9);
-          font-weight: 500;
-        }
-
-        /* Loader para botones */
-        .loader-button {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-        }
-
-        .loader-spinner {
-          width: 18px;
-          height: 18px;
-          border: 2px solid transparent;
-          border-top: 2px solid #ffffff;
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-
-        /* Modal de mensajes mejorado */
-        #mensajeModal {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: rgba(0, 0, 0, 0.7);
-          backdrop-filter: blur(5px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 3000;
-          animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        .mensaje-content {
-          background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-          padding: 35px 40px;
-          border-radius: 20px;
-          box-shadow:
-            0 20px 60px rgba(0, 0, 0, 0.5),
-            0 0 0 1px rgba(255, 255, 255, 0.1);
-          text-align: center;
-          width: 90%;
-          max-width: 450px;
-          animation: slideUp 0.4s ease-out;
-        }
-
-        .mensaje-content h3 {
-          margin-bottom: 15px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          font-size: 24px;
-        }
-
-        .mensaje-content p {
-          margin-bottom: 25px;
-          color: rgba(255, 255, 255, 0.8);
-          line-height: 1.6;
-        }
-
-        #mensajeBotones {
-          display: flex;
-          justify-content: center;
-          gap: 15px;
-        }
-
-        #mensajeBotones button {
-          padding: 12px 24px;
+        .container {
+          padding: 25px;
           border: none;
-          border-radius: 10px;
-          cursor: pointer;
-          font-size: 15px;
-          font-weight: 600;
-          transition: all 0.3s;
-          font-family: 'Poppins', sans-serif;
+          background: transparent;
+          box-shadow: none;
         }
-
-        #mensajeAceptar {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-        }
-
-        #mensajeCancelar {
-          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-          color: white;
-        }
-
-        #mensajeBotones button:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .hiddenX {
-          display: none !important;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-          .header {
-            padding: 20px;
-          }
-
-          .site-title {
-            font-size: 22px;
-          }
-
-          .logo-icon {
-            width: 40px;
-            height: 40px;
-            font-size: 20px;
-          }
-
-          .header-tagline {
-            display: none;
-          }
-
-          .container {
-            padding: 30px 25px;
-            margin: 20px;
-          }
-
-          .container h1 {
-            font-size: 26px;
-          }
-
-          .main-wrapper {
-            margin-top: 100px;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .site-title {
-            font-size: 18px;
-          }
-
-          .container {
-            padding: 25px 20px;
-          }
-
-          input,
-          select,
-          button {
-            font-size: 14px;
-          }
-        }
+      }
     </style>
   </head>
 
@@ -811,7 +660,9 @@
           </div>
           <div>
             <div class="site-title">Conquiguias World</div>
-            <div class="header-tagline">Plataforma de Conquistadores y Guías Mayores</div>
+            <div class="header-tagline">
+              Plataforma de Conquistadores y Guías Mayores
+            </div>
           </div>
         </div>
       </div>
@@ -819,112 +670,138 @@
 
     <!-- Contenedor principal -->
     <div class="main-wrapper">
-    <!-- Login -->
-    <div class="container" id="loginBox">
-      <h1><i class="fas fa-sign-in-alt" style="margin-right: 10px;"></i>Bienvenido de Vuelta</h1>
-      <p>Ingresa tus credenciales para acceder a tu cuenta</p>
-      <form id="loginForm">
-        <input
-          class="email"
-          type="email"
-          name="email"
-          placeholder="Correo electrónico"
-          required
-        />
-        <div class="contenedor-password">
+      <!-- Login -->
+      <div class="container" id="loginBox">
+        <h1>
+          <i class="fas fa-sign-in-alt" style="margin-right: 10px"></i
+          >Bienvenido de Vuelta
+        </h1>
+        <p>Ingresa tus credenciales para acceder a tu cuenta</p>
+        <form id="loginForm">
           <input
-            class="password"
-            id="password"
-            type="password"
-            name="password"
-            placeholder="Contraseña"
+            class="email"
+            type="email"
+            name="email"
+            placeholder="Correo electrónico"
+            autocomplete="email"
             required
           />
-          <input class="chkShow" id="chkShow" type="checkbox" />
+          <div class="contenedor-password">
+            <input
+              class="password"
+              id="password"
+              type="password"
+              name="password"
+              placeholder="Contraseña"
+              autocomplete="current-password"
+              required
+            />
+            <input class="chkShow" id="chkShow" type="checkbox" />
+          </div>
+          <button type="submit" id="loginBtn" style="font-size: 20px">
+            Entrar
+          </button>
+        </form>
+        <div class="forgot-password" onclick="showResetPassword()">
+          ¿Olvidaste tu contraseña?
         </div>
-        <button type="submit" id="loginBtn" style="font-size: 20px">
-          Entrar
-        </button>
-      </form>
-      <div class="forgot-password" onclick="showResetPassword()">
-        ¿Olvidaste tu contraseña?
+        <div class="toggle" onclick="toggleForms()">
+          ¿No tienes cuenta? Regístrate
+        </div>
       </div>
-      <div class="toggle" onclick="toggleForms()">
-        ¿No tienes cuenta? Regístrate
-      </div>
-    </div>
 
-    <!-- Registro -->
-    <div class="container hidden" id="registerBox">
-      <h1 style="margin: 0%"><i class="fas fa-user-plus" style="margin-right: 10px;"></i>Únete a Nosotros</h1>
-      <p>Crea tu cuenta y comienza tu aventura</p>
-      <form id="registerForm">
-        <input
-          type="text"
-          name="nombre"
-          placeholder="Nombre o como deseas aparecer"
-          required
-        />
-        <input
-          type="text"
-          name="apellido"
-          placeholder="Apellido o como deseas aparecer"
-          required
-        />
-        <input type="number" name="edad" placeholder="Edad" required />
-        <select name="sexo" required>
-          <option value="">Sexo</option>
-          <option>Masculino</option>
-          <option>Femenino</option>
-        </select>
-        <input type="text" name="pais" placeholder="País" required />
-        <input type="email" name="email" placeholder="Correo" required />
-        <div class="contenedor-password">
+      <!-- Registro -->
+      <div class="container hidden" id="registerBox">
+        <h1 style="margin: 0%">
+          <i class="fas fa-user-plus" style="margin-right: 10px"></i>Únete a
+          Nosotros
+        </h1>
+        <p>Crea tu cuenta y comienza tu aventura</p>
+        <form id="registerForm">
           <input
-            class="password"
-            id="passwordX"
-            type="password"
-            name="password"
-            placeholder="Contraseña"
+            type="text"
+            name="nombre"
+            placeholder="Nombre o como deseas aparecer"
+            autocomplete="name"
             required
           />
-          <input class="chkShow" id="chkShowX" type="checkbox" />
+          <input
+            type="text"
+            name="apellido"
+            placeholder="Apellido o como deseas aparecer"
+            autocomplete="family-name"
+            required
+          />
+          <input type="number" name="edad" placeholder="Edad" required />
+          <select name="sexo" required>
+            <option value="">Sexo</option>
+            <option>Masculino</option>
+            <option>Femenino</option>
+          </select>
+          <input
+            type="text"
+            name="pais"
+            placeholder="País"
+            autocomplete="country-name"
+            required
+          />
+          <input
+            type="email"
+            name="email"
+            placeholder="Correo"
+            autocomplete="email"
+            required
+          />
+          <div class="contenedor-password">
+            <input
+              class="password"
+              id="passwordX"
+              type="password"
+              name="password"
+              placeholder="Contraseña"
+              autocomplete="new-password"
+              required
+            />
+            <input class="chkShow" id="chkShowX" type="checkbox" />
+          </div>
+          <h2 style="margin: 0%">Subir Foto:</h2>
+          <input
+            type="file"
+            name="foto"
+            accept="image/jpg, image/jpeg, image/png"
+            required
+          />
+          <button type="submit" id="registerBtn">Registrar</button>
+        </form>
+        <div class="toggle" onclick="toggleForms()">
+          ¿Ya tienes cuenta? Inicia sesión
         </div>
-        <h2 style="margin: 0%">Subir Foto:</h2>
-        <input
-          type="file"
-          name="foto"
-          accept="image/jpg, image/jpeg, image/png"
-          required
-        />
-        <button type="submit" id="registerBtn">Registrar</button>
-      </form>
-      <div class="toggle" onclick="toggleForms()">
-        ¿Ya tienes cuenta? Inicia sesión
       </div>
-    </div>
 
-    <!-- Recuperación de contraseña -->
-    <div class="container hidden" id="resetPasswordBox">
-      <h1><i class="fas fa-key" style="margin-right: 10px;"></i>Recuperar Contraseña</h1>
-      <p>Te enviaremos un enlace para restablecer tu contraseña</p>
-      <form id="resetPasswordForm">
-        <input
-          type="email"
-          name="email"
-          placeholder="Correo electrónico"
-          required
-        />
-        <button type="submit" id="resetPasswordBtn">
-          Enviar enlace de recuperación
-        </button>
-      </form>
-      <div class="back-link" onclick="backToLogin()">
-        Volver al inicio de sesión
-      </div>
+      <!-- Recuperación de contraseña -->
+      <div class="container hidden" id="resetPasswordBox">
+        <h1>
+          <i class="fas fa-key" style="margin-right: 10px"></i>Recuperar
+          Contraseña
+        </h1>
+        <p>Te enviaremos un enlace para restablecer tu contraseña</p>
+        <form id="resetPasswordForm">
+          <input
+            type="email"
+            name="email"
+            placeholder="Correo electrónico"
+            autocomplete="email"
+            required
+          />
+          <button type="submit" id="resetPasswordBtn">
+            Enviar enlace de recuperación
+          </button>
+        </form>
+        <div class="back-link" onclick="backToLogin()">
+          Volver al inicio de sesión
+        </div>
       </div>
     </div>
-    </div><!-- Cierre main-wrapper -->
 
     <!-- 🔹 Contenedor general de mensajes -->
     <div id="mensajeModal" class="hiddenX">

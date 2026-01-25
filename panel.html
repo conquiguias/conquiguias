@@ -3787,18 +3787,42 @@ transition: all 0.3s ease;
                 const reqAsist = item.tomaAsistencia ? 2 : 1; 
                 const asistStr = numAsist >= 2 ? "2/2" : `${numAsist}/2`;
 
-                // Estado General
+                // Estado General (LÓGICA CORREGIDA)
+                // Primero, verificar reprobados
                 if (tieneExamen && examenHecho && !examenAprobado) {
                     estado = "Reprobado";
                     estadoClass = "calificacion-reprobada";
                 } else if (tieneTarea && item.miTarea && item.miTarea.estado === 'calificado' && !tareaAprobada) {
                     estado = "Reprobado Tarea";
                     estadoClass = "calificacion-reprobada";
-                } else {
+                } 
+                // Pendiente revisión (tarea entregada pero no calificada)
+                else if (tieneTarea && item.miTarea && item.miTarea.estado === 'entregado') {
+                    estado = "Pendiente revisión";
+                    estadoClass = "estado-pendiente";
+                }
+                // Verificar si está completo
+                else {
                     let todoOk = true;
-                    if (tieneTarea && !tareaAprobada) todoOk = false;
-                    if (tieneExamen && !examenAprobado) todoOk = false;
-                    if (numAsist < reqAsist) todoOk = false;
+                    
+                    // Si hay tarea requerida, debe estar aprobada
+                    if (tieneTarea) {
+                        if (!item.miTarea || item.miTarea.estado !== 'calificado' || !tareaAprobada) {
+                            todoOk = false;
+                        }
+                    }
+                    
+                    // Si hay examen requerido, debe estar aprobado
+                    if (tieneExamen) {
+                        if (!examenAprobado) {
+                            todoOk = false;
+                        }
+                    }
+                    
+                    // Verificar asistencias
+                    if (numAsist < reqAsist) {
+                        todoOk = false;
+                    }
                     
                     if (todoOk) {
                         estado = "Aprobado";
@@ -7988,21 +8012,40 @@ const diffMins = Math.floor(diffMs / 60000);
 
   async function cargarFormulariosParaEvaluar() {
       const select = document.getElementById('selectFormEvaluar');
+      if(!select) return;
+      
       select.innerHTML = '<option value="">Cargando...</option>';
-      const resp = await fetch("/api/formulario?action=listarFormularios");
-      const data = await resp.json();
-      select.innerHTML = '<option value="">-- Seleccione una especialidad --</option>';
       
-      Object.entries(data).forEach(([id, f]) => {
-          if (f.tarea && f.tarea.activa) {
-              const opt = document.createElement('option');
-              opt.value = id;
-              opt.textContent = `${f.titulo} (ID: ${id})`;
-              select.appendChild(opt);
+      try {
+          const resp = await fetch("/api/formulario?action=listarFormularios");
+          if(!resp.ok) throw new Error("Error al cargar formularios");
+          
+          const data = await resp.json();
+          select.innerHTML = '<option value="">-- Seleccione una especialidad --</option>';
+          
+          let count = 0;
+          Object.entries(data).forEach(([id, f]) => {
+              // Mostrar si tiene tarea activa configurada
+              const tieneTareaActiva = f.tarea && f.tarea.activa;
+              
+              if (tieneTareaActiva) {
+                  const opt = document.createElement('option');
+                  opt.value = id;
+                  opt.textContent = `${f.titulo || 'Sin título'}`;
+                  select.appendChild(opt);
+                  count++;
+              }
+          });
+          
+          if(count === 0) {
+              select.innerHTML = '<option value="">No hay especialidades con tareas activas</option>';
           }
-      });
-      
-      select.onchange = () => cargarEntregasInstructor(select.value);
+          
+          select.onchange = () => cargarEntregasInstructor(select.value);
+      } catch(e) {
+          console.error("Error cargando formularios:", e);
+          select.innerHTML = '<option value="">Error al cargar</option>';
+      }
   }
 
   let entregasCurrentForm = {}; 

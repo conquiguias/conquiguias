@@ -668,12 +668,16 @@
     }
 
     .seccion-titulo::before {
-      content: "📁";
+      content: "\f07b";
+      font-family: "Font Awesome 6 Free";
+      font-weight: 400;
       margin-right: 8px;
+      color: var(--accent-color);
     }
 
     .seccion-titulo.abierto::before {
-      content: "📂";
+      content: "\f07c";
+      font-weight: 400;
     }
 
     .seccion-titulo:hover {
@@ -2281,8 +2285,8 @@
     <button id="menuCertificaciones">Certificaciones</button>
     <button id="menuEspecialidades">Especialidades Storage</button>
     <button id="menuPerfil">Perfil</button>
-    <button id="menuInstructor" class="hidden">👨‍🏫 Instructor</button>
-    <button id="menuAdmin" class="hidden">🔧 Admin</button>
+    <button id="menuInstructor" class="hidden"><i class="fas fa-chalkboard-teacher" style="margin-right: 5px;"></i> Instructor</button>
+    <button id="menuAdmin" class="hidden"><i class="fas fa-user-shield" style="margin-right: 5px;"></i> Admin</button>
     <button id="logoutBtn">Cerrar sesión</button>
   </div>
 
@@ -2476,7 +2480,7 @@ transition: all 0.3s ease;
     <!-- 🔹 NUEVA SECCIÓN: CERTIFICACIONES -->
     <div id="certificacionesSection" class="hidden">
       <div class="card card-certificaciones">
-        <h2>📜 Mis Certificaciones de Especialidades</h2>
+        <h2><i class="fas fa-certificate" style="margin-right: 8px; color: var(--accent-color);"></i> Mis Certificaciones de Especialidades</h2>
         <p>Aquí puedes ver todas las especialidades en las que has participado, validadas con tu correo electrónico.</p>
 
         <div id="certificacionesLoading" style="text-align: center; padding: 20px;">
@@ -2508,7 +2512,7 @@ transition: all 0.3s ease;
           </table>
 
           <div id="sinCertificaciones" style="display: none; text-align: center; padding: 30px; color: #666;">
-            <h3>📝 Aún no tienes certificaciones</h3>
+            <h3><i class="fas fa-file-contract" style="margin-right: 8px; color: var(--text-secondary);"></i> Aún no tienes certificaciones</h3>
             <p>Participa en especialidades para ver tus certificaciones aquí.</p>
           </div>
         </div>
@@ -2517,7 +2521,7 @@ transition: all 0.3s ease;
 
     <!-- 🔹 SECCIÓN INSTRUCTOR (Antiguo admin.html) -->
     <div id="instructorSection" class="card hidden">
-      <h2>👨‍🏫 Panel de Instructor</h2>
+      <h2><i class="fas fa-chalkboard-teacher" style="margin-right: 8px; color: var(--accent-color);"></i> Panel de Instructor</h2>
       <p>Gestión de formularios de asistencia y exámenes</p>
 
       <form id="crearFormulario">
@@ -2544,7 +2548,7 @@ transition: all 0.3s ease;
 
         <!-- Selector de Imágenes -->
         <div class="image-selector">
-          <h3>🖼️ Selección de Imágenes para el Formulario</h3>
+          <h3><i class="fas fa-images" style="margin-right: 8px; color: var(--accent-color);"></i> Selección de Imágenes para el Formulario</h3>
 
           <!-- Selector de Especialidad -->
           <div class="selector-group">
@@ -2558,14 +2562,14 @@ transition: all 0.3s ease;
               <div style="display: flex; flex-direction: column; gap: 5px;">
                   <input type="file" id="uploadEspecialidad" accept="image/*" style="display: none;" onchange="document.getElementById('fileNameEsp').textContent = this.files[0]?.name || 'Ningún archivo seleccionado'">
                   <button type="button" class="upload-btn" onclick="document.getElementById('uploadEspecialidad').click()" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-                    📂 Seleccionar Archivo
+                    <i class="fas fa-folder-open"></i> Seleccionar Archivo
                   </button>
                   <span id="fileNameEsp" style="font-size: 11px; color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Ningún archivo seleccionado</span>
               </div>
             </div>
             <div class="upload-section" style="display: flex; gap: 10px; align-items: center;">
               <input type="text" id="nombreEspecialidad" placeholder="Nombre para la especialidad" class="upload-input" style="flex: 1; padding: 8px;">
-              <button type="button" id="btnSubirEspReal" class="upload-btn" style="background: var(--success-color);">⬆️ Subir</button>
+              <button type="button" id="btnSubirEspReal" class="upload-btn" style="background: var(--success-color);"><i class="fas fa-upload"></i> Subir</button>
             </div>
             <div id="mensajeEspecialidad" style="margin-top: 5px; font-size: 12px;"></div>
           </div>
@@ -2586,14 +2590,14 @@ transition: all 0.3s ease;
                 <div style="display: flex; flex-direction: column; gap: 5px;">
                     <input type="file" id="uploadFirma1" accept="image/*" style="display: none;" onchange="document.getElementById('fileNameF1').textContent = this.files[0]?.name || 'Ningún archivo seleccionado'">
                     <button type="button" class="upload-btn" onclick="document.getElementById('uploadFirma1').click()" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-                      📂 Seleccionar Archivo
+                      <i class="fas fa-folder-open"></i> Seleccionar Archivo
                     </button>
                     <span id="fileNameF1" style="font-size: 11px; color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Ningún archivo seleccionado</span>
                 </div>
               </div>
               <div class="upload-section" style="display: flex; gap: 10px; align-items: center;">
                 <input type="text" id="nombreFirma1" placeholder="Nombre firma instructor" class="upload-input" style="flex: 1; padding: 8px;">
-                <button type="button" id="btnSubirF1Real" class="upload-btn" style="background: var(--success-color);">⬆️ Subir</button>
+                <button type="button" id="btnSubirF1Real" class="upload-btn" style="background: var(--success-color);"><i class="fas fa-upload"></i> Subir</button>
               </div>
               <div id="mensajeFirma1" style="margin-top: 5px; font-size: 12px;"></div>
             </div>
@@ -2610,14 +2614,14 @@ transition: all 0.3s ease;
                 <div style="display: flex; flex-direction: column; gap: 5px;">
                     <input type="file" id="uploadFirma2" accept="image/*" style="display: none;" onchange="document.getElementById('fileNameF2').textContent = this.files[0]?.name || 'Ningún archivo seleccionado'">
                     <button type="button" class="upload-btn" onclick="document.getElementById('uploadFirma2').click()" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-                      📂 Seleccionar Archivo
+                      <i class="fas fa-folder-open"></i> Seleccionar Archivo
                     </button>
                     <span id="fileNameF2" style="font-size: 11px; color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Ningún archivo seleccionado</span>
                 </div>
               </div>
               <div class="upload-section" style="display: flex; gap: 10px; align-items: center;">
                 <input type="text" id="nombreFirma2" placeholder="Nombre firma 2" class="upload-input" style="flex: 1; padding: 8px;">
-                <button type="button" id="btnSubirF2Real" class="upload-btn" style="background: var(--success-color);">⬆️ Subir</button>
+                <button type="button" id="btnSubirF2Real" class="upload-btn" style="background: var(--success-color);"><i class="fas fa-upload"></i> Subir</button>
               </div>
               <div id="mensajeFirma2" style="margin-top: 5px; font-size: 12px;"></div>
             </div>
@@ -2634,14 +2638,14 @@ transition: all 0.3s ease;
                 <div style="display: flex; flex-direction: column; gap: 5px;">
                     <input type="file" id="uploadFirma3" accept="image/*" style="display: none;" onchange="document.getElementById('fileNameF3').textContent = this.files[0]?.name || 'Ningún archivo seleccionado'">
                     <button type="button" class="upload-btn" onclick="document.getElementById('uploadFirma3').click()" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-                      📂 Seleccionar Archivo
+                      <i class="fas fa-folder-open"></i> Seleccionar Archivo
                     </button>
                     <span id="fileNameF3" style="font-size: 11px; color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Ningún archivo seleccionado</span>
                 </div>
               </div>
               <div class="upload-section" style="display: flex; gap: 10px; align-items: center;">
                 <input type="text" id="nombreFirma3" placeholder="Nombre firma 3" class="upload-input" style="flex: 1; padding: 8px;">
-                <button type="button" id="btnSubirF3Real" class="upload-btn" style="background: var(--success-color);">⬆️ Subir</button>
+                <button type="button" id="btnSubirF3Real" class="upload-btn" style="background: var(--success-color);"><i class="fas fa-upload"></i> Subir</button>
               </div>
               <div id="mensajeFirma3" style="margin-top: 5px; font-size: 12px;"></div>
             </div>
@@ -2650,22 +2654,66 @@ transition: all 0.3s ease;
 
         <!-- Sistema de creación de evaluación -->
         <div class="evaluation-creator">
-          <h3>📝 Crear Evaluación para esta Especialidad</h3>
+          <h3><i class="fas fa-file-alt" style="margin-right: 8px; color: var(--accent-color);"></i> Crear Evaluación para esta Especialidad</h3>
           <div id="questionsContainer">
             <!-- Las preguntas se agregarán aquí dinámicamente -->
             <p style="color: var(--text-secondary); text-align: center;">No hay preguntas agregadas aún.</p>
           </div>
 
-          <button type="button" class="btn-add-question" onclick="addQuestion('multiple')">
-            ➕ Agregar Pregunta de Opción Múltiple
-          </button>
-          <button type="button" class="btn-add-question" onclick="addQuestion('truefalse')">
-            ➕ Agregar Pregunta Verdadero/Falso
-          </button>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 10px;">
+            <button type="button" class="btn-add-question" onclick="addQuestion('multiple')" style="
+              background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+              color: white;
+              padding: 10px 20px;
+              border: none;
+              border-radius: 8px;
+              cursor: pointer;
+              font-size: 14px;
+              font-weight: 600;
+              box-shadow: 0 3px 10px rgba(79, 172, 254, 0.3);
+              transition: all 0.3s ease;
+              display: inline-flex;
+              align-items: center;
+              gap: 8px;
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(79, 172, 254, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 10px rgba(79, 172, 254, 0.3)';">
+              <i class="fas fa-plus-circle"></i> Agregar Pregunta de Opción Múltiple
+            </button>
+            <button type="button" class="btn-add-question" onclick="addQuestion('truefalse')" style="
+              background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+              color: white;
+              padding: 10px 20px;
+              border: none;
+              border-radius: 8px;
+              cursor: pointer;
+              font-size: 14px;
+              font-weight: 600;
+              box-shadow: 0 3px 10px rgba(67, 233, 123, 0.3);
+              transition: all 0.3s ease;
+              display: inline-flex;
+              align-items: center;
+              gap: 8px;
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(67, 233, 123, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 10px rgba(67, 233, 123, 0.3)';">
+              <i class="fas fa-plus-circle"></i> Agregar Pregunta Verdadero/Falso
+            </button>
+          </div>
 
-          <div style="margin-top: 20px;">
-            <button type="button" onclick="previewExam()" style="background: var(--text-secondary); color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer;">
-              👁️ Previsualizar Examen
+          <div style="margin-top: 20px; text-align: center; padding: 15px; background: rgba(59, 130, 246, 0.05); border-radius: 8px;">
+            <button type="button" onclick="previewExam()" style="
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              padding: 12px 30px;
+              border: none;
+              border-radius: 8px;
+              cursor: pointer;
+              font-size: 15px;
+              font-weight: 600;
+              box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+              transition: all 0.3s ease;
+              display: inline-flex;
+              align-items: center;
+              gap: 8px;
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.3)';">
+              <i class="fas fa-eye"></i> Previsualizar Examen
             </button>
           </div>
         </div>
@@ -2678,7 +2726,7 @@ transition: all 0.3s ease;
       <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color);">
 
 
-        <h3>📋 Formularios creados:</h3>
+        <h3><i class="fas fa-list-alt" style="margin-right: 8px; color: var(--accent-color);"></i> Formularios creados:</h3>
         <div style="overflow-x: auto;">
             <table id="tablaFormularios" border="1">
               <thead>
@@ -2702,7 +2750,7 @@ transition: all 0.3s ease;
       <div id="previewModal" class="preview-modal" onclick="if(event.target === this) closePreview()">
         <div class="preview-content-wrapper" onclick="if(event.target === this) closePreview()">
             <div class="preview-content">
-              <button class="close-modal-btn" onclick="closePreview()">✕</button>
+              <button class="close-modal-btn" onclick="closePreview()"><i class="fas fa-times"></i></button>
               <h3 style="margin-top: 0; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); color: var(--accent-color);">
                   Previsualización del Examen
               </h3>
@@ -2714,11 +2762,11 @@ transition: all 0.3s ease;
 
     <!-- 🔧 SECCIÓN ADMIN -->
     <div id="adminSection" class="card hidden">
-      <h2>🔧 Panel de Administración</h2>
+      <h2><i class="fas fa-cog" style="margin-right: 8px; color: var(--accent-color);"></i> Panel de Administración</h2>
       <p>Desde aquí puedes moderar las publicaciones pendientes de aprobación.</p>
 
       <div id="adminStats" style="padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-        <h4>📊 Estadísticas de Moderación</h4>
+        <h4><i class="fas fa-chart-bar" style="margin-right: 8px; color: var(--accent-color);"></i> Estadísticas de Moderación</h4>
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
           <div style="text-align: center;">
             <div style="font-size: 24px; color: #ff9800;" id="pendingCount">0</div>
@@ -2745,7 +2793,7 @@ transition: all 0.3s ease;
       </div>
 
       <div id="noPendingPosts" style="text-align: center; padding: 40px; display: none;">
-        <h3>🎉 No hay publicaciones pendientes</h3>
+        <h3><i class="fas fa-check-circle" style="margin-right: 8px; color: var(--success-color);"></i> No hay publicaciones pendientes</h3>
         <p>Todas las publicaciones han sido moderadas.</p>
       </div>
     </div>
@@ -2753,7 +2801,7 @@ transition: all 0.3s ease;
     <!-- 🔹 Visor PDF modal -->
     <div id="pdfViewerModal" class="hidden" style="display: none;">
       <div class="pdf-viewer-content">
-        <button id="cerrarPDF" class="cerrar-pdf">✖</button>
+        <button id="cerrarPDF" class="cerrar-pdf"><i class="fas fa-times"></i></button>
         <iframe id="pdfFrame" src="" allowfullscreen style="border:none;"></iframe>
       </div>
     </div>
@@ -2794,14 +2842,19 @@ transition: all 0.3s ease;
         getStorage, ref, uploadBytes, getDownloadURL, deleteObject, listAll, getMetadata
       } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-storage.js";
 
-      const firebaseConfig = {
-        apiKey: "AIzaSyB1YTwZM8wKlxZ8HhXb7EUse8YyLmcfeS8",
-        authDomain: "conquiguias-world-85ccd.firebaseapp.com",
-        projectId: "conquiguias-world-85ccd",
-        storageBucket: "conquiguias-world-85ccd.firebasestorage.app",
-        messagingSenderId: "785222651205",
-        appId: "1:785222651205:web:0486c50e9d8af6bf9b022c"
-      };
+      // 🔒 OBTENER CONFIGURACIÓN DE MANERA SEGURA
+      const configResponse = await fetch('/api/auth', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ action: 'get-config' })
+      });
+      
+      if (!configResponse.ok) {
+          console.error('[ERROR] Falló la carga de configuración de seguridad');
+          throw new Error('Error de seguridad crítico');
+      }
+      
+      const firebaseConfig = await configResponse.json();
 
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
@@ -2863,15 +2916,15 @@ transition: all 0.3s ease;
       onAuthStateChanged(auth, async (user) => {
         if (!user) {
           // Usuario NO autenticado - redirigir al login
-          console.log("🚫 Acceso denegado: usuario no autenticado");
+          console.log("[WARNING] Acceso denegado: usuario no autenticado");
           window.location.href = "index.html";
           return;
         }
         // 🔒 VERIFICACIÓN DE CORREO ELECTRÓNICO
         if (false && user && !user.emailVerified) {
-          console.log("🚫 Acceso denegado: correo no verificado");
+          console.log("[WARNING] Acceso denegado: correo no verificado");
 
-          mostrarMensaje("confirm", "📧 Verificación requerida",
+          mostrarMensaje("confirm", "<i class='fas fa-envelope'></i> Verificación requerida",
             `Hola ${user.displayName || 'usuario'},<br><br>
       <strong>Debes verificar tu correo electrónico antes de acceder al panel.</strong><br><br>
       📬 Revisa tu bandeja de entrada y la carpeta de spam.<br>
@@ -2880,7 +2933,7 @@ transition: all 0.3s ease;
               // Reenviar verificación
               try {
                 await sendEmailVerification(user);
-                mostrarMensaje("info", "📧 Correo reenviado",
+                mostrarMensaje("info", "<i class='fas fa-envelope'></i> Correo reenviado",
                   "Te hemos enviado nuevamente el correo de verificación. " +
                   "Revisa tu bandeja de entrada y la carpeta de spam.");
               } catch (error) {
@@ -2901,7 +2954,7 @@ transition: all 0.3s ease;
           return;
         }
 
-        console.log("✅ Usuario verificado, acceso permitido al panel");
+        console.log("[SUCCESS] Usuario verificado, acceso permitido al panel");
         currentUserId = user.uid;
 
         // Obtener elementos del header
@@ -2985,7 +3038,7 @@ transition: all 0.3s ease;
       // 🔹 Menú Especialidades con bloqueo si no es autorizado
       menuEspecialidades.addEventListener("click", () => {
         if (!puedeEntrarEspecialidades) {
-          mostrarMensaje("error", "Acceso restringido", "🚫 Solo personal Premium puede ingresar a esta sección.");
+          mostrarMensaje("error", "Acceso restringido", "<i class='fas fa-ban'></i> Solo personal Premium puede ingresar a esta sección.");
           return;
         }
 
@@ -4837,7 +4890,7 @@ const diffMins = Math.floor(diffMs / 60000);
     // 🔹 Subir a Imgur DIRECTAMENTE desde el frontend
     async function uploadToImgur(file) {
     try {
-    console.log('📤 Subiendo directamente a Imgur...');
+    console.log('[INFO] Subiendo directamente a Imgur...');
     uploadProgress.style.display = 'block';
 
     // Primero obtener el Client-ID del servidor
@@ -4869,7 +4922,7 @@ const diffMins = Math.floor(diffMs / 60000);
       }, i * 10);
       }
 
-      console.log('✅ Subida a Imgur completada directamente');
+      console.log('[SUCCESS] Subida a Imgur completada directamente');
       return {
       url: data.data.link,
       deletehash: data.data.deletehash,
@@ -4877,7 +4930,7 @@ const diffMins = Math.floor(diffMs / 60000);
       };
 
       } catch (error) {
-      console.error('❌ Error subiendo a Imgur:', error);
+      console.error('[ERROR] Error subiendo a Imgur:', error);
       throw new Error('No se pudo subir el archivo: ' + error.message);
       } finally {
       setTimeout(() => {
@@ -4891,7 +4944,7 @@ const diffMins = Math.floor(diffMs / 60000);
       // 🔒 GUARDAR PUBLICACIÓN COMO PENDIENTE
       async function savePost(mediaData, description, mediaType) {
       try {
-      console.log('💾 Guardando publicación como PENDIENTE...');
+      console.log('[INFO] Guardando publicación como PENDIENTE...');
 
       const postData = {
       userId: currentUserId,
@@ -4916,14 +4969,14 @@ const diffMins = Math.floor(diffMs / 60000);
       comments: []
       };
 
-      console.log('📝 Datos de la publicación (PENDIENTE):', postData);
+      console.log('[DEBUG] Datos de la publicación (PENDIENTE):', postData);
 
       const docRef = await addDoc(collection(db, "posts"), postData);
-      console.log('✅ Publicación guardada como PENDIENTE con ID:', docRef.id);
+      console.log('[SUCCESS] Publicación guardada como PENDIENTE con ID:', docRef.id);
 
       return docRef.id;
       } catch (error) {
-      console.error('❌ Error guardando publicación:', error);
+      console.error('[ERROR] Error guardando publicación:', error);
       throw new Error('No se pudo guardar la publicación: ' + error.message);
       }
       }
@@ -4931,31 +4984,31 @@ const diffMins = Math.floor(diffMs / 60000);
       // 🔹 Manejar subida de publicación - VERSIÓN FINAL CON FALLBACK
       // 🔹 Manejar subida de publicación - VERSIÓN CORREGIDA CON VALIDACIÓN
       async function handleUpload() {
-      console.log('🔄 handleUpload iniciado');
+      console.log('[DEBUG] handleUpload iniciado');
 
       // 🔒 VALIDACIÓN CRÍTICA: Verificar si el botón está deshabilitado
       if (uploadBtn.disabled) {
-      console.log('❌ Botón deshabilitado, publicación bloqueada');
+      console.log('[WARNING] Botón deshabilitado, publicación bloqueada');
       return;
       }
 
       const file = fileInput.files[0];
       const description = postDescription.value.trim();
 
-      console.log('📁 Archivo:', file);
-      console.log('📝 Descripción:', description);
-      console.log('📊 Longitud del texto:', description.length);
+      console.log('[DEBUG] Archivo:', file);
+      console.log('[DEBUG] Descripción:', description);
+      console.log('[DEBUG] Longitud del texto:', description.length);
 
       // 🔹 VALIDACIÓN 1: Verificar que hay archivo
       if (!file) {
-      console.log('❌ No hay archivo');
+      console.log('[WARNING] No hay archivo');
       mostrarMensaje('info', 'Selecciona una imagen o video', 'Debes seleccionar un archivo para publicar.');
       return;
       }
 
       // 🔹 VALIDACIÓN 2: Verificar que hay descripción
       if (!description) {
-      console.log('❌ No hay descripción');
+      console.log('[WARNING] No hay descripción');
       mostrarMensaje('info', 'Agrega una descripción', 'Escribe una descripción para tu publicación.');
       return;
       }
@@ -4963,12 +5016,12 @@ const diffMins = Math.floor(diffMs / 60000);
       // 🔹 VALIDACIÓN 3: LONGITUD MÁXIMA DEL TEXTO (ESTA ES LA CLAVE)
       const MAX_DESCRIPTION_LENGTH = 1000;
       if (description.length > MAX_DESCRIPTION_LENGTH) {
-      console.log(`❌ Texto demasiado largo: ${description.length} caracteres`);
+      console.log(`[WARNING] Texto demasiado largo: ${description.length} caracteres`);
       mostrarMensaje('error', 'Texto muy largo',
-      `❌ La descripción no puede tener más de ${MAX_DESCRIPTION_LENGTH} caracteres.\n\n` +
-      `📊 Tu texto actual tiene: ${description.length} caracteres\n` +
-      `📈 Te excedes por: ${description.length - MAX_DESCRIPTION_LENGTH} caracteres\n\n` +
-      `✂️ Por favor, acorta tu texto antes de publicar.`);
+      `La descripción no puede tener más de ${MAX_DESCRIPTION_LENGTH} caracteres.\n\n` +
+      `Tu texto actual tiene: ${description.length} caracteres\n` +
+      `Te excedes por: ${description.length - MAX_DESCRIPTION_LENGTH} caracteres\n\n` +
+      `Por favor, acorta tu texto antes de publicar.`);
       return; // 🔥 ESTE return ES CRÍTICO - DETIENE LA PUBLICACIÓN
       }
 
@@ -5293,7 +5346,7 @@ const diffMins = Math.floor(diffMs / 60000);
 
           // Fallback: intentar cargar sin filtro
           try {
-          console.log('🔄 Intentando carga sin filtro...');
+          console.log('[DEBUG] Intentando carga sin filtro...');
           const q = query(
           collection(db, "posts"),
           orderBy("timestamp", "desc"),
@@ -5306,7 +5359,7 @@ const diffMins = Math.floor(diffMs / 60000);
           if (querySnapshot.empty) {
           feed.innerHTML = `
           <div class="empty-feed">
-            <h3>📷 No hay publicaciones aún</h3>
+            <h3><i class="fas fa-image" style="margin-right: 8px;"></i> No hay publicaciones aún</h3>
             <p>¡Sé el primero en compartir algo!</p>
           </div>
           `;
@@ -5331,10 +5384,10 @@ const diffMins = Math.floor(diffMs / 60000);
             }, 500);
 
             } catch (fallbackError) {
-            console.error('❌ Error en fallback:', fallbackError);
+            console.error('[ERROR] Error en fallback:', fallbackError);
             feed.innerHTML = `
             <div class="empty-feed">
-              <h3>❌ Error al cargar publicaciones</h3>
+              <h3><i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i> Error al cargar publicaciones</h3>
               <p>${fallbackError.message || 'Intenta recargar la página'}</p>
               <button onclick="loadPosts()"
                 style="margin-top: 10px; padding: 8px 16px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer;">
@@ -5349,7 +5402,7 @@ const diffMins = Math.floor(diffMs / 60000);
             }
 
             function agregarLogFirestore(funcion) {
-            console.log(`🔍 Firestore Read - ${funcion}`, {
+            console.log(`[DEBUG] Firestore Read - ${funcion}`, {
             timestamp: new Date().toISOString(),
             user: currentUserId
             });
@@ -5419,7 +5472,7 @@ const diffMins = Math.floor(diffMs / 60000);
               </div>
               ${(isAdmin || isPostOwner) ? `
               <button class="delete-post-btn" data-postid="${postId}" data-deletehash="${post.imgurData?.deletehash}">
-                🗑️ Eliminar
+                <i class="fas fa-trash-alt"></i> Eliminar
               </button>
               ` : ''}
             </div>
@@ -5441,37 +5494,37 @@ const diffMins = Math.floor(diffMs / 60000);
             <div class="post-actions">
               <button class="reaction-btn ${userReactions.like ? 'active' : ''}" data-reaction="like"
                 data-postid="${postId}">
-                ❤️ <span class="reaction-count">${reactions.like?.length || 0}</span>
+                <i class="fas fa-heart"></i> <span class="reaction-count">${reactions.like?.length || 0}</span>
               </button>
 
               <button class="reaction-btn ${userReactions.love ? 'active' : ''}" data-reaction="love"
                 data-postid="${postId}">
-                😍 <span class="reaction-count">${reactions.love?.length || 0}</span>
+                <i class="fas fa-grin-hearts"></i> <span class="reaction-count">${reactions.love?.length || 0}</span>
               </button>
 
               <button class="reaction-btn ${userReactions.laugh ? 'active' : ''}" data-reaction="laugh"
                 data-postid="${postId}">
-                😂 <span class="reaction-count">${reactions.laugh?.length || 0}</span>
+                <i class="fas fa-laugh"></i> <span class="reaction-count">${reactions.laugh?.length || 0}</span>
               </button>
 
               <button class="reaction-btn ${userReactions.wow ? 'active' : ''}" data-reaction="wow"
                 data-postid="${postId}">
-                🤣 <span class="reaction-count">${reactions.wow?.length || 0}</span>
+                <i class="fas fa-grin-squint-tears"></i> <span class="reaction-count">${reactions.wow?.length || 0}</span>
               </button>
 
               <button class="reaction-btn ${userReactions.sad ? 'active' : ''}" data-reaction="sad"
                 data-postid="${postId}">
-                😲 <span class="reaction-count">${reactions.sad?.length || 0}</span>
+                <i class="fas fa-surprise"></i> <span class="reaction-count">${reactions.sad?.length || 0}</span>
               </button>
 
               <button class="reaction-btn ${userReactions.angry ? 'active' : ''}" data-reaction="angry"
                 data-postid="${postId}">
-                😠 <span class="reaction-count">${reactions.angry?.length || 0}</span>
+                <i class="fas fa-angry"></i> <span class="reaction-count">${reactions.angry?.length || 0}</span>
               </button>
 
               <button class="reaction-btn ${userReactions.seven ? 'active' : ''}" data-reaction="seven"
                 data-postid="${postId}">
-                7️⃣ <span class="reaction-count">${reactions.seven?.length || 0}</span>
+                <span style="font-weight: bold; font-size: 16px;">7</span> <span class="reaction-count">${reactions.seven?.length || 0}</span>
               </button>
             </div>
 
@@ -6297,10 +6350,10 @@ const diffMins = Math.floor(diffMs / 60000);
                               // 4. Actualizar estadísticas
                               await updateAdminStats();
 
-                               mostrarMensaje('success', '❌ Publicación rechazada', 'La publicación ha sido rechazada y eliminada.');
+                               mostrarMensaje('success', 'Publicación rechazada', 'La publicación ha sido rechazada y eliminada.');
 
                               } catch (error) {
-                              console.error('❌ Error rechazando publicación:', error);
+                              console.error('[ERROR] Error rechazando publicación:', error);
                               mostrarMensaje('error', 'Error', 'No se pudo rechazar la publicación: ' + error.message);
                               }
                               }
@@ -6309,7 +6362,7 @@ const diffMins = Math.floor(diffMs / 60000);
                               // 🔹 Actualizar estadísticas del panel admin (versión mejorada)
                               async function updateAdminStats() {
                               try {
-                              console.log('📊 Actualizando estadísticas...');
+                              console.log('[INFO] Actualizando estadísticas...');
 
                               // Contar por estados
                               const allPostsQuery = query(collection(db, "posts"));
@@ -6343,10 +6396,10 @@ const diffMins = Math.floor(diffMs / 60000);
                               document.getElementById('approvedCount').textContent = approvedCount;
                               document.getElementById('rejectedCount').textContent = rejectedCount;
 
-                               console.log(`📊 Estadísticas: ${pendingCount} pendientes, ${approvedCount} aprobadas, ${rejectedCount} rechazadas`);
+                               console.log(`[INFO] Estadísticas: ${pendingCount} pendientes, ${approvedCount} aprobadas, ${rejectedCount} rechazadas`);
 
                               } catch (error) {
-                              console.error('❌ Error actualizando estadísticas:', error);
+                              console.error('[ERROR] Error actualizando estadísticas:', error);
                               // Valores por defecto en caso de error
                               document.getElementById('pendingCount').textContent = '0';
                               document.getElementById('approvedCount').textContent = '0';
@@ -6392,7 +6445,7 @@ const diffMins = Math.floor(diffMs / 60000);
                               // 🔹 Migrar publicaciones antiguas sin estado
                               async function migrateOldPosts() {
                               try {
-                              console.log('🔄 Migrando publicaciones antiguas...');
+                              console.log('[INFO] Migrando publicaciones antiguas...');
 
                               const q = query(collection(db, "posts"));
                               const snapshot = await getDocs(q);
@@ -6416,10 +6469,10 @@ const diffMins = Math.floor(diffMs / 60000);
 
                               if (migrationPromises.length > 0) {
                               await Promise.all(migrationPromises);
-                              console.log(`✅ Migradas ${migratedCount} publicaciones antiguas`);
+                              console.log(`[SUCCESS] Migradas ${migratedCount} publicaciones antiguas`);
                                mostrarMensaje('success', 'Migración completada', `Se migraron ${migratedCount} publicaciones antiguas.`);
                               } else {
-                              console.log('✅ No hay publicaciones para migrar');
+                              console.log('[SUCCESS] No hay publicaciones para migrar');
                               }
 
                               // Recargar posts después de la migración
@@ -6427,7 +6480,7 @@ const diffMins = Math.floor(diffMs / 60000);
                               await updateAdminStats();
 
                               } catch (error) {
-                              console.error('❌ Error en migración:', error);
+                              console.error('[ERROR] Error en migración:', error);
                                mostrarMensaje('error', 'Error en migración', 'No se pudieron migrar las publicaciones antiguas.');
                               }
                               }
@@ -6446,14 +6499,14 @@ const diffMins = Math.floor(diffMs / 60000);
                               if (data.success) {
                               if (data.success) {
                               ADMIN_EMAILS = data.admins;
-                              console.log('✅ Administradores cargados:', ADMIN_EMAILS);
+                              console.log('[SUCCESS] Administradores cargados:', ADMIN_EMAILS);
                               }
                               return data.admins;
                               } else {
                               throw new Error(data.error);
                               }
                               } catch (error) {
-                              console.error('❌ Error obteniendo administradores:', error);
+                              console.error('[ERROR] Error obteniendo administradores:', error);
                               }
                               }
 
@@ -6481,14 +6534,14 @@ const diffMins = Math.floor(diffMs / 60000);
 
                               // 🔹 CUANDO UN VIDEO COMIENZA A REPRODUCIRSE
                               function manejarPlayVideo(videoQueSeReproduce) {
-                              console.log('▶️ Video comenzó a reproducirse:', videoQueSeReproduce.src);
+                              console.log('[DEBUG] Video comenzó a reproducirse:', videoQueSeReproduce.src);
 
                               // Si hay otro video reproduciéndose, pausarlo
                               if (videoActualmenteReproduciendose &&
                               videoActualmenteReproduciendose !== videoQueSeReproduce &&
                               !videoActualmenteReproduciendose.paused) {
 
-                              console.log('⏸️ Pausando video anterior:', videoActualmenteReproduciendose.src);
+                              console.log('[DEBUG] Pausando video anterior:', videoActualmenteReproduciendose.src);
                               videoActualmenteReproduciendose.pause();
                               }
 
@@ -6951,7 +7004,7 @@ const diffMins = Math.floor(diffMs / 60000);
           
           const searchInput = document.createElement('input');
           searchInput.type = 'text';
-          searchInput.placeholder = '🔍 Buscar...';
+          searchInput.placeholder = 'Buscar...';
           searchInput.style.width = '100%';
           searchInput.style.padding = '8px';
           searchInput.style.marginBottom = '5px';
@@ -6990,7 +7043,7 @@ const diffMins = Math.floor(diffMs / 60000);
             // Botón eliminar imagen
             const deleteBtn = document.createElement('button');
             deleteBtn.type = 'button'; // IMPORTANTE: Evita que envíe el formulario
-            deleteBtn.innerHTML = '🗑️';
+            deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
             deleteBtn.className = 'delete-image-btn';
             deleteBtn.title = 'Eliminar imagen permanentemente';
             deleteBtn.onclick = async (e) => {
@@ -7042,18 +7095,18 @@ const diffMins = Math.floor(diffMs / 60000);
                 if(idInput) idInput.value = nombre.replace(/\s+/g, '');
                 
                 // Mostrar mensaje de selección
-                document.getElementById('mensajeEspecialidad').innerHTML = `<span style="color: var(--success-color); font-weight: bold;">✅ Seleccionado: ${nombre}</span>`;
+                document.getElementById('mensajeEspecialidad').innerHTML = `<span style="color: var(--success-color); font-weight: bold;"><i class="fas fa-check-circle"></i> Seleccionado: ${nombre}</span>`;
                 
               } else if (carpeta === 'firmas') {
                 if (selectId === 'selectFirma1') {
                   imagenFirma1Seleccionada = imagen;
-                  document.getElementById('mensajeFirma1').innerHTML = `<span style="color: var(--success-color); font-weight: bold;">✅ Seleccionado: ${imagen.nombre}</span>`;
+                  document.getElementById('mensajeFirma1').innerHTML = `<span style="color: var(--success-color); font-weight: bold;"><i class="fas fa-check-circle"></i> Seleccionado: ${imagen.nombre}</span>`;
                 } else if (selectId === 'selectFirma2') {
                   imagenFirma2Seleccionada = imagen;
-                  document.getElementById('mensajeFirma2').innerHTML = `<span style="color: var(--success-color); font-weight: bold;">✅ Seleccionado: ${imagen.nombre}</span>`;
+                  document.getElementById('mensajeFirma2').innerHTML = `<span style="color: var(--success-color); font-weight: bold;"><i class="fas fa-check-circle"></i> Seleccionado: ${imagen.nombre}</span>`;
                 } else if (selectId === 'selectFirma3') {
                   imagenFirma3Seleccionada = imagen;
-                  document.getElementById('mensajeFirma3').innerHTML = `<span style="color: var(--success-color); font-weight: bold;">✅ Seleccionado: ${imagen.nombre}</span>`;
+                  document.getElementById('mensajeFirma3').innerHTML = `<span style="color: var(--success-color); font-weight: bold;"><i class="fas fa-check-circle"></i> Seleccionado: ${imagen.nombre}</span>`;
                 }
               }
             });
@@ -7077,19 +7130,19 @@ const diffMins = Math.floor(diffMs / 60000);
         const mensaje = document.getElementById(mensajeId);
         
         if (!file) {
-            mensaje.innerHTML = '❌ Selecciona un archivo primero.';
+            mensaje.innerHTML = '<i class="fas fa-exclamation-circle"></i> Selecciona un archivo primero.';
             return;
         }
         
         const nombrePersonalizado = nombreInput.value.trim();
         if (!nombrePersonalizado) {
-            mensaje.innerHTML = '❌ Ingresa un nombre para la imagen.';
+            mensaje.innerHTML = '<i class="fas fa-exclamation-circle"></i> Ingresa un nombre para la imagen.';
             return;
         }
         
         const formatosPermitidos = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp'];
         if (!formatosPermitidos.includes(file.type)) {
-            mensaje.innerHTML = '❌ Formato no válido. Use JPG, PNG, GIF o WEBP.';
+            mensaje.innerHTML = '<i class="fas fa-exclamation-circle"></i> Formato no válido. Use JPG, PNG, GIF o WEBP.';
             return;
         }
 
@@ -7099,7 +7152,7 @@ const diffMins = Math.floor(diffMs / 60000);
         const reader = new FileReader();
         reader.onload = async function (e) {
             const contenidoBase64 = e.target.result.split(',')[1];
-            mensaje.innerHTML = '⏳ Subiendo imagen...';
+            mensaje.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subiendo imagen...';
 
             try {
                 const res = await fetch('/api/formulario?action=subirImagen', {
@@ -7115,16 +7168,16 @@ const diffMins = Math.floor(diffMs / 60000);
                 const data = await res.json();
 
                 if (res.ok) {
-                    mensaje.innerHTML = '✅ Imagen subida correctamente';
+                    mensaje.innerHTML = '<i class="fas fa-check-circle"></i> Imagen subida correctamente';
                     nombreInput.value = '';
                     fileInput.value = ''; // Limpiar input file
                     cargarImagenesInstructor(carpeta, selectId);
                 } else {
-                    mensaje.innerHTML = `❌ ${data.error}`;
+                    mensaje.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${data.error}`;
                 }
             } catch (error) {
                 console.error('Error al subir imagen:', error);
-                mensaje.innerHTML = '❌ Error de conexión';
+                mensaje.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error de conexión';
             }
         };
 
@@ -7195,7 +7248,7 @@ const diffMins = Math.floor(diffMs / 60000);
                          oninput="updateOptionText('${question.id}', '${option.id}', this.value)"
                          style="flex: 1; padding: 5px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-primary); color: var(--text-primary);">
                   ${question.type === 'multiple' ? `
-                    <button type="button" class="btn-remove" onclick="removeOption('${question.id}', '${option.id}')">❌</button>
+                    <button type="button" class="btn-remove" onclick="removeOption('${question.id}', '${option.id}')"><i class="fas fa-times"></i></button>
                   ` : ''}
                 </div>
               `).join('')}
@@ -7203,12 +7256,12 @@ const diffMins = Math.floor(diffMs / 60000);
 
             ${question.type === 'multiple' ? `
               <button type="button" class="btn-add-option" onclick="addOption('${question.id}')">
-                ➕ Agregar Opción
+                <i class="fas fa-plus"></i> Agregar Opción
               </button>
             ` : ''}
             
             <button type="button" class="btn-remove" onclick="removeQuestion('${question.id}')" style="margin-top: 10px;">
-              🗑️ Eliminar Pregunta
+              <i class="fas fa-trash-alt"></i> Eliminar Pregunta
             </button>
           </div>
         `;
@@ -7443,13 +7496,82 @@ const diffMins = Math.floor(diffMs / 60000);
               <td>${f.titulo}</td>
               <td>${new Date(f.fechaCierre).toLocaleString()}</td>
               <td>${f.creado ? new Date(f.creado).toLocaleString() : '―'}</td>
-              <td>
-                <a href="formulario.html?id=${id}" target="_blank"><button>👁 Ver</button></a>
-                <button onclick="navigator.clipboard.writeText('${location.origin}/formulario.html?id=${id}')">📋 Copiar</button>
-                ${f.tieneEvaluacion ? `<button onclick="verExamen('${id}')" style="background: var(--info-color); margin-left: 5px;">❓ Preguntas</button>` : ''}
-                <button onclick="eliminarFormulario('${id}')" style="background: var(--danger-color); margin-left: 5px;">🗑️ Eliminar</button>
+              <td style="white-space: nowrap;">
+                <a href="formulario.html?id=${id}" target="_blank" style="text-decoration: none;">
+                  <button style="
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    border: none;
+                    padding: 6px 12px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 13px;
+                    margin: 2px;
+                    transition: all 0.2s;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 5px;
+                  " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 3px 8px rgba(102,126,234,0.3)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                    <i class="fas fa-eye" style="font-size: 11px;"></i> Ver
+                  </button>
+                </a>
+                <button onclick="navigator.clipboard.writeText('${location.origin}/formulario.html?id=${id}'); this.innerHTML='<i class=\"fas fa-check\"></i> Copiado'; setTimeout(() => this.innerHTML='<i class=\"fas fa-copy\"></i> Copiar', 2000);" style="
+                  background: linear-gradient(135deg, #48c6ef 0%, #6f86d6 100%);
+                  color: white;
+                  border: none;
+                  padding: 6px 12px;
+                  border-radius: 6px;
+                  cursor: pointer;
+                  font-size: 13px;
+                  margin: 2px;
+                  transition: all 0.2s;
+                  display: inline-flex;
+                  align-items: center;
+                  gap: 5px;
+                " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 3px 8px rgba(72,198,239,0.3)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                  <i class="fas fa-copy" style="font-size: 11px;"></i> Copiar
+                </button>
+                ${f.tieneEvaluacion ? `
+                  <button onclick="verExamen('${id}')" style="
+                    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                    color: white;
+                    border: none;
+                    padding: 6px 12px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 13px;
+                    margin: 2px;
+                    transition: all 0.2s;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 5px;
+                  " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 3px 8px rgba(240,147,251,0.3)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                    <i class="fas fa-question-circle" style="font-size: 11px;"></i> Preguntas
+                  </button>
+                ` : ''}
+                <button onclick="if(confirm('¿Estás seguro de eliminar este formulario?')) eliminarFormulario('${id}')" style="
+                  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+                  color: white;
+                  border: none;
+                  padding: 6px 12px;
+                  border-radius: 6px;
+                  cursor: pointer;
+                  font-size: 13px;
+                  margin: 2px;
+                  transition: all 0.2s;
+                  display: inline-flex;
+                  align-items: center;
+                  gap: 5px;
+                " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 3px 8px rgba(250,112,154,0.3)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                  <i class="fas fa-trash-alt" style="font-size: 11px;"></i> Eliminar
+                </button>
               </td>
-              <td>${f.tieneEvaluacion ? '✅ Sí' : '❌ No'}</td>
+              <td style="text-align: center;">
+                ${f.tieneEvaluacion 
+                  ? '<span style="display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); color: #0f5132; padding: 4px 12px; border-radius: 12px; font-weight: 600; font-size: 12px;"><i class="fas fa-check-circle"></i> Con Examen</span>' 
+                  : '<span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.1); color: var(--text-secondary); padding: 4px 12px; border-radius: 12px; font-weight: 500; font-size: 12px;"><i class="fas fa-minus-circle"></i> Sin Examen</span>'
+                }
+              </td>
             </tr>
           `;
           tabla.insertAdjacentHTML("beforeend", fila);

@@ -194,6 +194,28 @@ module.exports = async (req, res) => {
       } else {
         return res.status(401).json({ error: "Contraseña incorrecta" });
       }
+    }
+
+    // 🔹 OBTENER CONFIGURACIÓN DE FIREBASE
+    else if (action === "get-config") {
+      const config = {
+        apiKey:
+          process.env.FIREBASE_API_KEY ||
+          "AIzaSyB1YTwZM8wKlxZ8HhXb7EUse8YyLmcfeS8",
+        authDomain:
+          process.env.FIREBASE_AUTH_DOMAIN ||
+          "conquiguias-world-85ccd.firebaseapp.com",
+        projectId: process.env.FIREBASE_PROJECT_ID || "conquiguias-world-85ccd",
+        storageBucket:
+          process.env.FIREBASE_STORAGE_BUCKET ||
+          "conquiguias-world-85ccd.firebasestorage.app",
+        messagingSenderId:
+          process.env.FIREBASE_MESSAGING_SENDER_ID || "785222651205",
+        appId:
+          process.env.FIREBASE_APP_ID ||
+          "1:785222651205:web:0486c50e9d8af6bf9b022c",
+      };
+      return res.status(200).json(config);
     } else {
       return res.status(400).json({ error: "Acción no válida" });
     }

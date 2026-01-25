@@ -2,16 +2,37 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ConquiGuías World - Acceso</title>
 
     <script type="module">
-      // 🔒 Configuración mínima y segura - SOLO lo necesarioo
-      const firebaseConfig = {
-        apiKey: "AIzaSyB1YTwZM8wKlxZ8HhXb7EUse8YyLmcfeS8",
-        authDomain: "conquiguias-world-85ccd.firebaseapp.com",
-        projectId: "conquiguias-world-85ccd",
-      };
+      // 🔒 OBTENER CONFIGURACIÓN DE MANERA SEGURA
+      let firebaseConfig;
+      try {
+        const configResponse = await fetch("/api/auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "get-config" }),
+        });
+
+        if (!configResponse.ok) {
+          throw new Error("Error cargando configuración segura");
+        }
+
+        firebaseConfig = await configResponse.json();
+      } catch (error) {
+        console.error("[ERROR] No se pudo cargar la configuración:", error);
+        mostrarMensaje(
+          "error",
+          "Error de Sistema",
+          "No se pudo conectar de forma segura. Intenta más tarde.",
+        );
+        return;
+      }
 
       // Función para llamar a nuestra API segura
       async function callAPI(action, data) {
@@ -303,218 +324,505 @@
     </script>
 
     <style>
-      body {
-        margin: 0;
-        font-family: "Segoe UI", sans-serif;
-        background: linear-gradient(135deg, #007bff, #00c2a8);
-        color: #fff;
-        height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
-      .container {
-        display: flex;
-        position: relative;
-        background: rgba(255, 255, 255, 0.15);
-        backdrop-filter: blur(10px);
-        border-radius: 12px;
-        padding: 20px;
-        width: 300px;
-        text-align: center;
-      }
-
-      input,
-      select {
-        width: 100%;
-        margin: 6px 0;
-        padding: 8px;
-        border: none;
-        border-radius: 6px;
-      }
-
-      button {
-        width: 100%;
-        padding: 10px;
-        border: none;
-        border-radius: 6px;
-        background: #00e0a8;
-        color: #fff;
-        font-weight: bold;
-        cursor: pointer;
-        transition: 0.2s;
-        position: relative;
-        min-height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      button:hover:not(:disabled) {
-        background: #00d49a;
-      }
-
-      button:disabled {
-        background: #cccccc;
-        cursor: not-allowed;
-      }
-
-      .toggle {
-        color: #ffdf70;
-        margin-top: 8px;
-        cursor: pointer;
-      }
-
-      .forgot-password {
-        color: #ffdf70;
-        margin-top: 8px;
-        cursor: pointer;
-        font-size: 14px;
-      }
-
-      .hidden {
-        display: none;
-      }
-
-      /* 🔹 LOADER PARA BOTONES */
-      .loader-button {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-      }
-
-      .loader-spinner {
-        width: 16px;
-        height: 16px;
-        border: 2px solid transparent;
-        border-top: 2px solid #ffffff;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
         }
 
-        100% {
-          transform: rotate(360deg);
+        body {
+          margin: 0;
+          font-family: 'Poppins', 'Segoe UI', sans-serif;
+          background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+          background-attachment: fixed;
+          color: #fff;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+          overflow-x: hidden;
         }
-      }
 
-      /* 🔹 Fondo del modal */
-      #mensajeModal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.6);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 2000;
-      }
+        /* Efecto de partículas en el fondo */
+        body::before {
+          content: '';
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-image:
+            radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(88, 86, 214, 0.3) 0%, transparent 50%),
+            radial-gradient(circle at 40% 20%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+          animation: float 20s ease-in-out infinite;
+          pointer-events: none;
+          z-index: 0;
+        }
 
-      /* 🔹 Caja del mensaje */
-      .mensaje-content {
-        background: #fff;
-        padding: 25px 30px;
-        border-radius: 12px;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
-        text-align: center;
-        width: 90%;
-        max-width: 400px;
-        animation: fadeIn 0.25s ease;
-      }
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) translateX(0px); }
+          50% { transform: translateY(-20px) translateX(10px); }
+        }
 
-      .mensaje-content h3 {
-        margin-bottom: 12px;
-        color: #1976d2;
-      }
+        /* Header con título */
+        .header {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          padding: 25px 40px;
+          background: rgba(15, 23, 42, 0.7);
+          backdrop-filter: blur(20px);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          z-index: 1000;
+          box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
 
-      .mensaje-content p {
-        margin-bottom: 20px;
-        color: #333;
-      }
+        .header-content {
+          max-width: 1400px;
+          margin: 0 auto;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
 
-      /* 🔹 Botones */
-      #mensajeBotones {
-        display: flex;
-        justify-content: center;
-        gap: 15px;
-      }
+        .logo-section {
+          display: flex;
+          align-items: center;
+          gap: 15px;
+        }
 
-      #mensajeBotones button {
-        padding: 10px 20px;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 15px;
-        transition:
-          transform 0.2s,
-          background 0.3s;
-      }
+        .logo-icon {
+          width: 50px;
+          height: 50px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 24px;
+          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+          animation: pulse 2s ease-in-out infinite;
+        }
 
-      #mensajeAceptar {
-        background: #1976d2;
-        color: white;
-      }
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
 
-      #mensajeCancelar {
-        background: #e53935;
-        color: white;
-      }
+        .site-title {
+          font-size: 28px;
+          font-weight: 700;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          letter-spacing: -0.5px;
+          text-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+        }
 
-      #mensajeBotones button:hover {
-        transform: scale(1.05);
-      }
+        .header-tagline {
+          font-size: 12px;
+          color: rgba(255, 255, 255, 0.6);
+          font-weight: 300;
+          margin-top: -5px;
+        }
 
-      .hiddenX {
-        display: none !important;
-      }
+        /* Contenedor principal */
+        .main-wrapper {
+          margin-top: 120px;
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          position: relative;
+          z-index: 1;
+        }
 
-      .contenedor-password {
-        display: flex;
-        position: relative;
-        flex-direction: row;
-        margin: 0%;
-        padding: 0%;
-        overflow: hidden;
-        padding-bottom: 10px;
-      }
+        .container {
+          background: rgba(255, 255, 255, 0.08);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          border-radius: 24px;
+          padding: 40px;
+          width: 100%;
+          max-width: 420px;
+          box-shadow:
+            0 8px 32px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          text-align: center;
+          animation: slideUp 0.6s ease-out;
+          position: relative;
+          overflow: hidden;
+        }
 
-      .password {
-        width: 100%;
-      }
+        @keyframes slideUp {
+          0% {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
 
-      .chkShow {
-        display: flex;
-        position: relative;
-        width: 30px;
-        margin-left: 10px;
-      }
+        .container::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+          transition: 0.5s;
+        }
 
-      .container {
-        flex-direction: column;
-        position: relative;
-      }
+        .container:hover::before {
+          left: 100%;
+        }
 
-      .back-link {
-        color: #ffdf70;
-        margin-top: 8px;
-        cursor: pointer;
-        font-size: 14px;
-      }
+        .container h1 {
+          font-size: 32px;
+          font-weight: 700;
+          margin-bottom: 10px;
+          background: linear-gradient(135deg, #fff 0%, #e0e7ff 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+
+        .container p {
+          color: rgba(255, 255, 255, 0.7);
+          font-size: 14px;
+          margin-bottom: 30px;
+          font-weight: 300;
+        }
+
+        /* Inputs modernos */
+        input,
+        select {
+          width: 100%;
+          margin: 10px 0;
+          padding: 14px 18px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 12px;
+          background: rgba(255, 255, 255, 0.1);
+          color: #fff;
+          font-size: 15px;
+          font-family: 'Poppins', sans-serif;
+          transition: all 0.3s ease;
+        }
+
+        input::placeholder {
+          color: rgba(255, 255, 255, 0.5);
+        }
+
+        input:focus,
+        select:focus {
+          outline: none;
+          border-color: #667eea;
+          background: rgba(255, 255, 255, 0.15);
+          box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
+        }
+
+        select {
+          cursor: pointer;
+        }
+
+        select option {
+          background: #1e3c72;
+          color: #fff;
+        }
+
+        /* Botones modernos */
+        button {
+          width: 100%;
+          padding: 14px;
+          border: none;
+          border-radius: 12px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: #fff;
+          font-weight: 600;
+          font-size: 16px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          position: relative;
+          min-height: 50px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+          font-family: 'Poppins', sans-serif;
+          margin-top: 10px;
+        }
+
+        button:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        button:active:not(:disabled) {
+          transform: translateY(0);
+        }
+
+        button:disabled {
+          background: rgba(100, 100, 100, 0.5);
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        /* Enlaces y toggles */
+        .toggle,
+        .forgot-password,
+        .back-link {
+          color: #a5b4fc;
+          margin-top: 15px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 400;
+          transition: all 0.3s ease;
+          display: inline-block;
+        }
+
+        .toggle:hover,
+        .forgot-password:hover,
+        .back-link:hover {
+          color: #fff;
+          text-decoration: underline;
+        }
+
+        .hidden {
+          display: none !important;
+        }
+
+        /* Contenedor de password con checkbox */
+        .contenedor-password {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin: 10px 0;
+        }
+
+        .password {
+          flex: 1;
+        }
+
+        .chkShow {
+          width: 20px;
+          height: 20px;
+          cursor: pointer;
+          accent-color: #667eea;
+        }
+
+        /* Input de archivo modernizado */
+        input[type="file"] {
+          padding: 10px;
+          background: rgba(255, 255, 255, 0.05);
+          border: 2px dashed rgba(255, 255, 255, 0.3);
+          cursor: pointer;
+          font-size: 13px;
+        }
+
+        input[type="file"]:hover {
+          border-color: #667eea;
+          background: rgba(102, 126, 234, 0.1);
+        }
+
+        .container h2 {
+          font-size: 16px;
+          margin: 20px 0 10px;
+          color: rgba(255, 255, 255, 0.9);
+          font-weight: 500;
+        }
+
+        /* Loader para botones */
+        .loader-button {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+        }
+
+        .loader-spinner {
+          width: 18px;
+          height: 18px;
+          border: 2px solid transparent;
+          border-top: 2px solid #ffffff;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        /* Modal de mensajes mejorado */
+        #mensajeModal {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.7);
+          backdrop-filter: blur(5px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 3000;
+          animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        .mensaje-content {
+          background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+          padding: 35px 40px;
+          border-radius: 20px;
+          box-shadow:
+            0 20px 60px rgba(0, 0, 0, 0.5),
+            0 0 0 1px rgba(255, 255, 255, 0.1);
+          text-align: center;
+          width: 90%;
+          max-width: 450px;
+          animation: slideUp 0.4s ease-out;
+        }
+
+        .mensaje-content h3 {
+          margin-bottom: 15px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          font-size: 24px;
+        }
+
+        .mensaje-content p {
+          margin-bottom: 25px;
+          color: rgba(255, 255, 255, 0.8);
+          line-height: 1.6;
+        }
+
+        #mensajeBotones {
+          display: flex;
+          justify-content: center;
+          gap: 15px;
+        }
+
+        #mensajeBotones button {
+          padding: 12px 24px;
+          border: none;
+          border-radius: 10px;
+          cursor: pointer;
+          font-size: 15px;
+          font-weight: 600;
+          transition: all 0.3s;
+          font-family: 'Poppins', sans-serif;
+        }
+
+        #mensajeAceptar {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+        }
+
+        #mensajeCancelar {
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          color: white;
+        }
+
+        #mensajeBotones button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .hiddenX {
+          display: none !important;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+          .header {
+            padding: 20px;
+          }
+
+          .site-title {
+            font-size: 22px;
+          }
+
+          .logo-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+          }
+
+          .header-tagline {
+            display: none;
+          }
+
+          .container {
+            padding: 30px 25px;
+            margin: 20px;
+          }
+
+          .container h1 {
+            font-size: 26px;
+          }
+
+          .main-wrapper {
+            margin-top: 100px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .site-title {
+            font-size: 18px;
+          }
+
+          .container {
+            padding: 25px 20px;
+          }
+
+          input,
+          select,
+          button {
+            font-size: 14px;
+          }
+        }
     </style>
   </head>
 
   <body>
+    <!-- Header elegante -->
+    <div class="header">
+      <div class="header-content">
+        <div class="logo-section">
+          <div class="logo-icon">
+            <i class="fas fa-campground"></i>
+          </div>
+          <div>
+            <div class="site-title">Conquiguias World</div>
+            <div class="header-tagline">Plataforma de Conquistadores y Guías Mayores</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenedor principal -->
+    <div class="main-wrapper">
     <!-- Login -->
     <div class="container" id="loginBox">
-      <h1>Iniciar Sesión</h1>
+      <h1><i class="fas fa-sign-in-alt" style="margin-right: 10px;"></i>Bienvenido de Vuelta</h1>
+      <p>Ingresa tus credenciales para acceder a tu cuenta</p>
       <form id="loginForm">
         <input
           class="email"
@@ -548,7 +856,8 @@
 
     <!-- Registro -->
     <div class="container hidden" id="registerBox">
-      <h1 style="margin: 0%">Crear Cuenta</h1>
+      <h1 style="margin: 0%"><i class="fas fa-user-plus" style="margin-right: 10px;"></i>Únete a Nosotros</h1>
+      <p>Crea tu cuenta y comienza tu aventura</p>
       <form id="registerForm">
         <input
           type="text"
@@ -597,7 +906,8 @@
 
     <!-- Recuperación de contraseña -->
     <div class="container hidden" id="resetPasswordBox">
-      <h1>Recuperar Contraseña</h1>
+      <h1><i class="fas fa-key" style="margin-right: 10px;"></i>Recuperar Contraseña</h1>
+      <p>Te enviaremos un enlace para restablecer tu contraseña</p>
       <form id="resetPasswordForm">
         <input
           type="email"
@@ -612,7 +922,9 @@
       <div class="back-link" onclick="backToLogin()">
         Volver al inicio de sesión
       </div>
+      </div>
     </div>
+    </div><!-- Cierre main-wrapper -->
 
     <!-- 🔹 Contenedor general de mensajes -->
     <div id="mensajeModal" class="hiddenX">

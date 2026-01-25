@@ -162,6 +162,7 @@ async function handleActualizarEstadoAsistencia(req, res, repo) {
   }
 
   const archivoFormularios = `data/formularios.json`;
+  let estadoFinalAsistencias = null;
 
   try {
     const result = await updateGitHubJSON(
@@ -170,8 +171,8 @@ async function handleActualizarEstadoAsistencia(req, res, repo) {
       `[skip vercel] Actualizar estado asistencia ${asistencia} a ${activo} en formulario ${id}`,
       async (formularios) => {
         if (!formularios[id]) {
-          res.status(404).json({ error: "Formulario no encontrado" });
-          return null;
+          // Si no existe, no hacemos cambios, esto causará que result.ok sea false o se maneje abajo
+          return null; // updateGitHubJSON manejará esto como skipped
         }
 
         if (!formularios[id].asistenciasActivas) {
@@ -179,18 +180,23 @@ async function handleActualizarEstadoAsistencia(req, res, repo) {
         }
 
         formularios[id].asistenciasActivas[asistencia] = activo;
+
+        // Capturamos el estado completo para devolverlo
+        estadoFinalAsistencias = { ...formularios[id].asistenciasActivas };
+
         return formularios;
       },
     );
 
-    if (result.ok) {
-      // Necesitamos obtener el estado final para la respuesta
-      // Como updateGitHubJSON no nos da el objeto final directamente, lo simulamos o lo volvemos a leer
-      // Pero para ahorrar, podemos asumir que se guardó bien si no hubo error
+    if (result.ok && estadoFinalAsistencias) {
       res.status(200).json({
         ok: true,
-        asistenciasActivas: { [asistencia]: activo }, // Simplificado para la respuesta
+        asistenciasActivas: estadoFinalAsistencias,
       });
+    } else {
+      res
+        .status(404)
+        .json({ error: "Formulario no encontrado o no se pudo actualizar" });
     }
   } catch (err) {
     console.error(err);

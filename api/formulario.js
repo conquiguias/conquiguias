@@ -1,4 +1,4 @@
-// formulario.js - API unificada (V3: Arquitectura Rama Data - Blindaje Vercel)
+// formulario.js - API unificada (V3.1: Soporte de Tareas)
 
 export default async function handler(req, res) {
   const { action } = req.query;
@@ -437,6 +437,7 @@ async function handleGuardarFormulario(req, res, repo) {
       imagenFirma2,
       imagenFirma3,
       tomaAsistencia,
+      tarea,
     } = req.body;
 
     // Validaciones básicas
@@ -467,6 +468,7 @@ async function handleGuardarFormulario(req, res, repo) {
           creado: new Date().toISOString(),
           tieneEvaluacion: !!(evaluation && evaluation.length > 0),
           tomaAsistencia: tomaAsistencia !== undefined ? tomaAsistencia : true,
+          tarea: tarea || null,
           asistenciasActivas: { 1: false, 2: false },
           imagenEspecialidad: imagenEspecialidad || null,
           imagenFirma1: imagenFirma1 || null,

@@ -2652,6 +2652,43 @@ transition: all 0.3s ease;
           </div>
         </div>
 
+        <!-- Sistema de creación de Tarea -->
+        <div class="task-creator" style="background: var(--bg-secondary); padding: 20px; border-radius: 12px; margin-bottom: 25px; border-left: 4px solid #8b5cf6;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+              <i class="fas fa-tasks" style="color: #8b5cf6;"></i> Asignar Tarea (Opcional)
+            </h3>
+            <label class="switch" style="position: relative; display: inline-block; width: 50px; height: 26px;">
+              <input type="checkbox" id="activarTarea" onchange="document.getElementById('taskFields').style.display = this.checked ? 'block' : 'none'">
+              <span class="slider round" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px;"></span>
+              <style>.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; } input:checked + .slider { background-color: #8b5cf6; } input:checked + .slider:before { transform: translateX(24px); }</style>
+            </label>
+          </div>
+
+          <div id="taskFields" style="display: none; animation: fadeIn 0.3s ease-in-out;">
+            <div class="form-group" style="margin-bottom: 15px;">
+              <label style="display: block; margin-bottom: 8px; font-weight: 600;">Instrucciones de la Tarea:</label>
+              <textarea id="detalleTarea" rows="6" placeholder="Escribe aquí los requisitos de la tarea..." style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); resize: vertical; white-space: pre-wrap;"></textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+              <div class="form-group">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Fecha de Entrega (Límite):</label>
+                <input type="datetime-local" id="fechaEntregaTarea" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+              </div>
+              <div class="form-group">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Fecha de Finalización (Cierre):</label>
+                <input type="datetime-local" id="fechaFinTarea" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+              </div>
+            </div>
+
+            <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); padding: 12px; border-radius: 8px; display: flex; align-items: center; gap: 10px; color: #6d28d9;">
+              <i class="fas fa-info-circle" style="font-size: 18px;"></i>
+              <span style="font-size: 14px;"><strong>Nota Importante:</strong> La tarea deberá ser entregada obligatoriamente en formato <strong>PDF</strong>. Esta restricción se mostrará a los alumnos.</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Sistema de creación de evaluación -->
         <div class="evaluation-creator">
           <h3><i class="fas fa-file-alt" style="margin-right: 8px; color: var(--accent-color);"></i> Crear Evaluación para esta Especialidad</h3>
@@ -7425,6 +7462,12 @@ const diffMins = Math.floor(diffMs / 60000);
                 fechaCierre: fechaCierre,
                 evaluation: questions.length > 0 ? questions : null,
                 tomaAsistencia: document.getElementById("tomaAsistencia").checked,
+                tarea: document.getElementById("activarTarea").checked ? {
+                    activa: true,
+                    detalle: document.getElementById("detalleTarea").value,
+                    fechaEntrega: document.getElementById("fechaEntregaTarea").value,
+                    fechaFin: document.getElementById("fechaFinTarea").value
+                } : null,
                 imagenEspecialidad: imagenEspecialidadSeleccionada.url,
                 imagenFirma1: imagenFirma1Seleccionada.url,
                 imagenFirma2: imagenFirma2Seleccionada.url,

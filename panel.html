@@ -1572,6 +1572,47 @@
       font-weight: bold;
     }
 
+    /* Estilos explícitos para el modal PDF/Certificado */
+    #pdfViewerModal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 100000 !important; /* MÁXIMA PRIORIDAD */
+        display: none; /* Controlado por JS, cambiará a flex */
+        justify-content: center;
+        align-items: center;
+    }
+
+    .pdf-viewer-content {
+        width: 90%;
+        max-width: 1200px;
+        height: 90%;
+        background: var(--bg-card);
+        border-radius: 10px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 0 50px rgba(0,0,0,0.8);
+    }
+    
+    .cerrar-pdf {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        z-index: 200;
+        background: var(--danger-color);
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
     /* ============================================
    ESTILOS PANEL ADMIN - MODO NOCHE
    ============================================ */
@@ -2537,6 +2578,7 @@ transition: all 0.3s ease;
               <th style="padding: 12px; text-align: left; border: 1px solid var(--border-color);">Índice</th>
               <th style="padding: 12px; text-align: left; border: 1px solid var(--border-color);">Especialidad</th>
               <th style="padding: 12px; text-align: left; border: 1px solid var(--border-color);">Fecha Participación</th>
+              <th style="padding: 12px; text-align: left; border: 1px solid var(--border-color);">Fecha Cierre</th>
               <th style="padding: 12px; text-align: left; border: 1px solid var(--border-color);">Asistencias</th>
               <th style="padding: 12px; text-align: center; border: 1px solid var(--border-color);">Tarea</th>
               <th style="padding: 12px; text-align: center; border: 1px solid var(--border-color);">Examen</th>
@@ -4112,6 +4154,9 @@ transition: all 0.3s ease;
                             margin-bottom: 30px;
                             text-align: center;
                         }
+                        .resumen-examen h2, .resumen-examen p, .resumen-examen strong {
+                            color: white !important;
+                        }
                         .pregunta {
                             margin-bottom: 20px;
                             padding: 15px;
@@ -4396,17 +4441,17 @@ transition: all 0.3s ease;
         </div>
 
         <!-- RESUMEN DEL EXAMEN -->
-        <div class="resumen-examen">
-          <h2 style="margin: 0 0 15px 0; font-size: 24px;"><i class="fas fa-chart-bar"></i> Resultados del Examen</h2>
-          <p style="margin: 8px 0; font-size: 18px;">
-            <strong>Resumen:</strong> ${correctas} de ${total} preguntas correctas (${porcentaje.toFixed(1)}%)
+        <div class="resumen-examen" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 30px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <h2 style="margin: 0 0 15px 0; font-size: 24px; color: white;"><i class="fas fa-chart-bar"></i> Resultados del Examen</h2>
+          <p style="margin: 8px 0; font-size: 18px; color: white;">
+            <strong>Puntaje:</strong> ${correctas} / ${total} (${porcentaje.toFixed(1)}%)
           </p>
-          <p style="margin: 8px 0; font-size: 18px;">
-            <strong>Estado:</strong> ${aprobado ? '<i class="fas fa-check-circle"></i> Aprobado' : '<i class="fas fa-times-circle"></i> Reprobado'}
+          <p style="margin: 8px 0; font-size: 18px; color: white;">
+            <strong>Estado:</strong> ${aprobado ? '<span style="color: #4ade80; font-weight: bold;"><i class="fas fa-check-circle"></i> Aprobado</span>' : '<span style="color: #f87171; font-weight: bold;"><i class="fas fa-times-circle"></i> Reprobado</span>'}
           </p>
           ${aprobado ?
-          '<p style="margin: 15px 0 0 0; font-size: 16px; font-weight: bold;"><i class="fas fa-trophy"></i> ¡Felicidades! Has aprobado el examen.</p>' :
-          '<p style="margin: 15px 0 0 0; font-size: 16px;"><i class="fas fa-book"></i> Sigue estudiando para mejorar tus resultados.</p>'
+          '<p style="margin: 15px 0 0 0; font-size: 16px; font-weight: bold; color: #e2e8f0;"><i class="fas fa-trophy"></i> ¡Felicidades! Has aprobado el examen.</p>' :
+          '<p style="margin: 15px 0 0 0; font-size: 16px; color: #e2e8f0;"><i class="fas fa-book"></i> Sigue estudiando para mejorar tus resultados.</p>'
           }
         </div>
 
@@ -7906,6 +7951,11 @@ const diffMins = Math.floor(diffMs / 60000);
               let estadoExamenHtml = '<span style="color:#888; font-size:12px;">Sin examen</span>';
               let botonExamen = '';
               
+              // Lógica Fecha Cierre
+              const fechaObj = item.fechaCierre ? new Date(item.fechaCierre) : null;
+              const fechaCierreStr = fechaObj ? fechaObj.toLocaleDateString() : 'Sin Límite';
+              const isClosed = fechaObj && new Date() > fechaObj;
+
               // Lógica Tarea
               if (tieneTarea) {
                   if (item.miTarea) {
@@ -7919,12 +7969,17 @@ const diffMins = Math.floor(diffMs / 60000);
                           botonTarea = '<button disabled style="opacity:0.6; background:#4B5563; color:white; border:none; padding:4px 8px; border-radius:4px;">Calificado</button>';
                       }
                   } else {
-                      estadoTareaHtml = '<span style="color:#EF4444; font-weight:500;">Pendiente</span>';
-                      botonTarea = `<button onclick="abrirModalSubirTarea('${item.id}', '${item.titulo}')" style="background:var(--accent-color); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; transition:transform 0.2s;">Entregar</button>`;
+                      if (isClosed) {
+                          estadoTareaHtml = '<span style="color:#EF4444; font-weight:500;">Cerrado</span>';
+                          botonTarea = `<button disabled style="opacity:0.6; cursor:not-allowed; background:#4B5563; color:white; border:none; padding:6px 12px; border-radius:4px;">Expirado</button>`;
+                      } else {
+                          estadoTareaHtml = '<span style="color:#EF4444; font-weight:500;">Pendiente</span>';
+                          botonTarea = `<button onclick="abrirModalSubirTarea('${item.id}', '${item.titulo}')" style="background:var(--accent-color); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; transition:transform 0.2s;">Entregar</button>`;
+                      }
                   }
               }
               
-              // Lógica Examen
+              // Lógica Examen (... sin cambios ...)
               if (tieneExamen) {
                   if (item.miExamen) {
                        estadoExamenHtml = `<span style="color:#10B981; font-weight:bold;">Realizado (${parseInt(item.miExamen.puntaje)}%)</span>`;
@@ -7939,9 +7994,6 @@ const diffMins = Math.floor(diffMs / 60000);
                               mensajeBloqueo = "Completa la tarea primero";
                           } else {
                               const nota = parseFloat(item.miTarea.nota);
-                              // Validación de aprobación de tarea para desbloquear examen
-                              // Soportamos escala 10 y 100. Si es < 7 (en 10) o < 70 (en 100) reprueba.
-                              // Lógica simple: si es < 7, reprueba.
                               if (nota < 7) { 
                                   puedeHacerExamen = false;
                                   mensajeBloqueo = "Tarea reprobada";
@@ -7963,6 +8015,7 @@ const diffMins = Math.floor(diffMs / 60000);
                   <td>${index + 1}</td>
                   <td>${item.titulo}</td>
                   <td>${new Date(item.creado).toLocaleDateString()}</td>
+                  <td><span style="font-size:12px; color:${isClosed && !tareaOk ? '#EF4444' : '#666'}">${fechaCierreStr}</span></td>
                   <td>${item.asistencias.length}</td>
                   <td style="text-align:center;">
                       ${estadoTareaHtml}

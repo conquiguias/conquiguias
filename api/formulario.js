@@ -1442,6 +1442,7 @@ async function handleObtenerEstadoUsuario(req, res, repo) {
         miTarea: infoTarea,
         configExamen: form.tieneEvaluacion,
         miExamen: infoExamen,
+        fechaCierre: form.fechaCierre, // Agregar fecha de cierre
       });
     }
     res

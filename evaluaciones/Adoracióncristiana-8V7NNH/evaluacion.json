@@ -1,0 +1,41 @@
+[
+  {
+    "id": "q-1769376572555-jujullrrx",
+    "type": "multiple",
+    "text": "h",
+    "options": [
+      {
+        "id": "opt-1769376572555-y83t9iaef",
+        "text": "h",
+        "correct": true
+      },
+      {
+        "id": "opt-1769376572555-gshyuccqn",
+        "text": "h",
+        "correct": false
+      },
+      {
+        "id": "opt-1769376572555-pw5npxshl",
+        "text": "h",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": "q-1769376574202-l24xmgt26",
+    "type": "truefalse",
+    "text": "h",
+    "options": [
+      {
+        "id": "true-1769376574203-14v1gml6m",
+        "text": "Verdadero",
+        "correct": true
+      },
+      {
+        "id": "false-1769376574203-fi8bz1hfq",
+        "text": "Falso",
+        "correct": false
+      }
+    ]
+  }
+]

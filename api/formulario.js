@@ -60,8 +60,29 @@ export default async function handler(req, res) {
         await handleEliminarFormulario(req, res, repo);
         break;
 
+      case "subirTarea":
+        await handleSubirTarea(req, res, repo);
+        break;
+
+      case "calificarTareas":
+        await handleCalificarTareas(req, res, repo);
+        break;
+
+      case "eliminarTareasPDF":
+        await handleEliminarTareasPDF(req, res, repo);
+        break;
+
+      case "obtenerEstadoUsuario":
+        await handleObtenerEstadoUsuario(req, res, repo);
+        break;
+        break;
+
       case "eliminarImagen":
         await handleEliminarImagen(req, res, repo);
+        break;
+
+      case "listarEntregas":
+        await handleListarEntregas(req, res, repo);
         break;
 
       default:
@@ -1155,5 +1176,280 @@ async function handleEliminarImagen(req, res, repo) {
   } catch (err) {
     console.error("Error al eliminar imagen:", err);
     res.status(500).json({ error: "Error al procesar eliminación" });
+  }
+}
+
+// Handler para subirTarea (Alumno)
+async function handleSubirTarea(req, res, repo) {
+  if (req.method !== "POST")
+    return res.status(405).json({ error: "Método no permitido" });
+  const { id, visitanteId, contenido, nombreArchivo } = req.body;
+  if (!id || !visitanteId || !contenido)
+    return res.status(400).json({ error: "Datos incompletos" });
+  if (contenido.length > 5242880)
+    return res
+      .status(400)
+      .json({ error: "El archivo excede el límite de 5MB" });
+  if (!nombreArchivo.toLowerCase().endsWith(".pdf"))
+    return res.status(400).json({ error: "Solo se permiten archivos PDF" });
+
+  const pathPDF = `tareas_files/${id}/${visitanteId}.pdf`;
+  const pathMeta = `evaluaciones/${id}/tareas.json`;
+
+  try {
+    const checkPDF = await fetch(
+      `https://api.github.com/repos/${repo}/contents/${pathPDF}?ref=data`,
+      { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
+    );
+    let shaPDF = null;
+    if (checkPDF.ok) {
+      const d = await checkPDF.json();
+      shaPDF = d.sha;
+    }
+
+    const savePDF = await fetch(
+      `https://api.github.com/repos/${repo}/contents/${pathPDF}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `token ${process.env.GITHUB_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: `[skip vercel] Tarea entregada: ${visitanteId}`,
+          content: contenido,
+          branch: "data",
+          ...(shaPDF && { sha: shaPDF }),
+        }),
+      },
+    );
+
+    if (!savePDF.ok) throw new Error("Error al guardar archivo PDF");
+
+    await updateGitHubJSON(
+      repo,
+      pathMeta,
+      `[skip vercel] Registro tarea: ${visitanteId}`,
+      async (tareas) => {
+        if (Array.isArray(tareas) || !tareas) tareas = {};
+        tareas[visitanteId] = {
+          estado: "entregado",
+          fecha: new Date().toISOString(),
+          url: `https://raw.githubusercontent.com/${repo}/data/${pathPDF}`,
+          nota: null,
+        };
+        return tareas;
+      },
+    );
+
+    res.status(200).json({ ok: true, message: "Tarea enviada correctamente" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al subir tarea: " + err.message });
+  }
+}
+
+// Handler para calificarTareas (Instructor)
+async function handleCalificarTareas(req, res, repo) {
+  if (req.method !== "POST")
+    return res.status(405).json({ error: "Método no permitido" });
+  const { id, calificaciones } = req.body;
+  const pathMeta = `evaluaciones/${id}/tareas.json`;
+  try {
+    await updateGitHubJSON(
+      repo,
+      pathMeta,
+      `[skip vercel] Calificar tareas formulario ${id}`,
+      async (tareas) => {
+        if (Array.isArray(tareas) || !tareas) tareas = {};
+        calificaciones.forEach((c) => {
+          if (tareas[c.visitanteId]) {
+            tareas[c.visitanteId].estado = "calificado";
+            tareas[c.visitanteId].nota = c.nota;
+            tareas[c.visitanteId].fechaCalificado = new Date().toISOString();
+          }
+        });
+        return tareas;
+      },
+    );
+    res.status(200).json({ ok: true, message: "Calificaciones guardadas" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+// Handler para eliminarTareasPDF (Limpieza)
+async function handleEliminarTareasPDF(req, res, repo) {
+  if (req.method !== "POST")
+    return res.status(405).json({ error: "Método no permitido" });
+  const { id } = req.body;
+  const pathMeta = `evaluaciones/${id}/tareas.json`;
+  try {
+    const resp = await fetch(
+      `https://api.github.com/repos/${repo}/contents/${pathMeta}?ref=data`,
+      { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
+    );
+    if (!resp.ok)
+      return res.status(200).json({ message: "No hay tareas para limpiar" });
+    const data = await resp.json();
+    const tareas = JSON.parse(Buffer.from(data.content, "base64").toString());
+    const eliminables = Object.keys(tareas).filter(
+      (vid) => tareas[vid].estado === "calificado",
+    );
+    let count = 0;
+
+    for (const vid of eliminables) {
+      const pathPDF = `tareas_files/${id}/${vid}.pdf`;
+      const check = await fetch(
+        `https://api.github.com/repos/${repo}/contents/${pathPDF}?ref=data`,
+        { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
+      );
+      if (check.ok) {
+        const d = await check.json();
+        await fetch(
+          `https://api.github.com/repos/${repo}/contents/${pathPDF}`,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: `token ${process.env.GITHUB_TOKEN}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              message: `[skip vercel] Limpieza PDF tarea ${vid}`,
+              sha: d.sha,
+              branch: "data",
+            }),
+          },
+        );
+        count++;
+      }
+    }
+    res.status(200).json({
+      ok: true,
+      message: `Se eliminaron ${count} archivos PDF calificados.`,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+// Handler consolidado para el Dashboard del Usuario (Tareas y Exámenes)
+async function handleObtenerEstadoUsuario(req, res, repo) {
+  if (req.method !== "POST")
+    return res.status(405).json({ error: "Método no permitido" });
+  const { visitanteId, email } = req.body;
+  const archivoForms = `data/formularios.json`;
+  try {
+    const rForms = await fetch(
+      `https://api.github.com/repos/${repo}/contents/${archivoForms}?ref=data`,
+      { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
+    );
+    if (!rForms.ok) return res.status(200).json([]);
+    const dForms = await rForms.json();
+    const formularios = JSON.parse(
+      Buffer.from(dForms.content, "base64").toString(),
+    );
+    const resultadoFinal = [];
+
+    for (const [id, form] of Object.entries(formularios)) {
+      // Asistencia
+      let asistenciasUsuario = [];
+      try {
+        const rAsist = await fetch(
+          `https://api.github.com/repos/${repo}/contents/respuestas/${id}/respuestas.json?ref=data`,
+          { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
+        );
+        if (rAsist.ok) {
+          const dAsist = await rAsist.json();
+          const todosReg = JSON.parse(
+            Buffer.from(dAsist.content, "base64").toString(),
+          );
+          asistenciasUsuario = todosReg
+            .filter(
+              (r) =>
+                r.visitanteId === visitanteId ||
+                (email &&
+                  r.correo &&
+                  r.correo.toLowerCase() === email.toLowerCase()),
+            )
+            .map((r) => r.asistenciaNumero);
+        }
+      } catch (e) {}
+      if (asistenciasUsuario.length === 0) continue; // Solo mostrar si ha participado
+
+      // Tarea
+      let infoTarea = null;
+      if (form.tarea && form.tarea.activa) {
+        try {
+          const rTarea = await fetch(
+            `https://api.github.com/repos/${repo}/contents/evaluaciones/${id}/tareas.json?ref=data`,
+            { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
+          );
+          if (rTarea.ok) {
+            const dTarea = await rTarea.json();
+            const todasTareas = JSON.parse(
+              Buffer.from(dTarea.content, "base64").toString(),
+            );
+            infoTarea = todasTareas[visitanteId] || null;
+          }
+        } catch (e) {}
+      }
+
+      // Examen
+      let infoExamen = null;
+      if (form.tieneEvaluacion) {
+        try {
+          const rExamen = await fetch(
+            `https://api.github.com/repos/${repo}/contents/evaluaciones/${id}/resultados.json?ref=data`,
+            { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
+          );
+          if (rExamen.ok) {
+            const dExamen = await rExamen.json();
+            const todosExamenes = JSON.parse(
+              Buffer.from(dExamen.content, "base64").toString(),
+            );
+            infoExamen =
+              todosExamenes.find((e) => e.visitanteId === visitanteId) || null;
+          }
+        } catch (e) {}
+      }
+
+      resultadoFinal.push({
+        id,
+        titulo: form.titulo,
+        creado: form.creado,
+        asistencias: asistenciasUsuario,
+        configTarea: form.tarea,
+        miTarea: infoTarea,
+        configExamen: form.tieneEvaluacion,
+        miExamen: infoExamen,
+      });
+    }
+    res
+      .status(200)
+      .json(
+        resultadoFinal.sort((a, b) => new Date(b.creado) - new Date(a.creado)),
+      );
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+}
+// Handler para listar entregas (Instructor)
+async function handleListarEntregas(req, res, repo) {
+  const { id } = req.query;
+  if (!id) return res.status(400).json({ error: "ID faltante" });
+  const pathMeta = `evaluaciones/${id}/tareas.json`;
+  try {
+    const resp = await fetch(
+      `https://api.github.com/repos/${repo}/contents/${pathMeta}?ref=data`,
+      { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
+    );
+    if (!resp.ok) return res.status(200).json({});
+    const data = await resp.json();
+    const tareas = JSON.parse(Buffer.from(data.content, "base64").toString());
+    res.status(200).json(tareas);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 }

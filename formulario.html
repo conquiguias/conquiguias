@@ -726,6 +726,7 @@
           if (!res.ok) throw new Error("Formulario no encontrado");
 
           const data = await res.json();
+          window.formularioConfig = data;
           document.getElementById("tituloFormulario").textContent =
             data.titulo || "Formulario";
 
@@ -1062,10 +1063,18 @@
               if (r.examen) {
                 botonAccion = `
                       <button onclick="verResultadosExamen('${r.examen.puntaje}')" style="background: #17a2b8; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">📊 Resultados</button>
-                      <button onclick="window.open('https://conquiguias.vercel.app/', '_blank')" style="background: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">📜 Certificado</button>
+                      <button onclick="window.location.href='panel.html'" style="background: #4f46e5; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">🏠 Ir al Panel</button>
                     `;
               } else {
-                botonAccion = `<button onclick="iniciarExamen()" style="background: #F59E0B; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">📝 Hacer Examen</button>`;
+                if (
+                  window.formularioConfig &&
+                  window.formularioConfig.tarea &&
+                  window.formularioConfig.tarea.activa
+                ) {
+                  botonAccion = `<span class="status-waiting" style="color:#d97706; background:#fef3c7; padding:4px 8px; border-radius:4px; font-size:12px;">Completa la tarea en el Panel</span>`;
+                } else {
+                  botonAccion = `<button onclick="iniciarExamen()" style="background: #F59E0B; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">📝 Hacer Examen</button>`;
+                }
               }
             } else if (completo && r.examen) {
               botonAccion = `<span class="status-active">✅ Examen Listo</span>`;

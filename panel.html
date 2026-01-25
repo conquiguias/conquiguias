@@ -7409,6 +7409,28 @@ const diffMins = Math.floor(diffMs / 60000);
             return;
           }
 
+          // Validar Tarea
+          const activarTarea = document.getElementById("activarTarea");
+          if (activarTarea && activarTarea.checked) {
+              const detalle = document.getElementById("detalleTarea").value.trim();
+              const fEntrega = document.getElementById("fechaEntregaTarea").value;
+              const fFin = document.getElementById("fechaFinTarea").value;
+
+              if (!detalle) {
+                  alert('⚠️ Tarea activada: Debes escribir las instrucciones de la tarea.');
+                  activarTarea.focus();
+                  return;
+              }
+              if (!fEntrega) {
+                  alert('⚠️ Tarea activada: Debes establecer una Fecha de Entrega.');
+                  return;
+              }
+              if (!fFin) {
+                  alert('⚠️ Tarea activada: Debes establecer una Fecha de Finalización.');
+                  return;
+              }
+          }
+
           // Validar preguntas
           let isValid = true;
           let errorMessage = '';

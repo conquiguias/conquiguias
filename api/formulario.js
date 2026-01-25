@@ -1,4 +1,4 @@
-// formulario.js - API unificada (V3.1: Soporte de Tareas)
+// formulario.js - API unificada (V3.2: Validaciones Tarea)
 
 export default async function handler(req, res) {
   const { action } = req.query;

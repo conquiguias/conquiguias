@@ -247,7 +247,7 @@ async function handleGuardar(req, res, repo) {
   // 1. Verificar si la asistencia está activa (Server-side check)
   try {
     const respForm = await fetch(
-      `https://api.github.com/repos/${repo}/contents/data/formularios.json`,
+      `https://api.github.com/repos/${repo}/contents/data/formularios.json?ref=data`,
       {
         headers: {
           Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -498,7 +498,7 @@ async function handleGuardarFormulario(req, res, repo) {
             body: JSON.stringify({
               message: `[skip vercel] Evaluación creada para formulario ${id}`,
               content: contenidoEvaluacion,
-              branch: "main",
+              branch: "data",
             }),
           },
         );
@@ -536,19 +536,8 @@ async function handleGuardarResultadoExamen(req, res, repo) {
 
   const archivo = `evaluaciones/${id}/resultados.json`;
 
-  // Leer el archivo actual desde GitHub
-  const respuesta = await fetch(
-    `https://api.github.com/repos/${repo}/contents/${archivo}`,
-    {
-      headers: {
-        Authorization: `token ${process.env.GITHUB_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-    },
-  );
-
-  let resultados = [];
-  let sha = null;
+  // Leer el archivo actual desde GitHub (ELIMINADO LECTURA REDUNDANTE)
+  // const respuesta = await fetch... (Eliminado porque updateGitHubJSON se encarga)
 
   try {
     const result = await updateGitHubJSON(
@@ -583,8 +572,9 @@ async function handleLimpiarFormulariosVencidos(req, res, repo) {
 
   try {
     // Cargar formulario.json
+    // Cargar formularios.json usando la rama data
     const respuesta = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${archivoFormularios}`,
+      `https://api.github.com/repos/${repo}/contents/${archivoFormularios}?ref=data`,
       {
         headers: {
           Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -654,7 +644,7 @@ async function handleLimpiarFormulariosVencidos(req, res, repo) {
       const ruta = `respuestas/${id}/respuestas.json`;
 
       const archivoRes = await fetch(
-        `https://api.github.com/repos/${repo}/contents/${ruta}`,
+        `https://api.github.com/repos/${repo}/contents/${ruta}?ref=data`,
         {
           headers: {
             Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -674,7 +664,7 @@ async function handleLimpiarFormulariosVencidos(req, res, repo) {
           body: JSON.stringify({
             message: `[skip vercel] ⏳ Eliminar respuestas de formulario vencido ${id}`,
             sha: datosArchivo.sha,
-            branch: "main",
+            branch: "data",
           }),
         });
       }
@@ -733,7 +723,7 @@ async function handleListarImagenes(req, res, repo) {
 
   try {
     const respuesta = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${ruta}`,
+      `https://api.github.com/repos/${repo}/contents/${ruta}?ref=data`,
       {
         headers: {
           Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -780,7 +770,7 @@ async function handleObtenerEvaluacion(req, res, repo) {
 
   try {
     const respuesta = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${archivo}`,
+      `https://api.github.com/repos/${repo}/contents/${archivo}?ref=data`,
       {
         headers: {
           Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -837,7 +827,7 @@ async function handleObtenerFormulario(req, res, repo) {
 
   try {
     const respuesta = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${archivo}`,
+      `https://api.github.com/repos/${repo}/contents/${archivo}?ref=data`,
       {
         headers: {
           Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -900,7 +890,7 @@ async function handleSubirImagen(req, res, repo) {
   try {
     // 1. Verificar si existe para obtener SHA (para sobrescritura)
     const verificar = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${path}?t=${Date.now()}`,
+      `https://api.github.com/repos/${repo}/contents/${path}?ref=data&t=${Date.now()}`,
       {
         headers: {
           Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -928,21 +918,20 @@ async function handleSubirImagen(req, res, repo) {
         body: JSON.stringify({
           message: `[skip vercel] Subir imagen: ${nombre} en ${carpeta}`,
           content: contenido,
-          branch: "main",
+          branch: "data",
           ...(sha && { sha }), // Incluir SHA si existe para hacer update
         }),
       },
     );
 
     if (guardar.ok) {
-      // Usar la 'content.download_url' de la respuesta si es posible, o construirla
-      const respData = await guardar.json();
+      // Usar raw.githubusercontent para asegurar que se sirve desde data
+      const urlImagen = `https://raw.githubusercontent.com/${repo}/data/${path}`;
+
       res.status(200).json({
         ok: true,
         message: "✅ Imagen subida correctamente",
-        url: respData.content
-          ? respData.content.download_url
-          : `https://conquiguias.vercel.app/images/${carpeta}/${nombre}`,
+        url: urlImagen,
       });
     } else {
       const error = await guardar.json();
@@ -968,7 +957,7 @@ async function handleVerRespuestas(req, res, repo) {
 
   try {
     const respuesta = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${archivo}`,
+      `https://api.github.com/repos/${repo}/contents/${archivo}?ref=data`,
       {
         headers: {
           Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -988,7 +977,7 @@ async function handleVerRespuestas(req, res, repo) {
     let resultadosExamen = [];
     try {
       const resExamen = await fetch(
-        `https://api.github.com/repos/${repo}/contents/evaluaciones/${id}/resultados.json`,
+        `https://api.github.com/repos/${repo}/contents/evaluaciones/${id}/resultados.json?ref=data`,
         {
           headers: {
             Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -1064,7 +1053,7 @@ async function handleEliminarFormulario(req, res, repo) {
     for (const ruta of rutasBorrar) {
       try {
         const archivoRes = await fetch(
-          `https://api.github.com/repos/${repo}/contents/${ruta}`,
+          `https://api.github.com/repos/${repo}/contents/${ruta}?ref=data`,
           {
             headers: {
               Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -1084,7 +1073,7 @@ async function handleEliminarFormulario(req, res, repo) {
             body: JSON.stringify({
               message: `[skip vercel] Eliminar datos asociados a formulario ${id}`,
               sha: datos.sha,
-              branch: "main",
+              branch: "data",
             }),
           });
         }
@@ -1121,7 +1110,7 @@ async function handleEliminarImagen(req, res, repo) {
   try {
     // Obtener SHA del archivo
     const getRes = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${ruta}?t=${Date.now()}`,
+      `https://api.github.com/repos/${repo}/contents/${ruta}?ref=data&t=${Date.now()}`,
       {
         headers: {
           Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -1150,7 +1139,7 @@ async function handleEliminarImagen(req, res, repo) {
         body: JSON.stringify({
           message: `[skip vercel] Eliminar imagen ${nombre}`,
           sha: data.sha,
-          branch: "main",
+          branch: "data",
         }),
       },
     );

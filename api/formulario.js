@@ -1334,6 +1334,7 @@ async function handleEliminarTareasPDF(req, res, repo) {
 }
 
 // Handler consolidado para el Dashboard del Usuario (Tareas y Exámenes)
+// Handler consolidado para el Dashboard del Usuario (Tareas y Exámenes)
 async function handleObtenerEstadoUsuario(req, res, repo) {
   if (req.method !== "POST")
     return res.status(405).json({ error: "Método no permitido" });
@@ -1352,8 +1353,10 @@ async function handleObtenerEstadoUsuario(req, res, repo) {
     const resultadoFinal = [];
 
     for (const [id, form] of Object.entries(formularios)) {
-      // Asistencia
+      // 1. Asistencia: Buscar todas las asistencias del usuario (por ID o Email)
       let asistenciasUsuario = [];
+      let allUserIds = new Set([visitanteId]); // IDs vinculados a este usuario
+
       try {
         const rAsist = await fetch(
           `https://api.github.com/repos/${repo}/contents/respuestas/${id}/respuestas.json?ref=data`,
@@ -1364,20 +1367,27 @@ async function handleObtenerEstadoUsuario(req, res, repo) {
           const todosReg = JSON.parse(
             Buffer.from(dAsist.content, "base64").toString(),
           );
-          asistenciasUsuario = todosReg
-            .filter(
-              (r) =>
-                r.visitanteId === visitanteId ||
-                (email &&
-                  r.correo &&
-                  r.correo.toLowerCase() === email.toLowerCase()),
-            )
-            .map((r) => r.asistenciaNumero);
+
+          // Filtrar registros que pertenecen a este usuario
+          const registrosPropios = todosReg.filter(
+            (r) =>
+              r.visitanteId === visitanteId ||
+              (email &&
+                r.correo &&
+                r.correo.toLowerCase() === email.toLowerCase()),
+          );
+
+          // Recolectar todos los IDs usados por este usuario
+          registrosPropios.forEach((r) => {
+            if (r.visitanteId) allUserIds.add(r.visitanteId);
+          });
+
+          asistenciasUsuario = registrosPropios.map((r) => r.asistenciaNumero);
         }
       } catch (e) {}
       if (asistenciasUsuario.length === 0) continue; // Solo mostrar si ha participado
 
-      // Tarea
+      // 2. Tarea: Buscar en cualquiera de los IDs vinculados
       let infoTarea = null;
       if (form.tarea && form.tarea.activa) {
         try {
@@ -1390,12 +1400,19 @@ async function handleObtenerEstadoUsuario(req, res, repo) {
             const todasTareas = JSON.parse(
               Buffer.from(dTarea.content, "base64").toString(),
             );
-            infoTarea = todasTareas[visitanteId] || null;
+
+            // Buscar si alguno de los IDs tiene tarea
+            for (const uid of allUserIds) {
+              if (todasTareas[uid]) {
+                infoTarea = todasTareas[uid];
+                break;
+              }
+            }
           }
         } catch (e) {}
       }
 
-      // Examen
+      // 3. Examen: Buscar en cualquiera de los IDs vinculados
       let infoExamen = null;
       if (form.tieneEvaluacion) {
         try {
@@ -1408,8 +1425,10 @@ async function handleObtenerEstadoUsuario(req, res, repo) {
             const todosExamenes = JSON.parse(
               Buffer.from(dExamen.content, "base64").toString(),
             );
+
+            // Buscar examen por cualquiera de los IDs
             infoExamen =
-              todosExamenes.find((e) => e.visitanteId === visitanteId) || null;
+              todosExamenes.find((e) => allUserIds.has(e.visitanteId)) || null;
           }
         } catch (e) {}
       }

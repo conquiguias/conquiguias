@@ -1393,6 +1393,8 @@ async function handleObtenerEstadoUsuario(req, res, repo) {
           });
 
           // Recolectar todos los IDs usados por este usuario
+          // IMPORTANTE: Asegurar que el visitanteId principal esté siempre incluido
+          allUserIds.add(visitanteId);
           registrosPropios.forEach((r) => {
             if (r.visitanteId) allUserIds.add(r.visitanteId);
           });

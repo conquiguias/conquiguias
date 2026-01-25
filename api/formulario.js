@@ -1,4 +1,4 @@
-// formulario.js - API unificada para el sistema de formularios
+// formulario.js - API unificada (V3: Arquitectura Rama Data - Blindaje Vercel)
 
 export default async function handler(req, res) {
   const { action } = req.query;
@@ -688,7 +688,7 @@ async function handleListarFormularios(req, res, repo) {
 
   try {
     const respuesta = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${archivo}`,
+      `https://api.github.com/repos/${repo}/contents/${archivo}?ref=data`,
       {
         headers: {
           Authorization: `token ${process.env.GITHUB_TOKEN}`,

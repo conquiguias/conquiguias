@@ -8872,19 +8872,27 @@ const diffMins = Math.floor(diffMs / 60000);
       }
   };
 
-  // FORZAR EJECUCIÓN INMEDIATA DEL OVERRIDE SI EL USUARIO ES ADMIN
-  // Usar setTimeout para asegurar que isAdmin esté definido
-  setTimeout(() => {
-      console.log("🔍 [DEBUG] Verificando si se debe re-ejecutar inicializarPanelInstructor...");
+  // FORZAR EJECUCIÓN DEL OVERRIDE - VERSIÓN ROBUSTA CON RETRY
+  console.log("🔧 [INIT] Configurando retry para inicializarPanelInstructor override...");
+  
+  let checkAdminAttempts = 0;
+  const maxAttempts = 20; // Máximo 10 segundos
+  
+  const checkAdminInterval = setInterval(() => {
+      checkAdminAttempts++;
+      console.log(`🔍 [RETRY ${checkAdminAttempts}/${maxAttempts}] Verificando isAdmin...`);
+      
       const isAdminDefined = typeof isAdmin !== 'undefined' && isAdmin === true;
-      console.log("🔍 [DEBUG] isAdmin actual:", isAdminDefined);
+      
       if(isAdminDefined) {
-          console.log("🚀 [DEBUG] Re-ejecutando inicializarPanelInstructor con la versión OVERRIDE...");
+          console.log("✅ [SUCCESS] isAdmin confirmado como TRUE, ejecutando override...");
+          clearInterval(checkAdminInterval);
           window.inicializarPanelInstructor();
-      } else {
-          console.log("⏭️ [DEBUG] Usuario no es admin o isAdmin no definido, saltando re-ejecución");
+      } else if (checkAdminAttempts >= maxAttempts) {
+          console.warn("⚠️ [TIMEOUT] isAdmin no se definió después de 10 segundos, cancelando retry");
+          clearInterval(checkAdminInterval);
       }
-  }, 500); // Dar tiempo suficiente para que se defina isAdmin
+  }, 500); // Verificar cada 500ms
 
   // --- FUNCIONES LÓGICAS DEL EVALUADOR ---
 

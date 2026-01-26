@@ -9144,23 +9144,29 @@ const diffMins = Math.floor(diffMs / 60000);
 
   // Función GLOBAL para enviar notas masivas (Solo las calificadas)
   window.enviarNotasBackend = async function() {
+      console.log("🚀 [DEBUG] Intentando enviar notas...");
+      console.log("📦 [DEBUG] currentEntregasData:", currentEntregasData);
+      
       if(!currentEntregasData || Object.keys(currentEntregasData).length === 0) {
-          alert("No hay datos para enviar.");
+          console.error("❌ [DEBUG] currentEntregasData está vacío o nulo");
+          alert("No hay datos cargados en memoria para enviar. Intenta seleccionar el formulario nuevamente.");
           return;
       }
       
       // Filtrar solo las que tienen nota (calificados)
-      // Buscamos items que tengan 'nota' y que no sea vacío
       const notasAEnviar = {};
       let count = 0;
       
       for(const [uid, data] of Object.entries(currentEntregasData)) {
-          // Criterio: tener nota asignada (independiente del estado previo)
-          if(data.nota && data.nota.trim() !== "") {
+          console.log(`Checking ${uid}: nota="${data.nota}"`);
+          // Criterio más flexible: permitir '0' pero no string vacío
+          if(data.nota !== undefined && data.nota !== null && String(data.nota).trim() !== "") {
               notasAEnviar[uid] = data.nota;
               count++;
           }
       }
+      
+      console.log("✅ [DEBUG] Notas encontradas para enviar:", count, notasAEnviar);
       
       if(count === 0) {
           alert("No hay ninguna tarea con nota asignada para enviar. Califica al menos una tarea.");

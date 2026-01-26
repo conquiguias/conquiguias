@@ -9143,13 +9143,22 @@ const diffMins = Math.floor(diffMs / 60000);
   };
 
   // Función GLOBAL para enviar notas masivas (Solo las calificadas)
+  // Función GLOBAL para enviar notas masivas (Solo las calificadas)
   window.enviarNotasBackend = async function() {
-      console.log("🚀 [DEBUG] Intentando enviar notas...");
-      console.log("📦 [DEBUG] currentEntregasData:", currentEntregasData);
+      // Unificación de variables: Intentar usar entregasCurrentForm (legacy/alias) si currentEntregasData está vacía
+      let dataToUse = currentEntregasData;
+      if (!dataToUse || Object.keys(dataToUse).length === 0) {
+          if (typeof entregasCurrentForm !== 'undefined' && Object.keys(entregasCurrentForm).length > 0) {
+              dataToUse = entregasCurrentForm;
+              console.log("🔄 [DEBUG] Usando entregasCurrentForm en lugar de currentEntregasData");
+          }
+      }
+
+      console.log("🚀 [DEBUG] Intentando enviar notas...", Object.keys(dataToUse || {}).length);
       
-      if(!currentEntregasData || Object.keys(currentEntregasData).length === 0) {
-          console.error("❌ [DEBUG] currentEntregasData está vacío o nulo");
-          alert("No hay datos cargados en memoria para enviar. Intenta seleccionar el formulario nuevamente.");
+      if(!dataToUse || Object.keys(dataToUse).length === 0) {
+          console.error("❌ [DEBUG] No hay datos en ninguna variable");
+          alert("No hay datos cargados en memoria. Por favor, selecciona el formulario nuevamente para recargar.");
           return;
       }
       
@@ -9157,16 +9166,15 @@ const diffMins = Math.floor(diffMs / 60000);
       const notasAEnviar = {};
       let count = 0;
       
-      for(const [uid, data] of Object.entries(currentEntregasData)) {
-          console.log(`Checking ${uid}: nota="${data.nota}"`);
-          // Criterio más flexible: permitir '0' pero no string vacío
+      for(const [uid, data] of Object.entries(dataToUse)) {
+          // Criterio flexible para números y texto
           if(data.nota !== undefined && data.nota !== null && String(data.nota).trim() !== "") {
               notasAEnviar[uid] = data.nota;
               count++;
           }
       }
       
-      console.log("✅ [DEBUG] Notas encontradas para enviar:", count, notasAEnviar);
+      console.log("✅ [DEBUG] Notas a enviar:", count);
       
       if(count === 0) {
           alert("No hay ninguna tarea con nota asignada para enviar. Califica al menos una tarea.");
@@ -9182,11 +9190,14 @@ const diffMins = Math.floor(diffMs / 60000);
            const originalText = guardarBtn ? guardarBtn.innerHTML : '';
            if(guardarBtn) guardarBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
            
+           // Usar el ID correcto (puede estar en diferentes variables según qué función cargó los datos)
+           const formId = currentEvaluandoFormId || currentEvalFormId;
+           
            const resp = await fetch('/api/formulario?action=calificarTareas', {
               method: 'POST',
               headers: {'Content-Type': 'application/json'},
               body: JSON.stringify({
-                  id: currentEvaluandoFormId || currentEvalFormId, // Compatibilidad con ambas variables
+                  id: formId,
                   notas: notasAEnviar,
                   adminEmail: 'admin' 
               })
@@ -9194,8 +9205,12 @@ const diffMins = Math.floor(diffMs / 60000);
            
            if(resp.ok) {
                alert("✅ Notas enviadas y publicadas correctamente.");
-               // Recargar para ver cambios confirmados
-               cargarEntregasParaSelector(currentEvaluandoFormId || currentEvalFormId);
+               // Recargar usando la función compatible
+               if(typeof cargarEntregasParaSelector === 'function') {
+                   cargarEntregasParaSelector(formId);
+               } else if(typeof cargarEntregasInstructor === 'function') {
+                   cargarEntregasInstructor(formId);
+               }
            } else {
                alert("❌ Error al guardar las notas en el servidor.");
            }
@@ -9205,7 +9220,7 @@ const diffMins = Math.floor(diffMs / 60000);
       } catch(e) {
           alert("Error de red: " + e.message);
           const guardarBtn = document.querySelector('button[onclick="enviarNotasBackend()"]');
-          if(guardarBtn) guardarBtn.innerHTML = originalText; // Restaurar texto si falla
+          if(guardarBtn) guardarBtn.innerHTML = originalText;
       }
   };
 

@@ -8214,10 +8214,20 @@ const diffMins = Math.floor(diffMs / 60000);
                       <div id="visorPDFContainer" class="eval-visor-container" style="flex-grow: 1; background: rgba(0,0,0,0.2); border-radius: 4px; min-height: 400px; display: flex; align-items: center; justify-content: center;">
                           <p>Selecciona un alumno para ver su tarea.</p>
                       </div>
-                      <div id="panelCalificacionIndividual" style="margin-top: 15px; padding: 15px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; display: none;">
-                          <label id="labelAlumnoActual" style="display: block; margin-bottom: 10px; font-weight: 600; color: var(--text-primary);">Alumno:</label>
-                          <input type="number" id="inputNotaIndividual" placeholder="Calificación (0-10)" min="0" max="10" step="0.1" style="padding: 8px; border-radius: 4px; width: 100px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color);">
-                          <button onclick="enviarNotasBackend()" style="margin-left: 10px; padding: 8px 16px; background: var(--success-color); color: white; border: none; border-radius: 4px; cursor: pointer;">Guardar</button>
+                      <div id="panelCalificacionIndividual" style="margin-top: 15px; padding: 15px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; display: none; border: 1px solid var(--accent-color);">
+                          <div style="display:flex; justify-content:space-between; align-items:center;">
+                              <label id="labelAlumnoActual" style="font-weight: 600; color: var(--text-primary); margin-right:15px;">Alumno:</label>
+                              <div style="display:flex; align-items:center; gap:10px;">
+                                  <span style="font-size:13px; color:var(--text-secondary);">Nota:</span>
+                                  <input type="number" id="inputNotaIndividual" placeholder="0-10" min="0" max="10" step="0.1" style="padding: 8px; border-radius: 4px; width: 80px; text-align:center; font-weight:bold; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color);">
+                                  <button onclick="guardarNotaIndividualYSalir()" style="padding: 8px 16px; background: var(--accent-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight:600;">
+                                      <i class="fas fa-check"></i> OK
+                                  </button>
+                              </div>
+                          </div>
+                          <div style="font-size:11px; color:var(--text-secondary); margin-top:5px; text-align:right;">
+                              * Guardar en memoria (Para enviar a BD usa el botón verde arriba)
+                          </div>
                       </div>
                   </div>
               </div>

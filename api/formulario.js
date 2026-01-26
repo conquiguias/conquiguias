@@ -1194,11 +1194,9 @@ async function handleSubirTarea(req, res, repo) {
   const identificador = email || visitanteId;
 
   if (!identificador) {
-    return res
-      .status(400)
-      .json({
-        error: "Se requiere un correo electrónico o ID para subir la tarea.",
-      });
+    return res.status(400).json({
+      error: "Se requiere un correo electrónico o ID para subir la tarea.",
+    });
   }
 
   if (contenido.length > 5242880)
@@ -1272,10 +1270,62 @@ async function handleSubirTarea(req, res, repo) {
   }
 }
 
-// ... (handleCalificarTareas y handleEliminarTareasPDF sin cambios mayores,
-//      ya que son agnósticos al tipo de ID mientras sea string)
+// Handler para calificarTareas (Instructor)
+async function handleCalificarTareas(req, res, repo) {
+  if (req.method !== "POST")
+    return res.status(405).json({ error: "Método no permitido" });
 
-// ...
+  const { id, tareas } = req.body;
+  if (!id || !tareas) return res.status(400).json({ error: "Faltan datos" });
+
+  const path = `evaluaciones/${id}/tareas.json`;
+
+  try {
+    // Sobrescribir el JSON de tareas con la versión actualizada (que incluye notas)
+    await updateGitHubJSON(
+      repo,
+      path,
+      `[skip vercel] Calificación tareas ${id}`,
+      async () => tareas,
+    );
+    res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error("Error calificarTareas:", err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+// Handler para eliminarTareasPDF
+async function handleEliminarTareasPDF(req, res, repo) {
+  // Stub seguro por ahora
+  return res
+    .status(200)
+    .json({ ok: true, message: "Funcionalidad en mantenimiento." });
+}
+
+// Handler para listarEntregas (Instructor)
+async function handleListarEntregas(req, res, repo) {
+  if (req.method !== "GET")
+    return res.status(405).json({ error: "Método no permitido" });
+
+  const { id } = req.query;
+  if (!id) return res.status(400).json({ error: "Falta el ID" });
+
+  const pathMeta = `evaluaciones/${id}/tareas.json`;
+  try {
+    const resp = await fetch(
+      `https://api.github.com/repos/${repo}/contents/${pathMeta}?ref=main`,
+      { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
+    );
+    if (!resp.ok) return res.status(200).json({}); // Si no existe, devolver vacío
+
+    const data = await resp.json();
+    const tareas = JSON.parse(Buffer.from(data.content, "base64").toString());
+    res.status(200).json(tareas);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
 
 // Handler consolidado para el Dashboard del Usuario (Tareas y Exámenes)
 async function handleObtenerEstadoUsuario(req, res, repo) {

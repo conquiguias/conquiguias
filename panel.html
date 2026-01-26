@@ -8135,6 +8135,39 @@ const diffMins = Math.floor(diffMs / 60000);
       viewEvaluar.id = 'viewEvaluarTareas';
       viewEvaluar.style.display = 'none';
       viewEvaluar.innerHTML = `
+          <style>
+              .eval-grid-layout {
+                  display: grid; 
+                  grid-template-columns: 1.5fr 1fr; 
+                  gap: 20px; 
+                  min-height: 500px;
+              }
+              @media (max-width: 900px) {
+                  .eval-grid-layout {
+                      grid-template-columns: 1fr !important;
+                  }
+                  .eval-visor-container {
+                      min-height: 500px !important;
+                  }
+              }
+              /* Estilos para forzar que la tabla no tenga scroll horizontal */
+              #listaEntregasContainer {
+                  overflow-x: hidden; 
+                  overflow-y: auto;
+                  max-height: 600px;
+              }
+              #listaEntregasContainer table {
+                  width: 100%;
+                  table-layout: fixed; /* Fija el ancho de columnas */
+              }
+              #listaEntregasContainer th, #listaEntregasContainer td {
+                  word-wrap: break-word;
+                  overflow-wrap: break-word; /* Rompe palabras largas si es necesario */
+                  white-space: normal;
+                  font-size: 14px; /* Ajuste para que quepa mejor */
+              }
+          </style>
+
           <div style="background: var(--bg-secondary); padding: 25px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-color);">
               <h3 style="margin-bottom:20px; color:var(--accent-color); display:flex; align-items:center; gap:10px;">
                   <i class="fas fa-clipboard-check"></i> Evaluación de Tareas
@@ -8159,17 +8192,17 @@ const diffMins = Math.floor(diffMs / 60000);
                   </div>
               </div>
 
-              <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; min-height: 500px;">
+              <div class="eval-grid-layout">
                   <div style="background: var(--bg-card); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color);">
                       <h4 style="margin-bottom: 15px; color: var(--text-primary);">Lista</h4>
-                      <div id="listaEntregasContainer" style="max-height: 600px; overflow-y: auto;">
+                      <div id="listaEntregasContainer">
                           <p style="text-align: center; color: var(--text-secondary);">Selecciona un formulario para ver entregas.</p>
                       </div>
                   </div>
 
                   <div style="background: var(--bg-card); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); display: flex; flex-direction: column;">
                       <h4 style="margin-bottom: 15px; color: var(--text-primary);">Visor</h4>
-                      <div id="visorPDFContainer" style="flex-grow: 1; background: rgba(0,0,0,0.2); border-radius: 4px; min-height: 400px; display: flex; align-items: center; justify-content: center;">
+                      <div id="visorPDFContainer" class="eval-visor-container" style="flex-grow: 1; background: rgba(0,0,0,0.2); border-radius: 4px; min-height: 400px; display: flex; align-items: center; justify-content: center;">
                           <p>Selecciona un alumno para ver su tarea.</p>
                       </div>
                       <div id="panelCalificacionIndividual" style="margin-top: 15px; padding: 15px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; display: none;">

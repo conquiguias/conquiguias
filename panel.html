@@ -8325,49 +8325,32 @@ const diffMins = Math.floor(diffMs / 60000);
   let entregasCurrentForm = {}; 
   let currentEvalFormId = null;
 
+  window.datosEntregasGlobal = {}; // Variable Global Unificada
+
   async function cargarEntregasInstructor(formId) {
       if(!formId) {
           document.getElementById('listaEntregasContainer').innerHTML = '';
           return;
       }
       currentEvalFormId = formId;
+      window.currentGlobalFormId = formId; // Backup global ID
+      
       const container = document.getElementById('listaEntregasContainer');
       container.innerHTML = '<div class="loading"></div> Cargando entregas...';
       
       try {
-          // 1. Obtener listado de tareas (meta)
-           const archivoMeta = `evaluaciones/${formId}/tareas.json`;
-           // Usamos read_resource trick via frontend? No, necesitamos endpoint.
-           // API no tiene endpoint directo para "listar todas las tareas de un form". 
-           // Pero podemos usar listarImagenes o agregar case en API. 
-           // Wait, handleObtenerEstadoUsuario lee tareas.json.
-           // Pero instructor necesita ver TODOS.
-           // Necesitamos leer tareas.json directamente.
-           // Como no puedo editar API ahora facil (bueno si puedo), usaré un truco:
-           // No, MEJOR: Editar API para tener 'listarTareas' o usar 'verRespuestas' y enriquecerlo.
-           
-           // Voy a usar un endpoint genérico de lectura si es posible o agregar una action rápida al API.
-           // Agregaré 'listarEntregas' al API en el next step si falla.
-           // Probemos si puedo leer via GitHub API raw si es publico? No, es privado el repo.
-           
-           // Hack: Usar 'verRespuestas' y asumir que tareas.json está accesible publicamente si el token lo permite? NO.
-           
-           // NECESITO EDITAR api/formulario.js para añadir 'listarEntregas'.
-           // Lo haré después. Por ahora simulo UI.
-           
-           // Asumiremos que he creado la funcion en API.
+           // ... obtener datos ...
            const res = await fetch(`/api/formulario?action=listarEntregas&id=${formId}`); 
-           // Nota: 'listarEntregas' no existe aun, daría 400.
-           // Voy a crearla a continuacion.
            
            if(res.ok) {
-               entregasCurrentForm = await res.json();
+               const data = await res.json();
+               entregasCurrentForm = data;
+               window.datosEntregasGlobal = data; // GUARDAR EN GLOBAL EXPLICITO
+               console.log("✅ [DEBUG] Datos cargados en window.datosEntregasGlobal:", Object.keys(data).length);
                renderTablaEntregas();
            } else {
-               // Fallback si no existe la action aun
-               container.innerHTML = '<p style="color:red">Error: Falta implementar endpoint listarEntregas.</p>';
+               container.innerHTML = '<p style="color:red">Error cargando entregas.</p>';
            }
-
       } catch(e) {
           container.innerHTML = `<p style="color:red">Error: ${e.message}</p>`;
       }
@@ -9043,76 +9026,7 @@ const diffMins = Math.floor(diffMs / 60000);
       }
   };
 
-  // Cargar lista de entregas para el panel izquierdo
-  window.cargarEntregasParaSelector = async function(formId) {
-      const container = document.getElementById('listaEntregasContainer');
-      container.innerHTML = '<div style="text-align:center; padding:20px;">Cargando entregas...</div>';
-      
-      currentEvaluandoFormId = formId; 
-      currentEntregasData = {};
-
-      try {
-           const r = await fetch(`/api/formulario?action=listarEntregas&id=${formId}`);
-           if(!r.ok) throw new Error("Error fetching entregas");
-           currentEntregasData = await r.json();
-
-           const entregas = Object.entries(currentEntregasData);
-           
-           if(entregas.length === 0) {
-               container.innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;">No hay entregas recibidas aún.</div>';
-               return;
-           }
-
-           container.innerHTML = '';
-           const ul = document.createElement('div');
-           ul.style.display = 'flex';
-           ul.style.direction = 'column';
-           ul.style.gap = '5px';
-
-           entregas.forEach(([alumnoId, data]) => {
-               const item = document.createElement('div');
-               item.style.padding = '10px';
-               item.style.borderBottom = '1px solid var(--border-color)';
-               item.style.cursor = 'pointer';
-               item.style.display = 'flex';
-               item.style.justifyContent = 'space-between';
-               item.style.alignItems = 'center';
-               item.className = 'entrega-item'; // Para estilos hover si tuviera css
-               item.onmouseover = () => item.style.background = 'rgba(255,255,255,0.05)';
-               item.onmouseout = () => item.style.background = 'transparent';
-
-               // Estado
-               let estadoIcon = '<i class="fas fa-clock" style="color:orange;"></i>';
-               if(data.estado === 'calificado') {
-                   estadoIcon = `<i class="fas fa-check-circle" style="color:var(--success-color);"></i> [${data.nota}]`;
-               }
-
-               item.innerHTML = `
-                  <div style="font-weight:500;">
-                     <div>${alumnoId.length > 20 ? alumnoId.substring(0,18)+'...' : alumnoId}</div>
-                     <div style="font-size:11px; color:#aaa;">${new Date(data.fecha).toLocaleDateString()}</div>
-                  </div>
-                  <div>${estadoIcon}</div>
-               `;
-               
-               item.onclick = () => verTareaAlumno(alumnoId, data);
-               container.appendChild(item);
-           });
-
-      } catch(e) {
-          container.innerHTML = `<div style="text-align:center; color:red; padding:20px;">Error: ${e.message}</div>`;
-      }
-  };
-  
-  window.verTareaAlumno = function(alumnoId, data) {
-      currentEvaluandoId = alumnoId;
-      document.getElementById('visorPDFContainer').innerHTML = `
-          <iframe src="${data.url}" style="width:100%; height:100%; border:none; min-height:500px;"></iframe>
-      `;
-      document.getElementById('labelAlumnoActual').textContent = `Alumno: ${alumnoId}`;
-      document.getElementById('panelCalificacionIndividual').style.display = 'block';
-      document.getElementById('inputNotaIndividual').value = data.nota || '';
-  };
+  // (Función cargarEntregasParaSelector eliminada para usar el alias global vinculado a cargarEntregasInstructor y window.datosEntregasGlobal)
   
   // Guardar Calificación (Individual)
   // Guardar Calificación (Individual - ACTUALIZADO: Guarda solo localmente y prepara para envío masivo)
@@ -9145,24 +9059,18 @@ const diffMins = Math.floor(diffMs / 60000);
   // Función GLOBAL para enviar notas masivas (Solo las calificadas)
   // Función GLOBAL para enviar notas masivas (Solo las calificadas)
   window.enviarNotasBackend = async function() {
-      // Unificación de variables: Intentar usar entregasCurrentForm (legacy/alias) si currentEntregasData está vacía
-      let dataToUse = currentEntregasData;
-      if (!dataToUse || Object.keys(dataToUse).length === 0) {
-          if (typeof entregasCurrentForm !== 'undefined' && Object.keys(entregasCurrentForm).length > 0) {
-              dataToUse = entregasCurrentForm;
-              console.log("🔄 [DEBUG] Usando entregasCurrentForm en lugar de currentEntregasData");
-          }
-      }
-
-      console.log("🚀 [DEBUG] Intentando enviar notas...", Object.keys(dataToUse || {}).length);
+      // Usar variable global unificada explícita
+      const dataToUse = window.datosEntregasGlobal;
+      console.log("🚀 [DEBUG] Intentando enviar notas (GLOBAL)...");
+      console.log("📦 [DEBUG] window.datosEntregasGlobal:", dataToUse);
       
       if(!dataToUse || Object.keys(dataToUse).length === 0) {
-          console.error("❌ [DEBUG] No hay datos en ninguna variable");
-          alert("No hay datos cargados en memoria. Por favor, selecciona el formulario nuevamente para recargar.");
+          console.error("❌ [DEBUG] No hay datos en window.datosEntregasGlobal");
+          alert("No hay datos cargados. Por favor, selecciona el formulario nuevamente para recargar.");
           return;
       }
       
-      // Filtrar solo las que tienen nota (calificados)
+      // Filtrar solo las que tienen nota
       const notasAEnviar = {};
       let count = 0;
       
@@ -9190,8 +9098,8 @@ const diffMins = Math.floor(diffMs / 60000);
            const originalText = guardarBtn ? guardarBtn.innerHTML : '';
            if(guardarBtn) guardarBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
            
-           // Usar el ID correcto (puede estar en diferentes variables según qué función cargó los datos)
-           const formId = currentEvaluandoFormId || currentEvalFormId;
+           // Usar el ID global
+           const formId = window.currentGlobalFormId || currentEvalFormId;
            
            const resp = await fetch('/api/formulario?action=calificarTareas', {
               method: 'POST',

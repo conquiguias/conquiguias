@@ -8159,7 +8159,7 @@ const diffMins = Math.floor(diffMs / 60000);
                   </div>
               </div>
 
-              <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; min-height: 500px;">
+              <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; min-height: 500px;">
                   <div style="background: var(--bg-card); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color);">
                       <h4 style="margin-bottom: 15px; color: var(--text-primary);">Lista</h4>
                       <div id="listaEntregasContainer" style="max-height: 600px; overflow-y: auto;">
@@ -8354,16 +8354,6 @@ const diffMins = Math.floor(diffMs / 60000);
       }
       
       let html = `
-          <div style="display:flex; justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:10px;">
-              <div style="display:flex; gap:10px;">
-                  <button onclick="enviarNotasBackend()" style="background:#10B981; color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;" title="Envía las notas al servidor y las hace públicas">
-                      <i class="fas fa-cloud-upload-alt"></i> Guardar y Publicar Notas
-                  </button>
-              </div>
-              <button onclick="eliminarTareasCalificadas()" style="background:#EF4444; color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer;">
-                  <i class="fas fa-trash-alt"></i> Limpiar PDFs Calificados
-              </button>
-          </div>
           <table style="width:100%; border-collapse:collapse; background:var(--bg-card); border-radius:8px; overflow:hidden;">
           <thead style="background:rgba(59,130,246,0.1);">
               <tr>
@@ -8383,12 +8373,10 @@ const diffMins = Math.floor(diffMs / 60000);
                   <td style="padding:12px;">${vid}</td>
                   <td style="padding:12px;">${new Date(data.fecha).toLocaleString()}</td>
                   <td style="padding:12px;">${data.estado}</td>
-                  <td style="padding:12px;">
-                      <input type="number" 
-                             value="${data.nota || ''}" 
-                             onchange="actualizarNotaLocal('${vid}', this.value)"
-                             placeholder="Nota"
-                             style="width:80px; padding:8px; border-radius:4px; border:1px solid #555; background:var(--bg-primary); color:var(--text-primary);">
+                  <td style="padding:12px; text-align:center;">
+                      <span id="nota-display-${vid}" style="display:inline-block; min-width:50px; padding:6px 12px; background:rgba(59,130,246,0.1); border-radius:4px; font-weight:600; color:var(--text-primary);">
+                          ${data.nota || '—'}
+                      </span>
                   </td>
                   <td style="padding:12px; text-align:center;">
                       <button onclick='abrirEvaluador("${vid}", ${JSON.stringify(data).replace(/'/g, "&#39;")})' 
@@ -8413,6 +8401,13 @@ const diffMins = Math.floor(diffMs / 60000);
   window.actualizarNotaLocal = function(vid, valor) {
       if(!entregasCurrentForm[vid]) return;
       entregasCurrentForm[vid].nota = valor;
+      
+      // Actualizar el span de la tabla si existe
+      const spanDisplay = document.getElementById(`nota-display-${vid}`);
+      if(spanDisplay) {
+          spanDisplay.textContent = valor || '—';
+      }
+      
       // Guardar en pending
       const pending = JSON.parse(localStorage.getItem(`notas_pendientes_${currentEvalFormId}`) || '[]');
       const idx = pending.findIndex(x => x.visitanteId === vid);
@@ -8424,11 +8419,15 @@ const diffMins = Math.floor(diffMs / 60000);
   window.abrirEvaluador = function(vid, data) {
       document.getElementById('panelCalificacionIndividual').style.display = 'flex';
       document.getElementById('labelAlumnoActual').textContent = vid;
-      document.getElementById('inputNotaIndividual').value = data.nota || '';
-      document.getElementById('inputNotaIndividual').onchange = (e) => actualizarNotaLocal(vid, e.target.value);
+      const inputNota = document.getElementById('inputNotaIndividual');
+      inputNota.value = data.nota || '';
       
-      // Iframe PDF
-      document.getElementById('visorPDFContainer').innerHTML = `<iframe src="${data.url}" style="width:100%; height:100%; border:none;"></iframe>`;
+      // Configurar el onchange para actualizar tanto localStorage como el span de la tabla
+      inputNota.onchange = (e) => actualizarNotaLocal(vid, e.target.value);
+      
+      // Iframe PDF con Google Docs Viewer para forzar visualización
+      const pdfUrl = encodeURIComponent(data.url);
+      document.getElementById('visorPDFContainer').innerHTML = `<iframe src="https://docs.google.com/viewer?url=${pdfUrl}&embedded=true" style="width:100%; height:100%; border:none;"></iframe>`;
   };
   
   window.cerrarCalificador = function() {

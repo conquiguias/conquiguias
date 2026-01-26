@@ -383,6 +383,15 @@
       transform: translateY(-2px);
     }
 
+    /* FIX SCROLL */
+    #instructorSection, #main-content, .view-section {
+        overflow-y: auto;
+        flex: 1; /* Ocupar espacio restante */
+        height: 100vh; /* Asegurar altura completa */
+        box-sizing: border-box;
+        padding-bottom: 80px; /* Margen extra para ver el final */
+    }
+
     /* Listas de archivos y especialidades */
     ul {
       list-style: none;
@@ -8186,8 +8195,8 @@ const diffMins = Math.floor(diffMs / 60000);
                       <button onclick="enviarNotasBackend()" style="padding: 10px 20px; background: var(--success-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
                           <i class="fas fa-save"></i> Enviar Notas
                       </button>
-                      <button onclick="eliminarTareasCalificadas()" style="padding: 10px 20px; background: var(--error-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
-                          <i class="fas fa-trash"></i> Eliminar PDFs Calificados (Limpiar)
+                      <button onclick="document.getElementById('sectionAlmacenamientoPDFs').scrollIntoView({behavior: 'smooth'})" style="padding: 10px 20px; background: var(--warning-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                          <i class="fas fa-trash-alt"></i> Gestión de Almacenamiento (Limpiar)
                       </button>
                   </div>
               </div>
@@ -8215,7 +8224,7 @@ const diffMins = Math.floor(diffMs / 60000);
               </div>
 
               <!-- GESTIÓN DE ALMACENAMIENTO (PDFs) -->
-              <div style="background: var(--bg-card); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); margin-top: 20px;">
+              <div id="sectionAlmacenamientoPDFs" style="background: var(--bg-card); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); margin-top: 20px;">
                   <h4 style="margin-bottom: 10px; color: var(--error-color); display:flex; justify-content:space-between; align-items:center;">
                       <span><i class="fas fa-trash-alt"></i> Gestión de Almacenamiento Temporal (PDFs)</span>
                       <span id="infoTotalSize" style="font-size:14px; font-weight:normal; color:var(--text-secondary);">Calculando...</span>

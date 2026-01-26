@@ -7720,6 +7720,7 @@ const diffMins = Math.floor(diffMs / 60000);
     
     // Inicializar panel instructor
     function inicializarPanelInstructor() {
+        console.log("🔧 [DEBUG] inicializarPanelInstructor() ORIGINAL llamada, isAdmin:", isAdmin);
         if(isAdmin) {
             cargarFormulariosInstructor();
             cargarImagenesInstructor('especialidades', 'selectEspecialidad');
@@ -8730,7 +8731,11 @@ const diffMins = Math.floor(diffMs / 60000);
   // Reemplaza la inicialización original para forzar el uso de la TABLA en lugar del SELECTOR
 
   window.inicializarPanelInstructor = function() {
-      if(!isAdmin) return;
+      console.log("🔄 [DEBUG] inicializarPanelInstructor() OVERRIDE ejecutada, isAdmin:", isAdmin);
+      if(!isAdmin) {
+          console.warn("⚠️ [DEBUG] Usuario no es admin, cancelando inicialización");
+          return;
+      }
       
       console.log("🚀 Inicializando Panel Instructor con Dashboard de Evaluación...");
 
@@ -8748,9 +8753,17 @@ const diffMins = Math.floor(diffMs / 60000);
       const tabEvaluar = document.getElementById('tabInstructorEvaluar');
       const viewCrear = document.getElementById('viewCrearFormulario');
       
+      console.log("🔍 [DEBUG] Tabs encontradas:", {
+          tabCrear: !!tabCrear,
+          tabEvaluar: !!tabEvaluar,
+          viewCrear: !!viewCrear
+      });
+      
       // Asegurar que exista el contenedor de evaluación
       let viewEvaluar = document.getElementById('viewEvaluarTareas');
+      console.log("🔍 [DEBUG] viewEvaluarTareas existe:", !!viewEvaluar);
       if (!viewEvaluar) {
+          console.log("📝 [DEBUG] Creando viewEvaluarTareas dinámicamente...");
           viewEvaluar = document.createElement('div');
           viewEvaluar.id = 'viewEvaluarTareas';
           viewEvaluar.style.display = 'none'; // Oculto por defecto
@@ -8815,7 +8828,9 @@ const diffMins = Math.floor(diffMs / 60000);
       `;
 
       // 4. Lógica de cambio de Pestañas
+      console.log("🔧 [DEBUG] Configurando listeners de pestañas...");
       if(tabCrear && tabEvaluar) {
+          console.log("✅ [DEBUG] Tabs existen, configurando eventos...");
           // Reemplazo limpio de listeners
           const newTabCrear = tabCrear.cloneNode(true);
           const newTabEvaluar = tabEvaluar.cloneNode(true);
@@ -8838,6 +8853,8 @@ const diffMins = Math.floor(diffMs / 60000);
               
               cargarTablaEspecialidadesParaEvaluar();
           });
+          
+          console.log("✅ [DEBUG] Listeners de pestañas configurados correctamente");
           
           // INIT SELECT LISTENER
            const select = document.getElementById('selectFiltroEvaluacion');

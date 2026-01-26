@@ -3,8 +3,8 @@
 export default async function handler(req, res) {
   const { action } = req.query;
 
-  // Configuración común
-  const repo = "conquiguias/conquiguias";
+  // Configuración común - Repositorio SOLO para datos (evita deploys en Vercel)
+  const repo = "conquiguias/conquiguias-data";
 
   try {
     switch (action) {

@@ -75,7 +75,6 @@ export default async function handler(req, res) {
       case "obtenerEstadoUsuario":
         await handleObtenerEstadoUsuario(req, res, repo);
         break;
-        break;
 
       case "eliminarImagen":
         await handleEliminarImagen(req, res, repo);
@@ -1454,24 +1453,6 @@ async function handleObtenerEstadoUsuario(req, res, repo) {
       );
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: err.message });
-  }
-}
-// Handler para listar entregas (Instructor)
-async function handleListarEntregas(req, res, repo) {
-  const { id } = req.query;
-  if (!id) return res.status(400).json({ error: "ID faltante" });
-  const pathMeta = `evaluaciones/${id}/tareas.json`;
-  try {
-    const resp = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${pathMeta}?ref=main`,
-      { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
-    );
-    if (!resp.ok) return res.status(200).json({});
-    const data = await resp.json();
-    const tareas = JSON.parse(Buffer.from(data.content, "base64").toString());
-    res.status(200).json(tareas);
-  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 }

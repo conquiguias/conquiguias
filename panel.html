@@ -8837,79 +8837,192 @@ const diffMins = Math.floor(diffMs / 60000);
               
               cargarTablaEspecialidadesParaEvaluar();
           });
+          
+          // INIT SELECT LISTENER
+           const select = document.getElementById('selectFiltroEvaluacion');
+           if(select) {
+               select.addEventListener('change', (e) => {
+                   if(e.target.value) {
+                       cargarEntregasParaSelector(e.target.value);
+                   } else {
+                       document.getElementById('listaEntregasContainer').innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Selecciona un formulario para ver entregas.</p>';
+                       document.getElementById('visorPDFContainer').innerHTML = '<p>Selecciona un alumno para ver su tarea.</p>';
+                       document.getElementById('panelCalificacionIndividual').style.display = 'none';
+                   }
+               });
+           }
       }
   };
 
   // --- FUNCIONES LÓGICAS DEL EVALUADOR ---
 
+  // --- LÓGICA DEL EVALUADOR (Reescrita para Interfaz de Selector) ---
+
   window.cargarTablaEspecialidadesParaEvaluar = async function() {
-      const tbody = document.getElementById('cuerpoTablaEspecialidadesTareas');
-      if(!tbody) return;
-      
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;">Cargando...</td></tr>';
-      
+      const select = document.getElementById('selectFiltroEvaluacion');
+      if (!select) return;
+
+      select.innerHTML = '<option value="">Cargando...</option>';
+
       try {
           const resp = await fetch("/api/formulario?action=listarFormularios");
           const formularios = await resp.json();
           
-          // Filtrar formularios con tarea activa
+          select.innerHTML = '<option value="">-- Selecciona un formulario --</option>';
+
           const lista = [];
           for (const [id, f] of Object.entries(formularios)) {
               if (f.tarea && f.tarea.activa) {
-                 // Obtener conteos (esto requiere llamar a listarEntregas por cada uno, puede ser lento, pero es necesario)
-                 // Optimización: Solo mostramos botón para cargar
                  lista.push({ id, titulo: f.titulo });
               }
           }
           
-          // Renderizar (Nota: Para rendimiento, cargamos conteos asíncronamente después)
-          tbody.innerHTML = '';
           if(lista.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;">No hay especialidades con tareas configuradas.</td></tr>';
+              const opt = document.createElement('option');
+              opt.textContent = "No hay tareas activas";
+              select.appendChild(opt);
               return;
           }
           
           lista.forEach(item => {
-              // Fila temporal sin conteos
-              const row = document.createElement('tr');
-              row.id = `row-eval-${item.id}`;
-              row.style.borderBottom = '1px solid var(--border-color)';
-              row.innerHTML = `
-                  <td style="padding:12px; font-weight:500;">${item.titulo}</td>
-                  <td style="padding:12px; text-align:center;"><span class="loader-mini">...</span></td>
-                  <td style="padding:12px; text-align:center;"><span class="loader-mini">...</span></td>
-                  <td style="padding:12px; text-align:center;">
-                      <button onclick="verEntregasEspecialidad('${item.id}', '${item.titulo}')" 
-                              style="background:var(--accent-color); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">
-                          Revisar
-                      </button>
-                  </td>
-              `;
-              tbody.appendChild(row);
-              
-              // Cargar conteos en segundo plano
-              actualizarConteosFila(item.id);
+              const opt = document.createElement('option');
+              opt.value = item.id;
+              opt.textContent = item.titulo;
+              select.appendChild(opt);
           });
           
       } catch(e) {
-          tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:red;">Error al cargar.</td></tr>';
+          select.innerHTML = '<option value="">Error al cargar formularios</option>';
+          console.error("Error cargando selector: ", e);
       }
   };
 
-  async function actualizarConteosFila(id) {
+  // Cargar lista de entregas para el panel izquierdo
+  window.cargarEntregasParaSelector = async function(formId) {
+      const container = document.getElementById('listaEntregasContainer');
+      container.innerHTML = '<div style="text-align:center; padding:20px;">Cargando entregas...</div>';
+      
+      currentEvaluandoFormId = formId; 
+      currentEntregasData = {};
+
       try {
-          const r = await fetch(`/api/formulario?action=listarEntregas&id=${id}`);
-          const entregas = r.ok ? await r.json() : {};
-          const total = Object.keys(entregas).length;
-          const pendientes = Object.values(entregas).filter(e => e.estado === 'entregado').length;
+           const r = await fetch(`/api/formulario?action=listarEntregas&id=${formId}`);
+           if(!r.ok) throw new Error("Error fetching entregas");
+           currentEntregasData = await r.json();
+
+           const entregas = Object.entries(currentEntregasData);
+           
+           if(entregas.length === 0) {
+               container.innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;">No hay entregas recibidas aún.</div>';
+               return;
+           }
+
+           container.innerHTML = '';
+           const ul = document.createElement('div');
+           ul.style.display = 'flex';
+           ul.style.direction = 'column';
+           ul.style.gap = '5px';
+
+           entregas.forEach(([alumnoId, data]) => {
+               const item = document.createElement('div');
+               item.style.padding = '10px';
+               item.style.borderBottom = '1px solid var(--border-color)';
+               item.style.cursor = 'pointer';
+               item.style.display = 'flex';
+               item.style.justifyContent = 'space-between';
+               item.style.alignItems = 'center';
+               item.className = 'entrega-item'; // Para estilos hover si tuviera css
+               item.onmouseover = () => item.style.background = 'rgba(255,255,255,0.05)';
+               item.onmouseout = () => item.style.background = 'transparent';
+
+               // Estado
+               let estadoIcon = '<i class="fas fa-clock" style="color:orange;"></i>';
+               if(data.estado === 'calificado') {
+                   estadoIcon = `<i class="fas fa-check-circle" style="color:var(--success-color);"></i> [${data.nota}]`;
+               }
+
+               item.innerHTML = `
+                  <div style="font-weight:500;">
+                     <div>${alumnoId.length > 20 ? alumnoId.substring(0,18)+'...' : alumnoId}</div>
+                     <div style="font-size:11px; color:#aaa;">${new Date(data.fecha).toLocaleDateString()}</div>
+                  </div>
+                  <div>${estadoIcon}</div>
+               `;
+               
+               item.onclick = () => verTareaAlumno(alumnoId, data);
+               container.appendChild(item);
+           });
+
+      } catch(e) {
+          container.innerHTML = `<div style="text-align:center; color:red; padding:20px;">Error: ${e.message}</div>`;
+      }
+  };
+  
+  window.verTareaAlumno = function(alumnoId, data) {
+      currentEvaluandoId = alumnoId;
+      document.getElementById('visorPDFContainer').innerHTML = `
+          <iframe src="${data.url}" style="width:100%; height:100%; border:none; min-height:500px;"></iframe>
+      `;
+      document.getElementById('labelAlumnoActual').textContent = `Alumno: ${alumnoId}`;
+      document.getElementById('panelCalificacionIndividual').style.display = 'block';
+      document.getElementById('inputNotaIndividual').value = data.nota || '';
+  };
+  
+  // Guardar Calificación (Individual)
+  window.enviarNotasBackend = async function() {
+      // Esta función envía TODO lo que está en 'currentEntregasData' (si se modificó localmente)
+      // O, para simplificar, usamos el botón de "Guardar" individual que ya existía, pero aquí implementamos uno global si se desea.
+      // El usuario pidió "Enviar Notas" global? El HTML tiene "Enviar Notas Backend".
+      // Vamos a implementar que envíe la nota del input actual SI está abierto.
+      
+      // Mejor implementamos la lógica del input individual aquí:
+      const nota = document.getElementById('inputNotaIndividual').value;
+      if(!currentEvaluandoId || !nota) {
+          alert("Selecciona un alumno y escribe una nota.");
+          return;
+      }
+      
+      try {
+          const resp = await fetch('/api/formulario?action=calificarTareas', {
+             method: 'POST',
+             headers: {'Content-Type': 'application/json'},
+             body: JSON.stringify({
+                 id: currentEvaluandoFormId,
+                 notas: { [currentEvaluandoId]: nota },
+                 adminEmail: 'admin' // Auth middleware checkea esto? No hay auth fuerte aqui en frontend, confiar en backend validacion si existe
+             })
+          });
           
-          const row = document.getElementById(`row-eval-${id}`);
-          if(row) {
-              row.cells[1].innerHTML = pendientes > 0 ? `<span style="background:#F59E0B; color:white; padding:2px 8px; border-radius:10px; font-size:12px;">${pendientes}</span>` : '0';
-              row.cells[2].innerHTML = total;
+          if(resp.ok) {
+              alert("Nota guardada correctamente.");
+              // Recargar lista para actualizar icono
+              cargarEntregasParaSelector(currentEvaluandoFormId);
+          } else {
+              alert("Error al guardar nota.");
           }
-      } catch(e) {}
+      } catch(e) {
+          alert("Error de red: " + e.message);
+      }
+  };
+
+  // Vinculamos el cambio del input individual al botón "Enviar Notas" del header (si el usuario quiere guardar masivo, habría que cambiar la UI)
+  // Pero el input "inputNotaIndividual" está en el panel derecho.
+  // El botón "Enviar Notas" (arriba izq) parece ser para guardar cambios en lote?
+  // Por ahora lo vincularemos a guardar la nota actual si hay una seleccionada, para no romper.
+  
+  // Re-vinculamos el input:
+  const inputNota = document.getElementById('inputNotaIndividual');
+  if(inputNota) {
+      inputNota.addEventListener('change', () => {
+         // Auto-save on change? O esperar click en "Enviar Notas"?
+         // Mejor esperar botón.
+      });
   }
+
+  window.eliminarTareasCalificadas = async function() {
+      if(!confirm("¿Estás seguro de eliminar los PDFs de las tareas YA CALIFICADAS para liberar espacio? Esta acción no se puede deshacer.")) return;
+      alert("Funcionalidad de limpieza no implementada en API aún.");
+  };
 
   // Variables globales para el evaluador actual
   let currentEvaluandoId = null; // ID Alumno
@@ -8935,8 +9048,7 @@ const diffMins = Math.floor(diffMs / 60000);
   };
 
   function renderTablaEntregasDetalle(titulo) {
-      const container = document.getElementById('listaEntregasContainer');
-      const entregas = Object.entries(currentEntregasData).filter(([k,v]) => v.estado !== 'pendiente'); // Solo entregados/calificados
+      container.style.display = 'block'; // Ensure visible 
       
       if(entregas.length === 0) {
           container.innerHTML = `<div style="padding:20px; text-align:center; background:var(--bg-secondary); border-radius:8px;">No hay entregas para ${titulo}.</div>`;

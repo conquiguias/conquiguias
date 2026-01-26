@@ -97,12 +97,12 @@ export default async function handler(req, res) {
 
 // Helper para manejar concurrencia y reintentos en GitHub
 async function updateGitHubJSON(repo, path, message, updateFn, retries = 7) {
-  const BRANCH = "data"; // Usar rama 'data' para almacenamiento silencioso
+  const BRANCH = "main"; // Usar rama 'main' del repositorio de datos
 
   for (let i = 0; i < retries; i++) {
     try {
       const resp = await fetch(
-        `https://api.github.com/repos/${repo}/contents/${path}?ref=${BRANCH}`, // Leer de 'data'
+        `https://api.github.com/repos/${repo}/contents/${path}?ref=${BRANCH}`, // Leer de 'main'
         {
           headers: {
             Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -145,7 +145,7 @@ async function updateGitHubJSON(repo, path, message, updateFn, retries = 7) {
           body: JSON.stringify({
             message,
             content: encoded,
-            branch: BRANCH, // Guardar en 'data'
+            branch: BRANCH, // Guardar en 'main'
             ...(sha && { sha }),
           }),
         },
@@ -268,7 +268,7 @@ async function handleGuardar(req, res, repo) {
   // 1. Verificar si la asistencia está activa (Server-side check)
   try {
     const respForm = await fetch(
-      `https://api.github.com/repos/${repo}/contents/data/formularios.json?ref=data`,
+      `https://api.github.com/repos/${repo}/contents/data/formularios.json?ref=main`,
       {
         headers: {
           Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -597,7 +597,7 @@ async function handleLimpiarFormulariosVencidos(req, res, repo) {
     // Cargar formulario.json
     // Cargar formularios.json usando la rama data
     const respuesta = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${archivoFormularios}?ref=data`,
+      `https://api.github.com/repos/${repo}/contents/${archivoFormularios}?ref=main`,
       {
         headers: {
           Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -667,7 +667,7 @@ async function handleLimpiarFormulariosVencidos(req, res, repo) {
       const ruta = `respuestas/${id}/respuestas.json`;
 
       const archivoRes = await fetch(
-        `https://api.github.com/repos/${repo}/contents/${ruta}?ref=data`,
+        `https://api.github.com/repos/${repo}/contents/${ruta}?ref=main`,
         {
           headers: {
             Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -687,7 +687,7 @@ async function handleLimpiarFormulariosVencidos(req, res, repo) {
           body: JSON.stringify({
             message: `[skip vercel] ⏳ Eliminar respuestas de formulario vencido ${id}`,
             sha: datosArchivo.sha,
-            branch: "data",
+            branch: "main",
           }),
         });
       }
@@ -711,7 +711,7 @@ async function handleListarFormularios(req, res, repo) {
 
   try {
     const respuesta = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${archivo}?ref=data`,
+      `https://api.github.com/repos/${repo}/contents/${archivo}?ref=main`,
       {
         headers: {
           Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -746,7 +746,7 @@ async function handleListarImagenes(req, res, repo) {
 
   try {
     const respuesta = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${ruta}?ref=data`,
+      `https://api.github.com/repos/${repo}/contents/${ruta}?ref=main`,
       {
         headers: {
           Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -793,7 +793,7 @@ async function handleObtenerEvaluacion(req, res, repo) {
 
   try {
     const respuesta = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${archivo}?ref=data`,
+      `https://api.github.com/repos/${repo}/contents/${archivo}?ref=main`,
       {
         headers: {
           Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -850,7 +850,7 @@ async function handleObtenerFormulario(req, res, repo) {
 
   try {
     const respuesta = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${archivo}?ref=data`,
+      `https://api.github.com/repos/${repo}/contents/${archivo}?ref=main`,
       {
         headers: {
           Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -913,7 +913,7 @@ async function handleSubirImagen(req, res, repo) {
   try {
     // 1. Verificar si existe para obtener SHA (para sobrescritura)
     const verificar = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${path}?ref=data&t=${Date.now()}`,
+      `https://api.github.com/repos/${repo}/contents/${path}?ref=main&t=${Date.now()}`,
       {
         headers: {
           Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -941,15 +941,15 @@ async function handleSubirImagen(req, res, repo) {
         body: JSON.stringify({
           message: `[skip vercel] Subir imagen: ${nombre} en ${carpeta}`,
           content: contenido,
-          branch: "data",
+          branch: "main",
           ...(sha && { sha }), // Incluir SHA si existe para hacer update
         }),
       },
     );
 
     if (guardar.ok) {
-      // Usar raw.githubusercontent para asegurar que se sirve desde data
-      const urlImagen = `https://raw.githubusercontent.com/${repo}/data/${path}`;
+      // Usar raw.githubusercontent para asegurar que se sirve desde main
+      const urlImagen = `https://raw.githubusercontent.com/${repo}/main/${path}`;
 
       res.status(200).json({
         ok: true,
@@ -980,7 +980,7 @@ async function handleVerRespuestas(req, res, repo) {
 
   try {
     const respuesta = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${archivo}?ref=data`,
+      `https://api.github.com/repos/${repo}/contents/${archivo}?ref=main`,
       {
         headers: {
           Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -1000,7 +1000,7 @@ async function handleVerRespuestas(req, res, repo) {
     let resultadosExamen = [];
     try {
       const resExamen = await fetch(
-        `https://api.github.com/repos/${repo}/contents/evaluaciones/${id}/resultados.json?ref=data`,
+        `https://api.github.com/repos/${repo}/contents/evaluaciones/${id}/resultados.json?ref=main`,
         {
           headers: {
             Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -1076,7 +1076,7 @@ async function handleEliminarFormulario(req, res, repo) {
     for (const ruta of rutasBorrar) {
       try {
         const archivoRes = await fetch(
-          `https://api.github.com/repos/${repo}/contents/${ruta}?ref=data`,
+          `https://api.github.com/repos/${repo}/contents/${ruta}?ref=main`,
           {
             headers: {
               Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -1096,7 +1096,7 @@ async function handleEliminarFormulario(req, res, repo) {
             body: JSON.stringify({
               message: `[skip vercel] Eliminar datos asociados a formulario ${id}`,
               sha: datos.sha,
-              branch: "data",
+              branch: "main",
             }),
           });
         }
@@ -1133,7 +1133,7 @@ async function handleEliminarImagen(req, res, repo) {
   try {
     // Obtener SHA del archivo
     const getRes = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${ruta}?ref=data&t=${Date.now()}`,
+      `https://api.github.com/repos/${repo}/contents/${ruta}?ref=main&t=${Date.now()}`,
       {
         headers: {
           Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -1162,7 +1162,7 @@ async function handleEliminarImagen(req, res, repo) {
         body: JSON.stringify({
           message: `[skip vercel] Eliminar imagen ${nombre}`,
           sha: data.sha,
-          branch: "data",
+          branch: "main",
         }),
       },
     );
@@ -1198,7 +1198,7 @@ async function handleSubirTarea(req, res, repo) {
 
   try {
     const checkPDF = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${pathPDF}?ref=data`,
+      `https://api.github.com/repos/${repo}/contents/${pathPDF}?ref=main`,
       { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
     );
     let shaPDF = null;
@@ -1218,7 +1218,7 @@ async function handleSubirTarea(req, res, repo) {
         body: JSON.stringify({
           message: `[skip vercel] Tarea entregada: ${visitanteId}`,
           content: contenido,
-          branch: "data",
+          branch: "main",
           ...(shaPDF && { sha: shaPDF }),
         }),
       },
@@ -1235,7 +1235,7 @@ async function handleSubirTarea(req, res, repo) {
         tareas[visitanteId] = {
           estado: "entregado",
           fecha: new Date().toISOString(),
-          url: `https://raw.githubusercontent.com/${repo}/data/${pathPDF}`,
+          url: `https://raw.githubusercontent.com/${repo}/main/${pathPDF}`,
           nota: null,
         };
         return tareas;
@@ -1286,7 +1286,7 @@ async function handleEliminarTareasPDF(req, res, repo) {
   const pathMeta = `evaluaciones/${id}/tareas.json`;
   try {
     const resp = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${pathMeta}?ref=data`,
+      `https://api.github.com/repos/${repo}/contents/${pathMeta}?ref=main`,
       { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
     );
     if (!resp.ok)
@@ -1301,7 +1301,7 @@ async function handleEliminarTareasPDF(req, res, repo) {
     for (const vid of eliminables) {
       const pathPDF = `tareas_files/${id}/${vid}.pdf`;
       const check = await fetch(
-        `https://api.github.com/repos/${repo}/contents/${pathPDF}?ref=data`,
+        `https://api.github.com/repos/${repo}/contents/${pathPDF}?ref=main`,
         { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
       );
       if (check.ok) {
@@ -1317,7 +1317,7 @@ async function handleEliminarTareasPDF(req, res, repo) {
             body: JSON.stringify({
               message: `[skip vercel] Limpieza PDF tarea ${vid}`,
               sha: d.sha,
-              branch: "data",
+              branch: "main",
             }),
           },
         );
@@ -1342,7 +1342,7 @@ async function handleObtenerEstadoUsuario(req, res, repo) {
   const archivoForms = `data/formularios.json`;
   try {
     const rForms = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${archivoForms}?ref=data`,
+      `https://api.github.com/repos/${repo}/contents/${archivoForms}?ref=main`,
       { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
     );
     if (!rForms.ok) return res.status(200).json([]);
@@ -1359,7 +1359,7 @@ async function handleObtenerEstadoUsuario(req, res, repo) {
 
       try {
         const rAsist = await fetch(
-          `https://api.github.com/repos/${repo}/contents/respuestas/${id}/respuestas.json?ref=data`,
+          `https://api.github.com/repos/${repo}/contents/respuestas/${id}/respuestas.json?ref=main`,
           { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
         );
         if (rAsist.ok) {
@@ -1409,7 +1409,7 @@ async function handleObtenerEstadoUsuario(req, res, repo) {
       if (form.tarea && form.tarea.activa) {
         try {
           const rTarea = await fetch(
-            `https://api.github.com/repos/${repo}/contents/evaluaciones/${id}/tareas.json?ref=data`,
+            `https://api.github.com/repos/${repo}/contents/evaluaciones/${id}/tareas.json?ref=main`,
             { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
           );
           if (rTarea.ok) {
@@ -1434,7 +1434,7 @@ async function handleObtenerEstadoUsuario(req, res, repo) {
       if (form.tieneEvaluacion) {
         try {
           const rExamen = await fetch(
-            `https://api.github.com/repos/${repo}/contents/evaluaciones/${id}/resultados.json?ref=data`,
+            `https://api.github.com/repos/${repo}/contents/evaluaciones/${id}/resultados.json?ref=main`,
             { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
           );
           if (rExamen.ok) {
@@ -1479,7 +1479,7 @@ async function handleListarEntregas(req, res, repo) {
   const pathMeta = `evaluaciones/${id}/tareas.json`;
   try {
     const resp = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${pathMeta}?ref=data`,
+      `https://api.github.com/repos/${repo}/contents/${pathMeta}?ref=main`,
       { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
     );
     if (!resp.ok) return res.status(200).json({});

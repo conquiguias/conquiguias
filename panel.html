@@ -4100,7 +4100,8 @@ transition: all 0.3s ease;
           .then(data => {
             const asistencias = data.asistencias || [];
             const asistenciaUsuario = asistencias.find(a =>
-              a.visitanteId === resultado.visitanteId && a.nombre && a.nombre.trim() !== ''
+              (a.visitanteId === resultado.visitanteId || (a.correo && resultado.correo && a.correo === resultado.correo)) && 
+              a.nombre && a.nombre.trim() !== ''
             );
 
             let nombreUsuario = 'Nombre no encontrado';

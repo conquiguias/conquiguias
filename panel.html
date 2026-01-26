@@ -8870,8 +8870,12 @@ const diffMins = Math.floor(diffMs / 60000);
           
           select.innerHTML = '<option value="">-- Selecciona un formulario --</option>';
 
+          console.log("🔍 [DEBUG] Formularios crudos recibidos:", formularios);
+          
           const lista = [];
           for (const [id, f] of Object.entries(formularios)) {
+              console.log(`Checking Form ${id}: tieneTarea? ${!!f.tarea}, activa? ${f.tarea?.activa} (${typeof f.tarea?.activa})`);
+              
               // Validar si tiene tarea configurada (activa o no, para debug mostrar todas las que tengan objeto tarea)
               // Pero idealmente solo activas. Relajamos validación type.
               const tieneTarea = f.tarea && (f.tarea.activa === true || f.tarea.activa === 'true' || f.tarea.activa === 1);
@@ -8879,6 +8883,7 @@ const diffMins = Math.floor(diffMs / 60000);
                  lista.push({ id, titulo: f.titulo });
               }
           }
+          console.log("✅ [DEBUG] Lista filtrada para selector:", lista);
           
           if(lista.length === 0) {
               const opt = document.createElement('option');

@@ -175,7 +175,7 @@ async function updateGitHubJSON(repo, path, message, updateFn, retries = 7) {
   throw new Error("Se agotaron los reintentos para guardar en GitHub");
 }
 
-// Handler para actualizarEstadoAsistencia
+// Handler para actualizarEstadoAsistencias
 async function handleActualizarEstadoAsistencia(req, res, repo) {
   if (req.method !== "POST") return res.status(405).send("Método no permitido");
 

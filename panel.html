@@ -7408,7 +7408,7 @@ const diffMins = Math.floor(diffMs / 60000);
           instructorPrefix = instructorPrefix.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "");
           if(!instructorPrefix) instructorPrefix = "Instructor";
 
-          let id = instructorPrefix + "-" + normalizedFormId + "-" + generarIdAlfanumerico();
+          let id = instructorPrefix + "-" + generarIdAlfanumerico();
           let fechaCierre;
           
           if (document.getElementById("activarTarea").checked) {

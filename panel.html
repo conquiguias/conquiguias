@@ -8495,6 +8495,9 @@ const diffMins = Math.floor(diffMs / 60000);
                   visitanteId: examenVisitanteId,
                   respuestas: respuestasEnviar,
                   puntaje: finalScore,
+                  email: (typeof userData !== 'undefined' && userData ? userData.email : null) || 
+                         (typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.email : null) || 
+                         localStorage.getItem('userEmail')
               }),
           });
           

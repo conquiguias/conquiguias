@@ -553,13 +553,9 @@ async function handleGuardarFormulario(req, res, repo) {
 async function handleGuardarResultadoExamen(req, res, repo) {
   if (req.method !== "POST") return res.status(405).send("Método no permitido");
 
-  const { id, visitanteId, respuestas, puntaje } = req.body;
+  const { id, visitanteId, respuestas, puntaje, email } = req.body;
   const fecha = new Date().toISOString();
-
   const archivo = `evaluaciones/${id}/resultados.json`;
-
-  // Leer el archivo actual desde GitHub (ELIMINADO LECTURA REDUNDANTE)
-  // const respuesta = await fetch... (Eliminado porque updateGitHubJSON se encarga)
 
   try {
     const result = await updateGitHubJSON(
@@ -570,7 +566,13 @@ async function handleGuardarResultadoExamen(req, res, repo) {
         const existente = resultados.find((r) => r.visitanteId === visitanteId);
         if (existente) return null; // Ya existe
 
-        resultados.push({ visitanteId, respuestas, puntaje, fecha });
+        resultados.push({
+          visitanteId,
+          respuestas,
+          puntaje,
+          fecha,
+          correo: email || null,
+        });
         return resultados;
       },
     );
@@ -1427,9 +1429,19 @@ async function handleObtenerEstadoUsuario(req, res, repo) {
               Buffer.from(dExamen.content, "base64").toString(),
             );
 
-            // Buscar examen por cualquiera de los IDs
-            infoExamen =
-              todosExamenes.find((e) => allUserIds.has(e.visitanteId)) || null;
+            // Buscar examen por cualquiera de los IDs o por correo si está disponible
+            infoExamen = todosExamenes.find((e) =>
+              allUserIds.has(e.visitanteId),
+            );
+
+            // Si no se encuentra por ID, intentar buscar por correo dentro del resultado (si existe campo correo)
+            if (!infoExamen && email) {
+              infoExamen = todosExamenes.find(
+                (e) =>
+                  e.correo &&
+                  e.correo.trim().toLowerCase() === email.trim().toLowerCase(),
+              );
+            }
           }
         } catch (e) {}
       }

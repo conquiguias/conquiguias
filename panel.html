@@ -8830,6 +8830,7 @@ const diffMins = Math.floor(diffMs / 60000);
           });
 
           newTabEvaluar.addEventListener('click', () => {
+              console.log("CLICK en pestaña Evaluar Tareas");
               newTabEvaluar.classList.add('active'); newTabEvaluar.style.backgroundColor = 'var(--accent-color)'; newTabEvaluar.style.color = 'white';
               newTabCrear.classList.remove('active'); newTabCrear.style.backgroundColor = 'transparent'; newTabCrear.style.color = 'var(--text-primary)';
               viewCrear.style.display = 'none';

@@ -8483,7 +8483,7 @@ const diffMins = Math.floor(diffMs / 60000);
       // Map
       const respuestasEnviar = {};
       preguntasExamen.forEach((p, idx) => {
-          respuestasEnviar[String(idx)] = respuestasExamen[idx] || null;
+          respuestasEnviar[p.id] = respuestasExamen[idx] || null;
       });
 
       try {
@@ -8506,7 +8506,7 @@ const diffMins = Math.floor(diffMs / 60000);
                           ${finalScore.toFixed(0)}
                       </div>
                       <p style="font-size:20px;">Tu calificación final</p>
-                      <button onclick="document.getElementById('modalExamenPlataforma').style.display='none'; cargarTareasExamenes();" 
+                      <button onclick="document.getElementById('modalExamenPlataforma').style.display='none'; cargarTareasExamenes(); cargarTablaCertificacionesCorrecta();" 
                               style="margin-top:30px; padding:15px 30px; background:white; color:black; border:none; font-size:18px; border-radius:8px; cursor:pointer;">
                           Volver al Panel
                       </button>

@@ -7400,13 +7400,13 @@ const diffMins = Math.floor(diffMs / 60000);
           }
           
           // Recuperar nombre del instructor para el ID
-          const nombreInst = document.getElementById('nombre').value || "";
-          const apellidoInst = document.getElementById('apellido').value || "";
-          let instructorPrefix = (nombreInst + apellidoInst).replace(/\s+/g, "");
-          
-          // Sanitizar prefijo
-          instructorPrefix = instructorPrefix.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "");
-          if(!instructorPrefix) instructorPrefix = "Instructor";
+          // Recuperar nombre del instructor de la firma seleccionada
+          let instructorPrefix = "Instructor";
+          if (imagenFirma1Seleccionada && imagenFirma1Seleccionada.nombre) {
+              // Quitar extensión y limpiar
+              let rawName = imagenFirma1Seleccionada.nombre.replace(/\.[^/.]+$/, "");
+              instructorPrefix = rawName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "");
+          }
 
           let id = instructorPrefix + "-" + generarIdAlfanumerico();
           let fechaCierre;

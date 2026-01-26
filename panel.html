@@ -9115,39 +9115,91 @@ const diffMins = Math.floor(diffMs / 60000);
   };
   
   // Guardar Calificación (Individual)
-  window.enviarNotasBackend = async function() {
-      // Esta función envía TODO lo que está en 'currentEntregasData' (si se modificó localmente)
-      // O, para simplificar, usamos el botón de "Guardar" individual que ya existía, pero aquí implementamos uno global si se desea.
-      // El usuario pidió "Enviar Notas" global? El HTML tiene "Enviar Notas Backend".
-      // Vamos a implementar que envíe la nota del input actual SI está abierto.
-      
-      // Mejor implementamos la lógica del input individual aquí:
+  // Guardar Calificación (Individual - ACTUALIZADO: Guarda solo localmente y prepara para envío masivo)
+  // El botón "Guardar" del panel individual ahora solo cerrará el panel y actualizará la tabla visualmente.
+  // El envío real se hace con el botón grande "Enviar Notas".
+  
+  window.guardarNotaIndividualYSalir = function() {
       const nota = document.getElementById('inputNotaIndividual').value;
-      if(!currentEvaluandoId || !nota) {
-          alert("Selecciona un alumno y escribe una nota.");
+      if(!currentEvaluandoId) return;
+      
+      // Actualizar en memoria
+      if(currentEntregasData[currentEvaluandoId]) {
+          currentEntregasData[currentEvaluandoId].nota = nota;
+          // Si tiene nota, asumimos estado calificado, si no entregado
+          currentEntregasData[currentEvaluandoId].estado = nota ? 'calificado' : 'entregado';
+      }
+      
+      // Actualizar tabla visualmente (si usamos la funcion de renderizado)
+      // Como estamos en el contexto del panel nuevo, llamamos a renderTablaEntregas() si existe o recargamos el item
+      // Pero mejor, solo cerramos y dejamos que el usuario vea la tabla actualizada si usamos binding.
+      
+      // Hack: Actualizar el span si existe en la tabla principal
+      const span = document.getElementById(`nota-display-${currentEvaluandoId}`);
+      if(span) span.textContent = nota || '—';
+      
+      // Cerrar panel
+      document.getElementById('panelCalificacionIndividual').style.display = 'none';
+  };
+
+  // Función GLOBAL para enviar notas masivas (Solo las calificadas)
+  window.enviarNotasBackend = async function() {
+      if(!currentEntregasData || Object.keys(currentEntregasData).length === 0) {
+          alert("No hay datos para enviar.");
+          return;
+      }
+      
+      // Filtrar solo las que tienen nota (calificados)
+      // Buscamos items que tengan 'nota' y que no sea vacío
+      const notasAEnviar = {};
+      let count = 0;
+      
+      for(const [uid, data] of Object.entries(currentEntregasData)) {
+          // Criterio: tener nota asignada (independiente del estado previo)
+          if(data.nota && data.nota.trim() !== "") {
+              notasAEnviar[uid] = data.nota;
+              count++;
+          }
+      }
+      
+      if(count === 0) {
+          alert("No hay ninguna tarea con nota asignada para enviar. Califica al menos una tarea.");
+          return;
+      }
+      
+      if(!confirm(`Se enviarán y publicarán las notas de ${count} alumnos calificados.\n\nLas tareas sin nota (Pendientes) no serán afectadas.\n\n¿Continuar?`)) {
           return;
       }
       
       try {
-          const resp = await fetch('/api/formulario?action=calificarTareas', {
-             method: 'POST',
-             headers: {'Content-Type': 'application/json'},
-             body: JSON.stringify({
-                 id: currentEvaluandoFormId,
-                 notas: { [currentEvaluandoId]: nota },
-                 adminEmail: 'admin' // Auth middleware checkea esto? No hay auth fuerte aqui en frontend, confiar en backend validacion si existe
-             })
-          });
-          
-          if(resp.ok) {
-              alert("Nota guardada correctamente.");
-              // Recargar lista para actualizar icono
-              cargarEntregasParaSelector(currentEvaluandoFormId);
-          } else {
-              alert("Error al guardar nota.");
-          }
+           const guardarBtn = document.querySelector('button[onclick="enviarNotasBackend()"]');
+           const originalText = guardarBtn ? guardarBtn.innerHTML : '';
+           if(guardarBtn) guardarBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+           
+           const resp = await fetch('/api/formulario?action=calificarTareas', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({
+                  id: currentEvaluandoFormId || currentEvalFormId, // Compatibilidad con ambas variables
+                  notas: notasAEnviar,
+                  adminEmail: 'admin' 
+              })
+           });
+           
+           if(resp.ok) {
+               alert("✅ Notas enviadas y publicadas correctamente.");
+               // Recargar para ver cambios confirmados
+               cargarEntregasParaSelector(currentEvaluandoFormId || currentEvalFormId);
+           } else {
+               alert("❌ Error al guardar las notas en el servidor.");
+           }
+           
+           if(guardarBtn) guardarBtn.innerHTML = originalText;
+           
       } catch(e) {
           alert("Error de red: " + e.message);
+          const guardarBtn = document.querySelector('button[onclick="enviarNotasBackend()"]');
+          if(guardarBtn) guardarBtn.innerHTML = originalText; // Restaurar texto si falla
       }
   };
 

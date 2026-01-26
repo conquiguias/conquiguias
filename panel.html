@@ -7963,6 +7963,14 @@ const diffMins = Math.floor(diffMs / 60000);
       
       msg.innerHTML = '<span style="color:var(--accent-color)"><i class="fas fa-spinner fa-spin"></i> Subiendo...</span>';
       
+      // Intentar obtener email robustamente
+      let email = null;
+      if (typeof userData !== 'undefined' && userData) email = userData.email;
+      else if (typeof auth !== 'undefined' && auth.currentUser) email = auth.currentUser.email;
+      else if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) email = firebase.auth().currentUser.email;
+      
+      if (!email) email = localStorage.getItem('userEmail');
+
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = async () => {
@@ -7974,6 +7982,7 @@ const diffMins = Math.floor(diffMs / 60000);
                   body: JSON.stringify({
                       id, 
                       visitanteId: currentUserId || localStorage.getItem('visitanteId'),
+                      email: email, // Enviar email para nueva lógica
                       contenido: content,
                       nombreArchivo: file.name
                   })
@@ -7982,11 +7991,15 @@ const diffMins = Math.floor(diffMs / 60000);
               if (res.ok) {
                   alert('✅ Tarea enviada correctamente.');
                   document.getElementById('modalSubirTarea').style.display = 'none';
-                  cargarTareasExamenes(); 
+                  
+                  // Refrescar tablas
+                  if(typeof cargarTareasExamenes === 'function') cargarTareasExamenes();
+                  if(typeof cargarTablaCertificacionesCorrecta === 'function') setTimeout(cargarTablaCertificacionesCorrecta, 1000);
               } else {
                   msg.innerHTML = `<span style="color:red">Error: ${res.error}</span>`;
               }
           } catch(e) {
+              console.error(e);
               msg.innerHTML = '<span style="color:red">Error de conexión.</span>';
           }
       };
@@ -8523,13 +8536,28 @@ const diffMins = Math.floor(diffMs / 60000);
       }
 
       try {
-          // Obtener ID de forma segura (evitando ReferenceError si currentUserId no está definido)
-          const visitanteId = (typeof currentUserId !== 'undefined' ? currentUserId : null) || localStorage.getItem('visitanteId');
+          // Lógica robusta para obtener ID:
+          // 1. Variable global currentUserId
+          // 2. Firebase Auth instance (si está disponible)
+          // 3. LocalStorage
+          let vId = null;
+          if (typeof currentUserId !== 'undefined' && currentUserId) {
+              vId = currentUserId;
+          } else if (typeof auth !== 'undefined' && auth.currentUser) {
+              vId = auth.currentUser.uid;
+          } else if (window.firebase && firebase.auth() && firebase.auth().currentUser) {
+              vId = firebase.auth().currentUser.uid;
+          }
+
+          const visitanteId = vId || localStorage.getItem('visitanteId');
           
-          // Intentar obtener email del scope global o localstorage
+          // Intentar obtener email
           let email = null;
-          try { if(typeof userData !== 'undefined' && userData) email = userData.email; } catch(e){}
-          if(!email) email = localStorage.getItem('userEmail');
+          if (typeof userData !== 'undefined' && userData) email = userData.email;
+          if (!email && typeof auth !== 'undefined' && auth.currentUser) email = auth.currentUser.email;
+          if (!email) email = localStorage.getItem('userEmail');
+
+          console.log(`[Certificaciones] Consultando ID: ${visitanteId} | Email: ${email}`);
 
           const resp = await fetch('/api/formulario?action=obtenerEstadoUsuario', {
               method: 'POST',
@@ -8627,7 +8655,7 @@ const diffMins = Math.floor(diffMs / 60000);
   // Ejecutar SOLO al cargar la página una vez (y configurar navegación)
   window.addEventListener('load', () => {
       // Carga inicial de datos (solo una vez)
-      setTimeout(cargarTablaCertificacionesCorrecta, 1500);
+      setTimeout(cargarTablaCertificacionesCorrecta, 3000);
 
       // Configurar listeners para recarga bajo demanda (Click-to-Refresh)
       const botones = document.querySelectorAll('button, a, div.menu-item, li'); 

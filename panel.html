@@ -694,6 +694,11 @@
       border-radius: 0 4px 4px 0;
     }
 
+    /* Ocultar campo de fecha de entrega (deprecated) */
+    #fechaEntregaTarea, label[for="fechaEntregaTarea"], .fecha-entrega-row {
+        display: none !important;
+    }
+
     /* ============================================
    ESTILOS RED SOCIAL - MODO NOCHE
    ============================================ */
@@ -7339,7 +7344,7 @@ const diffMins = Math.floor(diffMs / 60000);
           const activarTarea = document.getElementById("activarTarea");
           if (activarTarea && activarTarea.checked) {
               const detalle = document.getElementById("detalleTarea").value.trim();
-              const fEntrega = document.getElementById("fechaEntregaTarea").value;
+              // const fEntrega eliminado
               const fFin = document.getElementById("fechaFinTarea").value;
 
               if (!detalle) {
@@ -7347,10 +7352,7 @@ const diffMins = Math.floor(diffMs / 60000);
                   activarTarea.focus();
                   return;
               }
-              if (!fEntrega) {
-                  alert('⚠️ Tarea activada: Debes establecer una Fecha de Entrega.');
-                  return;
-              }
+              // if (!fEntrega) { ... } Eliminado por solicitud del usuario
               if (!fFin) {
                   alert('⚠️ Tarea activada: Debes establecer una Fecha de Finalización.');
                   return;
@@ -7398,7 +7400,15 @@ const diffMins = Math.floor(diffMs / 60000);
           }
           
           let id = normalizedFormId + "-" + generarIdAlfanumerico();
-          const fechaCierre = new Date(Date.now() + 70 * 60 * 1000).toISOString();
+          let fechaCierre;
+          
+          if (document.getElementById("activarTarea").checked) {
+              // Si hay tarea, la fecha de cierre del formulario es la fecha fin de la tarea
+              fechaCierre = new Date(document.getElementById("fechaFinTarea").value).toISOString();
+          } else {
+              // Si no hay tarea, por defecto 70 minutos (clase normal)
+              fechaCierre = new Date(Date.now() + 70 * 60 * 1000).toISOString();
+          }
 
           try {
             const response = await fetch("/api/formulario?action=guardarFormulario", {
@@ -7413,7 +7423,7 @@ const diffMins = Math.floor(diffMs / 60000);
                 tarea: document.getElementById("activarTarea").checked ? {
                     activa: true,
                     detalle: document.getElementById("detalleTarea").value,
-                    fechaEntrega: document.getElementById("fechaEntregaTarea").value,
+                    // fechaEntrega: start (inmediato)
                     fechaFin: document.getElementById("fechaFinTarea").value
                 } : null,
                 imagenEspecialidad: imagenEspecialidadSeleccionada.url,
@@ -7841,7 +7851,8 @@ const diffMins = Math.floor(diffMs / 60000);
                           botonTarea = `<button disabled style="opacity:0.6; cursor:not-allowed; background:#4B5563; color:white; border:none; padding:6px 12px; border-radius:4px;">Expirado</button>`;
                       } else {
                           estadoTareaHtml = '<span style="color:#EF4444; font-weight:500;">Pendiente</span>';
-                          botonTarea = `<button onclick="abrirModalSubirTarea('${item.id}', '${item.titulo}')" style="background:var(--accent-color); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; transition:transform 0.2s;">Entregar</button>`;
+                          const detalleSafe = (item.configTarea.detalle || '').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
+                          botonTarea = `<button onclick="abrirModalSubirTarea('${item.id}', '${item.titulo}', '${detalleSafe}')" style="background:var(--accent-color); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; transition:transform 0.2s;">Entregar</button>`;
                       }
                   }
               }
@@ -7902,9 +7913,34 @@ const diffMins = Math.floor(diffMs / 60000);
   }
 
   // --- SUBIDA DE TAREA ---
-  window.abrirModalSubirTarea = function(id, titulo) {
+  window.abrirModalSubirTarea = function(id, titulo, detalle) {
       document.getElementById('modalSubirTarea').style.display = 'flex';
       document.querySelector('#modalSubirTarea h3').textContent = `Subir Tarea: ${titulo}`;
+      
+      // Mostrar detalle de la tarea
+      let detalleContainer = document.getElementById('modalDetalleTareaContainer');
+      if (!detalleContainer) {
+          detalleContainer = document.createElement('div');
+          detalleContainer.id = 'modalDetalleTareaContainer';
+          detalleContainer.style.background = 'var(--bg-secondary)'; // Usar variable de tema
+          detalleContainer.style.borderLeft = '4px solid var(--accent-color)';
+          detalleContainer.style.padding = '15px';
+          detalleContainer.style.margin = '15px 0';
+          detalleContainer.style.borderRadius = '0 4px 4px 0';
+          detalleContainer.style.fontSize = '14px';
+          detalleContainer.style.lineHeight = '1.6';
+          detalleContainer.style.color = 'var(--text-primary)';
+          
+          const modalBody = document.querySelector('#modalSubirTarea .modal-content') || document.querySelector('#modalSubirTarea > div');
+          const tituloEl = document.querySelector('#modalSubirTarea h3');
+          if (tituloEl && tituloEl.parentNode) {
+              tituloEl.parentNode.insertBefore(detalleContainer, tituloEl.nextSibling);
+          }
+      }
+      
+      // Formatear saltos de línea si los hay
+      const detalleFormateado = (detalle || 'Sin instrucciones adicionales.').replace(/\n/g, '<br>');
+      detalleContainer.innerHTML = `<strong style="color:var(--accent-color); display:block; margin-bottom:5px;"><i class="fas fa-info-circle"></i> Instrucciones de la tarea:</strong>${detalleFormateado}`;
       
       const btn = document.getElementById('btnEnviarTareaReal');
       // Clonar boton para eliminar listeners anteriores

@@ -8880,16 +8880,21 @@ const diffMins = Math.floor(diffMs / 60000);
   
   const checkAdminInterval = setInterval(() => {
       checkAdminAttempts++;
-      console.log(`🔍 [RETRY ${checkAdminAttempts}/${maxAttempts}] Verificando isAdmin...`);
+      console.log(`🔍 [RETRY ${checkAdminAttempts}/${maxAttempts}] Verificando ADMIN_EMAILS y auth.currentUser...`);
       
-      const isAdminDefined = typeof isAdmin !== 'undefined' && isAdmin === true;
+      // Verificar si ADMIN_EMAILS está definido y si el usuario actual es admin
+      const hasAdminEmails = typeof ADMIN_EMAILS !== 'undefined' && Array.isArray(ADMIN_EMAILS) && ADMIN_EMAILS.length > 0;
+      const hasCurrentUser = (typeof auth !== 'undefined' && auth.currentUser && auth.currentUser.email);
+      const isUserAdmin = hasAdminEmails && hasCurrentUser && ADMIN_EMAILS.includes(auth.currentUser.email);
       
-      if(isAdminDefined) {
-          console.log("✅ [SUCCESS] isAdmin confirmado como TRUE, ejecutando override...");
+      console.log(`   ↳ ADMIN_EMAILS definido: ${hasAdminEmails}, usuario actual: ${hasCurrentUser}, es admin: ${isUserAdmin}`);
+      
+      if(isUserAdmin) {
+          console.log("✅ [SUCCESS] Usuario confirmado como ADMIN, ejecutando override...");
           clearInterval(checkAdminInterval);
           window.inicializarPanelInstructor();
       } else if (checkAdminAttempts >= maxAttempts) {
-          console.warn("⚠️ [TIMEOUT] isAdmin no se definió después de 10 segundos, cancelando retry");
+          console.warn("⚠️ [TIMEOUT] Usuario no es admin o datos no definidos después de 10 segundos");
           clearInterval(checkAdminInterval);
       }
   }, 500); // Verificar cada 500ms

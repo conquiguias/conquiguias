@@ -1429,18 +1429,22 @@ async function handleObtenerEstadoUsuario(req, res, repo) {
               Buffer.from(dExamen.content, "base64").toString(),
             );
 
-            // Buscar examen por cualquiera de los IDs o por correo si está disponible
-            infoExamen = todosExamenes.find((e) =>
-              allUserIds.has(e.visitanteId),
+            // Buscar TODOS los intentos del usuario por ID o correo
+            const intentos = todosExamenes.filter(
+              (e) =>
+                allUserIds.has(e.visitanteId) ||
+                (email &&
+                  e.correo &&
+                  e.correo.trim().toLowerCase() === email.trim().toLowerCase()),
             );
 
-            // Si no se encuentra por ID, intentar buscar por correo dentro del resultado (si existe campo correo)
-            if (!infoExamen && email) {
-              infoExamen = todosExamenes.find(
-                (e) =>
-                  e.correo &&
-                  e.correo.trim().toLowerCase() === email.trim().toLowerCase(),
-              );
+            // Seleccionar el mejor intento (mayor puntaje)
+            if (intentos.length > 0) {
+              infoExamen = intentos.reduce((prev, current) => {
+                return parseFloat(current.puntaje) > parseFloat(prev.puntaje)
+                  ? current
+                  : prev;
+              });
             }
           }
         } catch (e) {}

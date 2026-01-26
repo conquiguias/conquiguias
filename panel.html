@@ -7790,13 +7790,19 @@ const diffMins = Math.floor(diffMs / 60000);
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">Cargando...</td></tr>';
       
       const userId = currentUserId || localStorage.getItem('visitanteId');
-      
-      try {
-          const resp = await fetch('/api/formulario?action=obtenerEstadoUsuario', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({ visitanteId: userId, email: userData?.email })
-          });
+    
+    // Intentar obtener email (copiado de lógica certificaciones para consistencia)
+    let email = null;
+    if (typeof userData !== 'undefined' && userData) email = userData.email;
+    if (!email && typeof auth !== 'undefined' && auth.currentUser) email = auth.currentUser.email;
+    if (!email) email = localStorage.getItem('userEmail');
+
+    try {
+        const resp = await fetch('/api/formulario?action=obtenerEstadoUsuario', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ visitanteId: userId, email: email })
+        });
           const data = await resp.json();
           
           tbody.innerHTML = '';
@@ -8221,7 +8227,6 @@ const diffMins = Math.floor(diffMs / 60000);
            // Pero podemos usar listarImagenes o agregar case en API. 
            // Wait, handleObtenerEstadoUsuario lee tareas.json.
            // Pero instructor necesita ver TODOS.
-           // Vamos a asumir que "listarRespuestas" no trae tareas.
            // Necesitamos leer tareas.json directamente.
            // Como no puedo editar API ahora facil (bueno si puedo), usaré un truco:
            // No, MEJOR: Editar API para tener 'listarTareas' o usar 'verRespuestas' y enriquecerlo.
@@ -8635,10 +8640,34 @@ const diffMins = Math.floor(diffMs / 60000);
               }
               
               if (!esAprobado) {
-                  // Si no está aprobado, puede estar "En Progreso" o "Reprobado"
-                  // Simple simplificación: En Progreso
-                  textoEstado = '<span style="color:#F59E0B; font-weight:bold;">En Progreso</span>';
-              }
+                // Si no está aprobado, mostrar razón específica
+                if (tareaRequerida) {
+                     if (!item.miTarea) {
+                         textoEstado = '<span style="color:#EF4444; font-weight:bold;">Falta Tarea</span>';
+                     } else if (item.miTarea.estado === 'entregado') {
+                         textoEstado = '<span style="color:#F59E0B; font-weight:bold;">En Revisión</span>';
+                     } else if (item.miTarea.estado === 'calificado' && parseFloat(item.miTarea.nota) < 7) {
+                         textoEstado = '<span style="color:#EF4444; font-weight:bold;">Tarea Reprobada</span>';
+                     }
+                }
+                
+                // Si la tarea está ok (o no aplica), el problema es el examen
+                if ((!tareaRequerida || (item.miTarea && item.miTarea.estado === 'calificado' && parseFloat(item.miTarea.nota) >= 7))) {
+                    if (examenRequerido) {
+                        if (!item.miExamen) {
+                             // Si ya pusimos "Falta Tarea", esto podría sobreescribirlo, pero prioridad a mostrar que faltan cosas
+                             // Si falta tarea Y examen, "En Progreso" es mejor. 
+                             if (textoEstado.includes('Falta Tarea')) {
+                                 textoEstado = '<span style="color:#F59E0B; font-weight:bold;">En Progreso</span>';
+                             } else {
+                                 textoEstado = '<span style="color:#EF4444; font-weight:bold;">Falta Examen</span>';
+                             }
+                        } else if (parseFloat(item.miExamen.puntaje) < 70) {
+                             textoEstado = '<span style="color:#EF4444; font-weight:bold;">Examen Reprobado</span>';
+                        }
+                    }
+                }
+            }
 
               const tr = document.createElement('tr');
               tr.style.borderBottom = '1px solid var(--border-color)';

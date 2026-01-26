@@ -8523,10 +8523,12 @@ const diffMins = Math.floor(diffMs / 60000);
       }
 
       try {
-          const visitanteId = currentUserId || localStorage.getItem('visitanteId');
+          // Obtener ID de forma segura (evitando ReferenceError si currentUserId no está definido)
+          const visitanteId = (typeof currentUserId !== 'undefined' ? currentUserId : null) || localStorage.getItem('visitanteId');
+          
           // Intentar obtener email del scope global o localstorage
           let email = null;
-          try { if(userData) email = userData.email; } catch(e){}
+          try { if(typeof userData !== 'undefined' && userData) email = userData.email; } catch(e){}
           if(!email) email = localStorage.getItem('userEmail');
 
           const resp = await fetch('/api/formulario?action=obtenerEstadoUsuario', {
@@ -8622,10 +8624,35 @@ const diffMins = Math.floor(diffMs / 60000);
       }
   }
 
-  // Ejecutar al cargar y periódicamente para asegurar consistencia
+  // Ejecutar SOLO al cargar la página una vez (y configurar navegación)
   window.addEventListener('load', () => {
+      // Carga inicial de datos (solo una vez)
       setTimeout(cargarTablaCertificacionesCorrecta, 1500);
-      setInterval(cargarTablaCertificacionesCorrecta, 30000); // Refrescar cada 30s
+
+      // Configurar listeners para recarga bajo demanda (Click-to-Refresh)
+      const botones = document.querySelectorAll('button, a, div.menu-item, li'); 
+      botones.forEach(btn => {
+        const texto = btn.textContent ? btn.textContent.toLowerCase() : '';
+        
+        // Listener para Certificaciones
+        if(texto.includes('certificaciones')) {
+            btn.addEventListener('click', () => {
+                setTimeout(cargarTablaCertificacionesCorrecta, 100); 
+            });
+        }
+        
+        // Listener para Tareas y Exámenes
+        if(texto.includes('tareas') || texto.includes('examenes') || texto.includes('exámenes')) {
+            btn.addEventListener('click', () => {
+                 setTimeout(() => {
+                     // Verificar si la función existe antes de llamarla
+                     if(typeof cargarTareasExamenes === 'function') {
+                         cargarTareasExamenes();
+                     }
+                 }, 100);
+            });
+        }
+      });
   });
   
   // Exponer globalmente

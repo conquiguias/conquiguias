@@ -9006,8 +9006,12 @@ const diffMins = Math.floor(diffMs / 60000);
   // --- LÓGICA DEL EVALUADOR (Reescrita para Interfaz de Selector) ---
 
   window.cargarTablaEspecialidadesParaEvaluar = async function() {
+      console.log("📋 [DEBUG] cargarTablaEspecialidadesParaEvaluar() ejecutada");
       const select = document.getElementById('selectFiltroEvaluacion');
-      if (!select) return;
+      if (!select) {
+          console.error("❌ [DEBUG] No se encontró el elemento selectFiltroEvaluacion");
+          return;
+      }
 
       select.innerHTML = '<option value="">Cargando...</option>';
 

@@ -8873,14 +8873,18 @@ const diffMins = Math.floor(diffMs / 60000);
   };
 
   // FORZAR EJECUCIÓN INMEDIATA DEL OVERRIDE SI EL USUARIO ES ADMIN
-  console.log("🔍 [DEBUG] Verificando si se debe re-ejecutar inicializarPanelInstructor...");
-  console.log("🔍 [DEBUG] isAdmin actual:", isAdmin);
-  if(isAdmin) {
-      console.log("🚀 [DEBUG] Re-ejecutando inicializarPanelInstructor con la versión OVERRIDE...");
-      window.inicializarPanelInstructor();
-  } else {
-      console.log("⏭️ [DEBUG] Usuario no es admin, saltando re-ejecución");
-  }
+  // Usar setTimeout para asegurar que isAdmin esté definido
+  setTimeout(() => {
+      console.log("🔍 [DEBUG] Verificando si se debe re-ejecutar inicializarPanelInstructor...");
+      const isAdminDefined = typeof isAdmin !== 'undefined' && isAdmin === true;
+      console.log("🔍 [DEBUG] isAdmin actual:", isAdminDefined);
+      if(isAdminDefined) {
+          console.log("🚀 [DEBUG] Re-ejecutando inicializarPanelInstructor con la versión OVERRIDE...");
+          window.inicializarPanelInstructor();
+      } else {
+          console.log("⏭️ [DEBUG] Usuario no es admin o isAdmin no definido, saltando re-ejecución");
+      }
+  }, 500); // Dar tiempo suficiente para que se defina isAdmin
 
   // --- FUNCIONES LÓGICAS DEL EVALUADOR ---
 

@@ -84,6 +84,18 @@ export default async function handler(req, res) {
         await handleListarEntregas(req, res, repo);
         break;
 
+      case "listarArchivosPDF":
+        await handleListarArchivosPDF(req, res, repo);
+        break;
+
+      case "eliminarTodasTareasPDF":
+        await handleEliminarTodasTareasPDF(req, res, repo);
+        break;
+
+      case "listarFormulariosPendientes":
+        await handleListarFormulariosPendientes(req, res, repo);
+        break;
+
       default:
         res.status(400).json({ error: "Acción no válida" });
         break;
@@ -1470,5 +1482,195 @@ async function handleObtenerEstadoUsuario(req, res, repo) {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
+  }
+}
+// Handler para listarArchivosPDF
+async function handleListarArchivosPDF(req, res, repo) {
+  if (req.method !== "GET")
+    return res.status(405).json({ error: "Método no permitido" });
+  const rutaBase = `tareas_files`;
+
+  try {
+    // Listar contenido de la carpeta raíz de tareas
+    const resp = await fetch(
+      `https://api.github.com/repos/${repo}/contents/${rutaBase}?ref=main`,
+      { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
+    );
+
+    if (!resp.ok) {
+      if (resp.status === 404) return res.status(200).json([]); // Carpeta vacía o no existe
+      throw new Error("Error al consultar repositorio");
+    }
+
+    const carpetas = await resp.json();
+    let todosPDFs = [];
+
+    // Iterar sobre subcarpetas (ID de forms)
+    for (const item of carpetas) {
+      if (item.type === "dir") {
+        try {
+          const respDir = await fetch(item.url, {
+            headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` },
+          });
+          if (respDir.ok) {
+            const archivos = await respDir.json();
+            archivos.forEach((f) => {
+              if (f.name.toLowerCase().endsWith(".pdf")) {
+                todosPDFs.push({
+                  nombre: f.name,
+                  ruta: f.path, // path relativo 'tareas_files/ID/file.pdf'
+                  tamano: f.size,
+                  url: f.download_url,
+                });
+              }
+            });
+          }
+        } catch (e) {
+          console.warn(`Error leyendo carpeta ${item.name}`, e);
+        }
+      }
+    }
+
+    res.status(200).json(todosPDFs);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al listar PDFs" });
+  }
+}
+
+// Handler para eliminarTodasTareasPDF
+async function handleEliminarTodasTareasPDF(req, res, repo) {
+  if (req.method !== "POST")
+    return res.status(405).json({ error: "Método no permitido" });
+
+  // Recibir lista de archivos a borrar para hacerlo más eficiente? No, el backend debería saber qué borrar.
+  // Pero GitHub API requiere DELETE file por file con SHA.
+  // Así que reutilizamos lógica de listar para obtener SHAs y borrar.
+
+  try {
+    // 1. Obtener lista completa con SHAs
+    // Ojo: Github API Recursive Tree es mejor para esto.
+    const treeResp = await fetch(
+      `https://api.github.com/repos/${repo}/git/trees/main?recursive=1`,
+      { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
+    );
+
+    if (!treeResp.ok)
+      throw new Error("No se pudo obtener el árbol de archivos");
+    const treeData = await treeResp.json();
+
+    // Filtrar archivos en 'tareas_files/'
+    const archivosBorrar = treeData.tree.filter(
+      (node) => node.path.startsWith("tareas_files/") && node.type === "blob",
+    );
+
+    if (archivosBorrar.length === 0) {
+      return res
+        .status(200)
+        .json({ message: "No hay archivos para borrar", eliminados: 0 });
+    }
+
+    let eliminados = 0;
+    let errores = 0;
+
+    // Borrar uno por uno (paralelo limitado para no saturar API)
+    // GitHub API rate limit es alto, pero mejor ir con calma.
+    const promises = archivosBorrar.map(async (file) => {
+      try {
+        await fetch(
+          `https://api.github.com/repos/${repo}/contents/${file.path}`,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: `token ${process.env.GITHUB_TOKEN}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              message: `[skip vercel] Limpieza masiva PDF: ${file.path}`,
+              sha: file.sha,
+              branch: "main",
+            }),
+          },
+        );
+        eliminados++;
+      } catch (e) {
+        errores++;
+        console.error(`Fallo al borrar ${file.path}`, e);
+      }
+    });
+
+    await Promise.all(promises);
+
+    res.status(200).json({
+      ok: true,
+      message: `Eliminados ${eliminados} archivos. Errores: ${errores}`,
+      eliminados,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error durante la eliminación masiva" });
+  }
+}
+
+// Handler para listarFormulariosPendientes
+async function handleListarFormulariosPendientes(req, res, repo) {
+  const archivoForms = `data/formularios.json`;
+  try {
+    const r = await fetch(
+      `https://api.github.com/repos/${repo}/contents/${archivoForms}?ref=main`,
+      { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
+    );
+    if (!r.ok) throw new Error("No se pudo leer formularios.json");
+
+    const data = await r.json();
+    const formularios = JSON.parse(
+      Buffer.from(data.content, "base64").toString(),
+    );
+
+    const pendientes = [];
+
+    // Iterar formularios
+    for (const [id, form] of Object.entries(formularios)) {
+      // Solo nos interesan los que tienen tarea activa
+      if (form.tarea && form.tarea.activa) {
+        // Leer su archivo de tareas
+        try {
+          const rT = await fetch(
+            `https://api.github.com/repos/${repo}/contents/evaluaciones/${id}/tareas.json?ref=main`,
+            { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
+          );
+          if (rT.ok) {
+            const dT = await rT.json();
+            const tareas = JSON.parse(
+              Buffer.from(dT.content, "base64").toString(),
+            );
+
+            // Contar pendientes (estado != 'calificado')
+            let countPendientes = 0;
+            Object.values(tareas).forEach((t) => {
+              if (t.estado !== "calificado") countPendientes++;
+            });
+
+            if (countPendientes > 0) {
+              pendientes.push({
+                id,
+                titulo: form.titulo,
+                pendientes: countPendientes,
+              });
+            }
+          } else if (rT.status === 404) {
+            // Tiene tarea configurada pero archivo tareas.json no existe => 0 pendientes
+            // (O podría considerarse 0 entregas)
+          }
+        } catch (e) {
+          console.warn(`Error leyendo tareas de ${id}`, e);
+        }
+      }
+    }
+
+    res.status(200).json(pendientes);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error al listar pendientes" });
   }
 }

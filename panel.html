@@ -8212,6 +8212,39 @@ const diffMins = Math.floor(diffMs / 60000);
                       </div>
                   </div>
               </div>
+              </div>
+
+              <!-- GESTIÓN DE ALMACENAMIENTO (PDFs) -->
+              <div style="background: var(--bg-card); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); margin-top: 20px;">
+                  <h4 style="margin-bottom: 10px; color: var(--error-color); display:flex; justify-content:space-between; align-items:center;">
+                      <span><i class="fas fa-trash-alt"></i> Gestión de Almacenamiento Temporal (PDFs)</span>
+                      <span id="infoTotalSize" style="font-size:14px; font-weight:normal; color:var(--text-secondary);">Calculando...</span>
+                  </h4>
+                  <p style="font-size:13px; color:var(--text-secondary); margin-bottom:15px;">
+                      Lista de todos los archivos PDF almacenados en la carpeta temporal <code>tareas_files</code>. 
+                      Elimínalos periódicamente para liberar espacio en GitHub una vez calificados.
+                  </p>
+                  
+                  <div style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 4px; margin-bottom: 10px;">
+                      <table style="width:100%; border-collapse: collapse; font-size:13px;">
+                          <thead style="background:rgba(255,255,255,0.05); position:sticky; top:0;">
+                              <tr>
+                                  <th style="padding:8px; text-align:left;">Archivo</th>
+                                  <th style="padding:8px; text-align:left;">Ruta</th>
+                                  <th style="padding:8px; text-align:center;">Tamaño</th>
+                                  <th style="padding:8px; text-align:center;">Acción</th>
+                              </tr>
+                          </thead>
+                          <tbody id="cuerpoTablaLimpiezaPDFs">
+                              <tr><td colspan="4" style="text-align:center; padding:20px;">Cargando...</td></tr>
+                          </tbody>
+                      </table>
+                  </div>
+                  
+                  <button id="btnEliminarTodoPDFs" onclick="eliminarTodoMasivo()" disabled style="padding: 10px 20px; background: var(--error-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width:100%;">
+                      <i class="fas fa-bomb"></i> Eliminar TODOS los PDFs (Liberar Espacio)
+                  </button>
+              </div>
           </div>
       `;
       if(viewCrear && viewCrear.parentNode) {
@@ -8975,55 +9008,178 @@ const diffMins = Math.floor(diffMs / 60000);
 
   // --- LÓGICA DEL EVALUADOR (Reescrita para Interfaz de Selector) ---
 
-  window.cargarTablaEspecialidadesParaEvaluar = async function() {
-      console.log("📋 [DEBUG] cargarTablaEspecialidadesParaEvaluar() ejecutada");
-      const select = document.getElementById('selectFiltroEvaluacion');
-      if (!select) {
-          console.error("❌ [DEBUG] No se encontró el elemento selectFiltroEvaluacion");
-          return;
-      }
+  // --- LÓGICA DEL EVALUADOR (Reescrita para Interfaz de Selector Inteligente) ---
 
-      select.innerHTML = '<option value="">Cargando...</option>';
+  window.cargarTablaEspecialidadesParaEvaluar = async function() {
+      console.log("📋 [DEBUG] cargarTablaEspecialidadesParaEvaluar() ejecutada (MODO PENDIENTES)");
+      const select = document.getElementById('selectFiltroEvaluacion');
+      if (!select) return;
+
+      const valorActual = select.value; // Guardar selección si existe
+      select.innerHTML = '<option value="">Cargando pendientes...</option>';
 
       try {
-          const resp = await fetch("/api/formulario?action=listarFormularios");
-          const formularios = await resp.json();
+          // 1. Cargar Pendientes
+          const resp = await fetch("/api/formulario?action=listarFormulariosPendientes");
+          let pendientes = [];
+          if(resp.ok) pendientes = await resp.json();
           
-          select.innerHTML = '<option value="">-- Selecciona un formulario --</option>';
-
-          console.log("🔍 [DEBUG] Formularios crudos recibidos:", formularios);
+          select.innerHTML = '<option value="">-- Selecciona un formulario (Solo Pendientes) --</option>';
           
-          const lista = [];
-          for (const [id, f] of Object.entries(formularios)) {
-              console.log(`Checking Form ${id}: tieneTarea? ${!!f.tarea}, activa? ${f.tarea?.activa} (${typeof f.tarea?.activa})`);
-              
-              // Validar si tiene tarea configurada (activa o no, para debug mostrar todas las que tengan objeto tarea)
-              // Pero idealmente solo activas. Relajamos validación type.
-              const tieneTarea = f.tarea && (f.tarea.activa === true || f.tarea.activa === 'true' || f.tarea.activa === 1);
-              if (tieneTarea) {
-                 lista.push({ id, titulo: f.titulo });
-              }
-          }
-          console.log("✅ [DEBUG] Lista filtrada para selector:", lista);
-          
-          if(lista.length === 0) {
+          if(pendientes.length === 0) {
               const opt = document.createElement('option');
-              opt.textContent = "No hay tareas activas";
+              opt.textContent = "✅ ¡Todo al día! No hay tareas pendientes.";
               select.appendChild(opt);
-              return;
+          } else {
+              pendientes.forEach(item => {
+                  const opt = document.createElement('option');
+                  opt.value = item.id;
+                  opt.textContent = `${item.titulo} (${item.pendientes} pendientes)`;
+                  select.appendChild(opt);
+              });
           }
           
-          lista.forEach(item => {
-              const opt = document.createElement('option');
-              opt.value = item.id;
-              opt.textContent = item.titulo;
-              select.appendChild(opt);
-          });
+          // Opción para ver todo el historial
+          const optAll = document.createElement('option');
+          optAll.value = "VER_TODOS";
+          optAll.textContent = "📂 Ver Historial Completo (Incluir finalizados)";
+          optAll.style.fontWeight = "bold";
+          optAll.style.color = "#3b82f6";
+          select.appendChild(optAll);
+          
+          // Restaurar selección si sigue en la lista, sino limpiar vista
+          if(valorActual && valorActual !== "VER_TODOS" && valorActual !== "VER_PENDIENTES") {
+               const exists = pendientes.find(p => p.id === valorActual);
+               if(exists) select.value = valorActual;
+               else {
+                   // Si ya no está en pendientes, limpiar vista para feedback
+                   document.getElementById('listaEntregasContainer').innerHTML = '<div style="text-align:center; padding:20px; color:var(--success-color);"><i class="fas fa-check-circle" style="font-size:48px; margin-bottom:10px;"></i><br>¡Formulario completado!</div>';
+                   document.getElementById('visorPDFContainer').innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100%; color:#aaa;">Selecciona otro formulario para continuar.</div>';
+                   document.getElementById('panelCalificacionIndividual').style.display = 'none';
+                   select.value = ""; // Resetear selector
+               }
+          }
+          
+          // Cargar tabla de PDFs al final (si el contenedor existe)
+          if(typeof cargarTablaLimpiezaPDFs === 'function') cargarTablaLimpiezaPDFs();
           
       } catch(e) {
           select.innerHTML = '<option value="">Error al cargar formularios</option>';
           console.error("Error cargando selector: ", e);
       }
+  };
+  
+  // Listener especial para "VER_TODOS" y "VER_PENDIENTES"
+  // Delegado en el cambio del select para cargar dinámica
+  document.addEventListener('change', async (e) => {
+      if(e.target.id === 'selectFiltroEvaluacion') {
+          if (e.target.value === 'VER_TODOS') {
+               e.target.innerHTML = '<option value="">Cargando historial...</option>';
+               try {
+                   const r = await fetch("/api/formulario?action=listarFormularios");
+                   const forms = await r.json();
+                   
+                   e.target.innerHTML = '<option value="">-- Historial Completo --</option>';
+                   
+                   // Opción para volver a pendientes
+                   const optBack = document.createElement('option');
+                   optBack.value = "VER_PENDIENTES";
+                   optBack.textContent = "🔙 Volver a Solo Pendientes";
+                   optBack.style.fontWeight = "bold";
+                   optBack.style.color = "var(--accent-color)";
+                   e.target.appendChild(optBack);
+                   
+                   for (const [id, f] of Object.entries(forms)) {
+                       if (f.tarea && (f.tarea.activa === true || f.tarea.activa === 'true' || f.tarea.activa === 1)) {
+                           const opt = document.createElement('option');
+                           opt.value = id;
+                           opt.textContent = f.titulo; // Aquí no tenemos conteo de pendientes, solo titulo
+                           e.target.appendChild(opt);
+                       }
+                   }
+               } catch(err) { console.error(err); }
+          } else if(e.target.value === 'VER_PENDIENTES') {
+              cargarTablaEspecialidadesParaEvaluar();
+          }
+      }
+  });
+
+  // --- GESTIÓN DE ALMACENAMIENTO (PDFs) ---
+  
+  window.cargarTablaLimpiezaPDFs = async function() {
+      const tbody = document.getElementById('cuerpoTablaLimpiezaPDFs');
+      if(!tbody) return; // Si no existe el elemento en el DOM aún
+      
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;">Cargando archivos...</td></tr>';
+      document.getElementById('btnEliminarTodoPDFs').disabled = true;
+      document.getElementById('infoTotalSize').textContent = 'Calculando...';
+      
+      try {
+          const resp = await fetch('/api/formulario?action=listarArchivosPDF');
+          if(!resp.ok) throw new Error("Error listando archivos");
+          const archivos = await resp.json();
+          
+          if(archivos.length === 0) {
+               tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--text-secondary);">La carpeta temporal está limpia. 🎉</td></tr>';
+               document.getElementById('infoTotalSize').textContent = '0 MB';
+               return;
+          }
+          
+          tbody.innerHTML = '';
+          let totalBytes = 0;
+          
+          archivos.forEach(f => {
+              totalBytes += f.tamano;
+              const tr = document.createElement('tr');
+              tr.style.borderBottom = '1px solid var(--border-color)';
+              tr.innerHTML = `
+                  <td style="padding:10px;">${f.nombre}</td>
+                  <td style="padding:10px; font-size:12px; color:#aaa;">${f.ruta}</td>
+                  <td style="padding:10px; text-align:center;">${(f.tamano / 1024 / 1024).toFixed(2)} MB</td>
+                  <td style="padding:10px; text-align:center;">
+                      <a href="${f.url}" target="_blank" style="color:var(--accent-color);"><i class="fas fa-download"></i></a>
+                  </td>
+              `;
+              tbody.appendChild(tr);
+          });
+          
+          document.getElementById('infoTotalSize').textContent = (totalBytes / 1024 / 1024).toFixed(2) + ' MB';
+          document.getElementById('btnEliminarTodoPDFs').disabled = false;
+          
+      } catch(e) {
+          tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:red;">Error: ${e.message}</td></tr>`;
+      }
+  };
+  
+  window.eliminarTodoMasivo = async function() {
+      if(!confirm("⚠️ ¿ADVERTENCIA: Estás seguro de eliminar TODOS los archivos PDF de la carpeta temporal 'tareas_files'?\n\nEsta acción NO se puede deshacer y borrará los archivos físicos de todas las tareas subidas. Asegúrate de haber calificado todo primero.")) return;
+      
+      if(!confirm("⚠️ CONFIRMACIÓN FINAL: Se borrarán todos los PDFs para liberar espacio. ¿Proceder?")) return;
+      
+      const btn = document.getElementById('btnEliminarTodoPDFs');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Eliminando...';
+      btn.disabled = true;
+      
+      try {
+          const resp = await fetch('/api/formulario?action=eliminarTodasTareasPDF', {
+              method: 'POST'
+          });
+          const res = await resp.json();
+          
+          if(resp.ok) {
+              alert(`✅ Limpieza completada.\n\nEliminados: ${res.eliminados} archivos.\nErrores: ${res.errores || 0}`);
+              cargarTablaLimpiezaPDFs(); // Recargar tabla
+          } else {
+              alert("❌ Error durante la eliminación: " + (res.error || "Desconocido"));
+          }
+          
+      } catch(e) {
+          alert("Error de red: " + e.message);
+      }
+      
+      btn.innerHTML = originalText;
+      btn.disabled = false; // Se habilitará si hay algo, pero al recargar se deshabilita si está vacío
   };
 
   // (Función cargarEntregasParaSelector eliminada para usar el alias global vinculado a cargarEntregasInstructor y window.datosEntregasGlobal)
@@ -9124,11 +9280,17 @@ const diffMins = Math.floor(diffMs / 60000);
            
            if(resp.ok) {
                alert("✅ Notas enviadas y publicadas correctamente.");
-               // Recargar usando la función compatible
+               
+               // 1. Recargar tabla de entregas
                if(typeof cargarEntregasParaSelector === 'function') {
                    cargarEntregasParaSelector(formId);
                } else if(typeof cargarEntregasInstructor === 'function') {
                    cargarEntregasInstructor(formId);
+               }
+               
+               // 2. Recargar selector inteligente (para actualizar pendientes o eliminar form si completado)
+               if(typeof cargarTablaEspecialidadesParaEvaluar === 'function') {
+                   cargarTablaEspecialidadesParaEvaluar();
                }
            } else {
                alert("❌ Error al guardar las notas en el servidor.");

@@ -8500,5 +8500,136 @@ const diffMins = Math.floor(diffMs / 60000);
   }
   
   </script>
+  <script>
+  // --- PARCHE CORRECCIÓN TABLA CERTIFICACIONES ---
+  // Este script sobrescribe/implementa la carga de la tabla de certificaciones
+  // para corregir el estado de la tarea (Pendiente vs No entregado).
+
+  async function cargarTablaCertificacionesCorrecta() {
+      const tabla = document.getElementById('tablaCertificaciones');
+      if (!tabla) return; // Si no estamos en la vista de usuario, salir
+      const tbody = tabla.querySelector('tbody');
+      if (!tbody) {
+          // Si la tabla no tiene tbody, crearlo
+           const newTbody = document.createElement('tbody');
+           tabla.appendChild(newTbody);
+           return cargarTablaCertificacionesCorrecta();
+      }
+
+      // No mostrar mensaje de carga si ya hay datos, para evitar parpadeo feo,
+      // a menos que esté vacío
+      if (tbody.children.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">Cargando historial...</td></tr>';
+      }
+
+      try {
+          const visitanteId = currentUserId || localStorage.getItem('visitanteId');
+          // Intentar obtener email del scope global o localstorage
+          let email = null;
+          try { if(userData) email = userData.email; } catch(e){}
+          if(!email) email = localStorage.getItem('userEmail');
+
+          const resp = await fetch('/api/formulario?action=obtenerEstadoUsuario', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ visitanteId, email })
+          });
+
+          if (!resp.ok) throw new Error('Error al cargar datos');
+          const data = await resp.json();
+
+          tbody.innerHTML = ''; // Limpiar ahora sí
+
+          if (data.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">No tienes especialidades registradas aún.</td></tr>';
+              return;
+          }
+
+          data.forEach((item, index) => {
+              // --- Lógica Tarea ---
+              let estadoTarea = 'N/A';
+              let colorTarea = '#9CA3AF'; // Gris
+
+              if (item.configTarea && item.configTarea.activa) {
+                  if (item.miTarea) {
+                      if (item.miTarea.estado === 'calificado') {
+                           estadoTarea = `Nota: ${item.miTarea.nota}`;
+                           // Si nota >= 7 verde, sino rojo
+                           colorTarea = parseFloat(item.miTarea.nota) >= 7 ? '#10B981' : '#EF4444';
+                      } else if (item.miTarea.estado === 'entregado') {
+                           estadoTarea = 'Pendiente'; // Muestra Pendiente en lugar de No entregado
+                           colorTarea = '#F59E0B'; // Naranja
+                      }
+                  } else {
+                      estadoTarea = 'No entregado';
+                      colorTarea = '#EF4444'; // Rojo
+                  }
+              }
+
+              // --- Lógica Examen ---
+              const hayExamen = item.miExamen;
+              const puntajeExamen = hayExamen ? Math.round(item.miExamen.puntaje) : 0;
+              
+              // --- Lógica Estado Global ---
+              // Aprobado solo si (Tarea OK si existe) Y (Examen OK si existe)
+              let esAprobado = true;
+              let textoEstado = '<span style="color:#10B981; font-weight:bold;">Aprobado</span>';
+              
+              const tareaRequerida = item.configTarea && item.configTarea.activa;
+              const examenRequerido = item.configExamen;
+
+              // Validar Tarea
+              if (tareaRequerida) {
+                  if (!item.miTarea || item.miTarea.estado !== 'calificado' || parseFloat(item.miTarea.nota) < 7) {
+                      esAprobado = false;
+                  }
+              }
+              // Validar Examen
+              if (examenRequerido) {
+                  if (!item.miExamen || parseFloat(item.miExamen.puntaje) < 70) {
+                      esAprobado = false;
+                  }
+              }
+              
+              if (!esAprobado) {
+                  // Si no está aprobado, puede estar "En Progreso" o "Reprobado"
+                  // Simple simplificación: En Progreso
+                  textoEstado = '<span style="color:#F59E0B; font-weight:bold;">En Progreso</span>';
+              }
+
+              const tr = document.createElement('tr');
+              tr.style.borderBottom = '1px solid var(--border-color)';
+              
+              // Formatear fecha
+              const fechaStr = new Date(item.creado).toLocaleDateString();
+              
+              tr.innerHTML = `
+                  <td style="padding:12px;">${index + 1}</td>
+                  <td style="padding:12px;">${item.titulo}</td>
+                  <td style="padding:12px;">${fechaStr}</td>
+                  <td style="padding:12px; text-align:center;">${item.asistencias ? item.asistencias.length : 0}</td>
+                  <td style="padding:12px; color:${colorTarea}; font-weight:bold; text-align:center;">${estadoTarea}</td>
+                  <td style="padding:12px; text-align:center;">${hayExamen ? 'Sí' : 'No'}</td>
+                  <td style="padding:12px; text-align:center;">${hayExamen ? puntajeExamen + '%' : 'Pendiente'}</td>
+                  <td style="padding:12px; text-align:center;">${textoEstado}</td>
+              `;
+              tbody.appendChild(tr);
+          });
+
+      } catch (e) {
+          console.error("Error en patch tabla certificaciones:", e);
+          tbody.innerHTML = '<tr><td colspan="8" style="color:red; text-align:center; padding:20px;">Error al cargar historial.</td></tr>';
+      }
+  }
+
+  // Ejecutar al cargar y periódicamente para asegurar consistencia
+  window.addEventListener('load', () => {
+      setTimeout(cargarTablaCertificacionesCorrecta, 1500);
+      setInterval(cargarTablaCertificacionesCorrecta, 30000); // Refrescar cada 30s
+  });
+  
+  // Exponer globalmente
+  window.cargarTablaCertificacionesCorrecta = cargarTablaCertificacionesCorrecta;
+  </script>
 </body>
 </html>

@@ -9101,12 +9101,23 @@ const diffMins = Math.floor(diffMs / 60000);
            // Usar el ID global
            const formId = window.currentGlobalFormId || currentEvalFormId;
            
+           // Preparar el objeto COMPLETE de tareas para enviar (El backend reemplaza todo el archivo)
+           const tareasCompletas = JSON.parse(JSON.stringify(window.datosEntregasGlobal));
+           
+           // Aplicar notas nuevas sobre el objeto completo
+           for(const [uid, nota] of Object.entries(notasAEnviar)) {
+               if(tareasCompletas[uid]) {
+                   tareasCompletas[uid].nota = nota;
+                   tareasCompletas[uid].estado = 'calificado'; // Asegurar estado explícito
+               }
+           }
+
            const resp = await fetch('/api/formulario?action=calificarTareas', {
               method: 'POST',
               headers: {'Content-Type': 'application/json'},
               body: JSON.stringify({
                   id: formId,
-                  notas: notasAEnviar,
+                  tareas: tareasCompletas, // CAMBIO CRÍTICO: Enviar 'tareas' completo, no 'notas'
                   adminEmail: 'admin' 
               })
            });

@@ -3839,6 +3839,10 @@ transition: all 0.3s ease;
                 let estadoClass = "estado-pendiente";
                 let notaTareaTexto = "-";
                 let califExamen = "-";
+
+                // Validar Fecha Cierre
+                const fechaObj = item.fechaCierre ? new Date(item.fechaCierre) : null;
+                const isClosed = fechaObj && new Date() > fechaObj;
                 
                 // Info Tarea
                 const tieneTarea = item.configTarea && item.configTarea.activa;
@@ -3899,6 +3903,15 @@ transition: all 0.3s ease;
                 else if (tieneTarea && item.miTarea && item.miTarea.estado === 'entregado') {
                     estado = "Pendiente revisión";
                     estadoClass = "estado-pendiente";
+                }
+                // Verificar VENCIMIENTO (Si no ha sido entregado)
+                else if (isClosed && ((tieneTarea && !item.miTarea) || (tieneExamen && !examenHecho))) {
+                     if (tieneTarea && !item.miTarea) {
+                         estado = "Reprobado (Tarea Vence)";
+                     } else {
+                         estado = "Reprobado (Vencido)";
+                     }
+                     estadoClass = "calificacion-reprobada";
                 }
                 // Verificar si está completo
                 else {

@@ -8605,14 +8605,26 @@ const diffMins = Math.floor(diffMs / 60000);
       
       const iframe = document.getElementById('iframePDFEvaluador');
       if (iframe) {
-          if (actualData.contenido) {
-              // Si viene en base64 (nuevo sistema)
-              iframe.src = `data:application/pdf;base64,${actualData.contenido}`;
-          } else if (actualData.url) {
-              // Si viene por URL (viejo sistema)
-              const pdfUrl = encodeURIComponent(actualData.url);
-              iframe.src = `https://docs.google.com/viewer?url=${pdfUrl}&embedded=true`;
-          }
+          // Limpiar primero para evitar flashes de contenido anterior
+          iframe.src = 'about:blank';
+          
+          setTimeout(() => {
+              if (actualData.contenido) {
+                  // Si viene en base64 (nuevo sistema) - Asegurar que sea application/pdf
+                  // Si el contenido no tiene prefijo, agregarlo
+                  const base64Content = actualData.contenido.startsWith('data:') 
+                      ? actualData.contenido 
+                      : `data:application/pdf;base64,${actualData.contenido}`;
+                  iframe.src = base64Content;
+              } else if (actualData.url) {
+                  // Si viene por URL (viejo sistema)
+                  const pdfUrl = encodeURIComponent(actualData.url);
+                  iframe.src = `https://docs.google.com/viewer?url=${pdfUrl}&embedded=true`;
+              } else {
+                  // Si es una imagen o no hay PDF
+                  iframe.srcdoc = '<div style="color:white;text-align:center;padding:50px;">No se encontró documento PDF.</div>';
+              }
+          }, 100);
       }
   };
 
@@ -9052,6 +9064,32 @@ const diffMins = Math.floor(diffMs / 60000);
         const viewCrear = document.getElementById('viewCrearFormulario');
         const viewEvaluar = document.getElementById('viewEvaluarTareas');
 
+        // Configurar selector de historial si existe
+        const selectFiltro = document.getElementById('selectFiltroEvaluacion');
+        if(selectFiltro) {
+             const newSelect = selectFiltro.cloneNode(true);
+             selectFiltro.parentNode.replaceChild(newSelect, selectFiltro);
+             
+             newSelect.addEventListener('change', async (e) => {
+                  if (e.target.value === 'VER_TODOS') {
+                       e.target.innerHTML = '<option value="">Cargando historial...</option>';
+                       try {
+                           const r = await fetch("/api/formulario?action=listarFormularios");
+                           const forms = await r.json();
+                           e.target.innerHTML = '<option value="">-- Historial Completo --</option>';
+                           const optBack = document.createElement('option'); optBack.value = "VER_PENDIENTES"; optBack.textContent = "🔙 Volver a Solo Pendientes"; optBack.style.fontWeight = "bold"; optBack.style.color = "var(--accent-color)"; e.target.appendChild(optBack);
+                           for (const [id, f] of Object.entries(forms)) {
+                               if (f.tarea && (f.tarea.activa === true || f.tarea.activa === 1)) {
+                                   const opt = document.createElement('option'); opt.value = id; opt.textContent = f.titulo; e.target.appendChild(opt);
+                               }
+                           }
+                       } catch(err) { console.error(err); }
+                  } else if(e.target.value === 'VER_PENDIENTES') {
+                      cargarTablaEspecialidadesParaEvaluar();
+                  }
+             });
+        }
+
         if(tabCrear && tabEvaluar) {
             // Limpiar y reasignar listeners
             const nTabCrear = tabCrear.cloneNode(true);
@@ -9082,38 +9120,7 @@ const diffMins = Math.floor(diffMs / 60000);
   
   // Listener especial para "VER_TODOS" y "VER_PENDIENTES"
   // Delegado en el cambio del select para cargar dinámica
-  document.addEventListener('change', async (e) => {
-      if(e.target.id === 'selectFiltroEvaluacion') {
-          if (e.target.value === 'VER_TODOS') {
-               e.target.innerHTML = '<option value="">Cargando historial...</option>';
-               try {
-                   const r = await fetch("/api/formulario?action=listarFormularios");
-                   const forms = await r.json();
-                   
-                   e.target.innerHTML = '<option value="">-- Historial Completo --</option>';
-                   
-                   // Opción para volver a pendientes
-                   const optBack = document.createElement('option');
-                   optBack.value = "VER_PENDIENTES";
-                   optBack.textContent = "🔙 Volver a Solo Pendientes";
-                   optBack.style.fontWeight = "bold";
-                   optBack.style.color = "var(--accent-color)";
-                   e.target.appendChild(optBack);
-                   
-                   for (const [id, f] of Object.entries(forms)) {
-                       if (f.tarea && (f.tarea.activa === true || f.tarea.activa === 'true' || f.tarea.activa === 1)) {
-                           const opt = document.createElement('option');
-                           opt.value = id;
-                           opt.textContent = f.titulo; // Aquí no tenemos conteo de pendientes, solo titulo
-                           e.target.appendChild(opt);
-                       }
-                   }
-               } catch(err) { console.error(err); }
-          } else if(e.target.value === 'VER_PENDIENTES') {
-              cargarTablaEspecialidadesParaEvaluar();
-          }
-      }
-  });
+    // La lógica de inicialización del panel instructor ahora incluye la configuración del selector
 
   // Función restaurada para ver entregas
   window.verEntregasEspecialidad = function(formId, titulo) {

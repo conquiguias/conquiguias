@@ -7061,7 +7061,8 @@ const diffMins = Math.floor(diffMs / 60000);
     }
 
     // Función para cargar imágenes en un select
-    async function cargarImagenesInstructor(carpeta, selectId) {
+    // Función para cargar imágenes en un select - EXPORTADA A WINDOW
+    window.cargarImagenesInstructor = async function(carpeta, selectId) {
       const select = document.getElementById(selectId);
       if (!select) return;
 
@@ -7611,7 +7612,8 @@ const diffMins = Math.floor(diffMs / 60000);
     };
 
     // Cargar formularios existentes
-    async function cargarFormulariosInstructor() {
+    // Cargar formularios existentes - EXPORTADA A WINDOW
+    window.cargarFormulariosInstructor = async function() {
       const tabla = document.querySelector("#tablaFormularios tbody");
       if(!tabla) return;
       
@@ -9006,12 +9008,12 @@ const diffMins = Math.floor(diffMs / 60000);
         if(!window.isAdmin) return;
         
         // 1. Cargar datos básicos de instructor
-        if(typeof cargarFormulariosInstructor === 'function') cargarFormulariosInstructor();
-        if(typeof cargarImagenesInstructor === 'function') {
-             cargarImagenesInstructor('especialidades', 'selectEspecialidad');
-             cargarImagenesInstructor('firmas', 'selectFirma1');
-             cargarImagenesInstructor('firmas', 'selectFirma2');
-             cargarImagenesInstructor('firmas', 'selectFirma3');
+        if(typeof window.cargarFormulariosInstructor === 'function') window.cargarFormulariosInstructor();
+        if(typeof window.cargarImagenesInstructor === 'function') {
+             window.cargarImagenesInstructor('especialidades', 'selectEspecialidad');
+             window.cargarImagenesInstructor('firmas', 'selectFirma1');
+             window.cargarImagenesInstructor('firmas', 'selectFirma2');
+             window.cargarImagenesInstructor('firmas', 'selectFirma3');
         }
 
         // 1.1 Re-asignar eventos de botones de subida (CRÍTICO)

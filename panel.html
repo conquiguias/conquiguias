@@ -8021,8 +8021,8 @@ const diffMins = Math.floor(diffMs / 60000);
                   examenOk = !!item.miExamen;
               }
 
-              // Si ambas están OK (tarea aprobada/no existe y examen realizado/no existe), OCULTAR FILA
-              if (tareaOk && examenOk) return;
+              // [REMOVIDO A PETICIÓN] Mostrar siempre todas las filas.
+              // if (tareaOk && examenOk) return;
 
               let estadoTareaHtml = '<span style="color:#888; font-size:12px;">No requerida</span>';
               let botonTarea = '';
@@ -9272,9 +9272,6 @@ const diffMins = Math.floor(diffMs / 60000);
                <div style="display:flex; gap:10px;">
                    <button onclick="document.getElementById('listaEntregasContainer').style.display='none'" style="background:transparent; border:1px solid var(--border-color); color:var(--text-primary); padding:6px 12px; border-radius:6px; cursor:pointer;">
                        <i class="fas fa-arrow-left"></i> Volver
-                   </button>
-                   <button onclick="enviarNotasBackend()" style="background:var(--success-color); color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:bold;">
-                       <i class="fas fa-save"></i> Guardar y Publicar Notas
                    </button>
                </div>
            </div>

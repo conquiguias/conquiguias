@@ -8938,6 +8938,16 @@ const diffMins = Math.floor(diffMs / 60000);
               // Validar Fecha Cierre
               const fechaObj = item.fechaCierre ? new Date(item.fechaCierre) : null;
               const isClosed = fechaObj && new Date() > fechaObj;
+              
+              const now = new Date();
+              console.log(`[DEBUG ITEM] ${item.titulo}`, {
+                  fechaCierre: item.fechaCierre,
+                  parsedDate: fechaObj,
+                  now: now,
+                  isClosed: isClosed,
+                  tareaRequerida: tareaRequerida,
+                  tieneTarea: !!item.miTarea
+              });
 
               if (!esAprobado) {
                 // Si no está aprobado, mostrar razón específica

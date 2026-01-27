@@ -8905,8 +8905,17 @@ const diffMins = Math.floor(diffMs / 60000);
                            colorTarea = '#F59E0B'; // Naranja
                       }
                   } else {
-                      estadoTarea = 'No entregado';
-                      colorTarea = '#EF4444'; // Rojo
+                      // Verificar si venció
+                      const fechaCierre = item.fechaCierre ? new Date(item.fechaCierre) : null;
+                      const vencida = fechaCierre && new Date() > fechaCierre;
+                      
+                      if (vencida) {
+                          estadoTarea = 'Reprobado (Vencida)';
+                          colorTarea = '#EF4444';
+                      } else {
+                          estadoTarea = 'No entregado';
+                          colorTarea = '#EF4444'; // Rojo alertando que falta
+                      }
                   }
               }
 

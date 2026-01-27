@@ -6395,8 +6395,8 @@ const diffMins = Math.floor(diffMs / 60000);
                               const post = doc.data();
                               switch (post.status) {
                               case 'pending':
-                              pendingCount++;
-                              break;
+                                  pendingCount++;
+                                  break;
                               case 'approved':
                               approvedCount++;
                               break;
@@ -6404,27 +6404,53 @@ const diffMins = Math.floor(diffMs / 60000);
                               rejectedCount++;
                               break;
                               default:
-                              // Para publicaciones antiguas sin estado, contar como aprobadas
-                              if (!post.status) {
-                              approvedCount++;
-                              }
+                                  // Consider missing status as 'approved' for backwards compatibility
+                                  if (!post.status) approvedCount++;
                               }
                               });
 
-                              document.getElementById('pendingCount').textContent = pendingCount;
-                              document.getElementById('approvedCount').textContent = approvedCount;
-                              document.getElementById('rejectedCount').textContent = rejectedCount;
+                              document.getElementById('pendingCount').innerText = pendingCount;
+                              document.getElementById('approvedCount').innerText = approvedCount;
+                              document.getElementById('rejectedCount').innerText = rejectedCount;
 
-                               console.log(`[INFO] Estadísticas: ${pendingCount} pendientes, ${approvedCount} aprobadas, ${rejectedCount} rechazadas`);
-
+                              console.log('[INFO] Estadísticas actualizadas');
                               } catch (error) {
-                              console.error('[ERROR] Error actualizando estadísticas:', error);
-                              // Valores por defecto en caso de error
-                              document.getElementById('pendingCount').textContent = '0';
-                              document.getElementById('approvedCount').textContent = '0';
-                              document.getElementById('rejectedCount').textContent = '0';
+                              console.warn('[WARN] No se pudieron cargar estadísticas:', error);
                               }
                               }
+                              
+              // --- INICIO: Lógica para Botón Flotante y Modal de Publicación ---
+              const floatingBtn = document.getElementById('floatingUploadBtn');
+              const uploadModal = document.getElementById('uploadModal');
+              const closeUploadModal = document.getElementById('closeUploadModal');
+
+              if (floatingBtn && uploadModal) {
+                  // Mostrar botón flotante si estamos en inicio
+                  floatingBtn.classList.remove('hidden');
+
+                  floatingBtn.addEventListener('click', () => {
+                      uploadModal.classList.remove('hidden');
+                      uploadModal.style.display = 'flex'; // Forzar display flex para centrar
+                  });
+
+                  // Cerrar con botón X
+                  if(closeUploadModal) {
+                      closeUploadModal.addEventListener('click', () => {
+                          uploadModal.classList.add('hidden');
+                          uploadModal.style.display = 'none';
+                      });
+                  }
+
+                  // Cerrar al hacer clic fuera (en el backdrop)
+                  uploadModal.addEventListener('click', (e) => {
+                      if (e.target === uploadModal) {
+                          uploadModal.classList.add('hidden');
+                          uploadModal.style.display = 'none';
+                      }
+                  });
+              }
+              // --- FIN: Lógica para Botón Flotante ---
+
 
                               // Manejar eventos del panel admin
                               // 🔹 Manejar eventos del panel admin (versión mejorada)
@@ -6516,10 +6542,8 @@ const diffMins = Math.floor(diffMs / 60000);
 
                               const data = await response.json();
                               if (data.success) {
-                              if (data.success) {
                               ADMIN_EMAILS = data.admins;
                               console.log('[SUCCESS] Administradores cargados:', ADMIN_EMAILS);
-                              }
                               return data.admins;
                               } else {
                               throw new Error(data.error);
@@ -6871,9 +6895,7 @@ const diffMins = Math.floor(diffMs / 60000);
                                 }
 
                                 // Elementos del modal de subida
-                                const floatingUploadBtn = document.getElementById('floatingUploadBtn');
-                                const uploadModal = document.getElementById('uploadModal');
-                                const closeUploadModal = document.getElementById('closeUploadModal');
+
 
                                 // Función para mostrar el modal
                                 function showUploadModal() {
@@ -8415,12 +8437,6 @@ const diffMins = Math.floor(diffMs / 60000);
           tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red;">Error: ${e.message}</td></tr>`;
           console.error("Error cargando tabla dashboard: ", e);
       }
-  };    // Mostrar el contenedor de entregas
-      const container = document.getElementById('listaEntregasContainer');
-      if(container) {
-          container.style.display = 'block';
-          container.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
   };
 
   let entregasCurrentForm = {}; 
@@ -9072,11 +9088,7 @@ const diffMins = Math.floor(diffMs / 60000);
       }
   };
 
-  // --- FUNCIONES LÓGICAS DEL EVALUADOR ---
 
-  // --- LÓGICA DEL EVALUADOR (Reescrita para Interfaz de Selector) ---
-
-  // --- LÓGICA DEL EVALUADOR (Reescrita para Interfaz de Selector Inteligente) ---
 
   window.cargarTablaEspecialidadesParaEvaluar = async function() {
       console.log("📋 [DEBUG] Cargando Tabla de Especialidades (Dashboard)...");
@@ -9174,6 +9186,25 @@ const diffMins = Math.floor(diffMs / 60000);
           }
       }
   });
+
+  // Función restaurada para ver entregas
+  window.verEntregasEspecialidad = function(formId, titulo) {
+      currentEvalFormId = formId;
+      console.log("Revisando especialidad:", titulo, formId);
+      if(typeof cargarEntregasInstructor === 'function') {
+          cargarEntregasInstructor(formId);
+      } else {
+          console.error("cargarEntregasInstructor no está definida");
+          alert("Error interno: No se encuentra la función de carga de entregas.");
+      }
+      
+      // Mostrar el contenedor de entregas
+      const container = document.getElementById('listaEntregasContainer');
+      if(container) {
+          container.style.display = 'block';
+          container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+  };
 
   // --- GESTIÓN DE ALMACENAMIENTO (PDFs) ---
   

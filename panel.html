@@ -8905,17 +8905,8 @@ const diffMins = Math.floor(diffMs / 60000);
                            colorTarea = '#F59E0B'; // Naranja
                       }
                   } else {
-                      // Verificar si venció
-                      const fechaCierre = item.fechaCierre ? new Date(item.fechaCierre) : null;
-                      const vencida = fechaCierre && new Date() > fechaCierre;
-                      
-                      if (vencida) {
-                          estadoTarea = 'Reprobado (Vencida)';
-                          colorTarea = '#EF4444';
-                      } else {
-                          estadoTarea = 'No entregado';
-                          colorTarea = '#EF4444'; // Rojo alertando que falta
-                      }
+                      estadoTarea = 'No entregado';
+                      colorTarea = '#EF4444'; // Rojo
                   }
               }
 
@@ -8944,11 +8935,19 @@ const diffMins = Math.floor(diffMs / 60000);
                   }
               }
               
+              // Validar Fecha Cierre
+              const fechaObj = item.fechaCierre ? new Date(item.fechaCierre) : null;
+              const isClosed = fechaObj && new Date() > fechaObj;
+
               if (!esAprobado) {
                 // Si no está aprobado, mostrar razón específica
                 if (tareaRequerida) {
                      if (!item.miTarea) {
-                         textoEstado = '<span style="color:#EF4444; font-weight:bold;">Falta Tarea</span>';
+                         if (isClosed) {
+                             textoEstado = '<span style="color:#EF4444; font-weight:bold;">Reprobado (Tarea Vencida)</span>';
+                         } else {
+                             textoEstado = '<span style="color:#EF4444; font-weight:bold;">Falta Tarea</span>';
+                         }
                      } else if (item.miTarea.estado === 'entregado') {
                          textoEstado = '<span style="color:#F59E0B; font-weight:bold;">En Revisión</span>';
                      } else if (item.miTarea.estado === 'calificado' && parseFloat(item.miTarea.nota) < 7) {

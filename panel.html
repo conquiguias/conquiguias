@@ -7963,12 +7963,13 @@ const diffMins = Math.floor(diffMs / 60000);
   if(menuTareas) {
       menuTareas.addEventListener('click', () => {
           mostrarSeccion(sectionTareas, menuTareas);
-          cargarTareasExamenes();
+          window.cargarTareasExamenes();
       });
   }
 
   // --- LÓGICA ESTUDIANTE: CARGAR TAREAS Y EXÁMENES ---
-  async function cargarTareasExamenes() {
+  // --- LÓGICA ESTUDIANTE: CARGAR TAREAS Y EXÁMENES - EXPORTADA A WINDOW
+  window.cargarTareasExamenes = async function() {
       const tbody = document.getElementById('cuerpoTablaTareasExamenes');
       if(!tbody) return;
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">Cargando...</td></tr>';
@@ -8013,14 +8014,14 @@ const diffMins = Math.floor(diffMs / 60000);
               }
 
               const tieneExamen = item.configExamen;
-              // Consideramos examen OK si no existe, o si ya fue realizado con nota >= 70
+              // Consideramos examen OK si no existe, o si YA FUE REALIZADO (aprobado o reprobado, solo 1 intento)
               let examenOk = true;
               if (tieneExamen) {
-                  const puntaje = item.miExamen ? parseFloat(item.miExamen.puntaje) : 0;
-                  examenOk = item.miExamen && puntaje >= 70;
+                  // Si existe miExamen, ya se intentó. Se considera "ok" para ocultar la fila (fin del proceso).
+                  examenOk = !!item.miExamen;
               }
 
-              // Si ambas están OK, no mostrar en esta lista de pendientes
+              // Si ambas están OK (tarea aprobada/no existe y examen realizado/no existe), OCULTAR FILA
               if (tareaOk && examenOk) return;
 
               let estadoTareaHtml = '<span style="color:#888; font-size:12px;">No requerida</span>';
@@ -8057,10 +8058,14 @@ const diffMins = Math.floor(diffMs / 60000);
                   }
               }
               
-              // Lógica Examen (... sin cambios ...)
+              // Lógica Examen
               if (tieneExamen) {
                   if (item.miExamen) {
-                       estadoExamenHtml = `<span style="color:#10B981; font-weight:bold;">Realizado (${parseInt(item.miExamen.puntaje)}%)</span>`;
+                      // Ya tiene examen (aprobado o reprobado) -> Mostrar estado estático
+                       const puntaje = parseFloat(item.miExamen.puntaje);
+                       const color = puntaje >= 70 ? '#10B981' : '#EF4444';
+                       const texto = puntaje >= 70 ? 'Aprobado' : 'Reprobado';
+                       estadoExamenHtml = `<span style="color:${color}; font-weight:bold;">${texto} (${parseInt(puntaje)}%)</span>`;
                        botonExamen = '<span style="font-size:12px; color:#aaa;">Examen completado</span>';
                   } else {
                       let puedeHacerExamen = true;
@@ -8193,7 +8198,7 @@ const diffMins = Math.floor(diffMs / 60000);
                   document.getElementById('modalSubirTarea').style.display = 'none';
                   
                   // Refrescar tablas
-                  if(typeof cargarTareasExamenes === 'function') cargarTareasExamenes();
+                  if(typeof window.cargarTareasExamenes === 'function') window.cargarTareasExamenes();
                   if(typeof cargarTablaCertificacionesCorrecta === 'function') setTimeout(cargarTablaCertificacionesCorrecta, 1000);
               } else {
                   msg.innerHTML = `<span style="color:red">Error: ${res.error}</span>`;
@@ -8271,9 +8276,6 @@ const diffMins = Math.floor(diffMs / 60000);
                       </select>
                   </div>
                   <div style="display: flex; gap: 10px; align-items: flex-end;">
-                      <button onclick="enviarNotasBackend()" style="padding: 10px 20px; background: var(--success-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
-                          <i class="fas fa-save"></i> Enviar Notas
-                      </button>
                       <button onclick="document.getElementById('sectionAlmacenamientoPDFs').scrollIntoView({behavior: 'smooth'})" style="padding: 10px 20px; background: var(--warning-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
                           <i class="fas fa-trash-alt"></i> Gestión de Almacenamiento (PDFs)
                       </button>
@@ -9008,8 +9010,9 @@ const diffMins = Math.floor(diffMs / 60000);
             btn.addEventListener('click', () => {
                  setTimeout(() => {
                      // Verificar si la función existe antes de llamarla
-                     if(typeof cargarTareasExamenes === 'function') {
-                         cargarTareasExamenes();
+                     // Verificar si la función existe antes de llamarla
+                     if(typeof window.cargarTareasExamenes === 'function') {
+                         window.cargarTareasExamenes();
                      }
                  }, 100);
             });

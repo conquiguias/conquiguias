@@ -2386,64 +2386,65 @@ transition: all 0.3s ease;
             <h3>Crear Publicación</h3>
             <button id="closeUploadModal" class="close-modal-btn">×</button>
           </div>
+
+          <!-- Sección Social (Feed) - AHORA DENTRO DEL MODAL -->
+          <div id="socialSection" style="margin-bottom: 0;">
+            <div class="social-header">
+              <div class="user-info">
+                <img id="socialProfilePic" src="https://dummyimage.com/120x120/ccc/fff"
+                  style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-color);">
+                <div>
+                  <strong id="socialName" style="font-size: 16px;">Usuario</strong>
+                  <div style="font-size: 12px; color: var(--text-secondary);">Compartir con la comunidad</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="padding: 15px;">
+              <div id="uploadBox">
+                <input type="file" id="fileInput" accept="image/*,video/*"
+                  style="margin-bottom: 10px; width: 100%; padding: 8px;">
+                <textarea id="postDescription" placeholder="¿Qué quieres compartir? Puedes usar:
+                  • Saltos de línea (Enter)
+                  • Enlaces (se detectarán automáticamente)
+                  • Menciones @usuario  
+                  • Hashtags #tema" style="width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; 
+                                   border: 1px solid var(--border-color); font-family: inherit; 
+                                   background: var(--bg-secondary); color: var(--text-primary);
+                                   min-height: 120px; resize: vertical; font-size: 14px; line-height: 1.4;"></textarea>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                  <small style="color: var(--text-secondary); font-size: 12px;">
+                    Presiona Enter para saltos de línea • Los enlaces se abrirán en nueva pestaña
+                  </small>
+                  <small id="charCount" style="color: var(--text-secondary); font-size: 12px;">
+                    0/500
+                  </small>
+                </div>
+                <div id="previewContainer" style="margin-bottom: 10px;"></div>
+                <div id="uploadProgress" style="display: none; margin-bottom: 10px;">
+                  <div style="background: var(--bg-secondary); border-radius: 10px; height: 20px;">
+                    <div id="progressBar"
+                      style="background: var(--accent-color); height: 100%; border-radius: 10px; width: 0%; transition: width 0.3s;">
+                    </div>
+                  </div>
+                  <span id="progressText" style="font-size: 14px;">0%</span>
+                </div>
+                <div style="display: flex; align-items: center;">
+                  <button id="uploadBtn"
+                    style="padding: 10px 20px; background: var(--accent-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">Publicar</button>
+                  <span id="countdownTimer"
+                    style="margin-left: 15px; color: var(--warning-color); font-weight: bold; display: none;"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Fin Social Section -->
         </div>
       </div>
     </div>
 
     <!-- Inicio - Red Social -->
     <div id="inicioSection" class="card">
-      <!-- Sección Social (Feed) -->
-      <div id="socialSection" class="card" style="margin-bottom: 20px;">
-        <div class="social-header">
-          <div class="user-info">
-            <img id="socialProfilePic" src="https://dummyimage.com/120x120/ccc/fff"
-              style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-color);">
-            <div>
-              <strong id="socialName" style="font-size: 16px;">Usuario</strong>
-              <div style="font-size: 12px; color: var(--text-secondary);">Compartir con la comunidad</div>
-            </div>
-          </div>
-        </div>
-
-        <div style="padding: 15px;">
-        <!-- [c:\Users\PROYECTO JA\Documents\GitHub\conquiguias\panel.html:L2390-L3537] -->
-          <div id="uploadBox">
-            <input type="file" id="fileInput" accept="image/*,video/*"
-              style="margin-bottom: 10px; width: 100%; padding: 8px;">
-            <textarea id="postDescription" placeholder="¿Qué quieres compartir? Puedes usar:
-              • Saltos de línea (Enter)
-              • Enlaces (se detectarán automáticamente)
-              • Menciones @usuario  
-              • Hashtags #tema" style="width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; 
-                               border: 1px solid var(--border-color); font-family: inherit; 
-                               background: var(--bg-secondary); color: var(--text-primary);
-                               min-height: 120px; resize: vertical; font-size: 14px; line-height: 1.4;"></textarea>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-              <small style="color: var(--text-secondary); font-size: 12px;">
-                Presiona Enter para saltos de línea • Los enlaces se abrirán en nueva pestaña
-              </small>
-              <small id="charCount" style="color: var(--text-secondary); font-size: 12px;">
-                0/500
-              </small>
-            </div>
-            <div id="previewContainer" style="margin-bottom: 10px;"></div>
-            <div id="uploadProgress" style="display: none; margin-bottom: 10px;">
-              <div style="background: var(--bg-secondary); border-radius: 10px; height: 20px;">
-                <div id="progressBar"
-                  style="background: var(--accent-color); height: 100%; border-radius: 10px; width: 0%; transition: width 0.3s;">
-                </div>
-              </div>
-              <span id="progressText" style="font-size: 14px;">0%</span>
-            </div>
-            <div style="display: flex; align-items: center;">
-              <button id="uploadBtn"
-                style="padding: 10px 20px; background: var(--accent-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">Publicar</button>
-              <span id="countdownTimer"
-                style="margin-left: 15px; color: var(--warning-color); font-weight: bold; display: none;"></span>
-            </div>
-          </div>
-        </div>
-      </div>
 
 
 
@@ -8204,6 +8205,11 @@ const diffMins = Math.floor(diffMs / 60000);
                   overflow-x: hidden; 
                   overflow-y: auto;
                   max-height: 600px;
+                  scrollbar-width: thin; /* Firefox */
+              }
+              #viewEvaluarTareas textarea {
+                  resize: vertical; /* Only vertical resize */
+                  overflow-y: auto; /* Show scroll only if needed */
               }
               #listaEntregasContainer table {
                   width: 100%;
@@ -8348,65 +8354,67 @@ const diffMins = Math.floor(diffMs / 60000);
       console.warn("⚠️ [TABS] No se encontraron los elementos tabCrear o tabEvaluar");
   }
 
-  // Función para cargar formularios con tareas activas en el selector
-  async function cargarFormulariosConTareasEnSelector() {
-      const select = document.getElementById('selectFiltroEvaluacion');
-      if(!select) {
-          console.warn("⚠️ No se encontró selectFiltroEvaluacion");
+  // Función para cargar formularios  window.cargarTablaEspecialidadesParaEvaluar = async function() {
+      console.log("📋 [DEBUG] Cargando Tabla de Especialidades (Dashboard)...");
+      const tbody = document.getElementById('cuerpoTablaEspecialidadesTareas');
+      if (!tbody) {
+          console.error("❌ No se encontró el cuerpo de la tabla 'cuerpoTablaEspecialidadesTareas'");
           return;
       }
-      
+
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Cargando tareas pendientes...</td></tr>';
+
       try {
-          const resp = await fetch("/api/formulario?action=listarFormularios");
-          if(!resp.ok) throw new Error("Error al cargar formularios");
+          // 1. Cargar Formularios Pendientes
+          const resp = await fetch("/api/formulario?action=listarFormulariosPendientes");
+          let pendientes = [];
+          if(resp.ok) pendientes = await resp.json();
           
-          const formularios = await resp.json();
+          tbody.innerHTML = '';
           
-          // Limpiar selector
-          select.innerHTML = '<option value="">-- Selecciona un formulario --</option>';
-          
-          // Filtrar y agregar solo formularios con tareas activas
-          for (const [id, form] of Object.entries(formularios)) {
-              if (form.tarea && form.tarea.activa) {
-                  const option = document.createElement('option');
-                  option.value = id;
-                  option.textContent = form.titulo || id;
-                  select.appendChild(option);
-              }
+          if(pendientes.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--success-color); font-weight:bold;"><i class="fas fa-check-circle" style="font-size:24px; margin-bottom:10px;"></i><br>¡Todo al día! No hay tareas pendientes por calificar.</td></tr>';
+          } else {
+              pendientes.forEach(item => {
+                  const tr = document.createElement('tr');
+                  tr.style.borderBottom = '1px solid var(--border-color)';
+                  tr.onmouseover = () => tr.style.background = 'rgba(59,130,246,0.05)';
+                  tr.onmouseout = () => tr.style.background = 'transparent';
+                  
+                  tr.innerHTML = `
+                    <td style="padding:15px; font-weight:600;">${item.titulo}</td>
+                    <td style="padding:15px; text-align:center;">
+                        <span style="background:#F59E0B; color:white; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:bold;">
+                            ${item.pendientes}
+                        </span>
+                    </td>
+                    <td style="padding:15px; text-align:center;">
+                        <span style="background:#10B981; color:white; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:bold;">
+                            ${item.calificadas || 0}
+                        </span>
+                    </td>
+                    <td style="padding:15px; text-align:center; font-weight:bold; color:var(--text-secondary);">${item.total || 0}</td>
+                    <td style="padding:15px; text-align:center;">
+                        <button onclick="verEntregasEspecialidad('${item.id}', '${item.titulo}')" 
+                                style="background:var(--accent-color); color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; font-weight:600; box-shadow:0 2px 4px rgba(0,0,0,0.2);">
+                            <i class="fas fa-eye"></i> Revisar
+                        </button>
+                    </td>
+                  `;
+                  tbody.appendChild(tr);
+              });
           }
           
-          console.log("✅ Formularios con tareas cargados en selector");
+          // Cargar tabla de PDFs al final (si el contenedor existe)
+          if(typeof cargarTablaLimpiezaPDFs === 'function') {
+               setTimeout(cargarTablaLimpiezaPDFs, 500);
+          }
           
       } catch(e) {
-          console.error("❌ Error cargando formularios:", e);
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red;">Error: ${e.message}</td></tr>`;
+          console.error("Error cargando tabla dashboard: ", e);
       }
-  }
-  
-  // Configurar listener del selector (solo una vez)
-  setTimeout(() => {
-      const select = document.getElementById('selectFiltroEvaluacion');
-      if(select) {
-          select.addEventListener('change', (e) => {
-              if(e.target.value) {
-                  cargarEntregasParaSelector(e.target.value);
-              } else {
-                  document.getElementById('listaEntregasContainer').innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Selecciona un formulario para ver entregas.</p>';
-                  document.getElementById('visorPDFContainer').innerHTML = '<p>Selecciona un alumno para ver su tarea.</p>';
-                  document.getElementById('panelCalificacionIndividual').style.display = 'none';
-              }
-          });
-          console.log("✅ Listener del selector configurado");
-      }
-  }, 500);
-
-  // Nota: cargarTablaEspecialidadesParaEvaluar ya está definida más arriba (línea ~7840)
-  
-  // Función auxiliar para ver entregas de una especialidad específica
-  window.verEntregasEspecialidad = function(formId, titulo) {
-      currentEvalFormId = formId;
-      cargarEntregasInstructor(formId);
-      
-      // Mostrar el contenedor de entregas
+  };    // Mostrar el contenedor de entregas
       const container = document.getElementById('listaEntregasContainer');
       if(container) {
           container.style.display = 'block';
@@ -9070,61 +9078,64 @@ const diffMins = Math.floor(diffMs / 60000);
   // --- LÓGICA DEL EVALUADOR (Reescrita para Interfaz de Selector Inteligente) ---
 
   window.cargarTablaEspecialidadesParaEvaluar = async function() {
-      console.log("📋 [DEBUG] cargarTablaEspecialidadesParaEvaluar() ejecutada (MODO PENDIENTES)");
-      const select = document.getElementById('selectFiltroEvaluacion');
-      if (!select) return;
+      console.log("📋 [DEBUG] Cargando Tabla de Especialidades (Dashboard)...");
+      const tbody = document.getElementById('cuerpoTablaEspecialidadesTareas');
+      if (!tbody) {
+          console.error("❌ No se encontró el cuerpo de la tabla 'cuerpoTablaEspecialidadesTareas'");
+          return;
+      }
 
-      const valorActual = select.value; // Guardar selección si existe
-      select.innerHTML = '<option value="">Cargando pendientes...</option>';
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Cargando tareas pendientes...</td></tr>';
 
       try {
-          // 1. Cargar Pendientes
+          // 1. Cargar Formularios Pendientes
           const resp = await fetch("/api/formulario?action=listarFormulariosPendientes");
           let pendientes = [];
           if(resp.ok) pendientes = await resp.json();
           
-          select.innerHTML = '<option value="">-- Selecciona un formulario (Solo Pendientes) --</option>';
+          tbody.innerHTML = '';
           
           if(pendientes.length === 0) {
-              const opt = document.createElement('option');
-              opt.textContent = "✅ ¡Todo al día! No hay tareas pendientes.";
-              select.appendChild(opt);
+              tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--success-color); font-weight:bold;"><i class="fas fa-check-circle" style="font-size:24px; margin-bottom:10px;"></i><br>¡Todo al día! No hay tareas pendientes por calificar.</td></tr>';
           } else {
               pendientes.forEach(item => {
-                  const opt = document.createElement('option');
-                  opt.value = item.id;
-                  opt.textContent = `${item.titulo} (${item.pendientes} pendientes)`;
-                  select.appendChild(opt);
+                  const tr = document.createElement('tr');
+                  tr.style.borderBottom = '1px solid var(--border-color)';
+                  tr.onmouseover = () => tr.style.background = 'rgba(59,130,246,0.05)';
+                  tr.onmouseout = () => tr.style.background = 'transparent';
+                  
+                  tr.innerHTML = `
+                    <td style="padding:15px; font-weight:600;">${item.titulo}</td>
+                    <td style="padding:15px; text-align:center;">
+                        <span style="background:#F59E0B; color:white; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:bold;">
+                            ${item.pendientes}
+                        </span>
+                    </td>
+                    <td style="padding:15px; text-align:center;">
+                        <span style="background:#10B981; color:white; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:bold;">
+                            ${item.calificadas || 0}
+                        </span>
+                    </td>
+                    <td style="padding:15px; text-align:center; font-weight:bold; color:var(--text-secondary);">${item.total || 0}</td>
+                    <td style="padding:15px; text-align:center;">
+                        <button onclick="verEntregasEspecialidad('${item.id}', '${item.titulo}')" 
+                                style="background:var(--accent-color); color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; font-weight:600; box-shadow:0 2px 4px rgba(0,0,0,0.2);">
+                            <i class="fas fa-eye"></i> Revisar
+                        </button>
+                    </td>
+                  `;
+                  tbody.appendChild(tr);
               });
           }
           
-          // Opción para ver todo el historial
-          const optAll = document.createElement('option');
-          optAll.value = "VER_TODOS";
-          optAll.textContent = "📂 Ver Historial Completo (Incluir finalizados)";
-          optAll.style.fontWeight = "bold";
-          optAll.style.color = "#3b82f6";
-          select.appendChild(optAll);
-          
-          // Restaurar selección si sigue en la lista, sino limpiar vista
-          if(valorActual && valorActual !== "VER_TODOS" && valorActual !== "VER_PENDIENTES") {
-               const exists = pendientes.find(p => p.id === valorActual);
-               if(exists) select.value = valorActual;
-               else {
-                   // Si ya no está en pendientes, limpiar vista para feedback
-                   document.getElementById('listaEntregasContainer').innerHTML = '<div style="text-align:center; padding:20px; color:var(--success-color);"><i class="fas fa-check-circle" style="font-size:48px; margin-bottom:10px;"></i><br>¡Formulario completado!</div>';
-                   document.getElementById('visorPDFContainer').innerHTML = '<div style="display:flex; align-items:center; justify-content:center; height:100%; color:#aaa;">Selecciona otro formulario para continuar.</div>';
-                   document.getElementById('panelCalificacionIndividual').style.display = 'none';
-                   select.value = ""; // Resetear selector
-               }
+          // Cargar tabla de PDFs al final (si el contenedor existe)
+          if(typeof cargarTablaLimpiezaPDFs === 'function') {
+               setTimeout(cargarTablaLimpiezaPDFs, 500);
           }
           
-          // Cargar tabla de PDFs al final (si el contenedor existe)
-          if(typeof cargarTablaLimpiezaPDFs === 'function') cargarTablaLimpiezaPDFs();
-          
       } catch(e) {
-          select.innerHTML = '<option value="">Error al cargar formularios</option>';
-          console.error("Error cargando selector: ", e);
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red;">Error: ${e.message}</td></tr>`;
+          console.error("Error cargando tabla dashboard: ", e);
       }
   };
   

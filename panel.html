@@ -1891,7 +1891,7 @@
       width: 100%;
       height: 100%;
       background: rgba(0, 0, 0, 0.7);
-      display: none;
+      display: flex;
       align-items: center;
       justify-content: center;
       padding: 20px;
@@ -8368,7 +8368,11 @@ const diffMins = Math.floor(diffMs / 60000);
           viewCrear.style.display = 'none';
           
           // Cargar formularios con tareas activas en el selector
-          await cargarFormulariosConTareasEnSelector();
+          if (typeof cargarTablaEspecialidadesParaEvaluar === 'function') {
+              await cargarTablaEspecialidadesParaEvaluar();
+          } else {
+              console.error("cargarTablaEspecialidadesParaEvaluar no está definida");
+          }
       });
       
       console.log("✅ [TABS] Listeners configurados correctamente");
@@ -8550,22 +8554,65 @@ const diffMins = Math.floor(diffMs / 60000);
   };
   
   window.abrirEvaluador = function(vid, data) {
-      document.getElementById('panelCalificacionIndividual').style.display = 'flex';
-      document.getElementById('labelAlumnoActual').textContent = vid;
+      console.log("Opening evaluator for:", vid);
+      const panel = document.getElementById('panelCalificacionIndividual');
+      if (!panel) {
+          alert("Error: No se encontró el panel de calificación. Por favor, recarga la página.");
+          return;
+      }
+      
+      panel.style.display = 'flex';
+      
+      // Intentar obtener datos si no se pasaron (usando el objeto global)
+      let actualData = data;
+      if (!actualData && typeof currentEntregasData !== 'undefined') {
+          actualData = currentEntregasData[vid];
+      }
+      if (!actualData && window.datosEntregasGlobal) {
+          actualData = window.datosEntregasGlobal[vid];
+      }
+      
+      if (!actualData) {
+          console.error("No se encontraron datos para", vid);
+          return;
+      }
+      
+      const label = document.getElementById('labelAlumnoActual');
+      if (label) label.textContent = actualData.email || vid;
+      
       const inputNota = document.getElementById('inputNotaIndividual');
-      inputNota.value = data.nota || '';
+      if (inputNota) {
+          inputNota.value = actualData.nota || '';
+          inputNota.onchange = (e) => {
+              if (typeof actualizarNotaLocal === 'function') {
+                  actualizarNotaLocal(vid, e.target.value);
+              }
+              // Sincronizar con el objeto global si existe
+              if (typeof currentEntregasData !== 'undefined' && currentEntregasData[vid]) {
+                  currentEntregasData[vid].nota = e.target.value;
+              }
+          };
+      }
       
-      // Configurar el onchange para actualizar tanto localStorage como el span de la tabla
-      inputNota.onchange = (e) => actualizarNotaLocal(vid, e.target.value);
-      
-      // Iframe PDF con Google Docs Viewer para forzar visualización
-      const pdfUrl = encodeURIComponent(data.url);
-      document.getElementById('visorPDFContainer').innerHTML = `<iframe src="https://docs.google.com/viewer?url=${pdfUrl}&embedded=true" style="width:100%; height:100%; border:none;"></iframe>`;
+      const iframe = document.getElementById('iframePDFEvaluador');
+      if (iframe) {
+          if (actualData.contenido) {
+              // Si viene en base64 (nuevo sistema)
+              iframe.src = `data:application/pdf;base64,${actualData.contenido}`;
+          } else if (actualData.url) {
+              // Si viene por URL (viejo sistema)
+              const pdfUrl = encodeURIComponent(actualData.url);
+              iframe.src = `https://docs.google.com/viewer?url=${pdfUrl}&embedded=true`;
+          }
+      }
   };
-  
+
   window.cerrarCalificador = function() {
-      document.getElementById('panelCalificacionIndividual').style.display = 'none';
-      renderTablaEntregas(); // Refrescar por si cambió nota
+      const panel = document.getElementById('panelCalificacionIndividual');
+      if (panel) panel.style.display = 'none';
+      const iframe = document.getElementById('iframePDFEvaluador');
+      if (iframe) iframe.src = '';
+      if (typeof renderTablaEntregas === 'function') renderTablaEntregas(); 
   };
 
   // --- LÓGICA EXAMEN PORTADO ("Hacer examen en plataforma") ---
@@ -9090,67 +9137,7 @@ const diffMins = Math.floor(diffMs / 60000);
 
 
 
-  window.cargarTablaEspecialidadesParaEvaluar = async function() {
-      console.log("📋 [DEBUG] Cargando Tabla de Especialidades (Dashboard)...");
-      const tbody = document.getElementById('cuerpoTablaEspecialidadesTareas');
-      if (!tbody) {
-          console.error("❌ No se encontró el cuerpo de la tabla 'cuerpoTablaEspecialidadesTareas'");
-          return;
-      }
-
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Cargando tareas pendientes...</td></tr>';
-
-      try {
-          // 1. Cargar Formularios Pendientes
-          const resp = await fetch("/api/formulario?action=listarFormulariosPendientes");
-          let pendientes = [];
-          if(resp.ok) pendientes = await resp.json();
-          
-          tbody.innerHTML = '';
-          
-          if(pendientes.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--success-color); font-weight:bold;"><i class="fas fa-check-circle" style="font-size:24px; margin-bottom:10px;"></i><br>¡Todo al día! No hay tareas pendientes por calificar.</td></tr>';
-          } else {
-              pendientes.forEach(item => {
-                  const tr = document.createElement('tr');
-                  tr.style.borderBottom = '1px solid var(--border-color)';
-                  tr.onmouseover = () => tr.style.background = 'rgba(59,130,246,0.05)';
-                  tr.onmouseout = () => tr.style.background = 'transparent';
-                  
-                  tr.innerHTML = `
-                    <td style="padding:15px; font-weight:600;">${item.titulo}</td>
-                    <td style="padding:15px; text-align:center;">
-                        <span style="background:#F59E0B; color:white; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:bold;">
-                            ${item.pendientes}
-                        </span>
-                    </td>
-                    <td style="padding:15px; text-align:center;">
-                        <span style="background:#10B981; color:white; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:bold;">
-                            ${item.calificadas || 0}
-                        </span>
-                    </td>
-                    <td style="padding:15px; text-align:center; font-weight:bold; color:var(--text-secondary);">${item.total || 0}</td>
-                    <td style="padding:15px; text-align:center;">
-                        <button onclick="verEntregasEspecialidad('${item.id}', '${item.titulo}')" 
-                                style="background:var(--accent-color); color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; font-weight:600; box-shadow:0 2px 4px rgba(0,0,0,0.2);">
-                            <i class="fas fa-eye"></i> Revisar
-                        </button>
-                    </td>
-                  `;
-                  tbody.appendChild(tr);
-              });
-          }
-          
-          // Cargar tabla de PDFs al final (si el contenedor existe)
-          if(typeof cargarTablaLimpiezaPDFs === 'function') {
-               setTimeout(cargarTablaLimpiezaPDFs, 500);
-          }
-          
-      } catch(e) {
-          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red;">Error: ${e.message}</td></tr>`;
-          console.error("Error cargando tabla dashboard: ", e);
-      }
-  };
+  // Se eliminaron definiciones duplicadas para evitar conflictos entre scripts.
   
   // Listener especial para "VER_TODOS" y "VER_PENDIENTES"
   // Delegado en el cambio del select para cargar dinámica
@@ -9510,27 +9497,7 @@ const diffMins = Math.floor(diffMs / 60000);
       container.innerHTML = html;
   }
 
-  window.abrirEvaluador = function(alumnoId) {
-      if(!currentEntregasData[alumnoId]) return;
-      currentEvaluandoId = alumnoId;
-      const datos = currentEntregasData[alumnoId];
-      
-      // Mostrar modal fullscreen
-      document.getElementById('panelCalificacionIndividual').style.display = 'flex';
-      
-      // Cargar PDF (Decode base64 content para mostrar)
-      // data:application/pdf;base64,...
-      const iframe = document.getElementById('iframePDFEvaluador');
-      iframe.src = `data:application/pdf;base64,${datos.contenido}`;
-      
-      document.getElementById('labelAlumnoActual').textContent = datos.email || alumnoId;
-      document.getElementById('inputNotaIndividual').value = datos.nota || '';
-  };
-  
- window.cerrarCalificador = function() {
-      document.getElementById('panelCalificacionIndividual').style.display = 'none';
-      document.getElementById('iframePDFEvaluador').src = '';
-  };
+  // abrirEvaluador y cerrarCalificador ya están definidos y unificados arriba.
 
   window.guardarNotaIndividualYSalir = async function() {
       const nota = document.getElementById('inputNotaIndividual').value;

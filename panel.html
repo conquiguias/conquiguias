@@ -8549,8 +8549,12 @@ const diffMins = Math.floor(diffMs / 60000);
       localStorage.setItem(`notas_pendientes_${currentEvalFormId}`, JSON.stringify(pending));
   };
   
+  // Variable global para rastrear el alumno actual en evaluación
+  window.currentEvaluandoId = null;
+
   window.abrirEvaluador = function(vid, data) {
       console.log("Opening evaluator for:", vid);
+      window.currentEvaluandoId = vid; // Establecer ID actual
       const panel = document.getElementById('panelCalificacionIndividual');
       if (!panel) {
           alert("Error: No se encontró el panel de calificación. Por favor, recarga la página.");
@@ -9312,9 +9316,12 @@ const diffMins = Math.floor(diffMs / 60000);
       if(!nota || nota < 0 || nota > 10) { alert("Nota inválida (0-10)"); return; }
       
       // Actualizar local
-      if(currentEntregasData[currentEvaluandoId]) {
-          currentEntregasData[currentEvaluandoId].nota = nota;
-          currentEntregasData[currentEvaluandoId].estado = 'calificado';
+      // Actualizar local
+      if(window.currentEvaluandoId && currentEntregasData[window.currentEvaluandoId]) {
+          currentEntregasData[window.currentEvaluandoId].nota = nota;
+          currentEntregasData[window.currentEvaluandoId].estado = 'calificado';
+      } else {
+          console.error("No se encontró el ID de evaluación actual:", window.currentEvaluandoId);
       }
       
       // Guardar en Backend (Usando action=calificarTareas)

@@ -2940,6 +2940,28 @@ transition: all 0.3s ease;
           <!-- Contenedor para lista de detalles -->
           <div id="listaEntregasContainer" style="display:none; animation: fadeIn 0.3s ease;"></div>
 
+          <!-- Modal Calificador Fullscreen -->
+          <div id="panelCalificacionIndividual" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:9000; background:rgba(0,0,0,0.95); flex-direction:column;">
+              <div style="height:60px; background:#1e293b; display:flex; align-items:center; justify-content:space-between; padding:0 20px; color:white; border-bottom:1px solid #334155;">
+                  <div style="display:flex; align-items:center; gap:15px;">
+                      <span style="font-size:16px; font-weight:500;">Evaluando a: <b id="labelAlumnoActual" style="color:var(--accent-color)"></b></span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:10px;">
+                      <input type="number" id="inputNotaIndividual" placeholder="Nota (0-10)" min="0" max="10" step="0.1" 
+                             style="width:100px; padding:10px; border-radius:6px; border:1px solid #475569; background:#0f172a; color:white; font-size:16px; font-weight:bold;">
+                      <button onclick="guardarNotaIndividualYSalir()" style="background:var(--success-color); color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-weight:bold; transition:transform 0.2s;">
+                          <i class="fas fa-save"></i> Guardar
+                      </button>
+                      <button onclick="cerrarCalificador()" style="background:var(--danger-color); color:white; border:none; padding:10px 15px; border-radius:6px; cursor:pointer;">
+                          <i class="fas fa-times"></i>
+                      </button>
+                  </div>
+              </div>
+              <div id="visorPDFContainer" style="flex:1; background:#0f172a; position:relative;">
+                  <iframe id="iframePDFEvaluador" style="width:100%; height:100%; border:none;"></iframe>
+              </div>
+          </div>
+
               <!-- GESTIÓN DE ALMACENAMIENTO (PDFs) -->
               <div id="sectionAlmacenamientoPDFs" style="background: var(--bg-card); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); margin-top: 20px;">
                   <h4 style="margin-bottom: 10px; color: var(--error-color); display:flex; justify-content:space-between; align-items:center;">
@@ -7897,43 +7919,7 @@ const diffMins = Math.floor(diffMs / 60000);
     }
     
     // Inicializar panel instructor
-    function inicializarPanelInstructor() {
-        console.log("🔧 [INIT] Inicializando panel instructor, isAdmin:", isAdmin);
-        if(isAdmin) {
-            cargarFormulariosInstructor();
-            cargarImagenesInstructor('especialidades', 'selectEspecialidad');
-            cargarImagenesInstructor('firmas', 'selectFirma1');
-            cargarImagenesInstructor('firmas', 'selectFirma2');
-            cargarImagenesInstructor('firmas', 'selectFirma3');
-            
-            // Re-asignar eventos de botones de subida
-            const btnSubirEsp = document.getElementById('btnSubirEspReal');
-            if(btnSubirEsp) btnSubirEsp.addEventListener('click', () => procesarSubidaImagen('especialidades', 'uploadEspecialidad', 'nombreEspecialidad', 'mensajeEspecialidad', 'selectEspecialidad'));
-
-            const btnSubirF1 = document.getElementById('btnSubirF1Real');
-            if(btnSubirF1) btnSubirF1.addEventListener('click', () => procesarSubidaImagen('firmas', 'uploadFirma1', 'nombreFirma1', 'mensajeFirma1', 'selectFirma1'));
-
-            const btnSubirF2 = document.getElementById('btnSubirF2Real');
-            if(btnSubirF2) btnSubirF2.addEventListener('click', () => procesarSubidaImagen('firmas', 'uploadFirma2', 'nombreFirma2', 'mensajeFirma2', 'selectFirma2'));
-
-            const btnSubirF3 = document.getElementById('btnSubirF3Real');
-            if(btnSubirF3) btnSubirF3.addEventListener('click', () => procesarSubidaImagen('firmas', 'uploadFirma3', 'nombreFirma3', 'mensajeFirma3', 'selectFirma3'));
-            
-            console.log("✅ [INIT] Panel instructor inicializado");
-        }
-    }
-
-    // Navegación menú instructor
-    const menuInstructor = document.getElementById("menuInstructor");
-    const instructorSection = document.getElementById("instructorSection");
-    
-    if(menuInstructor) {
-        menuInstructor.addEventListener("click", () => {
-            mostrarSeccion(instructorSection, menuInstructor);
-            // Asegurar que se carguen los datos si no se habían cargado
-            inicializarPanelInstructor();
-        });
-    }
+    // La lógica de inicialización del panel instructor se maneja ahora al final del archivo.
 
     // ==========================================
     // ALIAS PARA COMPATIBILIDAD
@@ -8993,147 +8979,49 @@ const diffMins = Math.floor(diffMs / 60000);
   // --- OVERRIDE: INSTRUCTOR DASHBOARD ---
   // Reemplaza la inicialización original para forzar el uso de la TABLA en lugar del SELECTOR
 
-  window.inicializarPanelInstructor = function() {
-      console.log("🔄 [DEBUG] inicializarPanelInstructor() OVERRIDE ejecutada, isAdmin:", isAdmin);
-      if(!isAdmin) {
-          console.warn("⚠️ [DEBUG] Usuario no es admin, cancelando inicialización");
-          return;
-      }
-      
-      console.log("🚀 Inicializando Panel Instructor con Dashboard de Evaluación...");
+    // Nueva inicialización unificada para el panel instructor
+    window.inicializarPanelInstructor = function() {
+        console.log("🚀 [DEBUG] inicializarPanelInstructor() ejecutada, isAdmin:", isAdmin);
+        if(!isAdmin) return;
+        
+        // 1. Cargar datos básicos de instructor
+        if(typeof cargarFormulariosInstructor === 'function') cargarFormulariosInstructor();
+        if(typeof cargarImagenesInstructor === 'function') {
+             cargarImagenesInstructor('especialidades', 'selectEspecialidad');
+             cargarImagenesInstructor('firmas', 'selectFirma1');
+             cargarImagenesInstructor('firmas', 'selectFirma2');
+             cargarImagenesInstructor('firmas', 'selectFirma3');
+        }
 
-      // 1. Cargar formularios en la pestaña "Crear" (funcionalidad original)
-      if(typeof cargarFormulariosInstructor === 'function') cargarFormulariosInstructor();
-      if(typeof cargarImagenesInstructor === 'function') {
-           cargarImagenesInstructor('especialidades', 'selectEspecialidad');
-           cargarImagenesInstructor('firmas', 'selectFirma1');
-           cargarImagenesInstructor('firmas', 'selectFirma2');
-           cargarImagenesInstructor('firmas', 'selectFirma3');
-      }
+        // 2. Configurar Tabs
+        const tabCrear = document.getElementById('tabInstructorCrear');
+        const tabEvaluar = document.getElementById('tabInstructorEvaluar');
+        const viewCrear = document.getElementById('viewCrearFormulario');
+        const viewEvaluar = document.getElementById('viewEvaluarTareas');
 
-      // 2. Configurar Tabs y Vistas
-      const tabCrear = document.getElementById('tabInstructorCrear');
-      const tabEvaluar = document.getElementById('tabInstructorEvaluar');
-      const viewCrear = document.getElementById('viewCrearFormulario');
-      
-      console.log("🔍 [DEBUG] Tabs encontradas:", {
-          tabCrear: !!tabCrear,
-          tabEvaluar: !!tabEvaluar,
-          viewCrear: !!viewCrear
-      });
-      
-      // Asegurar que exista el contenedor de evaluación
-      let viewEvaluar = document.getElementById('viewEvaluarTareas');
-      console.log("🔍 [DEBUG] viewEvaluarTareas existe:", !!viewEvaluar);
-      if (!viewEvaluar) {
-          console.log("📝 [DEBUG] Creando viewEvaluarTareas dinámicamente...");
-          viewEvaluar = document.createElement('div');
-          viewEvaluar.id = 'viewEvaluarTareas';
-          viewEvaluar.style.display = 'none'; // Oculto por defecto
-          // Insertar después de viewCrearFormulario
-          if (viewCrear && viewCrear.parentNode) {
-              viewCrear.parentNode.insertBefore(viewEvaluar, viewCrear.nextSibling);
-          }
-      }
-
-      // 3. Renderizar Dashboard (Tabla) si está vacío
-      viewEvaluar.innerHTML = `
-          <div style="background: var(--bg-secondary); padding: 25px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-color);">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
-                <div>
-                    <h3 style="color:var(--text-primary); margin:0;">📋 Dashboard de Evaluación</h3>
-                    <p style="color:var(--text-secondary); margin:5px 0 0 0; font-size:14px;">Gestiona las calificaciones de todas las especialidades.</p>
-                </div>
-                <button onclick="cargarTablaEspecialidadesParaEvaluar()" style="background:var(--accent-color); color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;"><i class="fas fa-sync-alt"></i> Actualizar</button>
-            </div>
+        if(tabCrear && tabEvaluar) {
+            // Limpiar y reasignar listeners
+            const nTabCrear = tabCrear.cloneNode(true);
+            const nTabEvaluar = tabEvaluar.cloneNode(true);
+            tabCrear.parentNode.replaceChild(nTabCrear, tabCrear);
+            tabEvaluar.parentNode.replaceChild(nTabEvaluar, tabEvaluar);
             
-            <div style="overflow-x: auto;">
-               <table style="width:100%; border-collapse:collapse; background:var(--bg-card); border-radius:8px; overflow:hidden;">
-                   <thead style="background:rgba(59,130,246,0.1);">
-                       <tr>
-                           <th style="padding:12px; text-align:left; color:var(--text-primary);">Especialidad</th>
-                           <th style="padding:12px; text-align:center; color:var(--text-primary);">Pendientes</th>
-                           <th style="padding:12px; text-align:center; color:var(--text-primary);">Total</th>
-                           <th style="padding:12px; text-align:center; color:var(--text-primary);">Acción</th>
-                       </tr>
-                   </thead>
-                   <tbody id="cuerpoTablaEspecialidadesTareas">
-                       <tr><td colspan="4" style="text-align:center; padding:30px; color:var(--text-secondary);">Cargando datos...</td></tr>
-                   </tbody>
-               </table>
-            </div>
-          </div>
-          
-          <!-- Contenedor para lista de detalles -->
-          <div id="listaEntregasContainer" style="display:none; animation: fadeIn 0.3s ease;"></div>
-          
-           <!-- Modal Calificador Fullscreen -->
-            <div id="panelCalificacionIndividual" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:9000; background:rgba(0,0,0,0.95); flex-direction:column;">
-                <div style="height:60px; background:#1e293b; display:flex; align-items:center; justify-content:space-between; padding:0 20px; color:white; border-bottom:1px solid #334155;">
-                    <div style="display:flex; align-items:center; gap:15px;">
-                        <span style="font-size:16px; font-weight:500;">Evaluando a: <b id="labelAlumnoActual" style="color:var(--accent-color)"></b></span>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <input type="number" id="inputNotaIndividual" placeholder="Nota (0-10)" min="0" max="10" step="0.1" 
-                               style="width:100px; padding:10px; border-radius:6px; border:1px solid #475569; background:#0f172a; color:white; font-size:16px; font-weight:bold;">
-                        <button onclick="guardarNotaIndividualYSalir()" style="background:var(--success-color); color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-weight:bold; transition:transform 0.2s;">
-                            <i class="fas fa-save"></i> Guardar
-                        </button>
-                        <button onclick="cerrarCalificador()" style="background:var(--danger-color); color:white; border:none; padding:10px 15px; border-radius:6px; cursor:pointer;">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>
-                <div id="visorPDFContainer" style="flex:1; background:#0f172a; position:relative;">
-                    <iframe id="iframePDFEvaluador" style="width:100%; height:100%; border:none;"></iframe>
-                </div>
-            </div>
-      `;
+            nTabCrear.addEventListener('click', () => {
+                nTabCrear.classList.add('active'); nTabCrear.style.background = 'var(--accent-color)'; nTabCrear.style.color = 'white';
+                nTabEvaluar.classList.remove('active'); nTabEvaluar.style.background = 'transparent'; nTabEvaluar.style.color = 'var(--text-primary)';
+                if(viewCrear) viewCrear.style.display = 'block';
+                if(viewEvaluar) viewEvaluar.style.display = 'none';
+            });
 
-      // 4. Lógica de cambio de Pestañas
-      console.log("🔧 [DEBUG] Configurando listeners de pestañas...");
-      if(tabCrear && tabEvaluar) {
-          console.log("✅ [DEBUG] Tabs existen, configurando eventos...");
-          // Reemplazo limpio de listeners
-          const newTabCrear = tabCrear.cloneNode(true);
-          const newTabEvaluar = tabEvaluar.cloneNode(true);
-          tabCrear.parentNode.replaceChild(newTabCrear, tabCrear);
-          tabEvaluar.parentNode.replaceChild(newTabEvaluar, tabEvaluar);
-          
-          newTabCrear.addEventListener('click', () => {
-              newTabCrear.classList.add('active'); newTabCrear.style.backgroundColor = 'var(--accent-color)'; newTabCrear.style.color = 'white';
-              newTabEvaluar.classList.remove('active'); newTabEvaluar.style.backgroundColor = 'transparent'; newTabEvaluar.style.color = 'var(--text-primary)';
-              viewCrear.style.display = 'block';
-              viewEvaluar.style.display = 'none';
-          });
-
-          newTabEvaluar.addEventListener('click', () => {
-              console.log("CLICK en pestaña Evaluar Tareas");
-              newTabEvaluar.classList.add('active'); newTabEvaluar.style.backgroundColor = 'var(--accent-color)'; newTabEvaluar.style.color = 'white';
-              newTabCrear.classList.remove('active'); newTabCrear.style.backgroundColor = 'transparent'; newTabCrear.style.color = 'var(--text-primary)';
-              viewCrear.style.display = 'none';
-              viewEvaluar.style.display = 'block';
-              
-              cargarTablaEspecialidadesParaEvaluar();
-          });
-          
-          console.log("✅ [DEBUG] Listeners de pestañas configurados correctamente");
-          
-          // INIT SELECT LISTENER
-           const select = document.getElementById('selectFiltroEvaluacion');
-           if(select) {
-               select.addEventListener('change', (e) => {
-                   if(e.target.value) {
-                       cargarEntregasParaSelector(e.target.value);
-                   } else {
-                       document.getElementById('listaEntregasContainer').innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Selecciona un formulario para ver entregas.</p>';
-                       document.getElementById('visorPDFContainer').innerHTML = '<p>Selecciona un alumno para ver su tarea.</p>';
-                       document.getElementById('panelCalificacionIndividual').style.display = 'none';
-                   }
-               });
-           }
-      }
-  };
+            nTabEvaluar.addEventListener('click', () => {
+                nTabEvaluar.classList.add('active'); nTabEvaluar.style.background = 'var(--accent-color)'; nTabEvaluar.style.color = 'white';
+                nTabCrear.classList.remove('active'); nTabCrear.style.background = 'transparent'; nTabCrear.style.color = 'var(--text-primary)';
+                if(viewCrear) viewCrear.style.display = 'none';
+                if(viewEvaluar) viewEvaluar.style.display = 'block';
+                if(typeof cargarTablaEspecialidadesParaEvaluar === 'function') cargarTablaEspecialidadesParaEvaluar();
+            });
+        }
+    };
 
 
 
@@ -9273,150 +9161,7 @@ const diffMins = Math.floor(diffMs / 60000);
 
   // (Función cargarEntregasParaSelector eliminada para usar el alias global vinculado a cargarEntregasInstructor y window.datosEntregasGlobal)
   
-  // Guardar Calificación (Individual)
-  // Guardar Calificación (Individual - ACTUALIZADO: Guarda solo localmente y prepara para envío masivo)
-  // El botón "Guardar" del panel individual ahora solo cerrará el panel y actualizará la tabla visualmente.
-  // El envío real se hace con el botón grande "Enviar Notas".
-  
-  window.guardarNotaIndividualYSalir = function() {
-      const nota = document.getElementById('inputNotaIndividual').value;
-      if(!currentEvaluandoId) return;
-      
-      // Actualizar en memoria
-      if(currentEntregasData[currentEvaluandoId]) {
-          currentEntregasData[currentEvaluandoId].nota = nota;
-          // Si tiene nota, asumimos estado calificado, si no entregado
-          currentEntregasData[currentEvaluandoId].estado = nota ? 'calificado' : 'entregado';
-      }
-      
-      // Actualizar tabla visualmente (si usamos la funcion de renderizado)
-      // Como estamos en el contexto del panel nuevo, llamamos a renderTablaEntregas() si existe o recargamos el item
-      // Pero mejor, solo cerramos y dejamos que el usuario vea la tabla actualizada si usamos binding.
-      
-      // Hack: Actualizar el span si existe en la tabla principal
-      const span = document.getElementById(`nota-display-${currentEvaluandoId}`);
-      if(span) span.textContent = nota || '—';
-      
-      // Cerrar panel
-      document.getElementById('panelCalificacionIndividual').style.display = 'none';
-  };
-
-  // Función GLOBAL para enviar notas masivas (Solo las calificadas)
-  // Función GLOBAL para enviar notas masivas (Solo las calificadas)
-  window.enviarNotasBackend = async function() {
-      // Usar variable global unificada explícita
-      const dataToUse = window.datosEntregasGlobal;
-      console.log("🚀 [DEBUG] Intentando enviar notas (GLOBAL)...");
-      console.log("📦 [DEBUG] window.datosEntregasGlobal:", dataToUse);
-      
-      if(!dataToUse || Object.keys(dataToUse).length === 0) {
-          console.error("❌ [DEBUG] No hay datos en window.datosEntregasGlobal");
-          alert("No hay datos cargados. Por favor, selecciona el formulario nuevamente para recargar.");
-          return;
-      }
-      
-      // Filtrar solo las que tienen nota
-      const notasAEnviar = {};
-      let count = 0;
-      
-      for(const [uid, data] of Object.entries(dataToUse)) {
-          // Criterio flexible para números y texto
-          if(data.nota !== undefined && data.nota !== null && String(data.nota).trim() !== "") {
-              notasAEnviar[uid] = data.nota;
-              count++;
-          }
-      }
-      
-      console.log("✅ [DEBUG] Notas a enviar:", count);
-      
-      if(count === 0) {
-          alert("No hay ninguna tarea con nota asignada para enviar. Califica al menos una tarea.");
-          return;
-      }
-      
-      if(!confirm(`Se enviarán y publicarán las notas de ${count} alumnos calificados.\n\nLas tareas sin nota (Pendientes) no serán afectadas.\n\n¿Continuar?`)) {
-          return;
-      }
-      
-      try {
-           const guardarBtn = document.querySelector('button[onclick="enviarNotasBackend()"]');
-           const originalText = guardarBtn ? guardarBtn.innerHTML : '';
-           if(guardarBtn) guardarBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
-           
-           // Usar el ID global
-           const formId = window.currentGlobalFormId || currentEvalFormId;
-           
-           // Preparar el objeto COMPLETE de tareas para enviar (El backend reemplaza todo el archivo)
-           const tareasCompletas = JSON.parse(JSON.stringify(window.datosEntregasGlobal));
-           
-           // Aplicar notas nuevas sobre el objeto completo
-           for(const [uid, nota] of Object.entries(notasAEnviar)) {
-               if(tareasCompletas[uid]) {
-                   tareasCompletas[uid].nota = nota;
-                   tareasCompletas[uid].estado = 'calificado'; // Asegurar estado explícito
-               }
-           }
-
-           const resp = await fetch('/api/formulario?action=calificarTareas', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({
-                  id: formId,
-                  tareas: tareasCompletas, // CAMBIO CRÍTICO: Enviar 'tareas' completo, no 'notas'
-                  adminEmail: 'admin' 
-              })
-           });
-           
-           if(resp.ok) {
-               alert("✅ Notas enviadas y publicadas correctamente.");
-               
-               // 1. Recargar tabla de entregas
-               if(typeof cargarEntregasParaSelector === 'function') {
-                   cargarEntregasParaSelector(formId);
-               } else if(typeof cargarEntregasInstructor === 'function') {
-                   cargarEntregasInstructor(formId);
-               }
-               
-               // 2. Recargar selector inteligente (para actualizar pendientes o eliminar form si completado)
-               if(typeof cargarTablaEspecialidadesParaEvaluar === 'function') {
-                   cargarTablaEspecialidadesParaEvaluar();
-               }
-           } else {
-               alert("❌ Error al guardar las notas en el servidor.");
-           }
-           
-           if(guardarBtn) guardarBtn.innerHTML = originalText;
-           
-      } catch(e) {
-          alert("Error de red: " + e.message);
-          const guardarBtn = document.querySelector('button[onclick="enviarNotasBackend()"]');
-          if(guardarBtn) guardarBtn.innerHTML = originalText;
-      }
-  };
-
-  // Vinculamos el cambio del input individual al botón "Enviar Notas" del header (si el usuario quiere guardar masivo, habría que cambiar la UI)
-  // Pero el input "inputNotaIndividual" está en el panel derecho.
-  // El botón "Enviar Notas" (arriba izq) parece ser para guardar cambios en lote?
-  // Por ahora lo vincularemos a guardar la nota actual si hay una seleccionada, para no romper.
-  
-  // Re-vinculamos el input:
-  const inputNota = document.getElementById('inputNotaIndividual');
-  if(inputNota) {
-      inputNota.addEventListener('change', () => {
-         // Auto-save on change? O esperar click en "Enviar Notas"?
-         // Mejor esperar botón.
-      });
-  }
-
-  window.eliminarTareasCalificadas = async function() {
-      if(!confirm("¿Estás seguro de eliminar los PDFs de las tareas YA CALIFICADAS para liberar espacio? Esta acción no se puede deshacer.")) return;
-      alert("Funcionalidad de limpieza no implementada en API aún.");
-  };
-
-  // Variables globales para el evaluador actual
-  let currentEvaluandoId = null; // ID Alumno
-  let currentEvaluandoFormId = null; // ID Formulario
-  let currentEntregasData = {}; 
+   // Se eliminaron variables y funciones redundantes.
 
   window.verEntregasEspecialidad = async function(formId, titulo) {
       currentEvaluandoFormId = formId;

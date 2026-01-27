@@ -8959,12 +8959,25 @@ const diffMins = Math.floor(diffMs / 60000);
                 if ((!tareaRequerida || (item.miTarea && item.miTarea.estado === 'calificado' && parseFloat(item.miTarea.nota) >= 7))) {
                     if (examenRequerido) {
                         if (!item.miExamen) {
-                             // Si ya pusimos "Falta Tarea", esto podría sobreescribirlo, pero prioridad a mostrar que faltan cosas
-                             // Si falta tarea Y examen, "En Progreso" es mejor. 
-                             if (textoEstado.includes('Falta Tarea')) {
-                                 textoEstado = '<span style="color:#F59E0B; font-weight:bold;">En Progreso</span>';
+                             // Si ya pusimos "Falta Tarea" o "Reprobado", esto podría sobreescribirlo.
+                             // Lógica corregida: Si ya está reprobado por tarea vencida, MANTENER ESE ESTADO.
+                             if (textoEstado.includes('Reprobado (Tarea Vencida)')) {
+                                 // No hacer nada, ya está reprobado.
+                             } else if (textoEstado.includes('Falta Tarea')) {
+                                 // Si falta tarea Y examen y NO está vencido -> En Progreso
+                                 // Si estuviera vencido, ya habría entrado en el if anterior de Reprobado (Tarea Vencida) o lo manejamos aquí si no hay tarea requerida.
+                                 if (isClosed && tareaRequerida) {
+                                      textoEstado = '<span style="color:#EF4444; font-weight:bold;">Reprobado (Vencido)</span>';
+                                 } else {
+                                     textoEstado = '<span style="color:#F59E0B; font-weight:bold;">En Progreso</span>';
+                                 }
                              } else {
-                                 textoEstado = '<span style="color:#EF4444; font-weight:bold;">Falta Examen</span>';
+                                 // Aquí entra si la tarea está OK (o no requerida) pero falta el examen.
+                                 if (isClosed) {
+                                      textoEstado = '<span style="color:#EF4444; font-weight:bold;">Reprobado (Examen Vencido)</span>';
+                                 } else {
+                                     textoEstado = '<span style="color:#EF4444; font-weight:bold;">Falta Examen</span>';
+                                 }
                              }
                         } else if (parseFloat(item.miExamen.puntaje) < 70) {
                              textoEstado = '<span style="color:#EF4444; font-weight:bold;">Examen Reprobado</span>';

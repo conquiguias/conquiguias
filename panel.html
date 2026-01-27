@@ -11,6 +11,12 @@
   <script src="lib/html2pdf.bundle.min.js"></script>
 
   <title>Panel del Usuario</title>
+  <script>
+    // Globals initialized before modules
+    window.isAdmin = false;
+    window.userData = null;
+    window.currentUserId = null;
+  </script>
   <style>
     /* ============================================
    RESET Y VARIABLES PARA MODO NOCHE
@@ -3150,7 +3156,7 @@ transition: all 0.3s ease;
       const especialidadesCompletadas = document.getElementById("especialidadesCompletadas");
 
       let especialidadSeleccionada = "";
-      let currentUserId = null;
+      // currentUserId, isAdmin, userData ahora son globales (window.*)
       let currentPhotoURL = "";
       const placeholderURL = "https://dummyimage.com/120x120/ccc/fff";
       let puedeEntrarEspecialidades = false;
@@ -3205,7 +3211,7 @@ transition: all 0.3s ease;
         }
 
         console.log("[SUCCESS] Usuario verificado, acceso permitido al panel");
-        currentUserId = user.uid;
+        window.currentUserId = user.uid;
 
         // Obtener elementos del header
         const headerUserPhoto = document.getElementById("headerUserPhoto");
@@ -3220,11 +3226,11 @@ transition: all 0.3s ease;
           const adminEmails = await getAdminEmails();
           const email = user.email;
           puedeEntrarEspecialidades = adminEmails.includes(email);
-          isAdmin = adminEmails.includes(email); // También para el panel admin
+          window.isAdmin = adminEmails.includes(email); // También para el panel admin
         }
 
         // Configurar panel admin si es administrador
-        if (isAdmin) {
+        if (window.isAdmin) {
           setupAdminSection();
           setupAdminEventListeners();
           const menuInstructor = document.getElementById('menuInstructor');
@@ -3233,7 +3239,7 @@ transition: all 0.3s ease;
           if (typeof inicializarPanelInstructor === 'function') inicializarPanelInstructor();
         }
 
-        currentUserId = user.uid;
+        window.currentUserId = user.uid;
 
         const docRef = doc(db, "usuarios", currentUserId);
         const docSnap = await getDoc(docRef);
@@ -3258,12 +3264,12 @@ transition: all 0.3s ease;
           correoInput.value = user.email || '';
 
           // 🔹 INICIALIZAR DATOS DE RED SOCIAL - CORREGIDO
-          userData = {
+          window.userData = {
             ...data,
             email: user.email // 🔥 Asegurar que userData tenga el email
           };
 
-          isAdmin = ADMIN_EMAILS.includes(user.email);
+          window.isAdmin = ADMIN_EMAILS.includes(user.email);
           lastPostTime = data.lastPostTime || null;
 
           // 🔹 INICIALIZAR RED SOCIAL INMEDIATAMENTE SI ESTAMOS EN INICIO
@@ -4768,8 +4774,7 @@ const uploadBtn = document.getElementById('uploadBtn');
 const countdownTimer = document.getElementById('countdownTimer');
 const feed = document.getElementById('feed');
 
-let userData = null;
-let isAdmin = false;
+// isAdmin y userData son globales
 let lastPostTime = null;
 let countdownInterval = null;
 
@@ -4854,7 +4859,7 @@ reader.readAsDataURL(file);
 
 // 🔹 Verificar tiempo de espera entre publicaciones
 function checkPostCooldown() {
-if (isAdmin) {
+if (window.isAdmin) {
 uploadBtn.disabled = false;
 uploadBtn.style.pointerEvents = 'auto';
 uploadBtn.style.opacity = '1';
@@ -4984,6 +4989,7 @@ const diffMins = Math.floor(diffMs / 60000);
       // 🔹 Guardar publicación en Firestore - VERSIÓN CORREGIDA
       // 🔒 GUARDAR PUBLICACIÓN COMO PENDIENTE
       async function savePost(mediaData, description, mediaType) {
+      const { currentUserId, userData } = window;
       try {
       console.log('[INFO] Guardando publicación como PENDIENTE...');
 
@@ -5025,6 +5031,7 @@ const diffMins = Math.floor(diffMs / 60000);
       // 🔹 Manejar subida de publicación - VERSIÓN FINAL CON FALLBACK
       // 🔹 Manejar subida de publicación - VERSIÓN CORREGIDA CON VALIDACIÓN
       async function handleUpload() {
+      const { currentUserId, userData, isAdmin } = window;
       console.log('[DEBUG] handleUpload iniciado');
 
       // 🔒 VALIDACIÓN CRÍTICA: Verificar si el botón está deshabilitado
@@ -5111,7 +5118,7 @@ const diffMins = Math.floor(diffMs / 60000);
       imgurData: mediaData,
       reactions: { like: [], love: [], laugh: [], wow: [], sad: [], angry: [], seven: [] },
       comments: [],
-      status: isAdmin ? 'approved' : 'pending'
+      status: window.isAdmin ? 'approved' : 'pending'
       };
 
       let postId;
@@ -5452,6 +5459,7 @@ const diffMins = Math.floor(diffMs / 60000);
             // 🔹 Mostrar publicación en el feed - VERSIÓN MEJORADA
             // 🔹 Mostrar publicación en el feed - VERSIÓN CON REACCIONES EXCLUSIVAS
             function displayPost(post, postId) {
+            const { currentUserId, isAdmin } = window;
             const postElement = document.createElement('div');
             postElement.className = 'post-card';
 
@@ -5511,7 +5519,7 @@ const diffMins = Math.floor(diffMs / 60000);
                   ${isLocalPost ? ' (Guardado localmente)' : ''}
                 </div>
               </div>
-              ${(isAdmin || isPostOwner) ? `
+              ${(window.isAdmin || isPostOwner) ? `
               <button class="delete-post-btn" data-postid="${postId}" data-deletehash="${post.imgurData?.deletehash}">
                 <i class="fas fa-trash-alt"></i> Eliminar
               </button>
@@ -6066,9 +6074,9 @@ const diffMins = Math.floor(diffMs / 60000);
 
                               // 🔹 VERIFICACIÓN INICIAL DEL ESTADO
                               console.log('🔍 Estado inicial de la red social:');
-                              console.log('- currentUserId:', currentUserId);
-                              console.log('- userData:', userData);
-                              console.log('- isAdmin:', isAdmin);
+                              console.log('- currentUserId:', window.currentUserId);
+                              console.log('- userData:', window.userData);
+                              console.log('- isAdmin:', window.isAdmin);
                               console.log('- inicioSection visible:', !inicioSection.classList.contains('hidden'));
 
 
@@ -6144,7 +6152,7 @@ const diffMins = Math.floor(diffMs / 60000);
                               const menuAdmin = document.getElementById('menuAdmin');
                               const adminSection = document.getElementById('adminSection');
 
-                              if (isAdmin) {
+                              if (window.isAdmin) {
                               menuAdmin.classList.remove('hidden');
 
                               menuAdmin.addEventListener('click', () => {
@@ -8981,8 +8989,8 @@ const diffMins = Math.floor(diffMs / 60000);
 
     // Nueva inicialización unificada para el panel instructor
     window.inicializarPanelInstructor = function() {
-        console.log("🚀 [DEBUG] inicializarPanelInstructor() ejecutada, isAdmin:", isAdmin);
-        if(!isAdmin) return;
+        console.log("🚀 [DEBUG] inicializarPanelInstructor() ejecutada, isAdmin:", window.isAdmin);
+        if(!window.isAdmin) return;
         
         // 1. Cargar datos básicos de instructor
         if(typeof cargarFormulariosInstructor === 'function') cargarFormulariosInstructor();

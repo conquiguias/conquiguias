@@ -96,6 +96,18 @@ export default async function handler(req, res) {
         await handleListarFormulariosPendientes(req, res, repo);
         break;
 
+      case "listarArchivosPDF":
+        await handleListarArchivosPDF(req, res, repo);
+        break;
+
+      case "eliminarTodasTareasPDF":
+        await handleEliminarTodasTareasPDF(req, res, repo);
+        break;
+
+      case "listarFormulariosPendientes":
+        await handleListarFormulariosPendientes(req, res, repo);
+        break;
+
       default:
         res.status(400).json({ error: "Acción no válida" });
         break;

@@ -3904,13 +3904,11 @@ transition: all 0.3s ease;
                     estado = "Pendiente revisión";
                     estadoClass = "estado-pendiente";
                 }
-                // Verificar VENCIMIENTO (Si no ha sido entregado)
-                else if (isClosed && ((tieneTarea && !item.miTarea) || (tieneExamen && !examenHecho))) {
-                     if (tieneTarea && !item.miTarea) {
-                         estado = "Reprobado (Tarea Vence)";
-                     } else {
-                         estado = "Reprobado (Vencido)";
-                     }
+                // Verificar VENCIMIENTO (SOLO APLICA A TAREA)
+                // Si la fecha pasó, la tarea falta y es requerida -> Reprobado (Tarea Vencida)
+                // El examen NO vence.
+                else if (isClosed && tieneTarea && !item.miTarea) {
+                     estado = "Reprobado (Tarea Vencida)";
                      estadoClass = "calificacion-reprobada";
                 }
                 // Verificar si está completo
@@ -8996,11 +8994,8 @@ const diffMins = Math.floor(diffMs / 60000);
                                  }
                              } else {
                                  // Aquí entra si la tarea está OK (o no requerida) pero falta el examen.
-                                 if (isClosed) {
-                                      textoEstado = '<span style="color:#EF4444; font-weight:bold;">Reprobado (Examen Vencido)</span>';
-                                 } else {
-                                     textoEstado = '<span style="color:#EF4444; font-weight:bold;">Falta Examen</span>';
-                                 }
+                                 // El examen NO vence, así que mostramos "Falta Examen" o "En Progreso"
+                                 textoEstado = '<span style="color:#F59E0B; font-weight:bold;">Falta Examen</span>';
                              }
                         } else if (parseFloat(item.miExamen.puntaje) < 70) {
                              textoEstado = '<span style="color:#EF4444; font-weight:bold;">Examen Reprobado</span>';

@@ -2387,6 +2387,21 @@ transition: all 0.3s ease;
             <button id="closeUploadModal" class="close-modal-btn">×</button>
           </div>
 
+      <!-- Sección Social (Feed) -->
+      <div id="socialSection" class="card" style="margin-bottom: 20px;">
+        <div class="social-header">
+          <div class="user-info">
+            <img id="socialProfilePic" src="https://dummyimage.com/120x120/ccc/fff"
+              style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-color);">
+            <div>
+              <strong id="socialName" style="font-size: 16px;">Usuario</strong>
+              <div style="font-size: 12px; color: var(--text-secondary);">Compartir con la comunidad</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding: 15px;">
+        <!-- [c:\Users\PROYECTO JA\Documents\GitHub\conquiguias\panel.html:L2390-L3537] -->
           <div id="uploadBox">
             <input type="file" id="fileInput" accept="image/*,video/*"
               style="margin-bottom: 10px; width: 100%; padding: 8px;">
@@ -2893,43 +2908,67 @@ transition: all 0.3s ease;
 
       <!-- TAB 2: EVALUAR TAREAS -->
       <div id="viewEvaluarTareas" class="hidden">
-        <h3><i class="fas fa-check-double" style="color: var(--warning-color);"></i> Evaluación de Tareas</h3>
-        
-        <div style="margin-bottom: 20px;">
-            <label>Seleccionar Formulario con Tarea:</label>
-            <select id="selectFiltroEvaluacion" style="padding: 8px; border-radius: 4px; width: 100%; max-width: 400px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color);">
-                <option value="">-- Selecciona un formulario --</option>
-            </select>
-        </div>
-
-        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-            <!-- Lista -->
-            <div style="flex: 1; min-width: 300px; background: var(--bg-secondary); padding: 15px; border-radius: 8px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <h4>Entregas</h4>
-                    <div>
-                        <button onclick="enviarNotasBackend()" style="font-size: 12px; padding: 5px 10px; background: var(--success-color); color: white; border: none; border-radius: 4px; cursor: pointer;">📤 Enviar Notas</button>
-                    </div>
+          <div style="background: var(--bg-secondary); padding: 25px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-color);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
+                <div>
+                    <h3 style="color:var(--text-primary); margin:0;">📋 Dashboard de Evaluación</h3>
+                    <p style="color:var(--text-secondary); margin:5px 0 0 0; font-size:14px;">Gestiona las calificaciones de todas las especialidades.</p>
                 </div>
-                <div id="listaEntregasContainer" style="max-height: 500px; overflow-y: auto;">
-                    <p style="text-align: center; color: var(--text-secondary);">Selecciona un formulario para ver entregas.</p>
-                </div>
-                <button onclick="eliminarTareasCalificadas()" style="margin-top: 15px; width: 100%; padding: 8px; background: var(--danger-color); color: white; border: none; border-radius: 4px; cursor: pointer;"><i class="fas fa-trash"></i> Eliminar PDFs Calificados (Limpiar)</button>
+                <button onclick="cargarTablaEspecialidadesParaEvaluar()" style="background:var(--accent-color); color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;"><i class="fas fa-sync-alt"></i> Actualizar</button>
             </div>
-
-            <!-- Visor -->
-            <div style="flex: 2; min-width: 400px; background: var(--bg-secondary); padding: 15px; border-radius: 8px; display: flex; flex-direction: column;">
-                <h4>Visualización de Tarea</h4>
-                <div id="visorPDFContainer" style="flex: 1; background: #333; min-height: 500px; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white;">
-                    <p>Selecciona un alumno para ver su tarea.</p>
-                </div>
-                <div id="panelCalificacionIndividual" style="margin-top: 15px; display: none; padding: 10px; background: var(--bg-primary); border-radius: 4px;">
-                    <label>Calificación (1-10): </label>
-                    <input type="number" id="inputNotaIndividual" min="1" max="10" step="0.1" style="width: 60px; padding: 5px;">
-                    <span id="labelAlumnoActual" style="margin-left: 10px; font-weight: bold;"></span>
-                </div>
+            
+            <div style="overflow-x: auto;">
+               <table style="width:100%; border-collapse:collapse; background:var(--bg-card); border-radius:8px; overflow:hidden;">
+                   <thead style="background:rgba(59,130,246,0.1);">
+                       <tr>
+                           <th style="padding:12px; text-align:left; color:var(--text-primary);">Especialidad</th>
+                           <th style="padding:12px; text-align:center; color:var(--text-primary);">Pendientes</th>
+                           <th style="padding:12px; text-align:center; color:var(--text-primary);">Calificadas</th>
+                           <th style="padding:12px; text-align:center; color:var(--text-primary);">Total</th>
+                           <th style="padding:12px; text-align:center; color:var(--text-primary);">Acción</th>
+                       </tr>
+                   </thead>
+                   <tbody id="cuerpoTablaEspecialidadesTareas">
+                       <tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-secondary);">Cargando datos...</td></tr>
+                   </tbody>
+               </table>
             </div>
-        </div>
+          </div>
+          
+          <!-- Contenedor para lista de detalles -->
+          <div id="listaEntregasContainer" style="display:none; animation: fadeIn 0.3s ease;"></div>
+
+              <!-- GESTIÓN DE ALMACENAMIENTO (PDFs) -->
+              <div id="sectionAlmacenamientoPDFs" style="background: var(--bg-card); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color); margin-top: 20px;">
+                  <h4 style="margin-bottom: 10px; color: var(--error-color); display:flex; justify-content:space-between; align-items:center;">
+                      <span><i class="fas fa-trash-alt"></i> Gestión de Almacenamiento Temporal (PDFs)</span>
+                      <span id="infoTotalSize" style="font-size:14px; font-weight:normal; color:var(--text-secondary);">Calculando...</span>
+                  </h4>
+                  <p style="font-size:13px; color:var(--text-secondary); margin-bottom:15px;">
+                      Lista de todos los archivos PDF almacenados en la carpeta temporal <code>tareas_files</code>. 
+                      Elimínalos periódicamente para liberar espacio en GitHub una vez calificados.
+                  </p>
+                  
+                  <div style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 4px; margin-bottom: 10px;">
+                      <table style="width:100%; border-collapse: collapse; font-size:13px;">
+                          <thead style="background:rgba(255,255,255,0.05); position:sticky; top:0;">
+                              <tr>
+                                  <th style="padding:8px; text-align:left;">Archivo</th>
+                                  <th style="padding:8px; text-align:left;">Ruta</th>
+                                  <th style="padding:8px; text-align:center;">Tamaño</th>
+                                  <th style="padding:8px; text-align:center;">Acción</th>
+                              </tr>
+                          </thead>
+                          <tbody id="cuerpoTablaLimpiezaPDFs">
+                              <tr><td colspan="4" style="text-align:center; padding:20px;">Cargando...</td></tr>
+                          </tbody>
+                      </table>
+                  </div>
+                  
+                  <button id="btnEliminarTodoPDFs" onclick="eliminarTodoMasivo()" disabled style="padding: 10px 20px; background: var(--error-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width:100%;">
+                      <i class="fas fa-bomb"></i> Eliminar TODOS los PDFs (Liberar Espacio)
+                  </button>
+              </div>
       </div>
       
       <!-- Modal para previsualizar examen -->
@@ -7767,8 +7806,8 @@ const diffMins = Math.floor(diffMs / 60000);
                         const calificadas = entregasArray.filter(([k,v]) => v.estado === 'calificado').length;
                         const total = entregasArray.length;
                         
-                        // Solo agregar si hay entregas
-                        if(total > 0) {
+                        // Solo agregar si hay ENTREGAS PENDIENTES (User Request: "apenas sean completas... ya no vuelva aparecer")
+                        if(pendientes > 0) {
                             especialidadesConTareas.push({
                                 id,
                                 titulo: form.titulo || 'Sin título',
@@ -9359,6 +9398,8 @@ const diffMins = Math.floor(diffMs / 60000);
           const r = await fetch(`/api/formulario?action=listarEntregas&id=${formId}`);
           if(!r.ok) throw new Error("Error al cargar entregas");
           currentEntregasData = await r.json();
+          window.datosEntregasGlobal = currentEntregasData; // Sincronizar para enviarNotasBackend
+          window.currentGlobalFormId = formId; // Sincronizar ID
           
           renderTablaEntregasDetalle(titulo);
       } catch(e) {
@@ -9376,7 +9417,17 @@ const diffMins = Math.floor(diffMs / 60000);
       
       let html = `
         <div style="background:var(--bg-card); padding:20px; border-radius:8px; border:1px solid var(--border-color);">
-           <h4 style="margin-bottom:15px; color:var(--accent-color);">Entregas: ${titulo}</h4>
+           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+               <h4 style="margin:0; color:var(--accent-color);">Entregas: ${titulo}</h4>
+               <div style="display:flex; gap:10px;">
+                   <button onclick="document.getElementById('listaEntregasContainer').style.display='none'" style="background:transparent; border:1px solid var(--border-color); color:var(--text-primary); padding:6px 12px; border-radius:6px; cursor:pointer;">
+                       <i class="fas fa-arrow-left"></i> Volver
+                   </button>
+                   <button onclick="enviarNotasBackend()" style="background:var(--success-color); color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:bold;">
+                       <i class="fas fa-save"></i> Guardar y Publicar Notas
+                   </button>
+               </div>
+           </div>
            <table style="width:100%; border-collapse:collapse;">
                <thead>
                    <tr style="border-bottom:2px solid var(--border-color);">

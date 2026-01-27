@@ -7206,7 +7206,8 @@ const diffMins = Math.floor(diffMs / 60000);
     }
 
     // Función para subir imagen (MODIFICADA: Ahora se llama explícitamente desde el botón)
-    async function procesarSubidaImagen(carpeta, fileInputId, nombreInputId, mensajeId, selectId) {
+    // Función para subir imagen - EXPORTADA A WINDOW
+    window.procesarSubidaImagen = async function(carpeta, fileInputId, nombreInputId, mensajeId, selectId) {
         const fileInput = document.getElementById(fileInputId);
         const file = fileInput.files[0];
         const nombreInput = document.getElementById(nombreInputId);
@@ -9011,6 +9012,36 @@ const diffMins = Math.floor(diffMs / 60000);
              cargarImagenesInstructor('firmas', 'selectFirma1');
              cargarImagenesInstructor('firmas', 'selectFirma2');
              cargarImagenesInstructor('firmas', 'selectFirma3');
+        }
+
+        // 1.1 Re-asignar eventos de botones de subida (CRÍTICO)
+        const btnSubirEsp = document.getElementById('btnSubirEspReal');
+        if(btnSubirEsp) {
+            // Clonar para eliminar listeners anteriores
+            const newBtn = btnSubirEsp.cloneNode(true);
+            btnSubirEsp.parentNode.replaceChild(newBtn, btnSubirEsp);
+            newBtn.addEventListener('click', () => window.procesarSubidaImagen('especialidades', 'uploadEspecialidad', 'nombreEspecialidad', 'mensajeEspecialidad', 'selectEspecialidad'));
+        }
+
+        const btnSubirF1 = document.getElementById('btnSubirF1Real');
+        if(btnSubirF1) {
+            const newBtn = btnSubirF1.cloneNode(true);
+            btnSubirF1.parentNode.replaceChild(newBtn, btnSubirF1);
+            newBtn.addEventListener('click', () => window.procesarSubidaImagen('firmas', 'uploadFirma1', 'nombreFirma1', 'mensajeFirma1', 'selectFirma1'));
+        }
+
+        const btnSubirF2 = document.getElementById('btnSubirF2Real');
+        if(btnSubirF2) {
+             const newBtn = btnSubirF2.cloneNode(true);
+             btnSubirF2.parentNode.replaceChild(newBtn, btnSubirF2);
+             newBtn.addEventListener('click', () => window.procesarSubidaImagen('firmas', 'uploadFirma2', 'nombreFirma2', 'mensajeFirma2', 'selectFirma2'));
+        }
+
+        const btnSubirF3 = document.getElementById('btnSubirF3Real');
+        if(btnSubirF3) {
+             const newBtn = btnSubirF3.cloneNode(true);
+             btnSubirF3.parentNode.replaceChild(newBtn, btnSubirF3);
+             newBtn.addEventListener('click', () => window.procesarSubidaImagen('firmas', 'uploadFirma3', 'nombreFirma3', 'mensajeFirma3', 'selectFirma3'));
         }
 
         // 2. Configurar Tabs

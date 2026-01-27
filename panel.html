@@ -3284,6 +3284,18 @@ transition: all 0.3s ease;
       });
 
       // 🔹 Navegación
+      const menuInstructor = document.getElementById("menuInstructor");
+      const instructorSection = document.getElementById("instructorSection");
+      if(menuInstructor) {
+          menuInstructor.addEventListener("click", () => {
+              mostrarSeccion(instructorSection, menuInstructor);
+              // Inicializar si es necesario
+              if(typeof window.inicializarPanelInstructor === 'function') {
+                  window.inicializarPanelInstructor();
+              }
+          });
+      }
+
       menuInicio.addEventListener("click", () => mostrarSeccion(inicioSection, menuInicio));
       menuPerfil.addEventListener("click", () => mostrarSeccion(perfilSection, menuPerfil));
       menuCertificaciones.addEventListener("click", () => {

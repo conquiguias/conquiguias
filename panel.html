@@ -2947,7 +2947,7 @@ transition: all 0.3s ease;
           <div id="listaEntregasContainer" style="display:none; animation: fadeIn 0.3s ease;"></div>
 
           <!-- Modal Calificador Fullscreen -->
-          <div id="panelCalificacionIndividual" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:99999; background:rgba(0,0,0,1); flex-direction:column;">
+          <div id="panelCalificacionIndividual" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; max-width:90%; max-height: 90%; margin: auto; z-index:99999; background:rgba(0,0,0,1); flex-direction:column;">
               <div style="height:60px; background:#1e293b; display:flex; align-items:center; justify-content:space-between; padding:0 20px; color:white; border-bottom:1px solid #334155;">
                   <div style="display:flex; align-items:center; gap:15px;">
                       <span style="font-size:16px; font-weight:500;">Evaluando a: <b id="labelAlumnoActual" style="color:var(--accent-color)"></b></span>
@@ -8576,8 +8576,8 @@ const diffMins = Math.floor(diffMs / 60000);
       // Asegurar posición y dimensiones
       panel.style.top = '0';
       panel.style.left = '0';
-      panel.style.width = '100vw';
-      panel.style.height = '100vh';
+      panel.style.width = '100%';
+      panel.style.height = '100%';
       panel.style.zIndex = '99999';
       
       // Intentar obtener datos si no se pasaron (usando el objeto global)

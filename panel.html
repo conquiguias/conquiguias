@@ -1891,7 +1891,7 @@
       width: 100%;
       height: 100%;
       background: rgba(0, 0, 0, 0.7);
-      display: flex;
+      display: none;
       align-items: center;
       justify-content: center;
       padding: 20px;
@@ -9452,7 +9452,11 @@ const diffMins = Math.floor(diffMs / 60000);
   };
 
   function renderTablaEntregasDetalle(titulo) {
-      container.style.display = 'block'; // Ensure visible 
+      const container = document.getElementById('listaEntregasContainer');
+      if(!container) return;
+      
+      const entregas = Object.entries(currentEntregasData || {});
+      container.style.display = 'block'; 
       
       if(entregas.length === 0) {
           container.innerHTML = `<div style="padding:20px; text-align:center; background:var(--bg-secondary); border-radius:8px;">No hay entregas para ${titulo}.</div>`;
@@ -9561,7 +9565,9 @@ const diffMins = Math.floor(diffMs / 60000);
               const titulo = tituloHeader ? tituloHeader.textContent.replace('Entregas: ', '') : '';
               renderTablaEntregasDetalle(titulo);
               // Refrescar conteos
-              actualizarConteosFila(currentEvaluandoFormId);
+              if(typeof cargarTablaEspecialidadesParaEvaluar === 'function') {
+                  cargarTablaEspecialidadesParaEvaluar();
+              }
           } else {
               alert("❌ Error al guardar.");
           }

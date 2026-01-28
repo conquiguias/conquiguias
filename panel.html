@@ -4231,6 +4231,14 @@ transition: all 0.3s ease;
             const ventanaImpresion = window.open('', '_blank');
             const respuestasUsuario = resultado.respuestas || {};
 
+            // Intentar obtener info de tarea
+            const tareasMap = data.tareas || {};
+            const emailKey = resultado.correo ? resultado.correo.toLowerCase() : null;
+            const miTarea = (emailKey && tareasMap[emailKey]) || tareasMap[resultado.visitanteId];
+            if (miTarea) {
+              formulario.miTarea = miTarea;
+            }
+
             // Calcular estadísticas del examen
             let correctas = 0;
             let total = examen.length;

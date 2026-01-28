@@ -4576,17 +4576,43 @@ transition: all 0.3s ease;
         </div>
 
         <!-- RESUMEN DEL EXAMEN -->
-        <div class="resumen-examen" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 30px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-          <h2 style="margin: 0 0 15px 0; font-size: 24px; color: white;"><i class="fas fa-chart-bar"></i> Resultados del Examen</h2>
-          <p style="margin: 8px 0; font-size: 18px; color: white;">
-            <strong>Puntaje:</strong> ${correctas} / ${total} (${porcentaje.toFixed(1)}%)
+        <div class="resumen-examen" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 30px; text-align: center;">
+          <h2 style="margin: 0 0 20px 0; font-size: 24px; color: white;"><i class="fas fa-chart-bar"></i> Resultados de la Especialidad</h2>
+          
+          <div style="display: flex; justify-content: center; align-items: flex-start; flex-wrap: wrap; gap: 40px; width: 100%; margin-bottom: 15px;">
+            
+            <!-- Columna Examen -->
+            <div style="flex: 1; min-width: 200px;">
+               <h3 style="margin: 0 0 15px 0; font-size: 20px; color: white; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 5px; display: inline-block;"><i class="fas fa-file-alt"></i> Examen</h3>
+               <p style="margin: 8px 0; font-size: 18px; color: white;">
+                <strong>Puntaje:</strong> ${correctas} / ${total} (${porcentaje.toFixed(1)}%)
+              </p>
+              <p style="margin: 8px 0; font-size: 18px; color: white;">
+                <strong>Estado:</strong> ${aprobado ? '<span style="color: #4ade80; font-weight: bold;"><i class="fas fa-check-circle"></i> Aprobado</span>' : '<span style="color: #f87171; font-weight: bold;"><i class="fas fa-times-circle"></i> Reprobado</span>'}
+              </p>
+            </div>
+
+            <!-- Columna Tarea (Solo si existe) -->
+            ${formulario.configTarea && formulario.configTarea.activa ? `
+            <div style="flex: 1; min-width: 200px; border-left: 1px solid rgba(255,255,255,0.2);">
+               <h3 style="margin: 0 0 15px 0; font-size: 20px; color: white; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 5px; display: inline-block;"><i class="fas fa-tasks"></i> Tarea</h3>
+                  <p style="margin: 8px 0; font-size: 18px; color: white;">
+                    <strong>Estado:</strong> ${formulario.miTarea ? '<span style="color: #4ade80; font-weight: bold;"><i class="fas fa-check-circle"></i> Entregada</span>' : '<span style="color: #f87171; font-weight: bold;"><i class="fas fa-times-circle"></i> No Entregada</span>'}
+                  </p>
+                  <p style="margin: 8px 0; font-size: 18px; color: white;">
+                    <strong>Nota:</strong> ${formulario.miTarea && formulario.miTarea.nota ? formulario.miTarea.nota + '/100' : 'Pendiente'}
+                  </p>
+            </div>
+            ` : ''}
+          </div>
+
+           <p style="margin: 15px 0 0 0; font-size: 14px; color: #e2e8f0; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 15px; width: 100%;">
+            <i class="far fa-calendar-alt"></i> <strong>Fecha de Creación:</strong> ${new Date(formulario.creado).toLocaleDateString()}
           </p>
-          <p style="margin: 8px 0; font-size: 18px; color: white;">
-            <strong>Estado:</strong> ${aprobado ? '<span style="color: #4ade80; font-weight: bold;"><i class="fas fa-check-circle"></i> Aprobado</span>' : '<span style="color: #f87171; font-weight: bold;"><i class="fas fa-times-circle"></i> Reprobado</span>'}
-          </p>
+
           ${aprobado ?
-          '<p style="margin: 15px 0 0 0; font-size: 16px; font-weight: bold; color: #e2e8f0;"><i class="fas fa-trophy"></i> ¡Felicidades! Has aprobado el examen.</p>' :
-          '<p style="margin: 15px 0 0 0; font-size: 16px; color: #e2e8f0;"><i class="fas fa-book"></i> Sigue estudiando para mejorar tus resultados.</p>'
+          '<p style="margin: 20px 0 0 0; font-size: 16px; font-weight: bold; color: #e2e8f0;"><i class="fas fa-trophy"></i> ¡Felicidades! Has completado la especialidad.</p>' :
+          '<p style="margin: 20px 0 0 0; font-size: 16px; color: #e2e8f0;"><i class="fas fa-book"></i> Sigue estudiando para mejorar tus resultados.</p>'
           }
         </div>
 

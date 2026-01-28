@@ -4603,12 +4603,12 @@ transition: all 0.3s ease;
             <!-- Columna Tarea (Derecha) -->
             <div style="display: flex; flex-direction: column; align-items: center;">
                ${(formulario.configTarea && formulario.configTarea.activa) || formulario.miTarea ? `
-                  <h3 style="margin: 0 0 15px 0; font-size: 20px; color: white; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 5px; display: inline-block;"><i class="fas fa-tasks"></i> Tarea</h3>
+               <p style="margin: 8px 0; font-size: 18px; color: white;">
+                    <strong>Nota:</strong> ${formulario.miTarea && formulario.miTarea.nota ? formulario.miTarea.nota + '/10' : 'Pendiente'}
+                  </p>   
+               <h3 style="margin: 0 0 15px 0; font-size: 20px; color: white; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 5px; display: inline-block;"><i class="fas fa-tasks"></i> Tarea</h3>
                   <p style="margin: 8px 0; font-size: 18px; color: white;">
                     <strong>Estado:</strong> ${formulario.miTarea ? '<span style="color: #4ade80; font-weight: bold;"><i class="fas fa-check-circle"></i> Entregada</span>' : '<span style="color: #f87171; font-weight: bold;"><i class="fas fa-times-circle"></i> No Entregada</span>'}
-                  </p>
-                  <p style="margin: 8px 0; font-size: 18px; color: white;">
-                    <strong>Nota:</strong> ${formulario.miTarea && formulario.miTarea.nota ? formulario.miTarea.nota + '/100' : 'Pendiente'}
                   </p>
                ` : `
                   <h3 style="margin: 0 0 15px 0; font-size: 20px; color: white; border-bottom: 1px solid rgba(255,255,255,0.3); padding-bottom: 5px; display: inline-block;"><i class="fas fa-tasks"></i> Tarea</h3>

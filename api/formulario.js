@@ -1046,10 +1046,36 @@ async function handleVerRespuestas(req, res, repo) {
       console.log("No hay resultados de examen o error al cargarlos");
     }
 
-    // Combinar datos de asistencia con resultados de examen
+    // Obtener entregas de tareas si existen
+    let entregasTareas = {};
+    try {
+      const resTareas = await fetch(
+        `https://api.github.com/repos/${repo}/contents/evaluaciones/${id}/tareas.json?ref=main`,
+        {
+          headers: {
+            Authorization: `token ${process.env.GITHUB_TOKEN}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (resTareas.ok) {
+        const dataTareas = await resTareas.json();
+        const decodedTareas = Buffer.from(
+          dataTareas.content,
+          "base64",
+        ).toString();
+        entregasTareas = JSON.parse(decodedTareas);
+      }
+    } catch (error) {
+      console.log("No hay entregas de tareas o error al cargarlas");
+    }
+
+    // Combinar datos de asistencia con resultados de examen y tareas
     const datosCombinados = {
       asistencias: registros,
       examenes: resultadosExamen,
+      tareas: entregasTareas,
     };
 
     res.status(200).json(datosCombinados);

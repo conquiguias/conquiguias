@@ -571,6 +571,8 @@
               <th>Correo</th>
               <th>Fecha</th>
               <th># Asist.</th>
+              <th>Tarea</th>
+              <th>Fecha Cierre</th>
               <th>Estado</th>
               <th>Acciones</th>
             </tr>
@@ -1006,6 +1008,7 @@
           const data = await res.json();
           const respuestas = data.asistencias || [];
           const examenes = data.examenes || [];
+          const tareasMap = data.tareas || {};
 
           // Identificar mis asistencias (Lógica Híbrida)
           misAsistencias = respuestas
@@ -1092,6 +1095,23 @@
               botonAccion = `<span class="status-closed">Faltan Asistencias</span>`;
             }
 
+            // Lógica Estado Tarea
+            const config = window.formularioConfig || {};
+            const tareaActiva = config.tarea && config.tarea.activa;
+            let labelTarea = "-";
+
+            if (tareaActiva) {
+              const mailKey = r.correo ? r.correo.toLowerCase() : null;
+              const tieneEntrega =
+                (mailKey && tareasMap[mailKey]) || tareasMap[r.visitanteId];
+              labelTarea = tieneEntrega ? "✅ Entregada" : "⚠️ Pendiente";
+            }
+
+            const labelFecha =
+              tareaActiva && config.fechaCierre
+                ? new Date(config.fechaCierre).toLocaleDateString()
+                : "-";
+
             const fila = `
               <tr style="${esYo ? "background:#eff6ff;" : ""}">
                 <td>${idx + 1}</td>
@@ -1099,6 +1119,8 @@
                 <td>${esYo ? r.correo : ocultarEmail(r.correo)}</td>
                 <td>${new Date(r.fecha).toLocaleDateString()}</td>
                 <td>${r.asistencias.join(", ")}</td>
+                <td>${labelTarea}</td>
+                <td>${labelFecha}</td>
                 <td>${completo ? "✅" : "⏳"}</td>
                 <td>${botonAccion}</td>
               </tr>

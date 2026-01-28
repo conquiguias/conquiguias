@@ -1104,7 +1104,19 @@
               const mailKey = r.correo ? r.correo.toLowerCase() : null;
               const tieneEntrega =
                 (mailKey && tareasMap[mailKey]) || tareasMap[r.visitanteId];
-              labelTarea = tieneEntrega ? "✅ Entregada" : "⚠️ Pendiente";
+
+              const fechaCierre = config.fechaCierre
+                ? new Date(config.fechaCierre)
+                : null;
+              const haExpirado = fechaCierre && new Date() > fechaCierre;
+
+              if (tieneEntrega) {
+                labelTarea = "✅ Entregada";
+              } else if (haExpirado) {
+                labelTarea = "❌ No Entregado";
+              } else {
+                labelTarea = "⚠️ Pendiente";
+              }
             }
 
             const labelFecha =

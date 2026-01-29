@@ -326,11 +326,9 @@ async function handleGuardar(req, res) {
         r.asistenciaNumero < asistenciaNumero,
     );
     if (!tienePrevia)
-      return res
-        .status(400)
-        .json({
-          error: `❌ Debes completar la asistencia ${asistenciaNumero - 1} antes`,
-        });
+      return res.status(400).json({
+        error: `❌ Debes completar la asistencia ${asistenciaNumero - 1} antes`,
+      });
   }
 
   // 4. Evitar duplicados
@@ -368,13 +366,11 @@ async function handleGuardar(req, res) {
     .from("respuestas")
     .upsert({ especialidad_id: id, contenido_respuestas: registros });
 
-  res
-    .status(200)
-    .json({
-      ok: true,
-      message: "✅ Asistencia registrada correctamente.",
-      correo,
-    });
+  res.status(200).json({
+    ok: true,
+    message: "✅ Asistencia registrada correctamente.",
+    correo,
+  });
 }
 
 async function handleGuardarEvaluacion(req, res) {
@@ -482,12 +478,10 @@ async function handleLimpiarFormulariosVencidos(req, res) {
     await supabase.from("formularios").delete().in("id", vencidos);
   }
 
-  res
-    .status(200)
-    .json({
-      mensaje: `🧹 Formularios vencidos eliminados: ${vencidos.join(", ")}`,
-      total: vencidos.length,
-    });
+  res.status(200).json({
+    mensaje: `🧹 Formularios vencidos eliminados: ${vencidos.join(", ")}`,
+    total: vencidos.length,
+  });
 }
 
 // --- HANDLERS HIBRIDOS (GitHub para binarios, Supabase para lógica) ---
@@ -669,18 +663,21 @@ async function handleObtenerEstadoUsuario(req, res) {
     // Filtrar mis exámenes
     const eData = evals?.find((x) => x.especialidad_id === id);
     const resData = eData?.contenido_resultados || [];
+
+    // Filtrar todos los intentos de este usuario
     const misE = resData.filter(
       (r) =>
-        (email && r.correo?.toLowerCase() === email.toLowerCase()) ||
+        (email &&
+          r.correo?.trim().toLowerCase() === email.trim().toLowerCase()) ||
         r.visitanteId === visitanteId,
     );
 
-    // Mejor nota
+    // Mejor nota lógica (si hay múltiples intentos, quedarse con el mejor)
     let bestExam = null;
     if (misE.length > 0) {
-      bestExam = misE.reduce((prev, curr) =>
-        parseFloat(curr.puntaje) > parseFloat(prev.puntaje) ? curr : prev,
-      );
+      // Ordenar por puntaje descendente para tomar el primero como el mejor
+      misE.sort((a, b) => parseFloat(b.puntaje) - parseFloat(a.puntaje));
+      bestExam = misE[0];
     }
 
     // Mi tarea

@@ -67,3 +67,9 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# Scripts de utilidad local (No subir a GitHub)
+check_limit.ps1
+migrar_a_supabase.js
+migrar_respuestas.js
+

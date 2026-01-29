@@ -660,7 +660,13 @@ async function handleObtenerEstadoUsuario(req, res) {
 
     if (misA.length === 0) return; // Si no participé, skip
 
-    // Filtrar mis exámenes
+    // Recolectar todos los IDs de visitante asociados a este usuario en esta especialidad
+    const allUserIds = new Set([visitanteId]);
+    misA.forEach((r) => {
+      if (r.visitanteId) allUserIds.add(r.visitanteId);
+    });
+
+    // Filtrar mis exámenes (usando email O cualquiera de los IDs encontrados)
     const eData = evals?.find((x) => x.especialidad_id === id);
     const resData = eData?.contenido_resultados || [];
 
@@ -669,7 +675,7 @@ async function handleObtenerEstadoUsuario(req, res) {
       (r) =>
         (email &&
           r.correo?.trim().toLowerCase() === email.trim().toLowerCase()) ||
-        r.visitanteId === visitanteId,
+        allUserIds.has(r.visitanteId),
     );
 
     // Mejor nota lógica (si hay múltiples intentos, quedarse con el mejor)
@@ -682,7 +688,19 @@ async function handleObtenerEstadoUsuario(req, res) {
 
     // Mi tarea
     const tData = eData?.contenido_tareas || {};
-    const miTarea = tData[email] || tData[visitanteId] || null;
+    let miTarea = null;
+
+    // Buscar tarea por Email o por cualquiera de los IDs
+    if (email && tData[email]) {
+      miTarea = tData[email];
+    } else {
+      for (const uid of allUserIds) {
+        if (tData[uid]) {
+          miTarea = tData[uid];
+          break;
+        }
+      }
+    }
 
     resultado.push({
       id,

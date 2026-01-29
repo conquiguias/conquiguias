@@ -7,110 +7,89 @@ export default async function handler(req, res) {
   const repo = "conquiguias/conquiguias-data";
 
   try {
-    switch (action) {
-      case "guardar":
-        await handleGuardar(req, res, repo);
-        break;
-
-      case "guardarEvaluacion":
-        await handleGuardarEvaluacion(req, res, repo);
-        break;
-
-      case "guardarFormulario":
-        await handleGuardarFormulario(req, res, repo);
-        break;
-
-      case "guardarResultadoExamen":
-        await handleGuardarResultadoExamen(req, res, repo);
-        break;
-
-      case "limpiarFormulariosVencidos":
-        await handleLimpiarFormulariosVencidos(req, res, repo);
-        break;
-
-      case "listarFormularios":
-        await handleListarFormularios(req, res, repo);
-        break;
-
-      case "listarImagenes":
-        await handleListarImagenes(req, res, repo);
-        break;
-
-      case "obtenerEvaluacion":
-        await handleObtenerEvaluacion(req, res, repo);
-        break;
-
-      case "obtenerFormulario":
-        await handleObtenerFormulario(req, res, repo);
-        break;
-
-      case "subirImagen":
-        await handleSubirImagen(req, res, repo);
-        break;
-
-      case "verRespuestas":
-        await handleVerRespuestas(req, res, repo);
-        break;
-
-      case "actualizarEstadoAsistencia":
-        await handleActualizarEstadoAsistencia(req, res, repo);
-        break;
-
-      case "eliminarFormulario":
-        await handleEliminarFormulario(req, res, repo);
-        break;
-
-      case "subirTarea":
-        await handleSubirTarea(req, res, repo);
-        break;
-
-      case "calificarTareas":
-        await handleCalificarTareas(req, res, repo);
-        break;
-
-      case "eliminarTareasPDF":
-        await handleEliminarTareasPDF(req, res, repo);
-        break;
-
-      case "obtenerEstadoUsuario":
-        await handleObtenerEstadoUsuario(req, res, repo);
-        break;
-
-      case "eliminarImagen":
-        await handleEliminarImagen(req, res, repo);
-        break;
-
-      case "listarEntregas":
-        await handleListarEntregas(req, res, repo);
-        break;
-
-      case "listarArchivosPDF":
-        await handleListarArchivosPDF(req, res, repo);
-        break;
-
-      case "eliminarTodasTareasPDF":
-        await handleEliminarTodasTareasPDF(req, res, repo);
-        break;
-
-      case "listarFormulariosPendientes":
-        await handleListarFormulariosPendientes(req, res, repo);
-        break;
-
-      case "listarArchivosPDF":
-        await handleListarArchivosPDF(req, res, repo);
-        break;
-
-      case "eliminarTodasTareasPDF":
-        await handleEliminarTodasTareasPDF(req, res, repo);
-        break;
-
-      case "listarFormulariosPendientes":
-        await handleListarFormulariosPendientes(req, res, repo);
-        break;
-
-      default:
-        res.status(400).json({ error: "Acción no válida" });
-        break;
+    // Manejo de métodos permitidos
+    if (req.method === "GET") {
+      switch (action) {
+        case "obtenerFormulario":
+          await handleObtenerFormulario(req, res, repo);
+          break;
+        case "listarFormularios":
+          await handleListarFormularios(req, res, repo);
+          break;
+        case "listarImagenes":
+          await handleListarImagenes(req, res, repo);
+          break;
+        case "obtenerEvaluacion":
+          await handleObtenerEvaluacion(req, res, repo);
+          break;
+        case "verRespuestas":
+          await handleVerRespuestas(req, res, repo);
+          break;
+        case "listarEntregas":
+          await handleListarEntregas(req, res, repo);
+          break;
+        case "listarArchivosPDF":
+          await handleListarArchivosPDF(req, res, repo);
+          break;
+        case "listarFormulariosPendientes":
+          await handleListarFormulariosPendientes(req, res, repo);
+          break;
+        default:
+          res.status(400).json({ error: `Acción GET no válida: ${action}` });
+          break;
+      }
+    } else if (req.method === "POST") {
+      switch (action) {
+        case "guardar":
+          await handleGuardar(req, res, repo);
+          break;
+        case "guardarEvaluacion":
+          await handleGuardarEvaluacion(req, res, repo);
+          break;
+        case "guardarFormulario":
+          await handleGuardarFormulario(req, res, repo);
+          break;
+        case "guardarResultadoExamen":
+          await handleGuardarResultadoExamen(req, res, repo);
+          break;
+        case "limpiarFormulariosVencidos":
+          await handleLimpiarFormulariosVencidos(req, res, repo);
+          break;
+        case "subirImagen":
+          await handleSubirImagen(req, res, repo);
+          break;
+        case "actualizarEstadoAsistencia":
+          await handleActualizarEstadoAsistencia(req, res, repo);
+          break;
+        case "eliminarFormulario":
+          await handleEliminarFormulario(req, res, repo);
+          break;
+        case "subirTarea":
+          await handleSubirTarea(req, res, repo);
+          break;
+        case "calificarTareas":
+          await handleCalificarTareas(req, res, repo);
+          break;
+        case "obtenerEstadoUsuario":
+          // Nota: Aunque es una lectura, usa POST porque envía datos sensibles (email) en el body
+          await handleObtenerEstadoUsuario(req, res, repo);
+          break;
+        case "eliminarImagen":
+          await handleEliminarImagen(req, res, repo);
+          break;
+        case "eliminarTodasTareasPDF":
+          await handleEliminarTodasTareasPDF(req, res, repo);
+          break;
+        case "eliminarTareasPDF":
+          await handleEliminarTareasPDF(req, res, repo);
+          break;
+        default:
+          res.status(400).json({ error: `Acción POST no válida: ${action}` });
+          break;
+      }
+    } else {
+      res.setHeader("Allow", "GET, POST");
+      res.status(405).json({ error: "Method Not Allowed" });
     }
   } catch (error) {
     console.error("Error en API formulario:", error);

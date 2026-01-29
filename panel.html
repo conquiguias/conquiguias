@@ -7115,17 +7115,60 @@ const diffMins = Math.floor(diffMs / 60000);
         });
     }
 
-    // Función para cargar imágenes en un select
     // Función para cargar imágenes en un select - EXPORTADA A WINDOW
+    // PROTEGIDA CON CACHÉ Y COOLDOWN PARA EVITAR 429
     window.cargarImagenesInstructor = async function(carpeta, selectId) {
       const select = document.getElementById(selectId);
       if (!select) return;
+
+      // 1. Verificar Cooldown (Enfriamiento por error previo)
+      const cooldownUntil = localStorage.getItem('img_api_cooldown');
+      if (cooldownUntil && Date.now() < parseInt(cooldownUntil)) {
+        console.warn(`[API] En enfriamiento hasta ${new Date(parseInt(cooldownUntil)).toLocaleTimeString()}`);
+        select.innerHTML = '<div style="padding:10px; color:var(--warning-color); text-align:center;"><i class="fas fa-exclamation-triangle"></i> Sistema saturado. Reintentando en unos minutos...</div>';
+        return;
+      }
+
+      // 2. Verificar Caché en SessionStorage
+      const cacheKey = `cache_imgs_${carpeta}`;
+      const cachedData = sessionStorage.getItem(cacheKey);
+
+      if (cachedData) {
+        console.log(`[CACHE] Cargando imágenes de ${carpeta} desde caché local`);
+        renderizarImagenesInstructor(JSON.parse(cachedData), select, carpeta, selectId);
+        return;
+      }
 
       try {
         const res = await fetch(`/api/formulario?action=listarImagenes&carpeta=${carpeta}`);
 
         if (res.ok) {
           const imagenes = await res.json();
+          
+          // Guardar en caché
+          if (Array.isArray(imagenes) && imagenes.length > 0) {
+              sessionStorage.setItem(cacheKey, JSON.stringify(imagenes));
+          }
+          
+          renderizarImagenesInstructor(imagenes, select, carpeta, selectId);
+        } else {
+             // Si es error 429, activar cooldown
+            if (res.status === 429) {
+                const resetTime = Date.now() + (5 * 60 * 1000); // 5 minutos
+                localStorage.setItem('img_api_cooldown', resetTime);
+                select.innerHTML = '<div style="padding:10px; color:var(--warning-color); text-align:center;"><i class="fas fa-exclamation-triangle"></i> Límite excedido. Pausando...</div>';
+            } else {
+                select.innerHTML = `<div style="padding: 10px; text-align: center; color: var(--danger-color);">Error ${res.status}</div>`;
+            }
+        }
+      } catch(error) {
+          console.error("Error cargando imágenes:", error);
+          select.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--danger-color);">Error de conexión</div>';
+      }
+    };
+
+    // Función auxiliar para renderizar (separada para reusar con caché)
+    function renderizarImagenesInstructor(imagenes, select, carpeta, selectId) {
           select.innerHTML = '';
 
           if (imagenes.length === 0) {

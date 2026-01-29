@@ -776,14 +776,23 @@ async function handleListarImagenes(req, res, repo) {
           url: archivo.download_url,
           ruta: archivo.path,
         }));
-    } else if (respuesta.status !== 404) {
-      throw new Error(`Error ${respuesta.status}: ${respuesta.statusText}`);
+    } else {
+      const errText = await respuesta.text();
+      console.error(
+        `Error GitHub listarImagenes (${respuesta.status}): ${errText}`,
+      );
+
+      if (respuesta.status === 404) {
+        // Carpeta no encontrada o vacía -> devolver array vacío
+        return res.status(200).json([]);
+      }
+      throw new Error(`Error ${respuesta.status}: ${errText}`);
     }
 
     res.status(200).json(imagenes);
   } catch (err) {
     console.error("Error al listar imágenes:", err);
-    res.status(500).json({ error: "Error al listar imágenes" });
+    res.status(500).json({ error: "Error al listar imágenes: " + err.message });
   }
 }
 

@@ -8915,32 +8915,28 @@ const diffMins = Math.floor(diffMs / 60000);
   
   </script>
   <script>
-  // --- PARCHE CORRECCIÓN TABLA CERTIFICACIONES ---
+  // --- PARCHE CORRECCIÓN TABLA CERTIFICACIONES (CON REINTENTOS) ---
   // Este script sobrescribe/implementa la carga de la tabla de certificaciones
-  // para corregir el estado de la tarea (Pendiente vs No entregado).
+  // para corregir el estado de la tarea y prevenir llamadas sin autenticación.
 
-  async function cargarTablaCertificacionesCorrecta() {
+  async function cargarTablaCertificacionesCorrecta(retryCount = 0) {
       const tabla = document.getElementById('tablaCertificaciones');
       if (!tabla) return; // Si no estamos en la vista de usuario, salir
       const tbody = tabla.querySelector('tbody');
       if (!tbody) {
-          // Si la tabla no tiene tbody, crearlo
            const newTbody = document.createElement('tbody');
+           newTbody.id = 'cuerpoTablaCertificacionesGenerado';
            tabla.appendChild(newTbody);
-           return cargarTablaCertificacionesCorrecta();
+           return cargarTablaCertificacionesCorrecta(retryCount);
       }
 
-      // No mostrar mensaje de carga si ya hay datos, para evitar parpadeo feo,
-      // a menos que esté vacío
-      if (tbody.children.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">Cargando historial...</td></tr>';
+      // No mostrar mensaje de carga si ya hay datos, para evitar parpadeo feo
+      if (tbody.innerHTML.trim() === '') {
+          tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 20px;">Cargando historial...</td></tr>';
       }
 
       try {
           // Lógica robusta para obtener ID:
-          // 1. Variable global currentUserId
-          // 2. Firebase Auth instance (si está disponible)
-          // 3. LocalStorage
           let vId = null;
           if (typeof currentUserId !== 'undefined' && currentUserId) {
               vId = currentUserId;
@@ -8952,13 +8948,24 @@ const diffMins = Math.floor(diffMs / 60000);
 
           const visitanteId = vId || localStorage.getItem('visitanteId');
           
-          // Intentar obtener email
           let email = null;
           if (typeof userData !== 'undefined' && userData) email = userData.email;
           if (!email && typeof auth !== 'undefined' && auth.currentUser) email = auth.currentUser.email;
           if (!email) email = localStorage.getItem('userEmail');
 
-          console.log(`[Certificaciones] Consultando ID: ${visitanteId} | Email: ${email}`);
+          console.log(`[Certificaciones] Intento ${retryCount + 1} | ID: ${visitanteId} | Email: ${email}`);
+
+          // Si no hay datos, reintentar un par de veces (esperando a Firebase)
+          if ((!visitanteId || !email) && retryCount < 5) {
+              console.warn(`[Certificaciones] Datos de usuario incompletos. Reintentando en 1s...`);
+              setTimeout(() => cargarTablaCertificacionesCorrecta(retryCount + 1), 1000);
+              return;
+          }
+
+          if (!visitanteId || !email) {
+             tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:orange; padding: 20px;">No se pudo verificar tu usuario. Intenta cerrar sesión y volver a entrar.</td></tr>';
+             return;
+          }
 
           const resp = await fetch('/api/formulario?action=obtenerEstadoUsuario', {
               method: 'POST',
@@ -8972,28 +8979,47 @@ const diffMins = Math.floor(diffMs / 60000);
           tbody.innerHTML = ''; // Limpiar ahora sí
 
           if (data.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 20px;">No tienes especialidades registradas aún.</td></tr>';
+              tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 20px;">No tienes especialidades registradas aún.</td></tr>';
               return;
           }
 
-          data.forEach((item, index) => {
+          // Agrupar y filtrar únicos (Copiar lógica de arriba para integridad)
+          const mapUnicos = new Map();
+          data.forEach(item => {
+                if(!mapUnicos.has(item.id)) {
+                    mapUnicos.set(item.id, item);
+                } else {
+                    const existing = mapUnicos.get(item.id);
+                    const newProgress = (item.miExamen ? 1 : 0) + (item.miTarea ? 1 : 0) + item.asistencias.length;
+                    const oldProgress = (existing.miExamen ? 1 : 0) + (existing.miTarea ? 1 : 0) + existing.asistencias.length;
+                    if(newProgress > oldProgress) {
+                        mapUnicos.set(item.id, item);
+                    }
+                }
+          });
+          const dataUnica = Array.from(mapUnicos.values());
+
+
+          dataUnica.forEach((item, index) => {
               // --- Lógica Tarea ---
               let estadoTarea = 'N/A';
-              let colorTarea = '#9CA3AF'; // Gris
+              let colorTarea = 'var(--text-secondary)'; 
 
               if (item.configTarea && item.configTarea.activa) {
                   if (item.miTarea) {
                       if (item.miTarea.estado === 'calificado') {
                            estadoTarea = `Nota: ${item.miTarea.nota}`;
-                           // Si nota >= 7 verde, sino rojo
-                           colorTarea = parseFloat(item.miTarea.nota) >= 7 ? '#10B981' : '#EF4444';
+                           colorTarea = parseFloat(item.miTarea.nota) >= 7 ? 'var(--success-color)' : 'var(--danger-color)';
                       } else if (item.miTarea.estado === 'entregado') {
-                           estadoTarea = 'Pendiente'; // Muestra Pendiente en lugar de No entregado
-                           colorTarea = '#F59E0B'; // Naranja
+                           estadoTarea = 'En Revisión'; 
+                           colorTarea = 'var(--warning-color)'; 
+                      } else {
+                          estadoTarea = 'Pendiente';
+                          colorTarea = 'var(--text-secondary)';
                       }
                   } else {
                       estadoTarea = 'No entregado';
-                      colorTarea = '#EF4444'; // Rojo
+                      colorTarea = 'var(--danger-color)'; 
                   }
               }
 
@@ -9002,9 +9028,8 @@ const diffMins = Math.floor(diffMs / 60000);
               const puntajeExamen = hayExamen ? Math.round(item.miExamen.puntaje) : 0;
               
               // --- Lógica Estado Global ---
-              // Aprobado solo si (Tarea OK si existe) Y (Examen OK si existe)
+              let textoEstado = '<span style="color:var(--success-color); font-weight:bold;">Aprobado</span>';
               let esAprobado = true;
-              let textoEstado = '<span style="color:#10B981; font-weight:bold;">Aprobado</span>';
               
               const tareaRequerida = item.configTarea && item.configTarea.activa;
               const examenRequerido = item.configExamen;
@@ -9021,80 +9046,57 @@ const diffMins = Math.floor(diffMs / 60000);
                       esAprobado = false;
                   }
               }
+
+              // Asistencias Requeridas (1 o 2)
+              const numAsist = item.asistencias ? item.asistencias.length : 0;
+              const asistReq = item.tomaAsistencia ? 2 : 1;
+              if (numAsist < asistReq) {
+                  esAprobado = false;
+              }
               
-              // Validar Fecha Cierre
+              // Validar Fecha Cierre (Solo afecta estado textual, no lógica interna de notas)
               const fechaObj = item.fechaCierre ? new Date(item.fechaCierre) : null;
               const isClosed = fechaObj && new Date() > fechaObj;
               
-              const now = new Date();
-              console.log(`[DEBUG ITEM] ${item.titulo}`, {
-                  fechaCierre: item.fechaCierre,
-                  parsedDate: fechaObj,
-                  now: now,
-                  isClosed: isClosed,
-                  tareaRequerida: tareaRequerida,
-                  tieneTarea: !!item.miTarea
-              });
-
               if (!esAprobado) {
-                // Si no está aprobado, mostrar razón específica
-                if (tareaRequerida) {
-                     if (!item.miTarea) {
-                         if (isClosed) {
-                             textoEstado = '<span style="color:#EF4444; font-weight:bold;">Reprobado (Tarea Vencida)</span>';
-                         } else {
-                             textoEstado = '<span style="color:#EF4444; font-weight:bold;">Falta Tarea</span>';
-                         }
-                     } else if (item.miTarea.estado === 'entregado') {
-                         textoEstado = '<span style="color:#F59E0B; font-weight:bold;">En Revisión</span>';
-                     } else if (item.miTarea.estado === 'calificado' && parseFloat(item.miTarea.nota) < 7) {
-                         textoEstado = '<span style="color:#EF4444; font-weight:bold;">Tarea Reprobada</span>';
-                     }
-                }
-                
-                // Si la tarea está ok (o no aplica), el problema es el examen
-                if ((!tareaRequerida || (item.miTarea && item.miTarea.estado === 'calificado' && parseFloat(item.miTarea.nota) >= 7))) {
-                    if (examenRequerido) {
-                        if (!item.miExamen) {
-                             // Si ya pusimos "Falta Tarea" o "Reprobado", esto podría sobreescribirlo.
-                             // Lógica corregida: Si ya está reprobado por tarea vencida, MANTENER ESE ESTADO.
-                             if (textoEstado.includes('Reprobado (Tarea Vencida)')) {
-                                 // No hacer nada, ya está reprobado.
-                             } else if (textoEstado.includes('Falta Tarea')) {
-                                 // Si falta tarea Y examen y NO está vencido -> En Progreso
-                                 // Si estuviera vencido, ya habría entrado en el if anterior de Reprobado (Tarea Vencida) o lo manejamos aquí si no hay tarea requerida.
-                                 if (isClosed && tareaRequerida) {
-                                      textoEstado = '<span style="color:#EF4444; font-weight:bold;">Reprobado (Vencido)</span>';
-                                 } else {
-                                     textoEstado = '<span style="color:#F59E0B; font-weight:bold;">En Progreso</span>';
-                                 }
-                             } else {
-                                 // Aquí entra si la tarea está OK (o no requerida) pero falta el examen.
-                                 // El examen NO vence, así que mostramos "Falta Examen" o "En Progreso"
-                                 textoEstado = '<span style="color:#F59E0B; font-weight:bold;">Falta Examen</span>';
-                             }
-                        } else if (parseFloat(item.miExamen.puntaje) < 70) {
-                             textoEstado = '<span style="color:#EF4444; font-weight:bold;">Examen Reprobado</span>';
-                        }
-                    }
-                }
-            }
+                 // Prioridad de estados negativos
+                 if (isClosed && tareaRequerida && !item.miTarea) {
+                      textoEstado = '<span style="color:var(--danger-color); font-weight:bold;">Reprobado (Vencido)</span>';
+                 } else if (tareaRequerida && item.miTarea && item.miTarea.estado === 'entregado') {
+                      textoEstado = '<span style="color:var(--warning-color); font-weight:bold;">En Revisión</span>';
+                 } else if (tareaRequerida && item.miTarea && item.miTarea.estado === 'calificado' && parseFloat(item.miTarea.nota) < 7) {
+                      textoEstado = '<span style="color:var(--danger-color); font-weight:bold;">Tarea Reprobada</span>';
+                 } else if (examenRequerido && item.miExamen && parseFloat(item.miExamen.puntaje) < 70) {
+                      textoEstado = '<span style="color:var(--danger-color); font-weight:bold;">Examen Reprobado</span>';
+                 } else if (numAsist < asistReq) {
+                      textoEstado = '<span style="color:var(--warning-color); font-weight:bold;">Faltan Asistencias</span>';
+                 } else {
+                      textoEstado = '<span style="color:var(--warning-color); font-weight:bold;">En Progreso</span>';
+                 }
+              }
 
               const tr = document.createElement('tr');
               tr.style.borderBottom = '1px solid var(--border-color)';
               
-              // Formatear fecha
               const fechaStr = new Date(item.creado).toLocaleDateString();
               
+              // Botón "Ver" solo si examen realizado
+              const btnVer = (hayExamen && item.miExamen.visitanteId) ? 
+                  `<button onclick="window.verCertificacionCompleta('${item.id}', '${item.miExamen.visitanteId}')" 
+                     style="background: #17a2b8; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size:12px;">
+                     <i class="fas fa-eye"></i>
+                  </button>` : '-';
+
               tr.innerHTML = `
                   <td style="padding:12px;">${index + 1}</td>
                   <td style="padding:12px;">${item.titulo}</td>
                   <td style="padding:12px;">${fechaStr}</td>
-                  <td style="padding:12px; text-align:center;">${item.asistencias ? item.asistencias.length : 0}</td>
+                  <td style="padding:12px; text-align:center;">${numAsist}/${asistReq}</td>
                   <td style="padding:12px; color:${colorTarea}; font-weight:bold; text-align:center;">${estadoTarea}</td>
                   <td style="padding:12px; text-align:center;">${hayExamen ? 'Sí' : 'No'}</td>
-                  <td style="padding:12px; text-align:center;">${hayExamen ? puntajeExamen + '%' : 'Pendiente'}</td>
+                  <td style="padding:12px; text-align:center;">${hayExamen ? puntajeExamen + '%' : '-'}</td>
                   <td style="padding:12px; text-align:center;">${textoEstado}</td>
+                  <td style="padding:12px; text-align:center;">${btnVer}</td>
               `;
               tbody.appendChild(tr);
           });

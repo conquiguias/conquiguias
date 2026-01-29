@@ -731,6 +731,11 @@ async function handleListarFormularios(req, res, repo) {
       Buffer.from(datos.content, "base64").toString(),
     );
 
+    // Cachear lista de formularios por 60s
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=60, stale-while-revalidate=600",
+    );
     res.status(200).json(contenido);
   } catch (err) {
     console.error(err);
@@ -784,11 +789,28 @@ async function handleListarImagenes(req, res, repo) {
 
       if (respuesta.status === 404) {
         // Carpeta no encontrada o vacía -> devolver array vacío
+        // Cachear incluso si está vacío para evitar martilleo
+        res.setHeader(
+          "Cache-Control",
+          "public, s-maxage=3600, stale-while-revalidate=86400",
+        );
         return res.status(200).json([]);
       }
+
+      if (respuesta.status === 403) {
+        return res.status(429).json({
+          error: "Límite de peticiones a GitHub excedido. Intente más tarde.",
+        });
+      }
+
       throw new Error(`Error ${respuesta.status}: ${errText}`);
     }
 
+    // Cachear respuesta exitosa por 1 hora (CDN) y revalidar en segundo plano
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=3600, stale-while-revalidate=86400",
+    );
     res.status(200).json(imagenes);
   } catch (err) {
     console.error("Error al listar imágenes:", err);
@@ -890,6 +912,11 @@ async function handleObtenerFormulario(req, res, repo) {
     const ahora = new Date();
     const estado = ahora > fechaCierre ? "cerrado" : "abierto";
 
+    // Cachear detalle de formulario 60s
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=60, stale-while-revalidate=600",
+    );
     res.status(200).json({
       ...formulario,
       estado,

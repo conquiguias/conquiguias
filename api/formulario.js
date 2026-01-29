@@ -1,6 +1,9 @@
-// formulario.js - API unificada (V3.2: Validaciones Tarea)
+// Cache en memoria simple para Serverless (persiste mientras la instancia esté caliente)
+const memoryCache = new Map();
+const CACHE_TTL = 60 * 1000; // 1 minuto por defecto para datos dinámicos
+const CACHE_TTL_STATIC = 5 * 60 * 1000; // 5 minutos para datos estáticos (imágenes, evaluaciones)
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   const { action } = req.query;
 
   // Configuración común - Repositorio SOLO para datos (evita deploys en Vercel)
@@ -95,7 +98,7 @@ export default async function handler(req, res) {
     console.error("Error en API formulario:", error);
     res.status(500).json({ error: "Error interno del servidor" });
   }
-}
+};
 
 // Helper para manejar concurrencia y reintentos en GitHub
 async function updateGitHubJSON(repo, path, message, updateFn, retries = 7) {
@@ -711,6 +714,21 @@ async function handleLimpiarFormulariosVencidos(req, res, repo) {
 
 // Handler para listarFormularios.js
 async function handleListarFormularios(req, res, repo) {
+  const cacheKey = `formularios_list`;
+
+  // 1. Verificar Caché
+  if (memoryCache.has(cacheKey)) {
+    const { data, timestamp } = memoryCache.get(cacheKey);
+    if (Date.now() - timestamp < CACHE_TTL) {
+      console.log(`[CACHE] Sirviendo listarFormularios desde memoria`);
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=60, stale-while-revalidate=600",
+      );
+      return res.status(200).json(data);
+    }
+  }
+
   const archivo = `data/formularios.json`;
 
   try {
@@ -737,6 +755,9 @@ async function handleListarFormularios(req, res, repo) {
       Buffer.from(datos.content, "base64").toString(),
     );
 
+    // 2. Guardar en Caché
+    memoryCache.set(cacheKey, { data: contenido, timestamp: Date.now() });
+
     // Cachear lista de formularios por 60s
     res.setHeader(
       "Cache-Control",
@@ -755,6 +776,20 @@ async function handleListarImagenes(req, res, repo) {
 
   if (!carpeta || (carpeta !== "especialidades" && carpeta !== "firmas")) {
     return res.status(400).json({ error: "Carpeta no válida" });
+  }
+
+  const cacheKey = `imgs_${carpeta}`;
+  // 1. Check Cache
+  if (memoryCache.has(cacheKey)) {
+    const { data, timestamp } = memoryCache.get(cacheKey);
+    if (Date.now() - timestamp < CACHE_TTL_STATIC) {
+      console.log(`[CACHE] Sirviendo imágenes ${carpeta} desde memoria`);
+      res.setHeader(
+        "Cache-Control",
+        "public, s-maxage=3600, stale-while-revalidate=86400",
+      );
+      return res.status(200).json(data);
+    }
   }
 
   const ruta = `images/${carpeta}`;
@@ -787,6 +822,9 @@ async function handleListarImagenes(req, res, repo) {
           url: archivo.download_url,
           ruta: archivo.path,
         }));
+
+      // 2. Set Cache
+      memoryCache.set(cacheKey, { data: imagenes, timestamp: Date.now() });
     } else {
       const errText = await respuesta.text();
       console.error(
@@ -830,6 +868,15 @@ async function handleObtenerEvaluacion(req, res, repo) {
 
   if (!id) return res.status(400).json({ error: "ID no especificado" });
 
+  const cacheKey = `eval_${id}`;
+  if (memoryCache.has(cacheKey)) {
+    const { data, timestamp } = memoryCache.get(cacheKey);
+    if (Date.now() - timestamp < CACHE_TTL_STATIC) {
+      console.log(`[CACHE] Sirviendo evaluación ${id} desde memoria`);
+      return res.status(200).json(data);
+    }
+  }
+
   const archivo = `evaluaciones/${id}/evaluacion.json`;
 
   try {
@@ -872,6 +919,9 @@ async function handleObtenerEvaluacion(req, res, repo) {
       return res.status(200).json([]);
     }
 
+    // Guardar en caché
+    memoryCache.set(cacheKey, { data: evaluacion, timestamp: Date.now() });
+
     res.status(200).json(evaluacion);
   } catch (err) {
     console.error("Error al obtener evaluación:", err);
@@ -882,63 +932,79 @@ async function handleObtenerEvaluacion(req, res, repo) {
 }
 
 // Handler para obtenerFormulario.js
+// Handler para obtenerFormulario.js
 async function handleObtenerFormulario(req, res, repo) {
   const { id } = req.query;
 
   if (!id) return res.status(400).json({ error: "ID no especificado" });
 
-  const archivo = `data/formularios.json`;
+  const cacheKey = `formularios_list`;
+  let contenido = null;
 
-  try {
-    const respuesta = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${archivo}?ref=main`,
-      {
-        headers: {
-          Authorization: `token ${process.env.GITHUB_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-      },
-    );
-
-    if (!respuesta.ok) {
-      return res.status(404).json({ error: "Formulario no encontrado" });
+  // 1. Usar caché compartida
+  if (memoryCache.has(cacheKey)) {
+    const { data, timestamp } = memoryCache.get(cacheKey);
+    if (Date.now() - timestamp < CACHE_TTL) {
+      contenido = data;
+      console.log(`[CACHE] Sirviendo formulario detallado ${id} desde memoria`);
     }
-
-    const data = await respuesta.json();
-    const contenido = JSON.parse(
-      Buffer.from(data.content, "base64").toString(),
-    );
-
-    if (!contenido[id]) {
-      return res.status(404).json({ error: "Formulario no encontrado" });
-    }
-
-    const formulario = contenido[id];
-    const fechaCierre = new Date(formulario.fechaCierre);
-    const ahora = new Date();
-    const estado = ahora > fechaCierre ? "cerrado" : "abierto";
-
-    // Cachear detalle de formulario 60s
-    res.setHeader(
-      "Cache-Control",
-      "public, s-maxage=60, stale-while-revalidate=600",
-    );
-    res.status(200).json({
-      ...formulario,
-      estado,
-      asistenciasActivas: formulario.asistenciasActivas || {
-        1: false,
-        2: false,
-      },
-      imagenEspecialidad: formulario.imagenEspecialidad || null,
-      imagenFirma1: formulario.imagenFirma1 || null,
-      imagenFirma2: formulario.imagenFirma2 || null,
-      imagenFirma3: formulario.imagenFirma3 || null,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error al obtener formulario" });
   }
+
+  // 2. Si no hay caché, hacer fetch
+  if (!contenido) {
+    const archivo = `data/formularios.json`;
+    try {
+      const respuesta = await fetch(
+        `https://api.github.com/repos/${repo}/contents/${archivo}?ref=main`,
+        {
+          headers: {
+            Authorization: `token ${process.env.GITHUB_TOKEN}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (!respuesta.ok) {
+        return res.status(404).json({ error: "Formulario no encontrado" });
+      }
+
+      const data = await respuesta.json();
+      contenido = JSON.parse(Buffer.from(data.content, "base64").toString());
+
+      // Guardar en caché
+      memoryCache.set(cacheKey, { data: contenido, timestamp: Date.now() });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Error al obtener formulario" });
+    }
+  }
+
+  if (!contenido[id]) {
+    return res.status(404).json({ error: "Formulario no encontrado" });
+  }
+
+  const formulario = contenido[id];
+  const fechaCierre = new Date(formulario.fechaCierre);
+  const ahora = new Date();
+  const estado = ahora > fechaCierre ? "cerrado" : "abierto";
+
+  // Cachear detalle de formulario 60s
+  res.setHeader(
+    "Cache-Control",
+    "public, s-maxage=60, stale-while-revalidate=600",
+  );
+  res.status(200).json({
+    ...formulario,
+    estado,
+    asistenciasActivas: formulario.asistenciasActivas || {
+      1: false,
+      2: false,
+    },
+    imagenEspecialidad: formulario.imagenEspecialidad || null,
+    imagenFirma1: formulario.imagenFirma1 || null,
+    imagenFirma2: formulario.imagenFirma2 || null,
+    imagenFirma3: formulario.imagenFirma3 || null,
+  });
 }
 
 // Handler para subirImagen.js

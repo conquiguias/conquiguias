@@ -50,6 +50,8 @@ module.exports = async function handler(req, res) {
           return await handleActualizarEstadoAsistencia(req, res);
         case "eliminarFormulario":
           return await handleEliminarFormulario(req, res);
+        case "calificarTareas":
+          return await handleCalificarTareas(req, res);
         default:
           return res.status(400).json({ error: "Acción POST no válida" });
       }
@@ -66,17 +68,24 @@ async function handleListarFormularios(req, res) {
   const { data, error } = await supabase
     .from("especialidades")
     .select("*")
-    .eq("activo", true);
+    .eq("activo", true)
+    .order("created_at", { ascending: false });
   if (error) throw error;
+
   const forms = {};
   data.forEach((f) => {
     forms[f.id] = {
       ...f.configuracion,
       id: f.id,
       titulo: f.titulo,
-      departamento: f.departamento,
+      creado: f.created_at,
       fechaCierre: f.fecha_cierre,
       imagenEspecialidad: f.imagen_url,
+      asistenciasActivas: f.configuracion?.asistenciasActivas || {
+        1: false,
+        2: false,
+      },
+      tomaAsistencia: f.configuracion?.tomaAsistencia || false,
     };
   });
   res.status(200).json(forms);
@@ -94,8 +103,8 @@ async function handleObtenerFormulario(req, res) {
     ...data.configuracion,
     id: data.id,
     titulo: data.titulo,
-    departamento: data.departamento,
     fechaCierre: data.fecha_cierre,
+    creado: data.created_at,
     imagenEspecialidad: data.imagen_url,
   });
 }
@@ -119,18 +128,15 @@ async function handleVerRespuestas(req, res) {
     .eq("especialidad_id", id);
   if (error) throw error;
 
-  // Formatear para el frontend admin
+  // Formatear para formulario.html (const { asistencias, examenes, tareas } = data)
   const asistencias = data
     .filter((r) => r.datos.tipo === "asistencia")
-    .map((r) => r.datos);
+    .map((r) => ({ ...r.datos, visitanteId: r.visitante_id }));
+
   const examenes = data
     .filter((r) => r.datos.tipo === "examen")
-    .reduce((acc, r) => {
-      const uid = r.visitante_id;
-      if (!acc[uid]) acc[uid] = [];
-      acc[uid].push(r.datos);
-      return acc;
-    }, {});
+    .map((r) => ({ ...r.datos, visitanteId: r.visitante_id }));
+
   const tareas = data
     .filter((r) => r.datos.tipo === "tarea")
     .reduce((acc, r) => {
@@ -141,64 +147,167 @@ async function handleVerRespuestas(req, res) {
   res.status(200).json({ asistencias, examenes, tareas });
 }
 
+async function handleListarEntregas(req, res) {
+  const { id } = req.query;
+  const { data, error } = await supabase
+    .from("respuestas")
+    .select("*")
+    .eq("especialidad_id", id)
+    .eq("datos->>tipo", "tarea");
+
+  if (error) throw error;
+
+  const entregas = {};
+  data.forEach((r) => {
+    entregas[r.visitante_id] = {
+      ...r.datos,
+      visitanteId: r.visitante_id,
+    };
+  });
+  res.status(200).json(entregas);
+}
+
 // --- WRITE HANDLERS ---
 
 async function handleGuardarAsistencia(req, res) {
   const { id, correo, visitanteId, asistenciaNumero, nombre } = req.body;
-  const identificador = correo || visitanteId;
+  const identificador =
+    correo && correo.trim() ? correo.trim().toLowerCase() : visitanteId;
 
-  // Guardar en tabla respuestas
-  const { error } = await supabase.from("respuestas").insert({
-    especialidad_id: id,
-    visitante_id: identificador,
-    datos: {
-      tipo: "asistencia",
-      asistenciaNumero,
-      nombre,
-      correo,
-      fecha: new Date().toISOString(),
+  const { error } = await supabase.from("respuestas").upsert(
+    {
+      especialidad_id: id,
+      visitante_id: identificador,
+      datos: {
+        tipo: "asistencia",
+        asistenciaNumero,
+        nombre,
+        correo: correo ? correo.toLowerCase() : null,
+        fecha: new Date().toISOString(),
+      },
     },
+    { onConflict: "especialidad_id,visitante_id,datos->>asistenciaNumero" },
+  ); // Rough way to handle distinct assistances
+
+  if (error) {
+    // If upsert with complicated conflict fails, just insert
+    const { error: insError } = await supabase.from("respuestas").insert({
+      especialidad_id: id,
+      visitante_id: identificador,
+      datos: {
+        tipo: "asistencia",
+        asistenciaNumero,
+        nombre,
+        correo: correo ? correo.toLowerCase() : null,
+        fecha: new Date().toISOString(),
+      },
+    });
+    if (insError) throw insError;
+  }
+  res.status(200).json({ ok: true });
+}
+
+async function handleGuardarFormulario(req, res) {
+  const {
+    id,
+    titulo,
+    fechaCierre,
+    evaluation,
+    tomaAsistencia,
+    tarea,
+    imagenEspecialidad,
+    imagenFirma1,
+    imagenFirma2,
+    imagenFirma3,
+  } = req.body;
+
+  const configuracion = {
+    tomaAsistencia,
+    tarea,
+    imagenFirma1,
+    imagenFirma2,
+    imagenFirma3,
+    tieneEvaluacion: !!evaluation,
+    asistenciasActivas: { 1: false, 2: false },
+  };
+
+  const { error: espError } = await supabase.from("especialidades").insert({
+    id,
+    titulo,
+    fecha_cierre: fechaCierre,
+    imagen_url: imagenEspecialidad,
+    configuracion,
   });
-  if (error) throw error;
+  if (espError) throw espError;
+
+  if (evaluation) {
+    const { error: evalError } = await supabase.from("evaluaciones").insert({
+      especialidad_id: id,
+      preguntas: evaluation,
+    });
+    if (evalError) throw evalError;
+  }
+
   res.status(200).json({ ok: true });
 }
 
 async function handleGuardarResultadoExamen(req, res) {
   const { id, visitanteId, respuestas, puntaje, email } = req.body;
-  const { error } = await supabase.from("respuestas").insert({
-    especialidad_id: id,
-    visitante_id: email || visitanteId,
-    datos: {
-      tipo: "examen",
-      respuestas,
-      puntaje,
-      fecha: new Date().toISOString(),
-      correo: email,
+  const identificador =
+    email && email.trim() ? email.trim().toLowerCase() : visitanteId;
+
+  const { error } = await supabase.from("respuestas").upsert(
+    {
+      especialidad_id: id,
+      visitante_id: identificador,
+      datos: {
+        tipo: "examen",
+        respuestas,
+        puntaje,
+        fecha: new Date().toISOString(),
+        correo: email ? email.toLowerCase() : null,
+      },
     },
-  });
+    { onConflict: "especialidad_id,visitante_id,datos->>tipo" },
+  );
+
   if (error) throw error;
   res.status(200).json({ ok: true, puntaje });
 }
 
 async function handleObtenerEstadoUsuario(req, res) {
   const { visitanteId, email } = req.body;
+  const vId = visitanteId;
+  const uEmail = email ? email.toLowerCase().trim() : null;
+
+  // 1. Obtener especialidades activas (o en las que haya participado)
   const { data: especialidades } = await supabase
     .from("especialidades")
     .select("*")
     .eq("activo", true);
-  const { data: participaciones } = await supabase
-    .from("respuestas")
-    .select("*")
-    .or(`visitante_id.eq."${visitanteId}",visitante_id.eq."${email}"`);
+
+  // 2. Obtener TODAS las participaciones del usuario
+  let queryParticipaciones = supabase.from("respuestas").select("*");
+  if (uEmail) {
+    queryParticipaciones = queryParticipaciones.or(
+      `visitante_id.eq."${vId}",visitante_id.eq."${uEmail}"`,
+    );
+  } else {
+    queryParticipaciones = queryParticipaciones.eq("visitante_id", vId);
+  }
+  const { data: participaciones } = await queryParticipaciones;
 
   const result = especialidades.map((esp) => {
     const userParts = participaciones.filter(
       (p) => p.especialidad_id === esp.id,
     );
+
     const examen = userParts
       .filter((p) => p.datos.tipo === "examen")
       .sort((a, b) => b.datos.puntaje - a.datos.puntaje)[0];
+
     const tarea = userParts.find((p) => p.datos.tipo === "tarea");
+
     const asistencias = userParts
       .filter((p) => p.datos.tipo === "asistencia")
       .map((p) => p.datos.asistenciaNumero);
@@ -207,62 +316,73 @@ async function handleObtenerEstadoUsuario(req, res) {
       id: esp.id,
       titulo: esp.titulo,
       creado: esp.created_at,
+      fechaCierre: esp.fecha_cierre,
+      tomaAsistencia: esp.configuracion?.tomaAsistencia,
       miExamen: examen ? examen.datos : null,
       miTarea: tarea ? tarea.datos : null,
-      asistencias: {
-        1: asistencias.includes(1),
-        2: asistencias.includes(2),
-      },
-      configTarea: esp.configuracion.tarea,
-      configExamen: esp.configuracion.tieneEvaluacion,
+      asistencias: asistencias, // Array de números [1, 2]
+      configTarea: esp.configuracion?.tarea,
+      configExamen: esp.configuracion?.tieneEvaluacion,
     };
   });
   res.status(200).json(result);
 }
 
-// --- GITHUB FALLBACKS (Para imágenes y archivos) ---
+async function handleActualizarEstadoAsistencia(req, res) {
+  const { id, asistencia, activo } = req.body;
 
-async function handleListarImagenes(req, res, repo) {
-  const { carpeta } = req.query;
-  const r = await fetch(
-    `https://api.github.com/repos/${repo}/contents/images/${carpeta}?ref=main`,
-    {
-      headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` },
-    },
-  );
-  const data = await r.json();
+  // Obtener config actual
+  const { data } = await supabase
+    .from("especialidades")
+    .select("configuracion")
+    .eq("id", id)
+    .single();
+  const config = data.configuracion || {};
+  if (!config.asistenciasActivas)
+    config.asistenciasActivas = { 1: false, 2: false };
+  config.asistenciasActivas[asistencia] = activo;
+
+  const { error } = await supabase
+    .from("especialidades")
+    .update({ configuracion: config })
+    .eq("id", id);
+  if (error) throw error;
+
   res
     .status(200)
-    .json(
-      Array.isArray(data)
-        ? data.map((f) => ({ name: f.name, download_url: f.download_url }))
-        : [],
-    );
+    .json({ ok: true, asistenciasActivas: config.asistenciasActivas });
 }
 
 async function handleSubirTarea(req, res, repo) {
-  // Implementar lógica de GitHub para el PDF y Supabase para el registro (Metadata)
-  // Ya lo hicimos antes, lo consolidaré aquí.
   const { id, email, visitanteId, contenido, nombreArchivo } = req.body;
-  const identificador = email || visitanteId;
+  const identificador =
+    email && email.trim() ? email.trim().toLowerCase() : visitanteId;
   const path = `tareas_files/${id}/${identificador.replace(/[^a-z0-9]/gi, "_")}.pdf`;
 
-  // 1. GitHub para el archivo
-  await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
-    method: "PUT",
-    headers: {
-      Authorization: `token ${process.env.GITHUB_TOKEN}`,
-      "Content-Type": "application/json",
+  // Subir a GitHub
+  const ghRes = await fetch(
+    `https://api.github.com/repos/${repo}/contents/${path}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `token ${process.env.GITHUB_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message: `Tarea: ${identificador}`,
+        content: contenido,
+        branch: "main",
+      }),
     },
-    body: JSON.stringify({
-      message: `Tarea: ${identificador}`,
-      content: contenido,
-      branch: "main",
-    }),
-  });
+  );
 
-  // 2. Supabase para el registro
-  await supabase.from("respuestas").upsert(
+  if (!ghRes.ok) {
+    const err = await ghRes.json();
+    throw new Error("Error GitHub: " + (err.message || "Unknown"));
+  }
+
+  // Registrar en Supabase
+  const { error } = await supabase.from("respuestas").upsert(
     {
       especialidad_id: id,
       visitante_id: identificador,
@@ -272,35 +392,120 @@ async function handleSubirTarea(req, res, repo) {
         fecha: new Date().toISOString(),
         url: `https://raw.githubusercontent.com/${repo}/main/${path}`,
         nombreArchivoOriginal: nombreArchivo,
+        email: email ? email.toLowerCase() : null,
       },
     },
-    { onConflict: "especialidad_id,visitante_id" },
+    { onConflict: "especialidad_id,visitante_id,datos->>tipo" },
   );
 
+  if (error) throw error;
   res.status(200).json({ ok: true });
 }
 
-// Stubs para el resto que aún no migramos a fondo pero que no deben romper el switch
-async function handleListarEntregas(req, res) {
-  res.status(200).json({});
-}
-async function handleActualizarEstadoAsistencia(req, res) {
+async function handleCalificarTareas(req, res) {
+  const { id, tareas } = req.body; // tareas is an object { uid: { nota, estado, ... } }
+
+  const entries = Object.entries(tareas);
+  for (const [uid, tareaData] of entries) {
+    if (tareaData.estado === "calificado") {
+      const { error } = await supabase
+        .from("respuestas")
+        .update({
+          datos: tareaData,
+        })
+        .eq("especialidad_id", id)
+        .eq("visitante_id", uid)
+        .eq("datos->>tipo", "tarea");
+      if (error) console.error("Error calfying:", error);
+    }
+  }
   res.status(200).json({ ok: true });
 }
+
+async function handleListarFormulariosPendientes(req, res) {
+  // Retorna formularios con tareas activas y conteo de pendientes
+  const { data: formularios } = await supabase
+    .from("especialidades")
+    .select("*")
+    .eq("activo", true);
+  const { data: entregas } = await supabase
+    .from("respuestas")
+    .select("*")
+    .eq("datos->>tipo", "tarea");
+
+  const result = formularios
+    .filter((f) => f.configuracion?.tarea?.activa)
+    .map((esp) => {
+      const p = entregas.filter((r) => r.especialidad_id === esp.id);
+      return {
+        id: esp.id,
+        titulo: esp.titulo,
+        pendientes: p.filter((r) => r.datos.estado === "entregado").length,
+        calificadas: p.filter((r) => r.datos.estado === "calificado").length,
+        total: p.length,
+      };
+    });
+
+  res.status(200).json(result);
+}
+
+async function handleListarArchivosPDF(req, res, repo) {
+  const r = await fetch(
+    `https://api.github.com/repos/${repo}/contents/tareas_files?ref=main`,
+    {
+      headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` },
+    },
+  );
+  if (!r.ok) return res.status(200).json([]);
+
+  const root = await r.json();
+  const files = [];
+
+  // Recursive listing would be better, but for now just top level folders
+  for (const item of root) {
+    if (item.type === "dir") {
+      const sub = await fetch(item.url, {
+        headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` },
+      });
+      if (sub.ok) {
+        const subFiles = await sub.json();
+        subFiles.forEach((f) => {
+          if (f.name.endsWith(".pdf")) {
+            files.push({
+              nombre: f.name,
+              ruta: f.path,
+              tamano: f.size,
+              url: f.download_url,
+            });
+          }
+        });
+      }
+    }
+  }
+  res.status(200).json(files);
+}
+
 async function handleEliminarFormulario(req, res) {
   const { id } = req.body;
   await supabase.from("especialidades").update({ activo: false }).eq("id", id);
   res.status(200).json({ ok: true });
 }
-async function handleListarArchivosPDF(req, res, repo) {
-  res.status(200).json([]);
-}
-async function handleListarFormulariosPendientes(req, res) {
-  res.status(200).json([]);
-}
-async function handleGuardarFormulario(req, res) {
-  res.status(200).json({ ok: true });
-}
-async function handleGuardarEvaluacion(req, res) {
-  res.status(200).json({ ok: true });
+
+async function handleListarImagenes(req, res, repo) {
+  const { carpeta } = req.query;
+  const r = await fetch(
+    `https://api.github.com/repos/${repo}/contents/images/${carpeta}?ref=main`,
+    {
+      headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` },
+    },
+  );
+  if (!r.ok) return res.status(200).json([]);
+  const data = await r.json();
+  res
+    .status(200)
+    .json(
+      Array.isArray(data)
+        ? data.map((f) => ({ nombre: f.name, url: f.download_url }))
+        : [],
+    );
 }

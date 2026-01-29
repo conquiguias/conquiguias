@@ -2345,7 +2345,7 @@
 
   <!-- Menú lateral -->
   <div id="sidebar">
-    <h2 style="font-family: 'Great Vibes', cursive; font-size: 28px; text-transform: none; color: white; margin-bottom: 10px; margin-top: 10px;">Conquiguias World</h2>
+    <h2 style="font-family: 'Great Vibes', cursive; font-size: 28px; text-transform: none; color: white; margin-bottom: 10px; margin-top: 20px;">Conquiguias World</h2>
     <button id="menuInicio" class="active"><i class="fas fa-home" style="margin-right: 8px;"></i> Inicio</button>
     <button id="menuClubes"><i class="fas fa-users" style="margin-right: 8px;"></i> Clubes</button>
     <button id="menuTareasExamenes"><i class="fas fa-tasks" style="margin-right: 8px;"></i> Tareas y Exámenes</button>
@@ -7238,6 +7238,9 @@ const diffMins = Math.floor(diffMs / 60000);
                             body: JSON.stringify({ carpeta, nombre: imagen.nombre })
                         });
                         if(res.ok) {
+                            // Invalidar caché
+                            sessionStorage.removeItem(`cache_imgs_${carpeta}`);
+                            
                             cargarImagenesInstructor(carpeta, selectId);
                             // Limpiar selección si era la actual
                             if(carpeta === 'especialidades' && imagenEspecialidadSeleccionada?.nombre === imagen.nombre) {
@@ -7347,6 +7350,10 @@ const diffMins = Math.floor(diffMs / 60000);
                     mensaje.innerHTML = '<i class="fas fa-check-circle"></i> Imagen subida correctamente';
                     nombreInput.value = '';
                     fileInput.value = ''; // Limpiar input file
+                    
+                    // Invalidar caché para obligar a recargar desde la API
+                    sessionStorage.removeItem(`cache_imgs_${carpeta}`);
+                    
                     cargarImagenesInstructor(carpeta, selectId);
                 } else {
                     mensaje.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${data.error}`;

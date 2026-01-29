@@ -830,6 +830,28 @@ async function handleObtenerEvaluacion(req, res, repo) {
 
   if (!id) return res.status(400).json({ error: "ID no especificado" });
 
+// Sistema de caché simple en memoria (LRU muy básico)
+const cacheEvaluaciones = new Map();
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutos de caché
+
+async function handleObtenerEvaluacion(req, res, repo) {
+  const { id } = req.query;
+
+  if (!id) return res.status(400).json({ error: "ID no especificado" });
+
+  // 1. Verificar Caché
+  const cacheKey = `eval_${id}`;
+  if (cacheEvaluaciones.has(cacheKey)) {
+    const { timestamp, data } = cacheEvaluaciones.get(cacheKey);
+    // Si la caché es válida (menos de 10 mins), devolverla
+    if (Date.now() - timestamp < CACHE_TTL_MS) {
+      console.log(`[CACHE] Sirviendo evaluación ${id} desde memoria`);
+      return res.status(200).json(data);
+    } else {
+      cacheEvaluaciones.delete(cacheKey); // Caché expirada
+    }
+  }
+
   const archivo = `evaluaciones/${id}/evaluacion.json`;
 
   try {
@@ -847,6 +869,11 @@ async function handleObtenerEvaluacion(req, res, repo) {
       // Si no encuentra el archivo, retornar array vacío en lugar de error
       if (respuesta.status === 404) {
         return res.status(200).json([]);
+      }
+      // Si es error 403 y tenemos caché expirada, usarla como fallback de emergencia
+      if (respuesta.status === 403 && cacheEvaluaciones.has(cacheKey)) {
+           console.warn(`[CACHE] GitHub 403. Usando caché expirada para ${id}`);
+           return res.status(200).json(cacheEvaluaciones.get(cacheKey).data);
       }
       throw new Error(`Error ${respuesta.status}: ${respuesta.statusText}`);
     }
@@ -872,9 +899,21 @@ async function handleObtenerEvaluacion(req, res, repo) {
       return res.status(200).json([]);
     }
 
+    // Guardar en Caché
+    cacheEvaluaciones.set(cacheKey, {
+        timestamp: Date.now(),
+        data: evaluacion
+    });
+
     res.status(200).json(evaluacion);
   } catch (err) {
     console.error("Error al obtener evaluación:", err);
+
+    // Intentar servir caché antigua si existe error
+    if (cacheEvaluaciones.has(cacheKey)) {
+         console.warn(`[CACHE] Error de red. Usando caché antigua para ${id}`);
+         return res.status(200).json(cacheEvaluaciones.get(cacheKey).data);
+    }
 
     // En caso de error, retornar array vacío en lugar de error 500
     res.status(200).json([]);

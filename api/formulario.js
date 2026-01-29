@@ -724,7 +724,13 @@ async function handleListarFormularios(req, res, repo) {
       },
     );
 
-    if (!respuesta.ok) throw new Error("No se pudo acceder a formularios.json");
+    if (!respuesta.ok) {
+      const errText = await respuesta.text();
+      console.error(
+        `Error GitHub listarFormularios (${respuesta.status}): ${errText}`,
+      );
+      throw new Error(`Error ${respuesta.status}: ${errText}`);
+    }
 
     const datos = await respuesta.json();
     const contenido = JSON.parse(

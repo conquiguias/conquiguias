@@ -7295,13 +7295,6 @@ const diffMins = Math.floor(diffMs / 60000);
 
             select.appendChild(option);
           });
-        } else {
-          select.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--danger-color);">Error al cargar imágenes</div>';
-        }
-      } catch (error) {
-        console.error(`Error al cargar imágenes de ${carpeta}:`, error);
-        select.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--danger-color);">Error de conexión</div>';
-      }
     }
 
     // Función para subir imagen (MODIFICADA: Ahora se llama explícitamente desde el botón)

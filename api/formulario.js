@@ -69,23 +69,32 @@ async function handleListarFormularios(req, res) {
     .from("especialidades")
     .select("*")
     .eq("activo", true)
-    .order("created_at", { ascending: false });
+    // .order("created_at", { ascending: false }); // REMOVE SORT to match legacy json natural order (oldest first usually) or undefined
+    .order("created_at", { ascending: true }); // Legacy json grew by appending, so oldest first.
+
   if (error) throw error;
 
   const forms = {};
   data.forEach((f) => {
+    // Reconstruct the exact object structure from legacy
     forms[f.id] = {
-      ...f.configuracion,
+      ...f.configuracion, // tomaAsistencia, asistenciasActivas, tarea, tieneEvaluacion, firmas...
       id: f.id,
       titulo: f.titulo,
-      creado: f.created_at,
       fechaCierre: f.fecha_cierre,
+      creado: f.created_at,
       imagenEspecialidad: f.imagen_url,
+      // Ensure defaults if missing in configuracion (legacy fallback)
       asistenciasActivas: f.configuracion?.asistenciasActivas || {
         1: false,
         2: false,
       },
-      tomaAsistencia: f.configuracion?.tomaAsistencia || false,
+      tomaAsistencia:
+        f.configuracion?.tomaAsistencia !== undefined
+          ? f.configuracion.tomaAsistencia
+          : false,
+      // Ensure specific field mappings that might differ
+      tieneEvaluacion: f.configuracion?.tieneEvaluacion || false,
     };
   });
   res.status(200).json(forms);
@@ -99,6 +108,8 @@ async function handleObtenerFormulario(req, res) {
     .eq("id", id)
     .single();
   if (error) throw error;
+
+  // Same reconstruction for consistency
   res.status(200).json({
     ...data.configuracion,
     id: data.id,
@@ -106,6 +117,14 @@ async function handleObtenerFormulario(req, res) {
     fechaCierre: data.fecha_cierre,
     creado: data.created_at,
     imagenEspecialidad: data.imagen_url,
+    asistenciasActivas: data.configuracion?.asistenciasActivas || {
+      1: false,
+      2: false,
+    },
+    tomaAsistencia:
+      data.configuracion?.tomaAsistencia !== undefined
+        ? data.configuracion.tomaAsistencia
+        : false,
   });
 }
 
@@ -308,9 +327,15 @@ async function handleObtenerEstadoUsuario(req, res) {
 
     const tarea = userParts.find((p) => p.datos.tipo === "tarea");
 
-    const asistencias = userParts
+    const asistenciasNums = userParts
       .filter((p) => p.datos.tipo === "asistencia")
       .map((p) => p.datos.asistenciaNumero);
+
+    // CRITICAL FIX: Legacy frontend expects Object {1: bool, 2: bool}, NOT Array
+    const asistenciasMap = {
+      1: asistenciasNums.includes(1),
+      2: asistenciasNums.includes(2),
+    };
 
     return {
       id: esp.id,
@@ -320,7 +345,7 @@ async function handleObtenerEstadoUsuario(req, res) {
       tomaAsistencia: esp.configuracion?.tomaAsistencia,
       miExamen: examen ? examen.datos : null,
       miTarea: tarea ? tarea.datos : null,
-      asistencias: asistencias, // Array de números [1, 2]
+      asistencias: asistenciasMap, // RESTORED STRUCTURE
       configTarea: esp.configuracion?.tarea,
       configExamen: esp.configuracion?.tieneEvaluacion,
     };

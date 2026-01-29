@@ -661,22 +661,43 @@ async function handleObtenerEstadoUsuario(req, res) {
     const id = doc.id;
     const form = doc.data;
 
-    // Filtrar mis asistencias
+    // Filtrar mis asistencias (Paso 1: Email o ID actual)
     const aData =
       asists?.find((x) => x.especialidad_id === id)?.contenido_respuestas || [];
-    const misA = aData.filter(
+
+    let misA = aData.filter(
       (r) =>
         (email && r.correo?.toLowerCase() === email.toLowerCase()) ||
         r.visitanteId === visitanteId,
     );
 
-    if (misA.length === 0) return; // Si no participé, skip
-
     // Recolectar todos los IDs de visitante asociados a este usuario en esta especialidad
+    // Esto es CRÍTICO para enlazar respuestas antiguas que solo tienen visitanteId (sin correo)
+    // con respuestas nuevas que sí tienen correo.
     const allUserIds = new Set([visitanteId]);
     misA.forEach((r) => {
       if (r.visitanteId) allUserIds.add(r.visitanteId);
     });
+
+    // Paso 2: Re-escanear asistencias usando los IDs descubiertos
+    // (Ej: Encontré Asistencia 1 por correo, la cual tiene ID 'A'. Ahora busco Asistencia 2 que solo tiene ID 'A')
+    if (allUserIds.size > 0 && aData.length > 0) {
+      const extraA = aData.filter(
+        (r) =>
+          !misA.includes(r) && // Evitar duplicados
+          r.visitanteId &&
+          allUserIds.has(r.visitanteId),
+      );
+      if (extraA.length > 0) {
+        misA = [...misA, ...extraA];
+        // Si aparecieron nuevos IDs en estas asistencias extra, agregarlos también (aunque raro)
+        extraA.forEach((r) => {
+          if (r.visitanteId) allUserIds.add(r.visitanteId);
+        });
+      }
+    }
+
+    if (misA.length === 0) return; // Si no participó de ninguna forma, skip
 
     // Filtrar mis exámenes (usando email O cualquiera de los IDs encontrados)
     const eData = evals?.find((x) => x.especialidad_id === id);
@@ -703,6 +724,7 @@ async function handleObtenerEstadoUsuario(req, res) {
     let miTarea = null;
 
     // Buscar tarea por Email o por cualquiera de los IDs
+    // Prioridad: Email -> IDs encontrados
     if (email && tData[email]) {
       miTarea = tData[email];
     } else {
@@ -712,6 +734,10 @@ async function handleObtenerEstadoUsuario(req, res) {
           break;
         }
       }
+      // Fallback: Si no encontré por ID directo, buscar si algun email coincide (casos raros)
+      if (!miTarea && email) {
+        // Ya buscamos tData[email] arriba, esto es redundante pero seguro
+      }
     }
 
     resultado.push({
@@ -719,6 +745,7 @@ async function handleObtenerEstadoUsuario(req, res) {
       titulo: form.titulo,
       creado: form.creado,
       asistencias: misA.map((a) => a.asistenciaNumero),
+      tomaAsistencia: form.tomaAsistencia,
       configTarea: form.tarea,
       miTarea: miTarea,
       configExamen: form.tieneEvaluacion,

@@ -8173,6 +8173,13 @@ const diffMins = Math.floor(diffMs / 60000);
                           }
                       }
                       
+                      // Validar Asistencias Requeridas
+                      const asistenciasRequeridas = (item.tomaAsistencia !== false) ? 2 : 1;
+                      if ((item.asistencias ? item.asistencias.length : 0) < asistenciasRequeridas) {
+                          puedeHacerExamen = false;
+                          mensajeBloqueo = `Faltan asistencias (${item.asistencias ? item.asistencias.length : 0}/${asistenciasRequeridas})`;
+                      }
+                      
                       if (puedeHacerExamen) {
                            botonExamen = `<button onclick="iniciarExamenPlataforma('${item.id}')" style="background:#10B981; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold; box-shadow: 0 2px 5px rgba(16,185,129,0.3);">Hacer Examen</button>`;
                            estadoExamenHtml = '<span style="color:#10B981;">Disponible</span>';

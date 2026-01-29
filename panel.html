@@ -7115,20 +7115,71 @@ const diffMins = Math.floor(diffMs / 60000);
         });
     }
 
-    // Función para cargar imágenes en un select
     // Función para cargar imágenes en un select - EXPORTADA A WINDOW
+    // CON CACHÉ Y PROTECCIÓN RATE LIMIT
     window.cargarImagenesInstructor = async function(carpeta, selectId) {
       const select = document.getElementById(selectId);
       if (!select) return;
 
+      // 🔒 PROTECCIÓN 1: Cooldown Global
+      const cooldownKey = 'img_api_cooldown';
+      const cooldownUntil = localStorage.getItem(cooldownKey);
+      if (cooldownUntil && Date.now() < parseInt(cooldownUntil)) {
+        const remaining = Math.ceil((parseInt(cooldownUntil) - Date.now()) / 60000);
+        select.innerHTML = `<div style="padding:10px; color:orange; text-align:center;">
+          ⚠️ Sistema saturado.<br>Reintentando en ${remaining} min...
+        </div>`;
+        console.warn(`[API] Bloqueo temporal activo hasta ${new Date(parseInt(cooldownUntil)).toLocaleTimeString()}`);
+        return;
+      }
+
+      // 💾 PROTECCIÓN 2: Caché Local (SessionStorage)
+      // La caché dura mientras la pestaña esté abierta
+      const cacheKey = `cache_imgs_${carpeta}`;
+      const cachedData = sessionStorage.getItem(cacheKey);
+
+      if (cachedData) {
+        console.log(`[CACHE] Usando caché para ${carpeta}`);
+        renderizarImagenesInstructor(JSON.parse(cachedData), select, selectId);
+        return;
+      }
+
+      // 🌐 Si no hay caché, pedir a la API
+      select.innerHTML = '<div style="padding:10px; text-align:center;">Cargando imágenes...</div>';
+
       try {
         const res = await fetch(`/api/formulario?action=listarImagenes&carpeta=${carpeta}`);
 
-        if (res.ok) {
-          const imagenes = await res.json();
-          select.innerHTML = '';
+        if (!res.ok) {
+          // Si recibimos 429 (Rate Limit), activar cooldown de 5 minutos
+          if (res.status === 429) {
+            const resetTime = Date.now() + (5 * 60 * 1000); // 5 min
+            localStorage.setItem(cooldownKey, resetTime);
+            throw new Error("Límite de API excedido. Pausando sistema.");
+          }
+          throw new Error(`Error ${res.status}`);
+        }
 
-          if (imagenes.length === 0) {
+        const imagenes = await res.json();
+        
+        // Guardar en caché
+        if (Array.isArray(imagenes) && imagenes.length > 0) {
+           sessionStorage.setItem(cacheKey, JSON.stringify(imagenes));
+        }
+
+        renderizarImagenesInstructor(imagenes, select, selectId);
+
+      } catch (err) {
+        console.error("Error cargando imágenes:", err);
+        select.innerHTML = `<div style="padding: 10px; text-align: center; color: var(--danger-color);">Error: ${err.message}</div>`;
+      }
+    };
+
+    // Función auxiliar para renderizar (separada para reusar con caché)
+    function renderizarImagenesInstructor(imagenes, select, selectId) {
+          select.innerHTML = '';
+          
+          if (!imagenes || imagenes.length === 0) {
             select.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--text-secondary);">No hay imágenes disponibles</div>';
             return;
           }

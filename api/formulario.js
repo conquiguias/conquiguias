@@ -564,6 +564,7 @@ async function handleListarArchivosPDF(req, res, repo) {
       nombre: n.path.split("/").pop(),
       ruta: n.path,
       url: `https://raw.githubusercontent.com/${repo}/main/${n.path}`,
+      tamano: n.size || 0,
     }));
   res.status(200).json(pdfs);
 }
@@ -616,13 +617,24 @@ async function handleEliminarTodasTareasPDF(req, res, repo) {
     (n) => n.path.startsWith("tareas_files/") && n.type === "blob",
   );
 
-  for (const f of files) {
-    await fetch(`https://api.github.com/repos/${repo}/contents/${f.path}`, {
-      method: "DELETE",
-      headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` },
-      body: JSON.stringify({ message: "Limpieza", sha: f.sha, branch: "main" }),
-    });
-  }
+  // Usar Promise.all para borrar en paralelo y evitar timeout de Vercel
+  await Promise.all(
+    files.map((f) =>
+      fetch(`https://api.github.com/repos/${repo}/contents/${f.path}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `token ${process.env.GITHUB_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: "Limpieza",
+          sha: f.sha,
+          branch: "main",
+        }),
+      }).catch((e) => console.error(`Error borrando ${f.path}`, e)),
+    ),
+  );
+
   res.status(200).json({ ok: true });
 }
 

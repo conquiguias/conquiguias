@@ -8130,6 +8130,11 @@ const diffMins = Math.floor(diffMs / 60000);
               const fechaCierreStr = fechaObj ? fechaObj.toLocaleDateString() : 'Sin Límite';
               const isClosed = fechaObj && new Date() > fechaObj;
 
+              // Lógica Asistencias (Calculada antes para usar en Tarea y Examen)
+              const asistenciasRequeridas = (item.tomaAsistencia !== false) ? 2 : 1;
+              const numAsistencias = item.asistencias ? item.asistencias.length : 0;
+              const faltanAsistencias = numAsistencias < asistenciasRequeridas;
+
               // Lógica Tarea
               if (tieneTarea) {
                   if (item.miTarea) {
@@ -8146,6 +8151,9 @@ const diffMins = Math.floor(diffMs / 60000);
                       if (isClosed) {
                           estadoTareaHtml = '<span style="color:#EF4444; font-weight:500;">Cerrado</span>';
                           botonTarea = `<button disabled style="opacity:0.6; cursor:not-allowed; background:#4B5563; color:white; border:none; padding:6px 12px; border-radius:4px;">Expirado</button>`;
+                      } else if (faltanAsistencias) {
+                          estadoTareaHtml = '<span style="color:#F59E0B; font-weight:500;">Pendiente</span>';
+                          botonTarea = `<button disabled style="opacity:0.6; cursor:not-allowed; background:#4B5563; color:white; border:none; padding:4px 8px; border-radius:4px;">Bloqueado</button>`;
                       } else {
                           estadoTareaHtml = '<span style="color:#EF4444; font-weight:500;">Pendiente</span>';
                           const detalleSafe = (item.configTarea.detalle || '').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
@@ -8181,10 +8189,9 @@ const diffMins = Math.floor(diffMs / 60000);
                       }
                       
                       // Validar Asistencias Requeridas
-                      const asistenciasRequeridas = (item.tomaAsistencia !== false) ? 2 : 1;
-                      if ((item.asistencias ? item.asistencias.length : 0) < asistenciasRequeridas) {
+                      if (faltanAsistencias) {
                           puedeHacerExamen = false;
-                          mensajeBloqueo = `Faltan asistencias (${item.asistencias ? item.asistencias.length : 0}/${asistenciasRequeridas})`;
+                          mensajeBloqueo = `Faltan asistencias (${numAsistencias}/${asistenciasRequeridas})`;
                       }
                       
                       if (puedeHacerExamen) {

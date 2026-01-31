@@ -2637,7 +2637,22 @@ transition: all 0.3s ease;
         <div class="preview-content" style="width: 90%; max-width: 500px; text-align: center;">
             <h3>Subir Tarea (PDF)</h3>
             <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 15px;">Solo formato PDF. Máx 5MB.</p>
+            
             <input type="file" id="inputTareaPDF" accept="application/pdf" style="margin-bottom: 20px;">
+            
+            <!-- Contenedor Visor Previo -->
+            <div id="previewTareaContainer" style="margin-bottom: 15px; height: 300px; display: none; border: 1px solid var(--border-color); border-radius: 4px; background: #333;">
+                <iframe id="iframePreviewTarea" style="width:100%; height:100%; border:none;" src=""></iframe>
+            </div>
+
+            <!-- Barra de Progreso -->
+            <div id="progressContainerTarea" style="display: none; margin-bottom: 15px;">
+                <div style="width: 100%; background: var(--bg-secondary); height: 8px; border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color);">
+                    <div id="progressBarTarea" style="width: 0%; height: 100%; background: var(--accent-color); transition: width 0.2s;"></div>
+                </div>
+                <div id="progressTextTarea" style="text-align: center; font-size: 11px; margin-top: 4px; color: var(--text-primary);">0%</div>
+            </div>
+
             <div style="display: flex; justify-content: space-between; gap: 10px;">
                 <button onclick="document.getElementById('modalSubirTarea').style.display='none'" style="background: var(--danger-color); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Cancelar</button>
                 <button id="btnEnviarTareaReal" style="background: var(--success-color); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Enviar Tarea</button>
@@ -8264,7 +8279,35 @@ const diffMins = Math.floor(diffMs / 60000);
       
       newBtn.onclick = () => subirTarea(id);
       document.getElementById('msgSubidaTarea').innerHTML = '';
-      document.getElementById('inputTareaPDF').value = '';
+      
+      // Reset input y UI
+      const input = document.getElementById('inputTareaPDF');
+      input.value = '';
+      document.getElementById('previewTareaContainer').style.display = 'none';
+      document.getElementById('iframePreviewTarea').src = '';
+      document.getElementById('progressContainerTarea').style.display = 'none';
+      document.getElementById('progressBarTarea').style.width = '0%';
+      document.getElementById('progressTextTarea').innerText = '0%';
+
+      // Agregar Listener para Preview PDF
+      // Clonar para evitar múltiples listeners
+      const newInput = input.cloneNode(true);
+      input.parentNode.replaceChild(newInput, input);
+      
+      newInput.addEventListener('change', function() {
+          const file = this.files[0];
+          const previewContainer = document.getElementById('previewTareaContainer');
+          const iframe = document.getElementById('iframePreviewTarea');
+          
+          if (file && file.type === 'application/pdf') {
+              const fileURL = URL.createObjectURL(file);
+              iframe.src = fileURL;
+              previewContainer.style.display = 'block';
+          } else {
+              iframe.src = '';
+              previewContainer.style.display = 'none';
+          }
+      });
   };
 
   async function subirTarea(id) {
@@ -8276,7 +8319,16 @@ const diffMins = Math.floor(diffMs / 60000);
       if (file.type !== 'application/pdf') { msg.innerHTML = '<span style="color:red">Solo se permiten archivos PDF</span>'; return; }
       if (file.size > 5242880) { msg.innerHTML = '<span style="color:red">El archivo supera los 5MB</span>'; return; }
       
-      msg.innerHTML = '<span style="color:var(--accent-color)"><i class="fas fa-spinner fa-spin"></i> Subiendo...</span>';
+      msg.innerHTML = '<span style="color:var(--accent-color)"><i class="fas fa-spinner fa-spin"></i> Preparando envío...</span>';
+      
+      // Mostrar Barra de Progreso
+      const progressContainer = document.getElementById('progressContainerTarea');
+      const progressBar = document.getElementById('progressBarTarea');
+      const progressText = document.getElementById('progressTextTarea');
+      
+      progressContainer.style.display = 'block';
+      progressBar.style.width = '0%';
+      progressText.innerText = '0%';
       
       // Intentar obtener email robustamente
       let email = null;
@@ -8290,33 +8342,65 @@ const diffMins = Math.floor(diffMs / 60000);
       reader.readAsDataURL(file);
       reader.onload = async () => {
           const content = reader.result.split(',')[1];
-          try {
-              const resp = await fetch('/api/formulario?action=subirTarea', {
-                  method: 'POST', 
-                  headers: {'Content-Type':'application/json'},
-                  body: JSON.stringify({
-                      id, 
-                      visitanteId: currentUserId || localStorage.getItem('visitanteId'),
-                      email: email, // Enviar email para nueva lógica
-                      contenido: content,
-                      nombreArchivo: file.name
-                  })
-              });
-              const res = await resp.json();
-              if (res.ok) {
-                  alert('✅ Tarea enviada correctamente.');
-                  document.getElementById('modalSubirTarea').style.display = 'none';
-                  
-                  // Refrescar tablas
-                  if(typeof window.cargarTareasExamenes === 'function') window.cargarTareasExamenes();
-                  if(typeof cargarTablaCertificacionesCorrecta === 'function') setTimeout(cargarTablaCertificacionesCorrecta, 1000);
-              } else {
-                  msg.innerHTML = `<span style="color:red">Error: ${res.error}</span>`;
+          const payload = JSON.stringify({
+              id, 
+              visitanteId: currentUserId || localStorage.getItem('visitanteId'),
+              email: email, 
+              contenido: content,
+              nombreArchivo: file.name
+          });
+
+          // Usar XMLHttpRequest para tracking de progreso
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', '/api/formulario?action=subirTarea', true);
+          xhr.setRequestHeader('Content-Type', 'application/json');
+
+          xhr.upload.onprogress = function(e) {
+              if (e.lengthComputable) {
+                  const percent = Math.round((e.loaded / e.total) * 100);
+                  progressBar.style.width = percent + '%';
+                  progressText.innerText = percent + '%';
+                  if(percent < 100) {
+                      msg.innerHTML = '<span style="color:var(--accent-color)">Subiendo... ' + percent + '%</span>';
+                  } else {
+                      msg.innerHTML = '<span style="color:var(--success-color)">Procesando...</span>';
+                  }
               }
-          } catch(e) {
-              console.error(e);
+          };
+
+          xhr.onload = function() {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                  try {
+                      const res = JSON.parse(xhr.responseText);
+                      if (res.ok) {
+                          progressBar.style.width = '100%';
+                          progressText.innerText = '100%';
+                          msg.innerHTML = '<span style="color:var(--success-color)">✅ Tarea enviada correctamente.</span>';
+                          
+                          setTimeout(() => {
+                              document.getElementById('modalSubirTarea').style.display = 'none';
+                              // Refrescar tablas
+                              if(typeof window.cargarTareasExamenes === 'function') window.cargarTareasExamenes();
+                              if(typeof cargarTablaCertificacionesCorrecta === 'function') setTimeout(cargarTablaCertificacionesCorrecta, 1000);
+                          }, 1500);
+                      } else {
+                          msg.innerHTML = `<span style="color:red">Error: ${res.error}</span>`;
+                          progressContainer.style.display = 'none';
+                      }
+                  } catch (e) {
+                      msg.innerHTML = '<span style="color:red">Error procesando respuesta.</span>';
+                  }
+              } else {
+                  msg.innerHTML = `<span style="color:red">Error del servidor: ${xhr.status}</span>`;
+              }
+          };
+
+          xhr.onerror = function() {
               msg.innerHTML = '<span style="color:red">Error de conexión.</span>';
-          }
+              progressContainer.style.display = 'none';
+          };
+
+          xhr.send(payload);
       };
   }
 

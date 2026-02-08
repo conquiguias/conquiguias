@@ -3081,6 +3081,15 @@ transition: all 0.3s ease;
             <div style="display:flex; align-items:center; gap:10px;">
                 <input type="number" id="inputNotaIndividual" placeholder="Nota (0-10)" min="0" max="10" step="0.1" 
                        style="width:100px; padding:10px; border-radius:6px; border:1px solid #475569; background:#0f172a; color:white; font-size:16px; font-weight:bold;">
+                
+                <!-- Botones rápidos -->
+                <div style="display:flex; gap:5px;">
+                    <button onclick="document.getElementById('inputNotaIndividual').value=7" style="padding:8px 12px; border-radius:6px; border:1px solid #475569; background:#334155; color:white; cursor:pointer; font-weight:bold; transition:background 0.2s;">7</button>
+                    <button onclick="document.getElementById('inputNotaIndividual').value=8" style="padding:8px 12px; border-radius:6px; border:1px solid #475569; background:#334155; color:white; cursor:pointer; font-weight:bold; transition:background 0.2s;">8</button>
+                    <button onclick="document.getElementById('inputNotaIndividual').value=9" style="padding:8px 12px; border-radius:6px; border:1px solid #475569; background:#334155; color:white; cursor:pointer; font-weight:bold; transition:background 0.2s;">9</button>
+                    <button onclick="document.getElementById('inputNotaIndividual').value=10" style="padding:8px 12px; border-radius:6px; border:1px solid #475569; background:#334155; color:white; cursor:pointer; font-weight:bold; transition:background 0.2s;">10</button>
+                </div>
+
                 <button onclick="guardarNotaIndividualYSalir()" style="background:var(--success-color); color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-weight:bold; transition:transform 0.2s;">
                     <i class="fas fa-save"></i> Guardar
                 </button>

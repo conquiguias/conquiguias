@@ -613,29 +613,47 @@ async function handleEliminarTodasTareasPDF(req, res, repo) {
     `https://api.github.com/repos/${repo}/git/trees/main?recursive=1`,
     { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
   ).then((x) => x.json());
+
   const files = (r.tree || []).filter(
     (n) => n.path.startsWith("tareas_files/") && n.type === "blob",
   );
 
-  // Usar Promise.all para borrar en paralelo y evitar timeout de Vercel
-  await Promise.all(
-    files.map((f) =>
-      fetch(`https://api.github.com/repos/${repo}/contents/${f.path}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `token ${process.env.GITHUB_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: "Limpieza",
-          sha: f.sha,
-          branch: "main",
-        }),
-      }).catch((e) => console.error(`Error borrando ${f.path}`, e)),
-    ),
-  );
+  let eliminados = 0;
+  let errores = 0;
 
-  res.status(200).json({ ok: true });
+  // PROCESAMIENTO SECUENCIAL (CRÍTICO PARA EVITAR CONFLICTOS DE GIT)
+  // GitHub no permite múltiples commits simultáneos sobre la misma rama (409 Conflict)
+  for (const f of files) {
+    try {
+      const delResp = await fetch(
+        `https://api.github.com/repos/${repo}/contents/${f.path}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `token ${process.env.GITHUB_TOKEN}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: "Limpieza",
+            sha: f.sha,
+            branch: "main",
+          }),
+        },
+      );
+
+      if (delResp.ok) {
+        eliminados++;
+      } else {
+        console.error(`Error API GitHub al borrar ${f.path}:`, delResp.status);
+        errores++;
+      }
+    } catch (e) {
+      console.error(`Excepción borrando ${f.path}`, e);
+      errores++;
+    }
+  }
+
+  res.status(200).json({ ok: true, eliminados, errores });
 }
 
 async function handleEliminarTareasPDF(req, res, repo) {

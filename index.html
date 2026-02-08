@@ -412,6 +412,202 @@
         animation: fadeIn 0.5s ease-out;
       }
 
+      /* ============================================
+       ESTILOS RESTAURADOS DE FORMULARIOS & UTILIDADES
+       ============================================ */
+      
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .container h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 10px;
+        color: var(--text-primary);
+      }
+
+      .container p {
+        color: var(--text-secondary);
+        font-size: 14px;
+        margin-bottom: 30px;
+      }
+
+      /* Inputs estilo panel */
+      input, select {
+        width: 100%;
+        margin: 8px 0;
+        padding: 12px;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        color: var(--text-primary);
+        font-size: 14px;
+        transition: border 0.3s;
+      }
+
+      input:focus, select:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+      }
+
+      input::placeholder {
+        color: var(--text-secondary);
+      }
+
+      select option {
+        background: var(--bg-primary);
+      }
+
+      /* Botones estilo panel */
+      button {
+        width: 100%;
+        padding: 12px;
+        margin-top: 15px;
+        border: none;
+        border-radius: 6px;
+        background: var(--accent-color);
+        color: white;
+        font-weight: 600;
+        font-size: 15px;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+
+      button:hover:not(:disabled) {
+        background: var(--accent-hover);
+      }
+
+      button:disabled {
+        background: var(--border-color);
+        color: var(--text-secondary);
+        cursor: not-allowed;
+      }
+
+      /* Links */
+      .toggle, .forgot-password, .back-link {
+        color: var(--accent-color);
+        margin-top: 15px;
+        cursor: pointer;
+        font-size: 14px;
+        display: inline-block;
+      }
+
+      .toggle:hover, .forgot-password:hover, .back-link:hover {
+        text-decoration: underline;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      /* Utilidades */
+      .contenedor-password {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .chkShow {
+        width: auto;
+        margin: 0;
+      }
+
+      /* Input File */
+      input[type="file"] {
+        border: 1px dashed var(--border-color);
+        cursor: pointer;
+      }
+      input[type="file"]:hover {
+        border-color: var(--accent-color);
+      }
+
+      /* Loader */
+      .loader-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      .loader-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid transparent;
+        border-top: 2px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      /* Modal mensajes */
+      #mensajeModal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+      }
+
+      .mensaje-content {
+        background: var(--bg-card);
+        padding: 30px;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        max-width: 400px;
+        text-align: center;
+        color: var(--text-primary);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      }
+
+      .mensaje-content h3 {
+        color: var(--accent-color);
+        margin-bottom: 10px;
+      }
+      #mensajeBotones {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      #mensajeAceptar {
+        background: var(--success-color);
+        margin: 0;
+        width: auto;
+        padding: 10px 20px;
+        transform: none;
+        box-shadow: none;
+      }
+      #mensajeCancelar {
+        background: var(--danger-color);
+        margin: 0;
+        width: auto;
+        padding: 10px 20px;
+        transform: none;
+        box-shadow: none;
+      }
+
+      #mensajeAceptar:hover, #mensajeCancelar:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+      }
+
+      .hiddenX {
+        display: none !important;
+      }
+
       /* Responsive */
       @media (max-width: 900px) {
         .main-wrapper {

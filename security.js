@@ -51,7 +51,7 @@
     
     // Función para recargar la página (redirigir a sí misma)
     function recargarPaginaPorSeguridad() {
-        // alert('🔒 Por razones de seguridad, la página se recargará.\n\nNo está permitido inspeccionar el código.');
+        alert('🔒 Por razones de seguridad, la página se recargará.\n\nNo está permitido inspeccionar el código.');
         window.location.reload();
     }
     

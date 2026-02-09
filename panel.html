@@ -4294,7 +4294,6 @@ transition: all 0.3s ease;
                     <title>Examen y Certificación - ${formulario.titulo}</title>
                     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Great+Vibes&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
                     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-                    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
                     <style>
                         /* ESTILOS PARA EL EXAMEN */
                         .examen-section {
@@ -4499,8 +4498,39 @@ transition: all 0.3s ease;
                             color: #333;
                         }
                     </style>
-                    
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
                     ${'<script>'}
+                      function descargarPDFDirecto() {
+                        const element = document.body;
+                        const opt = {
+                            margin:       0,
+                            filename:     'Examen y Certificación - ${formulario.titulo}',
+                            image:        { type: 'jpeg', quality: 0.98 },
+                            html2canvas:  { scale: 2, useCORS: true },
+                            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                        };
+                        
+                        // Ocultar botones temporalmente para la captura (html2pdf a veces ignora la clase no-print si no se usa CSS media print)
+                        // Aunque html2pdf usa html2canvas que renderiza lo que se ve.
+                        // Mejor opcion: usar data-html2pdf-ignore en el contenedor de botones.
+                        
+                        // Mostrar estado de carga
+                        const btn = document.getElementById('btnDescargarPDF');
+                        const originalText = btn.innerHTML;
+                        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando PDF...';
+                        btn.disabled = true;
+
+                        html2pdf().set(opt).from(element).save().then(function(){
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                        }).catch(function(err){
+                            console.error(err);
+                            alert("Error al generar PDF. Intente imprimir como PDF.");
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                        });
+                    }
+
                         // 🔒 PROTECCIÓN CONTRA DEVTOOLS Y MODIFICACIÓN DEL CERTIFICADO
                         (function() {
                             'use strict';
@@ -4596,40 +4626,8 @@ transition: all 0.3s ease;
                             console.log('%cEste certificado está protegido contra modificaciones.', 'color: orange; font-size: 20px;');
                             console.log('%cCualquier intento de inspección cerrará esta ventana automáticamente.', 'color: orange; font-size: 16px;');
                             
-                            function descargarPDFDirecto() {
-                        const element = document.body;
-                        const opt = {
-                            margin:       0,
-                            filename:     'Examen y Certificación - ${formulario.titulo}',
-                            image:        { type: 'jpeg', quality: 0.98 },
-                            html2canvas:  { scale: 2, useCORS: true },
-                            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                        };
-                        
-                        // Ocultar botones temporalmente para la captura (html2pdf a veces ignora la clase no-print si no se usa CSS media print)
-                        // Aunque html2pdf usa html2canvas que renderiza lo que se ve.
-                        // Mejor opcion: usar data-html2pdf-ignore en el contenedor de botones.
-                        
-                        // Mostrar estado de carga
-                        const btn = document.getElementById('btnDescargarPDF');
-                        const originalText = btn.innerHTML;
-                        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando PDF...';
-                        btn.disabled = true;
-
-                        html2pdf().set(opt).from(element).save().then(function(){
-                            btn.innerHTML = originalText;
-                            btn.disabled = false;
-                        }).catch(function(err){
-                            console.error(err);
-                            alert("Error al generar PDF. Intente imprimir como PDF.");
-                            btn.innerHTML = originalText;
-                            btn.disabled = false;
-                        });
-                    }
                         })();
                     <\/script>
-                
-                
     </head>
 
     <body>
@@ -4789,7 +4787,7 @@ transition: all 0.3s ease;
         </div>
       </div>
 
-      <div class="no-print" data-html2pdf-ignore="true" style="text-align: center; margin: 30px; padding: 20px;">
+      <div class="no-print" style="text-align: center; margin: 30px; padding: 20px;">
         <button onclick="window.print()" style="
                             padding: 12px 25px; 
                             background: #007bff; 
@@ -4800,19 +4798,7 @@ transition: all 0.3s ease;
                             font-size: 16px;
                             margin: 0 10px;
                         ">
-          <i class="fas fa-print"></i> Imprimir / Guardar PDF (Nativo)
-        </button>
-        <button id="btnDescargarPDF" onclick="descargarPDFDirecto()" style="
-                            padding: 12px 25px; 
-                            background: #28a745; 
-                            color: white; 
-                            border: none; 
-                            border-radius: 5px; 
-                            cursor: pointer;
-                            font-size: 16px;
-                            margin: 0 10px;
-                        ">
-          <i class="fas fa-file-download"></i> Descargar PDF Directo
+          <i class="fas fa-print"></i> Imprimir Documento Completo
         </button>
         <button onclick="window.close()" style="
                             padding: 12px 25px; 

@@ -8826,8 +8826,7 @@ const diffMins = Math.floor(diffMs / 60000);
                   iframe.src = base64Content;
               } else if (actualData.url) {
                   // Si viene por URL (viejo sistema)
-                  const pdfUrl = encodeURIComponent(actualData.url);
-                  iframe.src = `https://docs.google.com/viewer?url=${pdfUrl}&embedded=true`;
+                iframe.src = actualData.url;
               } else {
                   // Si es una imagen o no hay PDF
                   iframe.srcdoc = '<div style="color:white;text-align:center;padding:50px;">No se encontró documento PDF.</div>';

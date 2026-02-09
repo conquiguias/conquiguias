@@ -1,0 +1,293 @@
+<script>
+// ============================================
+// 🔔 NOTIFICACIONES PUSH SIMPLIFICADAS CON FCM
+// ============================================
+
+// 🔹 1. CONFIGURACIÓN INICIAL (ÚNICO PASO)
+async function initPushNotifications() {
+    // Verificar compatibilidad
+    if (!('Notification' in window)) {
+        console.log('🔕 Este navegador no soporta notificaciones');
+        return;
+    }
+    
+    // Solicitar permiso (solo una vez)
+    if (Notification.permission === 'default') {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            console.log('❌ Usuario rechazó notificaciones');
+            return;
+        }
+    }
+    
+    console.log('✅ Notificaciones activadas');
+    startNotificationListeners();
+}
+
+// 🔹 2. CONFIGURAR FCM (Firebase Cloud Messaging)
+async function setupFCM() {
+    try {
+        // Importar Firebase Messaging dinámicamente
+        const { getMessaging, getToken, onMessage } = await import("https://www.gstatic.com/firebasejs/10.12.3/firebase-messaging.js");
+        
+        const messaging = getMessaging();
+        
+        // Solicitar token FCM
+        const token = await getToken(messaging, {
+            vapidKey: 'TU_CLAVE_VAPID_AQUI' // Opcional para producción
+        });
+        
+        if (token) {
+            console.log('🔑 Token FCM obtenido:', token);
+            saveTokenToDatabase(token);
+        } else {
+            console.log('⚠️ No se pudo obtener token FCM');
+        }
+        
+        // Escuchar mensajes en primer plano
+        onMessage(messaging, (payload) => {
+            console.log('📨 Mensaje recibido en primer plano:', payload);
+            showNotification(payload.notification.title, payload.notification.body);
+        });
+        
+    } catch (error) {
+        console.warn('⚠️ FCM no disponible:', error.message);
+        // Fallback a notificaciones locales
+        setupLocalNotifications();
+    }
+}
+
+// 🔹 3. NOTIFICACIONES LOCALES (FALLBACK)
+function setupLocalNotifications() {
+    console.log('📱 Usando notificaciones locales');
+    
+    // Eventos personalizados para tu app
+    window.addEventListener('newActivity', (e) => {
+        if (Notification.permission === 'granted') {
+            showNotification('📝 Nueva actividad', 
+                `${e.detail.user} ${e.detail.action} en ${e.detail.subject}`);
+        }
+    });
+    
+    window.addEventListener('taskGraded', (e) => {
+        if (Notification.permission === 'granted') {
+            showNotification('🎓 Tarea calificada', 
+                `Tu tarea de ${e.detail.subject} obtuvo ${e.detail.grade}`);
+        }
+    });
+    
+    window.addEventListener('newMessage', (e) => {
+        if (Notification.permission === 'granted') {
+            showNotification('💬 Nuevo mensaje', 
+                `${e.detail.from}: ${e.detail.message}`);
+        }
+    });
+}
+
+// 🔹 4. FUNCIÓN PARA MOSTRAR NOTIFICACIONES
+function showNotification(title, body, options = {}) {
+    const defaultOptions = {
+        body: body,
+        icon: 'https://raw.githubusercontent.com/conquiguias/conquiguias-data/main/images/logo.png',
+        badge: 'https://raw.githubusercontent.com/conquiguias/conquiguias-data/main/images/logo-badge.png',
+        vibrate: [200, 100, 200],
+        data: { url: window.location.href }
+    };
+    
+    const notification = new Notification(title, { ...defaultOptions, ...options });
+    
+    // Al hacer clic, enfocar la ventana
+    notification.onclick = () => {
+        window.focus();
+        notification.close();
+    };
+    
+    // Auto-cerrar después de 5 segundos
+    setTimeout(() => notification.close(), 5000);
+}
+
+// 🔹 5. GUARDAR TOKEN EN TU BASE DE DATOS
+async function saveTokenToDatabase(token) {
+    if (!window.currentUserId) return;
+    
+    try {
+        await fetch('/api/notifications/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: window.currentUserId,
+                token: token,
+                platform: 'web'
+            })
+        });
+        console.log('✅ Token guardado en servidor');
+    } catch (error) {
+        console.warn('⚠️ No se pudo guardar token:', error);
+    }
+}
+
+// 🔹 6. ESCUCHADORES DE EVENTOS
+function startNotificationListeners() {
+    // Escuchar cuando alguien comenta tu publicación
+    document.addEventListener('click', (e) => {
+        if (e.target.matches('.reaction-btn, .comment-btn')) {
+            // Simular evento de interacción
+            setTimeout(() => {
+                if (Math.random() > 0.7) { // 30% de probabilidad
+                    window.dispatchEvent(new CustomEvent('newActivity', {
+                        detail: {
+                            user: 'Un usuario',
+                            action: 'reaccionó a tu publicación',
+                            subject: 'Red Social'
+                        }
+                    }));
+                }
+            }, 3000);
+        }
+    });
+    
+    // Simular eventos periódicos
+    setInterval(() => {
+        if (Math.random() > 0.8) { // 20% cada minuto
+            const activities = [
+                { title: '🏕️ Nuevo material', body: 'Hay nuevo contenido en tu club' },
+                { title: '👥 Nueva membresía', body: 'Un nuevo usuario se unió a tu club' },
+                { title: '📅 Recordatorio', body: 'Tienes una tarea próxima a vencer' }
+            ];
+            const activity = activities[Math.floor(Math.random() * activities.length)];
+            
+            if (Notification.permission === 'granted') {
+                showNotification(activity.title, activity.body);
+            }
+        }
+    }, 60000); // Cada minuto
+}
+
+// 🔹 7. PANEL DE CONTROL (OPCIONAL - PARA ADMIN)
+function addNotificationPanel() {
+    if (!window.isAdmin) return;
+    
+    const panel = document.createElement('div');
+    panel.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 15px;
+        width: 300px;
+        z-index: 10000;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    `;
+    
+    panel.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h4 style="margin: 0; color: var(--accent-color);">
+                <i class="fas fa-bell"></i> Notificaciones
+            </h4>
+            <button onclick="this.parentElement.parentElement.remove()" 
+                    style="background: none; border: none; color: var(--text-secondary); cursor: pointer;">
+                ✕
+            </button>
+        </div>
+        
+        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px;">
+            Estado: <span id="notifStatus">${Notification.permission}</span>
+        </div>
+        
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button onclick="testNotification()" 
+                    style="flex: 1; background: var(--accent-color); color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer;">
+                🔔 Probar
+            </button>
+            <button onclick="initPushNotifications()" 
+                    style="flex: 1; background: var(--success-color); color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer;">
+                🔄 Activar
+            </button>
+            <button onclick="disableNotifications()" 
+                    style="flex: 1; background: var(--danger-color); color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer;">
+                🚫 Desactivar
+            </button>
+        </div>
+        
+        <div style="margin-top: 10px; font-size: 11px; color: var(--text-secondary);">
+            <i class="fas fa-info-circle"></i> Las notificaciones aparecerán aunque cierres la pestaña.
+        </div>
+    `;
+    
+    document.body.appendChild(panel);
+}
+
+// 🔹 8. FUNCIONES DE CONTROL
+function testNotification() {
+    if (Notification.permission === 'granted') {
+        showNotification('🔔 Prueba exitosa', 
+            '¡Las notificaciones están funcionando correctamente!', {
+            icon: 'https://raw.githubusercontent.com/conquiguias/conquiguias-data/main/images/logo.png',
+            requireInteraction: true
+        });
+    } else {
+        alert('Primero activa las notificaciones');
+    }
+}
+
+function disableNotifications() {
+    // No hay forma de desactivar programáticamente, solo guiar al usuario
+    alert('Para desactivar notificaciones:\n1. Haz clic en el candado junto a la URL\n2. Busca "Notificaciones"\n3. Cambia a "Bloquear"');
+}
+
+// 🔹 9. INICIALIZACIÓN AUTOMÁTICA
+// Esperar a que Firebase esté listo
+if (typeof auth !== 'undefined') {
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            setTimeout(() => {
+                initPushNotifications();
+                if (window.isAdmin) {
+                    setTimeout(addNotificationPanel, 5000);
+                }
+            }, 3000);
+        }
+    });
+} else {
+    // Iniciar después de 5 segundos si no hay Firebase
+    setTimeout(initPushNotifications, 5000);
+}
+
+// 🔹 10. INTEGRACIÓN CON TUS EVENTOS EXISTENTES
+// Simplemente dispara estos eventos cuando ocurra algo importante:
+
+function triggerNotificationEvent(eventName, detail) {
+    window.dispatchEvent(new CustomEvent(eventName, { detail }));
+    
+    // También mostrar notificación inmediata si hay permiso
+    if (Notification.permission === 'granted') {
+        switch(eventName) {
+            case 'newComment':
+                showNotification('💬 Nuevo comentario', 
+                    `${detail.user} comentó en tu publicación`);
+                break;
+            case 'taskGraded':
+                showNotification('📝 Tarea calificada', 
+                    `Obtuviste ${detail.grade} en ${detail.subject}`);
+                break;
+            case 'newClubContent':
+                showNotification('🏕️ Nuevo contenido', 
+                    `Material nuevo en ${detail.clubName}`);
+                break;
+        }
+    }
+}
+
+// 🔹 EJEMPLOS DE USO:
+// Cuando alguien comente en una publicación:
+// triggerNotificationEvent('newComment', { user: 'Juan Pérez', postId: '123' });
+
+// Cuando se califique una tarea:
+// triggerNotificationEvent('taskGraded', { subject: 'Matemáticas', grade: '9.5/10' });
+
+// Cuando subas nuevo contenido:
+// triggerNotificationEvent('newClubContent', { clubName: 'Conquistadores' });
+
+</script>

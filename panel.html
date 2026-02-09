@@ -8824,9 +8824,26 @@ const diffMins = Math.floor(diffMs / 60000);
                       ? actualData.contenido 
                       : `data:application/pdf;base64,${actualData.contenido}`;
                   iframe.src = base64Content;
-              } else if (actualData.url) {
-                  // Si viene por URL (viejo sistema)
-                iframe.src = actualData.url;
+                // Si viene por URL, intentamos cargar como Blob para forzar visualización en visor nativo
+                  // (evita que el navegador lo descargue automáticamente si el servidor envía headers de descarga)
+                  fetch(actualData.url)
+                      .then(res => res.blob())
+                      .then(blob => {
+                          const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+                          const blobUrl = URL.createObjectURL(pdfBlob);
+                          
+                          // Limpiar blob anterior si existe para evitar memory leaks
+                          if (iframe.dataset.lastBlob) {
+                              URL.revokeObjectURL(iframe.dataset.lastBlob);
+                          }
+                          iframe.dataset.lastBlob = blobUrl;
+                          
+                          iframe.src = blobUrl;
+                      })
+                      .catch(err => {
+                          console.warn("Fallo carga Blob (posible CORS), usando URL directa:", err);
+                          iframe.src = actualData.url;
+                      });
               } else {
                   // Si es una imagen o no hay PDF
                   iframe.srcdoc = '<div style="color:white;text-align:center;padding:50px;">No se encontró documento PDF.</div>';
@@ -8839,7 +8856,13 @@ const diffMins = Math.floor(diffMs / 60000);
       const panel = document.getElementById('panelCalificacionIndividual');
       if (panel) panel.style.display = 'none';
       const iframe = document.getElementById('iframePDFEvaluador');
-      if (iframe) iframe.src = 'about:blank';
+      if (iframe) {
+          if (iframe.dataset.lastBlob) {
+              URL.revokeObjectURL(iframe.dataset.lastBlob);
+              delete iframe.dataset.lastBlob;
+          }
+          iframe.src = 'about:blank';
+      }
       
       // Restaurar scroll
       document.body.style.overflow = '';

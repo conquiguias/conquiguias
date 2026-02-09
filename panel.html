@@ -12,80 +12,6 @@
 
   <title>Panel del Usuario</title>
   <script>
-    // 🔒 PROTECCIÓN CONTRA DEVTOOLS Y MODIFICACIÓN
-    (function() {
-        'use strict';
-        
-        // Deshabilitar clic derecho
-        document.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-            // alert('⚠️ El menú contextual está deshabilitado en esta página por seguridad.');
-            return false;
-        });
-        
-        // Función para cerrar la ventana (o redirigir)
-        function cerrarVentanaPorSeguridad() {
-            // alert('🔒 Por razones de seguridad, esta acción no está permitida.');
-            // En un SPA a veces no podemos cerrar la ventana principal, pero podemos limpiar el body
-            // document.body.innerHTML = '<h1 style="color:red;text-align:center;margin-top:20%;">Acceso Bloqueado por Seguridad</h1>';
-            // window.location.href = 'about:blank';
-        }
-
-        // Detectar teclas de acceso a DevTools
-        document.addEventListener('keydown', function(e) {
-            // F12
-            if (e.keyCode === 123) {
-                e.preventDefault();
-                cerrarVentanaPorSeguridad();
-                return false;
-            }
-            
-            // Ctrl+Shift+I (Inspector) / Ctrl+Shift+J (Console) / Ctrl+Shift+C (Element)
-            if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) {
-                e.preventDefault();
-                cerrarVentanaPorSeguridad();
-                return false;
-            }
-            
-            // Ctrl+U (Ver código fuente)
-            if (e.ctrlKey && e.keyCode === 85) {
-                e.preventDefault();
-                cerrarVentanaPorSeguridad();
-                return false;
-            }
-        });
-        
-        // Detectar apertura de DevTools mediante cambio de tamaño (Heurística)
-        // Nota: Esto puede dar falsos positivos en redimensionamiento normal, se usa con precaución.
-        // Se ha comentado para evitar molestias al usuario en el panel principal si redimensiona la ventana.
-        /*
-        let devtoolsOpen = false;
-        const threshold = 160;
-        setInterval(function() {
-            const widthThreshold = window.outerWidth - window.innerWidth > threshold;
-            const heightThreshold = window.outerHeight - window.innerHeight > threshold;
-            if (widthThreshold || heightThreshold) {
-                // Posible DevTools abierto
-            }
-        }, 1000);
-        */
-        
-        // Protección adicional: Detectar debugger
-        // setInterval(function() {
-        //     const start = new Date();
-        //     debugger; 
-        //     const end = new Date();
-        //     if (end - start > 100) {
-        //         cerrarVentanaPorSeguridad();
-        //     }
-        // }, 2000);
-        
-        // Mensaje de advertencia en consola
-        console.clear();
-        console.log('%c🔒 CONQUIGUIAS SECURE', 'color: #3b82f6; font-size: 30px; font-weight: bold;');
-        console.log('%cEsta aplicación está protegida.', 'color: white; font-size: 16px;');
-    })();
-  </script>
     // Globals initialized before modules
     window.isAdmin = false;
     window.userData = null;
@@ -4625,8 +4551,8 @@ transition: all 0.3s ease;
                             
                             // Función para cerrar la ventana con mensaje
                             function cerrarVentanaPorSeguridad() {
-                                alert('🔒 Por razones de seguridad, esta ventana se cerrará automáticamente.\\n\\nNo está permitido inspeccionar o modificar el certificado.');
-                                window.close();
+                                // alert('🔒 Por razones de seguridad, esta ventana se recargará.');
+                                window.location.reload();
                             }
                             
                             // Detectar apertura de DevTools mediante cambio de tamaño
@@ -9712,5 +9638,6 @@ const diffMins = Math.floor(diffMs / 60000);
 
   window.cargarTablaCertificacionesCorrecta = cargarTablaCertificacionesCorrecta;
   </script>
+  <script src="security.js"></script>
 </body>
 </html>

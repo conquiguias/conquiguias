@@ -4788,6 +4788,26 @@ transition: all 0.3s ease;
 `;
 
 ventanaImpresion.document.write(contenidoImpresion);
+
+// Force title for PDF saving
+const printTitle = `Examen y Certificación - ${formulario.titulo}`;
+ventanaImpresion.document.title = printTitle;
+
+// Inject script to ensure title persistence and auto-print
+const script = ventanaImpresion.document.createElement('script');
+script.textContent = `
+    document.title = "${printTitle}";
+    window.onload = function() {
+        document.title = "${printTitle}";
+        // Small delay to ensure title is registered by browser before print dialog
+        setTimeout(() => {
+            // Check if title is still set
+            if(document.title !== "${printTitle}") document.title = "${printTitle}";
+        }, 500);
+    };
+`;
+ventanaImpresion.document.head.appendChild(script);
+
 ventanaImpresion.document.close();
 
 // Restaurar botón

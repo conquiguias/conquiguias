@@ -4769,6 +4769,41 @@ transition: all 0.3s ease;
                         ">
           <i class="fas fa-print"></i> Imprimir Documento Completo
         </button>
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+        <button onclick="descargarPDFDirecto()" style="
+                            padding: 12px 25px; 
+                            background: #28a745; 
+                            color: white; 
+                            border: none; 
+                            border-radius: 5px; 
+                            cursor: pointer;
+                            font-size: 16px;
+                            margin: 0 10px;
+                        ">
+          <i class="fas fa-file-pdf"></i> Descargar PDF
+        </button>
+        
+        <script>
+        function descargarPDFDirecto() {
+            const elemento = document.body;
+            const opciones = {
+                margin: 0,
+                filename: '${formulario.titulo} - Certificado.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            
+            // Ocultar botones antes de generar
+            const botones = document.querySelector('.no-print');
+            botones.style.display = 'none';
+            
+            html2pdf().set(opciones).from(elemento).save().then(() => {
+                botones.style.display = 'block';
+            });
+        }
+        </script>
         <button onclick="window.close()" style="
                             padding: 12px 25px; 
                             background: #6c757d; 

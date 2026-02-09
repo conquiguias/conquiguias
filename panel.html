@@ -4500,20 +4500,17 @@ transition: all 0.3s ease;
                         }
                     </style>
                     
+                    ${'<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>'}
                     ${'<script>'}
                       function descargarPDFDirecto() {
                         const element = document.body;
                         const opt = {
                             margin:       0,
-                            filename:     'Examen y Certificación - ${formulario.titulo}',
+                            filename:     'Examen y Certificación - ${formulario.titulo}.pdf',
                             image:        { type: 'jpeg', quality: 0.98 },
                             html2canvas:  { scale: 2, useCORS: true },
                             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
                         };
-                        
-                        // Ocultar botones temporalmente para la captura (html2pdf a veces ignora la clase no-print si no se usa CSS media print)
-                        // Aunque html2pdf usa html2canvas que renderiza lo que se ve.
-                        // Mejor opcion: usar data-html2pdf-ignore en el contenedor de botones.
                         
                         // Mostrar estado de carga
                         const btn = document.getElementById('btnDescargarPDF');
@@ -4531,9 +4528,8 @@ transition: all 0.3s ease;
                             btn.disabled = false;
                         });
                     }
-
-                        // 🔒 PROTECCIÓN CONTRA DEVTOOLS Y MODIFICACIÓN DEL CERTIFICADO
-                        (function() {
+                    ${'</scr' + 'ipt>'}
+                    ${'<scr' + 'ipt>'}
                             'use strict';
                             
                             // Deshabilitar clic derecho

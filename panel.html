@@ -4294,7 +4294,6 @@ transition: all 0.3s ease;
                     <title>Examen y Certificación - ${formulario.titulo}</title>
                     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Great+Vibes&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
                     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-                    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
                     <style>
                         /* ESTILOS PARA EL EXAMEN */
                         .examen-section {
@@ -4500,36 +4499,9 @@ transition: all 0.3s ease;
                         }
                     </style>
                     
-                    ${'<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>'}
                     ${'<script>'}
-                      function descargarPDFDirecto() {
-                        const element = document.body;
-                        const opt = {
-                            margin:       0,
-                            filename:     'Examen y Certificación - ${formulario.titulo}.pdf',
-                            image:        { type: 'jpeg', quality: 0.98 },
-                            html2canvas:  { scale: 2, useCORS: true },
-                            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                        };
-                        
-                        // Mostrar estado de carga
-                        const btn = document.getElementById('btnDescargarPDF');
-                        const originalText = btn.innerHTML;
-                        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando PDF...';
-                        btn.disabled = true;
-
-                        html2pdf().set(opt).from(element).save().then(function(){
-                            btn.innerHTML = originalText;
-                            btn.disabled = false;
-                        }).catch(function(err){
-                            console.error(err);
-                            alert("Error al generar PDF. Intente imprimir como PDF.");
-                            btn.innerHTML = originalText;
-                            btn.disabled = false;
-                        });
-                    }
-                    ${'</scr' + 'ipt>'}
-                    ${'<scr' + 'ipt>'}
+                        // 🔒 PROTECCIÓN CONTRA DEVTOOLS Y MODIFICACIÓN DEL CERTIFICADO
+                        (function() {
                             'use strict';
                             
                             // Deshabilitar clic derecho

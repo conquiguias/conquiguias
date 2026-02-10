@@ -6,7 +6,7 @@
     // Deshabilitar clic derecho
     document.addEventListener('contextmenu', function(e) {
         e.preventDefault();
-        // alert('⚠️ El menú contextual está deshabilitado en esta página por seguridad.');
+        alert('⚠️ El menú contextual está deshabilitado en esta página por seguridad.');
         // Comentado para ser menos intrusivo, pero bloquea igual
         return false;
     });
@@ -60,7 +60,14 @@
     const threshold = 160;
     
     // Verificación por tamaño de ventana vs tamaño interno
+    // Verificación por tamaño de ventana vs tamaño interno
     setInterval(function() {
+        // Excluir dispositivos móviles y táctiles para evitar falsos positivos
+        // (El zoom y las barras del navegador en móviles cambian innerWidth/Height activando la alerta)
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
+        
+        if (isMobile) return;
+
         const widthThreshold = window.outerWidth - window.innerWidth > threshold;
         const heightThreshold = window.outerHeight - window.innerHeight > threshold;
         

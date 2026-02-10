@@ -214,14 +214,28 @@ async function handleListarFormulariosPendientes(req, res) {
     evalData.forEach((item) => {
       const tareas = item.contenido_tareas || {};
       let count = 0;
+      let calificadas = 0;
+      let total = 0;
+      
       Object.values(tareas).forEach((t) => {
-        if (t && t.estado !== "calificado") count++;
+        if (t) {
+            total++;
+            if (t.estado === "calificado") {
+                calificadas++;
+            } else {
+                // Asumimos que si no está calificado, está pendiente (entregado)
+                count++;
+            }
+        }
       });
+      
       if (count > 0) {
         pendientes.push({
           id: item.especialidad_id,
           titulo: titulos[item.especialidad_id] || item.especialidad_id,
           pendientes: count,
+          calificadas: calificadas,
+          total: total
         });
       }
     });

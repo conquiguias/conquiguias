@@ -5240,7 +5240,7 @@ const diffMins = Math.floor(diffMs / 60000);
           const uploadModal = document.getElementById('uploadModal');
           if (uploadModal) uploadModal.classList.add('hiddenX');
           await loadPosts();
-          mostrarMensaje('info', '✅ Video publicado', 'El video fue publicado exitosamente con el reproductor Clappr.');
+          mostrarMensaje('info', '✅ Video publicado', 'El video fue publicado exitosamente.');
         } catch (err) {
           console.error('❌ Error publicando URL:', err);
           mostrarMensaje('error', 'Error al publicar', err.message);

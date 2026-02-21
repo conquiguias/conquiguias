@@ -9,6 +9,8 @@
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <script src="lib/html2pdf.bundle.min.js"></script>
+  <!-- Clappr Video Player -->
+  <script src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
 
   <title>Panel del Usuario</title>
   <script>
@@ -1865,6 +1867,21 @@
       }
     }
 
+    /* Estilos para el reproductor Clappr */
+    .clappr-container {
+      width: 100%;
+      min-height: 240px;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .clappr-container .player-container {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
     /* Estilos para el botón flotante y modal de subida */
     #floatingUploadBtn {
       display: none;
@@ -2413,6 +2430,20 @@ transition: all 0.3s ease;
               <div id="uploadBox">
                 <input type="file" id="fileInput" accept="image/*,video/*"
                   style="margin-bottom: 10px; width: 100%; padding: 8px;">
+                <!-- Campo URL (solo admins) -->
+                <div id="urlVideoContainer" style="display: none; margin-bottom: 10px;">
+                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                    <div style="flex:1; height:1px; background: var(--border-color);"></div>
+                    <span style="font-size: 12px; color: var(--text-secondary); white-space: nowrap;">o cargar desde URL</span>
+                    <div style="flex:1; height:1px; background: var(--border-color);"></div>
+                  </div>
+                  <div style="position: relative;">
+                    <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-size: 14px;">🎬</span>
+                    <input type="url" id="videoUrlInput" placeholder="URL del video (mp4, m3u8, YouTube...)" 
+                      style="padding-left: 35px; width: 100%; background: var(--bg-secondary); border: 1px dashed var(--accent-color); color: var(--text-primary); border-radius: 8px; font-size: 13px;">
+                  </div>
+                  <small style="color: var(--text-secondary); font-size: 11px; margin-top: 4px; display: block;">⚡ Admin: Ingresa una URL directa de video para publicarla con el reproductor Clappr.</small>
+                </div>
                 <textarea id="postDescription" placeholder="¿Qué quieres compartir? Puedes usar:
                   • Saltos de línea (Enter)
                   • Enlaces (se detectarán automáticamente)
@@ -5152,17 +5183,71 @@ const diffMins = Math.floor(diffMs / 60000);
       }
 
       const file = fileInput.files[0];
+      const videoUrlInputEl = document.getElementById('videoUrlInput');
+      const videoUrl = (videoUrlInputEl && videoUrlInputEl.value.trim()) ? videoUrlInputEl.value.trim() : null;
       const description = postDescription.value.trim();
 
       console.log('[DEBUG] Archivo:', file);
+      console.log('[DEBUG] URL Video:', videoUrl);
       console.log('[DEBUG] Descripción:', description);
       console.log('[DEBUG] Longitud del texto:', description.length);
 
-      // 🔹 VALIDACIÓN 1: Verificar que hay archivo
-      if (!file) {
-      console.log('[WARNING] No hay archivo');
-      mostrarMensaje('info', 'Selecciona una imagen o video', 'Debes seleccionar un archivo para publicar.');
+      // 🔹 VALIDACIÓN 1: Verificar que hay archivo O url de video (admin)
+      if (!file && !videoUrl) {
+      console.log('[WARNING] No hay archivo ni URL');
+      mostrarMensaje('info', 'Selecciona una imagen, video o URL', 'Debes seleccionar un archivo o ingresar una URL de video para publicar.');
       return;
+      }
+
+      // Si hay URL de video (solo admins), procesar directamente sin subir archivo
+      if (videoUrl && !file) {
+        if (!isAdmin) {
+          mostrarMensaje('error', 'Acceso denegado', 'Solo los administradores pueden publicar por URL.');
+          return;
+        }
+        if (!description) {
+          mostrarMensaje('info', 'Agrega una descripción', 'Escribe una descripción para tu publicación.');
+          return;
+        }
+        try {
+          uploadBtn.disabled = true;
+          uploadBtn.textContent = 'Publicando...';
+          const postData = {
+            userId: currentUserId,
+            userName: `${userData.nombre || ''} ${userData.apellido || ''}`.trim() || 'Usuario',
+            userNombre: userData.nombre || '',
+            userApellido: userData.apellido || '',
+            userPhoto: userData.fotoURL || 'https://dummyimage.com/40x40/ccc/fff&text=User',
+            userEmail: userData.email || '',
+            mediaUrl: videoUrl,
+            mediaType: 'video/url',
+            description: description,
+            timestamp: new Date().toISOString(),
+            imgurData: { id: null, deletehash: null },
+            reactions: { like: [], love: [], laugh: [], wow: [], sad: [], angry: [], seven: [] },
+            comments: [],
+            status: 'approved'
+          };
+          const docRef = await addDoc(collection(db, "posts"), postData);
+          console.log('✅ Post de URL guardado, ID:', docRef.id);
+          fileInput.value = '';
+          postDescription.value = '';
+          if (videoUrlInputEl) videoUrlInputEl.value = '';
+          previewContainer.innerHTML = '';
+          uploadBtn.disabled = false;
+          uploadBtn.textContent = 'Publicar';
+          // Cerrar el modal
+          const uploadModal = document.getElementById('uploadModal');
+          if (uploadModal) uploadModal.classList.add('hiddenX');
+          await loadPosts();
+          mostrarMensaje('info', '✅ Video publicado', 'El video fue publicado exitosamente con el reproductor Clappr.');
+        } catch (err) {
+          console.error('❌ Error publicando URL:', err);
+          mostrarMensaje('error', 'Error al publicar', err.message);
+          uploadBtn.disabled = false;
+          uploadBtn.textContent = 'Publicar';
+        }
+        return;
       }
 
       // 🔹 VALIDACIÓN 2: Verificar que hay descripción
@@ -5460,6 +5545,11 @@ const diffMins = Math.floor(diffMs / 60000);
       console.log(`📊 Se encontraron ${querySnapshot.size} publicaciones aprobadas`);
       
       // Limpiar feed solo en carga inicial
+      // Destruir players Clappr anteriores
+      if (window._clapprPlayers) {
+        Object.values(window._clapprPlayers).forEach(p => { try { p.destroy(); } catch(e) {} });
+        window._clapprPlayers = {};
+      }
       feed.innerHTML = '';
       
       if (querySnapshot.empty) {
@@ -5640,8 +5730,8 @@ const diffMins = Math.floor(diffMs / 60000);
             <div class="post-content">
               ${post.mediaType.startsWith('image/')
               ? `<img src="${post.mediaUrl}" alt="Publicación" loading="lazy" onerror="this.style.display='none'">`
-              : post.mediaType.startsWith('video/')
-              ? `<video src="${post.mediaUrl}" playsinline loop controls style="max-width: 100%;"></video>`
+              : (post.mediaType === 'video/url' || post.mediaType.startsWith('video/'))
+              ? `<div id="clappr-player-${postId}" class="clappr-container" data-src="${post.mediaUrl}" style="width:100%; background:#000; min-height:240px; border-radius:8px; overflow:hidden;"></div>`
               : `<div style="padding: 20px; text-align: center; color: #666;">Tipo de archivo no compatible</div>`
               }
             </div>
@@ -5706,6 +5796,35 @@ const diffMins = Math.floor(diffMs / 60000);
             `;
 
             feed.appendChild(postElement);
+
+            // Inicializar Clappr para este post si tiene video
+            if (post.mediaType === 'video/url' || (post.mediaType && post.mediaType.startsWith('video/'))) {
+              const pid = `clappr-player-${postId}`;
+              if (!window._clapprPlayers) window._clapprPlayers = {};
+              if (!window._clapprPlayers[pid]) {
+                setTimeout(() => {
+                  const container = document.getElementById(pid);
+                  if (container && typeof Clappr !== 'undefined') {
+                    try {
+                      const player = new Clappr.Player({
+                        source: post.mediaUrl,
+                        parentId: `#${pid}`,
+                        width: '100%',
+                        height: '100%',
+                        autoPlay: false,
+                        mute: false,
+                        loop: false,
+                        playback: { playInline: true }
+                      });
+                      window._clapprPlayers[pid] = player;
+                      console.log('[Clappr] Player creado para post:', postId);
+                    } catch(e) {
+                      console.warn('[Clappr] Error al crear player:', e);
+                    }
+                  }
+                }, 300);
+              }
+            }
             }
 
             // 🔹 Formatear descripción del post - mantener espacios y detectar enlaces
@@ -6572,6 +6691,11 @@ const diffMins = Math.floor(diffMs / 60000);
                   floatingBtn.addEventListener('click', () => {
                       uploadModal.classList.remove('hidden');
                       uploadModal.style.display = 'flex'; // Forzar display flex para centrar
+                      // Mostrar campo URL solo si es admin
+                      const urlVideoContainer = document.getElementById('urlVideoContainer');
+                      if (urlVideoContainer) {
+                        urlVideoContainer.style.display = window.isAdmin ? 'block' : 'none';
+                      }
                   });
 
                   // Cerrar con botón X
@@ -6743,29 +6867,56 @@ const diffMins = Math.floor(diffMs / 60000);
                               }
                               }
 
-                              // 🔹 INICIALIZAR EL SISTEMA DESPUÉS DE CARGAR POSTS
+                              // 🔹 REGISTRO GLOBAL DE INSTANCIAS CLAPPR
+                              window._clapprPlayers = window._clapprPlayers || {};
+
+                              // 🔹 INICIALIZAR REPRODUCTORES CLAPPR EN LOS POSTS
                               function inicializarSistemaVideos() {
-                              // Pequeño delay para asegurar que los videos estén en el DOM
-                              setTimeout(() => {
-                              configurarEventosVideos();
-                              console.log('✅ Sistema de videos inicializado');
-                              }, 500);
+                                setTimeout(() => {
+                                  // Buscar todos los contenedores clappr sin player inicializado
+                                  document.querySelectorAll('.clappr-container').forEach(container => {
+                                    const pid = container.id; // e.g. clappr-player-POSTID
+                                    if (!pid) return;
+                                    // Evitar doble inicialización
+                                    if (window._clapprPlayers[pid]) return;
+                                    // Obtener la URL del post desde el atributo data
+                                    const mediaUrl = container.dataset.src || container.getAttribute('data-src');
+                                    if (!mediaUrl) return;
+                                    try {
+                                      const player = new Clappr.Player({
+                                        source: mediaUrl,
+                                        parentId: `#${pid}`,
+                                        width: '100%',
+                                        height: '100%',
+                                        autoPlay: false,
+                                        mute: false,
+                                        loop: false,
+                                        playback: {
+                                          playInline: true
+                                        }
+                                      });
+                                      window._clapprPlayers[pid] = player;
+                                      console.log('[Clappr] Player inicializado:', pid);
+                                    } catch(e) {
+                                      console.warn('[Clappr] Error al inicializar:', pid, e);
+                                    }
+                                  });
+                                  console.log('✅ Sistema de videos Clappr inicializado');
+                                }, 600);
                               }
 
-                              // 🔹 PAUSAR TODOS LOS VIDEOS (útil para cambiar de sección)
+                              // 🔹 PAUSAR TODOS LOS REPRODUCTORES (Clappr + nativos)
                               function pausarTodosLosVideos() {
-                              if (videoActualmenteReproduciendose) {
-                              videoActualmenteReproduciendose.pause();
-                              }
-
-                              document.querySelectorAll('video').forEach(video => {
-                              if (!video.paused) {
-                              video.pause();
-                              }
-                              });
-
-                              videoActualmenteReproduciendose = null;
-                              console.log('⏸️ Todos los videos pausados');
+                                // Pausar instancias Clappr
+                                Object.values(window._clapprPlayers || {}).forEach(player => {
+                                  try { player.pause(); } catch(e) {}
+                                });
+                                // Pausar videos nativos (si quedan)
+                                document.querySelectorAll('video').forEach(video => {
+                                  if (!video.paused) video.pause();
+                                });
+                                videoActualmenteReproduciendose = null;
+                                console.log('⏸️ Todos los reproductores pausados');
                               }
 
 

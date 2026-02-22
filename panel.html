@@ -1876,53 +1876,6 @@
       position: relative;
     }
 
-    /* ── Clappr Fullscreen Fix ──────────────────────────────────────────────
-       Clappr llama requestFullscreen() en su .player-container interno.
-       El browser aplica fullscreen a ese elemento, pero los estilos inline
-       (height: 350px) que Clappr pone siguen activos. Los anulamos aquí. */
-
-    /* Chrome / Edge */
-    .player-container:fullscreen,
-    .player-container:fullscreen *,
-    .clappr-container:fullscreen,
-    .clappr-container:fullscreen * {
-      width: 100vw !important;
-      height: 100vh !important;
-      max-width: none !important;
-      max-height: none !important;
-    }
-
-    /* Safari */
-    .player-container:-webkit-full-screen,
-    .player-container:-webkit-full-screen *,
-    .clappr-container:-webkit-full-screen,
-    .clappr-container:-webkit-full-screen * {
-      width: 100vw !important;
-      height: 100vh !important;
-      max-width: none !important;
-      max-height: none !important;
-    }
-
-    /* Firefox */
-    .player-container:-moz-full-screen,
-    .player-container:-moz-full-screen *,
-    .clappr-container:-moz-full-screen,
-    .clappr-container:-moz-full-screen * {
-      width: 100vw !important;
-      height: 100vh !important;
-      max-width: none !important;
-      max-height: none !important;
-    }
-
-    /* Video dentro del player en fullscreen */
-    .player-container:fullscreen video,
-    .player-container:-webkit-full-screen video,
-    .player-container:-moz-full-screen video {
-      width: 100% !important;
-      height: 100% !important;
-      object-fit: contain;
-    }
-
     /* Estilos para el botón flotante y modal de subida */
     #floatingUploadBtn {
       display: none;
@@ -5931,34 +5884,6 @@ const diffMins = Math.floor(diffMs / 60000);
                 });
               }, 300);
             }
-            }
-
-            // Listener global de fullscreen para redimensionar Clappr (se registra solo una vez)
-            if (!window._clapprFsListenerAdded) {
-              window._clapprFsListenerAdded = true;
-              const onFsChange = () => {
-                const fsEl = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement;
-                if (fsEl) {
-                  // Fullscreen activo: redimensionar todos los players Clappr al tamaño de la pantalla
-                  Object.values(window._clapprPlayers || {}).forEach(p => {
-                    if (p && typeof p.resize === 'function') {
-                      p.resize(window.screen.width, window.screen.height);
-                    }
-                  });
-                } else {
-                  // Saliendo de fullscreen: restaurar tamaño original
-                  Object.entries(window._clapprPlayers || {}).forEach(([pid, p]) => {
-                    if (p && typeof p.resize === 'function') {
-                      const container = document.getElementById(pid);
-                      const w = container ? container.offsetWidth : 600;
-                      p.resize(w, 350);
-                    }
-                  });
-                }
-              };
-              document.addEventListener('fullscreenchange', onFsChange);
-              document.addEventListener('webkitfullscreenchange', onFsChange);
-              document.addEventListener('mozfullscreenchange', onFsChange);
             }
 
             // 🔹 Formatear descripción del post - mantener espacios y detectar enlaces

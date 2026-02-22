@@ -2370,6 +2370,7 @@
     <h2 style="font-family: 'Great Vibes', cursive; font-size: 28px; text-transform: none; color: white; margin-bottom: 10px; margin-top: 20px;">Conquiguias World</h2>
     <button id="menuInicio" class="active"><i class="fas fa-home" style="margin-right: 8px;"></i> Inicio</button>
     <button id="menuClubes"><i class="fas fa-users" style="margin-right: 8px;"></i> Clubes</button>
+    <button id="menuGrabaciones"><i class="fas fa-video" style="margin-right: 8px;"></i> Grabaciones de Especialidades</button>
     <button id="menuTareasExamenes"><i class="fas fa-tasks" style="margin-right: 8px;"></i> Tareas y Exámenes</button>
     <button id="menuCertificaciones"><i class="fas fa-certificate" style="margin-right: 8px;"></i> Certificaciones</button>
     <button id="menuEspecialidades"><i class="fas fa-folder-open" style="margin-right: 8px;"></i> Especialidades Storage</button>
@@ -2416,6 +2417,21 @@ transition: all 0.3s ease;
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <h3>Crear Publicación</h3>
             <button id="closeUploadModal" class="close-modal-btn">×</button>
+          </div>
+
+          <!-- Sección Grabaciones de Especialidades -->
+          <div id="grabacionesSection" class="hidden">
+            <div style="padding: 20px 0 10px 0;">
+              <h2 style="color: var(--text-primary); font-size: 20px; display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                <i class="fas fa-video" style="color: var(--accent-color);"></i> Grabaciones de Especialidades
+              </h2>
+              <p style="color: var(--text-secondary); font-size: 13px; margin: 0 0 16px 0;">Videos publicados con la etiqueta <strong>#especialidades</strong></p>
+            </div>
+            <div id="grabacionesFeed"></div>
+            <div id="grabacionesEmpty" class="hidden" style="text-align:center; padding: 40px 20px; color: var(--text-secondary);">
+              <i class="fas fa-video-slash" style="font-size: 40px; margin-bottom: 12px; opacity: 0.4;"></i>
+              <p>No hay grabaciones publicadas con <strong>#especialidades</strong> aún.</p>
+            </div>
           </div>
 
           <!-- Sección Social (Feed) - AHORA DENTRO DEL MODAL -->
@@ -3192,6 +3208,8 @@ transition: all 0.3s ease;
       const menuPerfil = document.getElementById("menuPerfil");
       const menuEspecialidades = document.getElementById("menuEspecialidades");
       const menuCertificaciones = document.getElementById("menuCertificaciones");
+      const menuGrabaciones = document.getElementById("menuGrabaciones");
+      const grabacionesSection = document.getElementById("grabacionesSection");
       const menuAdmin = document.getElementById("menuAdmin");
       const logoutBtn = document.getElementById("logoutBtn");
       const editForm = document.getElementById("editForm");
@@ -3363,6 +3381,14 @@ transition: all 0.3s ease;
 
       menuInicio.addEventListener("click", () => mostrarSeccion(inicioSection, menuInicio));
       menuPerfil.addEventListener("click", () => mostrarSeccion(perfilSection, menuPerfil));
+
+      // 🔹 Grabaciones de Especialidades
+      if (menuGrabaciones) {
+        menuGrabaciones.addEventListener("click", () => {
+          mostrarSeccion(grabacionesSection, menuGrabaciones);
+          loadGrabaciones();
+        });
+      }
       menuCertificaciones.addEventListener("click", () => {
         mostrarSeccion(certificacionesSection, menuCertificaciones);
         cargarCertificaciones();
@@ -3603,10 +3629,10 @@ transition: all 0.3s ease;
         const menuInstructor = document.getElementById("menuInstructor");
         
         // Incluir tareasExamenesSection y menuTareasExamenes en las listas para limpiar
-        [inicioSection, perfilSection, especialidadesSection, clubesSection, certificacionesSection, adminSection, instructorSection, tareasExamenesSection].forEach(sec => {
+        [inicioSection, perfilSection, especialidadesSection, clubesSection, certificacionesSection, adminSection, instructorSection, tareasExamenesSection, grabacionesSection].forEach(sec => {
           if (sec) sec.classList.add("hidden");
         });
-        [menuInicio, menuPerfil, menuEspecialidades, menuClubes, menuCertificaciones, menuAdmin, menuInstructor, menuTareasExamenes].forEach(btn => {
+        [menuInicio, menuPerfil, menuEspecialidades, menuClubes, menuCertificaciones, menuAdmin, menuInstructor, menuTareasExamenes, menuGrabaciones].forEach(btn => {
           if (btn) btn.classList.remove("active");
         });
 
@@ -5515,6 +5541,70 @@ const diffMins = Math.floor(diffMs / 60000);
     } catch (error) {
       console.error('❌ Error cargando más publicaciones:', error);
       throw error;
+    }
+  }
+
+  // 🔹 GRABACIONES DE ESPECIALIDADES
+  let grabacionesCargadas = false;
+  async function loadGrabaciones() {
+    if (grabacionesCargadas) return;
+    grabacionesCargadas = true;
+    const grabFeed = document.getElementById('grabacionesFeed');
+    const grabEmpty = document.getElementById('grabacionesEmpty');
+    grabFeed.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:30px;">Cargando grabaciones...</p>';
+    grabEmpty.classList.add('hidden');
+    try {
+      const q = query(collection(db, 'posts'), where('status', '==', 'approved'), orderBy('timestamp', 'desc'));
+      const snapshot = await getDocs(q);
+      const grabaciones = [];
+      snapshot.forEach(docSnap => {
+        const post = { ...docSnap.data(), id: docSnap.id };
+        const desc = (post.description || '').toLowerCase();
+        const esVideo = post.mediaType && (post.mediaType === 'video/url' || post.mediaType.startsWith('video/'));
+        if (esVideo && desc.includes('#especialidades')) grabaciones.push({ post, id: docSnap.id });
+      });
+      grabFeed.innerHTML = '';
+      if (grabaciones.length === 0) { grabEmpty.classList.remove('hidden'); return; }
+      grabaciones.forEach(({ post, id: postId }) => {
+        const timestamp = post.timestamp?.toDate ? post.timestamp.toDate() : new Date(post.timestamp || Date.now());
+        const timeAgo = formatTimeAgo(timestamp);
+        const userPhotoUrl = post.userPhotoURL || 'https://dummyimage.com/45x45/ccc/fff';
+        const userName = post.userName || 'Usuario';
+        const pid = `grab-clappr-${postId}`;
+        const postElement = document.createElement('div');
+        postElement.className = 'post-card';
+        postElement.innerHTML = `
+          <div class="post-header">
+            <img src="${userPhotoUrl}" alt="Foto" class="post-avatar" onerror="this.src='https://dummyimage.com/45x45/ccc/fff'">
+            <div class="post-user-info">
+              <strong class="post-username">${userName}</strong>
+              <span class="post-time">${timeAgo}</span>
+            </div>
+          </div>
+          <div class="post-content">
+            <div id="${pid}" class="clappr-container"></div>
+          </div>
+          <div class="post-description">${formatPostDescription(post.description, postId) || ''}</div>
+        `;
+        grabFeed.appendChild(postElement);
+        if (!window._clapprPlayers) window._clapprPlayers = {};
+        window._clapprPlayers[pid] = 'pending';
+        setTimeout(() => {
+          const container = document.getElementById(pid);
+          if (!container) return;
+          const w = container.offsetWidth || 400;
+          const player = new Clappr.Player({ source: post.mediaUrl, parentId: '#' + pid, width: w, height: 350 });
+          window._clapprPlayers[pid] = player;
+          player.on(Clappr.Events.PLAYER_PLAY, () => {
+            Object.entries(window._clapprPlayers).forEach(([oid, op]) => {
+              if (oid !== pid && op && typeof op.pause === 'function') op.pause();
+            });
+          });
+        }, 350);
+      });
+    } catch (err) {
+      console.error('Error cargando grabaciones:', err);
+      grabFeed.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:30px;">Error al cargar grabaciones.</p>';
     }
   }
 

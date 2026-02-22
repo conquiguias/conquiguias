@@ -2419,20 +2419,6 @@ transition: all 0.3s ease;
             <button id="closeUploadModal" class="close-modal-btn">×</button>
           </div>
 
-          <!-- Sección Grabaciones de Especialidades -->
-          <div id="grabacionesSection" class="hidden">
-            <div style="padding: 20px 0 10px 0;">
-              <h2 style="color: var(--text-primary); font-size: 20px; display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-                <i class="fas fa-video" style="color: var(--accent-color);"></i> Grabaciones de Especialidades
-              </h2>
-              <p style="color: var(--text-secondary); font-size: 13px; margin: 0 0 16px 0;">Videos publicados con la etiqueta <strong>#especialidades</strong></p>
-            </div>
-            <div id="grabacionesFeed"></div>
-            <div id="grabacionesEmpty" class="hidden" style="text-align:center; padding: 40px 20px; color: var(--text-secondary);">
-              <i class="fas fa-video-slash" style="font-size: 40px; margin-bottom: 12px; opacity: 0.4;"></i>
-              <p>No hay grabaciones publicadas con <strong>#especialidades</strong> aún.</p>
-            </div>
-          </div>
 
           <!-- Sección Social (Feed) - AHORA DENTRO DEL MODAL -->
           <div id="socialSection" style="margin-bottom: 0;">
@@ -2540,6 +2526,22 @@ transition: all 0.3s ease;
       <!-- Panel de contenido de clubes -->
       <div id="clubesPanel">
         <!-- Aquí se irán agregando las carpetas y secciones dinámicamente -->
+      </div>
+    </div>
+
+    <!-- Grabaciones de Especialidades -->
+    <div id="grabacionesSection" class="card hidden">
+      <div style="padding: 10px 0 16px 0; display: flex; align-items: center; gap: 10px;">
+        <i class="fas fa-video" style="color: var(--accent-color); font-size: 20px;"></i>
+        <div>
+          <h2 style="margin:0; font-size: 18px;">Grabaciones de Especialidades</h2>
+          <p style="margin:4px 0 0 0; font-size: 13px; color: var(--text-secondary);">Videos publicados con la etiqueta <strong style="color:var(--success-color);">#especialidades</strong></p>
+        </div>
+      </div>
+      <div id="grabacionesFeed" style="display:flex; flex-direction:column; gap:20px;"></div>
+      <div id="grabacionesEmpty" class="hidden" style="text-align:center; padding:40px 20px; color:var(--text-secondary);">
+        <i class="fas fa-video-slash" style="font-size:40px; margin-bottom:12px; opacity:0.4; display:block;"></i>
+        <p>No hay grabaciones publicadas con <strong>#especialidades</strong> aún.</p>
       </div>
     </div>
 
@@ -5552,11 +5554,8 @@ const diffMins = Math.floor(diffMs / 60000);
     grabFeed.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:30px;">Cargando grabaciones...</p>';
     grabEmpty?.classList.add('hidden');
     try {
-      console.log('[Grabaciones] 🔍 Consultando Firestore...');
       const q = query(collection(db, 'posts'), where('status', '==', 'approved'), orderBy('timestamp', 'desc'));
       const snapshot = await getDocs(q);
-      console.log(`[Grabaciones] 📦 Total posts aprobados: ${snapshot.size}`);
-
       grabFeed.innerHTML = '';
       let count = 0;
 
@@ -5566,13 +5565,11 @@ const diffMins = Math.floor(diffMs / 60000);
         const esVideo = post.mediaType && (post.mediaType === 'video/url' || post.mediaType.startsWith('video/'));
         const tieneEtiqueta = desc.includes('#especialidades');
 
-        console.log(`[Grabaciones] Post ${docSnap.id} | mediaType: "${post.mediaType}" | esVideo: ${esVideo} | tieneEtiqueta: ${tieneEtiqueta} | desc: "${desc.substring(0,60)}"`);
-
         if (esVideo && tieneEtiqueta) {
           try {
-            displayPost(post, docSnap.id, grabFeed);
+            // Prefijo 'grab-' para evitar IDs duplicados con el feed principal
+            displayPost(post, 'grab-' + docSnap.id, grabFeed);
             count++;
-            console.log(`[Grabaciones] ✅ Post renderizado: ${docSnap.id}`);
           } catch(renderErr) {
             console.error(`[Grabaciones] ❌ Error renderizando post ${docSnap.id}:`, renderErr);
           }
@@ -5580,16 +5577,12 @@ const diffMins = Math.floor(diffMs / 60000);
       });
 
       console.log(`[Grabaciones] 🎬 Total grabaciones mostradas: ${count}`);
-      if (count === 0) {
-        console.warn('[Grabaciones] ⚠️ Ningún post cumplió el filtro (video + #especialidades)');
-        grabEmpty?.classList.remove('hidden');
-      }
+      if (count === 0) grabEmpty?.classList.remove('hidden');
     } catch (err) {
-      console.error('[Grabaciones] ❌ Error general:', err);
+      console.error('[Grabaciones] ❌ Error:', err);
       grabFeed.innerHTML = `<p style="text-align:center;color:var(--text-secondary);padding:30px;">Error: ${err.message}</p>`;
     }
-  }
-
+  };
 
   // 🔹 CARGA INICIAL DE PUBLICACIONES (Modificada para scroll infinito)
   async function loadPosts() {

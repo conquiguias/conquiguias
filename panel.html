@@ -1876,6 +1876,53 @@
       position: relative;
     }
 
+    /* ── Clappr Fullscreen Fix ──────────────────────────────────────────────
+       Clappr llama requestFullscreen() en su .player-container interno.
+       El browser aplica fullscreen a ese elemento, pero los estilos inline
+       (height: 350px) que Clappr pone siguen activos. Los anulamos aquí. */
+
+    /* Chrome / Edge */
+    .player-container:fullscreen,
+    .player-container:fullscreen *,
+    .clappr-container:fullscreen,
+    .clappr-container:fullscreen * {
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: none !important;
+      max-height: none !important;
+    }
+
+    /* Safari */
+    .player-container:-webkit-full-screen,
+    .player-container:-webkit-full-screen *,
+    .clappr-container:-webkit-full-screen,
+    .clappr-container:-webkit-full-screen * {
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: none !important;
+      max-height: none !important;
+    }
+
+    /* Firefox */
+    .player-container:-moz-full-screen,
+    .player-container:-moz-full-screen *,
+    .clappr-container:-moz-full-screen,
+    .clappr-container:-moz-full-screen * {
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: none !important;
+      max-height: none !important;
+    }
+
+    /* Video dentro del player en fullscreen */
+    .player-container:fullscreen video,
+    .player-container:-webkit-full-screen video,
+    .player-container:-moz-full-screen video {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: contain;
+    }
+
     /* Estilos para el botón flotante y modal de subida */
     #floatingUploadBtn {
       display: none;

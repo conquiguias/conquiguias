@@ -5799,58 +5799,19 @@ const diffMins = Math.floor(diffMs / 60000);
 
             feed.appendChild(postElement);
 
-            // Solo inicializar Clappr para posts de URL de video
+            // Inicializar Clappr para posts de URL de video
             if (post.mediaType === 'video/url') {
-              const pid = `clappr-player-${postId}`;
               if (!window._clapprPlayers) window._clapprPlayers = {};
-              if (!window._clapprPlayers[pid]) {
-                // Esperar a que el DOM calcule dimensiones reales
-                function iniciarClappr(intentos) {
-                  if (intentos <= 0) {
-                    const c = document.getElementById(pid);
-                    if (c) c.innerHTML = `<video src="${post.mediaUrl}" controls playsinline style="width:100%;border-radius:8px;"></video>`;
-                    return;
-                  }
-                  requestAnimationFrame(() => {
-                    const container = document.getElementById(pid);
-                    if (!container) return;
-                    const w = container.offsetWidth;
-                    if (w === 0) {
-                      // El layout aún no está listo, reintentar
-                      setTimeout(() => iniciarClappr(intentos - 1), 150);
-                      return;
-                    }
-                    const h = Math.round(w * 9 / 16);
-                    container.style.height = h + 'px';
-
-                    if (typeof Clappr === 'undefined') {
-                      container.innerHTML = `<video src="${post.mediaUrl}" controls playsinline style="width:100%;border-radius:8px;"></video>`;
-                      return;
-                    }
-                    try {
-                      // Limpiar el contenedor antes de montar
-                      container.innerHTML = '';
-                      const player = new Clappr.Player({
-                        source: post.mediaUrl,
-                        parentId: '#' + pid,
-                        width: w,
-                        height: h,
-                        autoPlay: false,
-                        mute: false,
-                        loop: false,
-                        playback: { playInline: true }
-                      });
-                      window._clapprPlayers[pid] = player;
-                      console.log('[Clappr] ✅ Player listo:', pid, w + 'x' + h);
-                    } catch (e) {
-                      console.warn('[Clappr] Error, fallback nativo:', e.message);
-                      const c2 = document.getElementById(pid);
-                      if (c2) c2.innerHTML = `<video src="${post.mediaUrl}" controls playsinline style="width:100%;border-radius:8px;"></video>`;
-                    }
-                  });
-                }
-                setTimeout(() => iniciarClappr(5), 200);
-              }
+              const pid = `clappr-player-${postId}`;
+              setTimeout(() => {
+                const player = new Clappr.Player({
+                  source: post.mediaUrl,
+                  parentId: '#' + pid,
+                  width: '100%',
+                  height: 360
+                });
+                window._clapprPlayers[pid] = player;
+              }, 300);
             }
             }
 
@@ -6905,32 +6866,14 @@ const diffMins = Math.floor(diffMs / 60000);
                                   if (!pid || (window._clapprPlayers && window._clapprPlayers[pid])) return;
                                   const mediaUrl = container.dataset.src;
                                   if (!mediaUrl) return;
-
-                                  // Esperar dimensiones reales con requestAnimationFrame
-                                  requestAnimationFrame(() => {
-                                    const w = container.offsetWidth || container.closest('.post-card')?.offsetWidth || 360;
-                                    const h = Math.round(w * 9/16);
-                                    container.style.height = h + 'px';
-                                    container.innerHTML = '';
-                                    try {
-                                      const player = new Clappr.Player({
-                                        source: mediaUrl,
-                                        parentId: '#' + pid,
-                                        width: w,
-                                        height: h,
-                                        autoPlay: false,
-                                        mute: false,
-                                        loop: false,
-                                        playback: { playInline: true }
-                                      });
-                                      if (!window._clapprPlayers) window._clapprPlayers = {};
-                                      window._clapprPlayers[pid] = player;
-                                      console.log('[Clappr] ✅ (backup) Player:', pid);
-                                    } catch(e) {
-                                      const c = document.getElementById(pid);
-                                      if (c) c.innerHTML = `<video src="${mediaUrl}" controls playsinline style="width:100%;border-radius:8px;"></video>`;
-                                    }
+                                  const player = new Clappr.Player({
+                                    source: mediaUrl,
+                                    parentId: '#' + pid,
+                                    width: '100%',
+                                    height: 360
                                   });
+                                  if (!window._clapprPlayers) window._clapprPlayers = {};
+                                  window._clapprPlayers[pid] = player;
                                 });
                               }
 

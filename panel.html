@@ -5553,73 +5553,18 @@ const diffMins = Math.floor(diffMs / 60000);
     try {
       const q = query(collection(db, 'posts'), where('status', '==', 'approved'), orderBy('timestamp', 'desc'));
       const snapshot = await getDocs(q);
-      const grabaciones = [];
+      grabFeed.innerHTML = '';
+      let count = 0;
       snapshot.forEach(docSnap => {
         const post = { ...docSnap.data(), id: docSnap.id };
         const desc = (post.description || '').toLowerCase();
         const esVideo = post.mediaType && (post.mediaType === 'video/url' || post.mediaType.startsWith('video/'));
-        if (esVideo && desc.includes('#especialidades')) grabaciones.push({ post, id: docSnap.id });
+        if (esVideo && desc.includes('#especialidades')) {
+          displayPost(post, docSnap.id, grabFeed);
+          count++;
+        }
       });
-      console.log('[Grabaciones] Total encontradas:', grabaciones.length);
-      grabFeed.innerHTML = '';
-      if (grabaciones.length === 0) { grabEmpty.classList.remove('hidden'); return; }
-      grabaciones.forEach(({ post, id: postId }) => {
-        const timestamp = post.timestamp?.toDate ? post.timestamp.toDate() : new Date(post.timestamp || Date.now());
-        const now = new Date();
-        const diffMs = now - timestamp;
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMs / 3600000);
-        const diffDays = Math.floor(diffMs / 86400000);
-        const diffWeeks = Math.floor(diffDays / 7);
-        const diffMonths = Math.floor(diffDays / 30);
-        let timeAgo = diffMins < 1 ? 'Ahora mismo'
-          : diffMins < 60 ? `Hace ${diffMins} minuto${diffMins > 1 ? 's' : ''}`
-          : diffHours < 24 ? `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`
-          : diffDays < 7 ? `Hace ${diffDays} día${diffDays > 1 ? 's' : ''}`
-          : diffWeeks < 4 ? `Hace ${diffWeeks} semana${diffWeeks > 1 ? 's' : ''}`
-          : diffMonths < 12 ? `Hace ${diffMonths} mes${diffMonths > 1 ? 'es' : ''}`
-          : timestamp.toLocaleDateString('es-ES');
-
-        const userPhotoUrl = post.userPhotoURL || 'https://dummyimage.com/45x45/ccc/fff';
-        const userName = post.userName || 'Usuario';
-        const pid = `grab-clappr-${postId}`;
-        // Descripción simple con saltos de línea y hashtags coloreados
-        const descHtml = (post.description || '')
-          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-          .replace(/\n/g, '<br>')
-          .replace(/#([a-zA-Z0-9_]+)/g, '<span style="color:var(--success-color);font-weight:bold;">#$1</span>');
-
-        const postElement = document.createElement('div');
-        postElement.className = 'post-card';
-        postElement.innerHTML = `
-          <div class="post-header">
-            <img src="${userPhotoUrl}" alt="Foto" class="post-avatar" onerror="this.src='https://dummyimage.com/45x45/ccc/fff'">
-            <div class="post-user-info">
-              <strong class="post-username">${userName}</strong>
-              <span class="post-time">${timeAgo}</span>
-            </div>
-          </div>
-          <div class="post-content">
-            <div id="${pid}" class="clappr-container"></div>
-          </div>
-          <div class="post-description">${descHtml}</div>
-        `;
-        grabFeed.appendChild(postElement);
-        if (!window._clapprPlayers) window._clapprPlayers = {};
-        window._clapprPlayers[pid] = 'pending';
-        setTimeout(() => {
-          const container = document.getElementById(pid);
-          if (!container) return;
-          const w = container.offsetWidth || 400;
-          const player = new Clappr.Player({ source: post.mediaUrl, parentId: '#' + pid, width: w, height: 350 });
-          window._clapprPlayers[pid] = player;
-          player.on(Clappr.Events.PLAYER_PLAY, () => {
-            Object.entries(window._clapprPlayers).forEach(([oid, op]) => {
-              if (oid !== pid && op && typeof op.pause === 'function') op.pause();
-            });
-          });
-        }, 350);
-      });
+      if (count === 0) grabEmpty.classList.remove('hidden');
     } catch (err) {
       console.error('Error cargando grabaciones:', err);
       grabFeed.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:30px;">Error al cargar grabaciones.</p>';
@@ -5772,7 +5717,8 @@ const diffMins = Math.floor(diffMs / 60000);
 
             // 🔹 Mostrar publicación en el feed - VERSIÓN MEJORADA
             // 🔹 Mostrar publicación en el feed - VERSIÓN CON REACCIONES EXCLUSIVAS
-            function displayPost(post, postId) {
+            function displayPost(post, postId, targetFeed) {
+            const feedDestino = targetFeed || feed;
             const { currentUserId, isAdmin } = window;
             const postElement = document.createElement('div');
             postElement.className = 'post-card';
@@ -5908,7 +5854,7 @@ const diffMins = Math.floor(diffMs / 60000);
             ` : ''}
             `;
 
-            feed.appendChild(postElement);
+            feedDestino.appendChild(postElement);
 
             // Inicializar Clappr para cualquier publicación con video
             if (post.mediaType && (post.mediaType === 'video/url' || post.mediaType.startsWith('video/'))) {

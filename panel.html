@@ -3386,7 +3386,7 @@ transition: all 0.3s ease;
       if (menuGrabaciones) {
         menuGrabaciones.addEventListener("click", () => {
           mostrarSeccion(grabacionesSection, menuGrabaciones);
-          loadGrabaciones();
+          window.loadGrabaciones();
         });
       }
       menuCertificaciones.addEventListener("click", () => {
@@ -5545,31 +5545,51 @@ const diffMins = Math.floor(diffMs / 60000);
   }
 
   // 🔹 GRABACIONES DE ESPECIALIDADES
-  async function loadGrabaciones() {
+  window.loadGrabaciones = async function loadGrabaciones() {
     const grabFeed = document.getElementById('grabacionesFeed');
     const grabEmpty = document.getElementById('grabacionesEmpty');
+    if (!grabFeed) { console.error('[Grabaciones] ❌ grabacionesFeed no encontrado en el DOM'); return; }
     grabFeed.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:30px;">Cargando grabaciones...</p>';
-    grabEmpty.classList.add('hidden');
+    grabEmpty?.classList.add('hidden');
     try {
+      console.log('[Grabaciones] 🔍 Consultando Firestore...');
       const q = query(collection(db, 'posts'), where('status', '==', 'approved'), orderBy('timestamp', 'desc'));
       const snapshot = await getDocs(q);
+      console.log(`[Grabaciones] 📦 Total posts aprobados: ${snapshot.size}`);
+
       grabFeed.innerHTML = '';
       let count = 0;
+
       snapshot.forEach(docSnap => {
         const post = { ...docSnap.data(), id: docSnap.id };
         const desc = (post.description || '').toLowerCase();
         const esVideo = post.mediaType && (post.mediaType === 'video/url' || post.mediaType.startsWith('video/'));
-        if (esVideo && desc.includes('#especialidades')) {
-          displayPost(post, docSnap.id, grabFeed);
-          count++;
+        const tieneEtiqueta = desc.includes('#especialidades');
+
+        console.log(`[Grabaciones] Post ${docSnap.id} | mediaType: "${post.mediaType}" | esVideo: ${esVideo} | tieneEtiqueta: ${tieneEtiqueta} | desc: "${desc.substring(0,60)}"`);
+
+        if (esVideo && tieneEtiqueta) {
+          try {
+            displayPost(post, docSnap.id, grabFeed);
+            count++;
+            console.log(`[Grabaciones] ✅ Post renderizado: ${docSnap.id}`);
+          } catch(renderErr) {
+            console.error(`[Grabaciones] ❌ Error renderizando post ${docSnap.id}:`, renderErr);
+          }
         }
       });
-      if (count === 0) grabEmpty.classList.remove('hidden');
+
+      console.log(`[Grabaciones] 🎬 Total grabaciones mostradas: ${count}`);
+      if (count === 0) {
+        console.warn('[Grabaciones] ⚠️ Ningún post cumplió el filtro (video + #especialidades)');
+        grabEmpty?.classList.remove('hidden');
+      }
     } catch (err) {
-      console.error('Error cargando grabaciones:', err);
-      grabFeed.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:30px;">Error al cargar grabaciones.</p>';
+      console.error('[Grabaciones] ❌ Error general:', err);
+      grabFeed.innerHTML = `<p style="text-align:center;color:var(--text-secondary);padding:30px;">Error: ${err.message}</p>`;
     }
   }
+
 
   // 🔹 CARGA INICIAL DE PUBLICACIONES (Modificada para scroll infinito)
   async function loadPosts() {

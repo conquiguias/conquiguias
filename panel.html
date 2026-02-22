@@ -5604,12 +5604,7 @@ const diffMins = Math.floor(diffMs / 60000);
       const querySnapshot = await getDocs(q);
       console.log(`📊 Se encontraron ${querySnapshot.size} publicaciones aprobadas`);
       
-      // Limpiar feed solo en carga inicial
-      // Destruir players Clappr anteriores
-      if (window._clapprPlayers) {
-        Object.values(window._clapprPlayers).forEach(p => { try { p.destroy(); } catch(e) {} });
-        window._clapprPlayers = {};
-      }
+      // Limpiar feed en carga inicial
       feed.innerHTML = '';
       
       if (querySnapshot.empty) {
@@ -5858,11 +5853,9 @@ const diffMins = Math.floor(diffMs / 60000);
 
             feedDestino.appendChild(postElement);
 
-            // Inicializar Clappr para cualquier publicación con video
+            // Inicializar Clappr para publicaciones con video
             if (post.mediaType && (post.mediaType === 'video/url' || post.mediaType.startsWith('video/'))) {
-              if (!window._clapprPlayers) window._clapprPlayers = {};
               const pid = `clappr-player-${postId}`;
-              window._clapprPlayers[pid] = 'pending'; // Bloquear doble init
               setTimeout(() => {
                 const container = document.getElementById(pid);
                 if (!container) return;
@@ -5872,18 +5865,9 @@ const diffMins = Math.floor(diffMs / 60000);
                   width: "100%",
                   height: 350
                 });
-                window._clapprPlayers[pid] = player;
-
-                // Pausar todos los demás players cuando este empiece a reproducir
-                player.on(Clappr.Events.PLAYER_PLAY, () => {
-                  Object.entries(window._clapprPlayers).forEach(([otherId, otherPlayer]) => {
-                    if (otherId !== pid && otherPlayer && typeof otherPlayer.pause === 'function') {
-                      otherPlayer.pause();
-                    }
-                  });
-                });
               }, 300);
             }
+
             }
 
             // 🔹 Formatear descripción del post - mantener espacios y detectar enlaces
@@ -6926,44 +6910,29 @@ const diffMins = Math.floor(diffMs / 60000);
                               }
                               }
 
-                              // 🔹 REGISTRO GLOBAL DE INSTANCIAS CLAPPR
-                              window._clapprPlayers = window._clapprPlayers || {};
-
-                              // 🔹 INICIALIZAR REPRODUCTORES CLAPPR (backup para scroll infinito)
+                              // 🔹 INICIALIZAR REPRODUCTORES CLAPPR
                               function inicializarSistemaVideos() {
                                 if (typeof Clappr === 'undefined') return;
                                 document.querySelectorAll('.clappr-container').forEach(container => {
                                   const pid = container.id;
-                                  // Saltar si ya fue inicializado o está pendiente
-                                  if (!pid || (window._clapprPlayers && window._clapprPlayers[pid])) return;
                                   const mediaUrl = container.dataset.src;
-                                  if (!mediaUrl) return;
-                                  window._clapprPlayers[pid] = 'pending';
-                                  //const w = container.parentElement ? container.parentElement.offsetWidth : container.offsetWidth;
+                                  if (!pid || !mediaUrl) return;
                                   const player = new Clappr.Player({
                                     source: mediaUrl,
                                     parentId: '#' + pid,
                                     width: '100%',
                                     height: 350
                                   });
-                                  if (!window._clapprPlayers) window._clapprPlayers = {};
-                                  window._clapprPlayers[pid] = player;
                                 });
                               }
 
-                              // 🔹 PAUSAR TODOS LOS REPRODUCTORES (Clappr + nativos)
+                              // 🔹 PAUSAR TODOS LOS REPRODUCTORES
                               function pausarTodosLosVideos() {
-                                // Pausar instancias Clappr
-                                Object.values(window._clapprPlayers || {}).forEach(player => {
-                                  try { player.pause(); } catch(e) {}
-                                });
-                                // Pausar videos nativos (si quedan)
                                 document.querySelectorAll('video').forEach(video => {
                                   if (!video.paused) video.pause();
                                 });
-                                videoActualmenteReproduciendose = null;
-                                console.log('⏸️ Todos los reproductores pausados');
                               }
+
 
 
 

@@ -5933,6 +5933,34 @@ const diffMins = Math.floor(diffMs / 60000);
             }
             }
 
+            // Listener global de fullscreen para redimensionar Clappr (se registra solo una vez)
+            if (!window._clapprFsListenerAdded) {
+              window._clapprFsListenerAdded = true;
+              const onFsChange = () => {
+                const fsEl = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement;
+                if (fsEl) {
+                  // Fullscreen activo: redimensionar todos los players Clappr al tamaño de la pantalla
+                  Object.values(window._clapprPlayers || {}).forEach(p => {
+                    if (p && typeof p.resize === 'function') {
+                      p.resize(window.screen.width, window.screen.height);
+                    }
+                  });
+                } else {
+                  // Saliendo de fullscreen: restaurar tamaño original
+                  Object.entries(window._clapprPlayers || {}).forEach(([pid, p]) => {
+                    if (p && typeof p.resize === 'function') {
+                      const container = document.getElementById(pid);
+                      const w = container ? container.offsetWidth : 600;
+                      p.resize(w, 350);
+                    }
+                  });
+                }
+              };
+              document.addEventListener('fullscreenchange', onFsChange);
+              document.addEventListener('webkitfullscreenchange', onFsChange);
+              document.addEventListener('mozfullscreenchange', onFsChange);
+            }
+
             // 🔹 Formatear descripción del post - mantener espacios y detectar enlaces
             // 🔹 Formatear descripción del post con "Leer más" para textos largos
             function formatPostDescription(text, postId) {

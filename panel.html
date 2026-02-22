@@ -1870,7 +1870,7 @@
     /* Estilos para el reproductor Clappr */
     .clappr-container {
       width: 100%;
-      min-height: 240px;
+      display: block;
       background: #000;
       border-radius: 8px;
       overflow: hidden;
@@ -5730,8 +5730,10 @@ const diffMins = Math.floor(diffMs / 60000);
             <div class="post-content">
               ${post.mediaType.startsWith('image/')
               ? `<img src="${post.mediaUrl}" alt="Publicación" loading="lazy" onerror="this.style.display='none'">`
-              : (post.mediaType === 'video/url' || post.mediaType.startsWith('video/'))
-              ? `<div id="clappr-player-${postId}" class="clappr-container" data-src="${post.mediaUrl}" style="width:100%; background:#000; min-height:240px; border-radius:8px; overflow:hidden;"></div>`
+              : post.mediaType === 'video/url'
+              ? `<div id="clappr-player-${postId}" class="clappr-container" data-src="${post.mediaUrl}"></div>`
+              : post.mediaType && post.mediaType.startsWith('video/')
+              ? `<video src="${post.mediaUrl}" playsinline loop controls style="max-width:100%; border-radius:8px;"></video>`
               : `<div style="padding: 20px; text-align: center; color: #666;">Tipo de archivo no compatible</div>`
               }
             </div>
@@ -5797,32 +5799,44 @@ const diffMins = Math.floor(diffMs / 60000);
 
             feed.appendChild(postElement);
 
-            // Inicializar Clappr para este post si tiene video
-            if (post.mediaType === 'video/url' || (post.mediaType && post.mediaType.startsWith('video/'))) {
+            // Solo inicializar Clappr para posts de URL de video
+            if (post.mediaType === 'video/url') {
               const pid = `clappr-player-${postId}`;
               if (!window._clapprPlayers) window._clapprPlayers = {};
               if (!window._clapprPlayers[pid]) {
                 setTimeout(() => {
                   const container = document.getElementById(pid);
-                  if (container && typeof Clappr !== 'undefined') {
+                  if (!container) return;
+
+                  // Dimensiones 16:9 exactas
+                  const w = container.offsetWidth || (container.closest('.post-card') ? container.closest('.post-card').offsetWidth : 360);
+                  const h = Math.round(w * 9/16);
+                  container.style.width = w + 'px';
+                  container.style.height = h + 'px';
+
+                  if (typeof Clappr !== 'undefined') {
                     try {
+                      container.innerHTML = '';
                       const player = new Clappr.Player({
                         source: post.mediaUrl,
-                        parentId: `#${pid}`,
-                        width: '100%',
-                        height: '100%',
+                        el: container,
+                        width: w,
+                        height: h,
                         autoPlay: false,
                         mute: false,
                         loop: false,
                         playback: { playInline: true }
                       });
                       window._clapprPlayers[pid] = player;
-                      console.log('[Clappr] Player creado para post:', postId);
+                      console.log('[Clappr] ✅ Player URL creado:', postId);
                     } catch(e) {
-                      console.warn('[Clappr] Error al crear player:', e);
+                      console.warn('[Clappr] Fallback vid nativo:', e);
+                      container.outerHTML = `<video src="${post.mediaUrl}" controls playsinline style="max-width:100%;border-radius:8px;"></video>`;
                     }
+                  } else {
+                    container.outerHTML = `<video src="${post.mediaUrl}" controls playsinline style="max-width:100%;border-radius:8px;"></video>`;
                   }
-                }, 300);
+                }, 400);
               }
             }
             }
@@ -6870,39 +6884,40 @@ const diffMins = Math.floor(diffMs / 60000);
                               // 🔹 REGISTRO GLOBAL DE INSTANCIAS CLAPPR
                               window._clapprPlayers = window._clapprPlayers || {};
 
-                              // 🔹 INICIALIZAR REPRODUCTORES CLAPPR EN LOS POSTS
+                              // 🔹 INICIALIZAR REPRODUCTORES CLAPPR (backup para scroll infinito)
                               function inicializarSistemaVideos() {
                                 setTimeout(() => {
-                                  // Buscar todos los contenedores clappr sin player inicializado
+                                  if (typeof Clappr === 'undefined') return;
                                   document.querySelectorAll('.clappr-container').forEach(container => {
-                                    const pid = container.id; // e.g. clappr-player-POSTID
-                                    if (!pid) return;
-                                    // Evitar doble inicialización
-                                    if (window._clapprPlayers[pid]) return;
-                                    // Obtener la URL del post desde el atributo data
-                                    const mediaUrl = container.dataset.src || container.getAttribute('data-src');
+                                    const pid = container.id;
+                                    if (!pid || (window._clapprPlayers && window._clapprPlayers[pid])) return;
+                                    const mediaUrl = container.dataset.src;
                                     if (!mediaUrl) return;
+
+                                    const w = container.closest('.post-card')?.offsetWidth || container.offsetWidth || 360;
+                                    const h = Math.round(w * 9/16);
+                                    container.style.width = w + 'px';
+                                    container.style.height = h + 'px';
+                                    container.innerHTML = '';
                                     try {
                                       const player = new Clappr.Player({
                                         source: mediaUrl,
-                                        parentId: `#${pid}`,
-                                        width: '100%',
-                                        height: '100%',
+                                        el: container,
+                                        width: w,
+                                        height: h,
                                         autoPlay: false,
                                         mute: false,
                                         loop: false,
-                                        playback: {
-                                          playInline: true
-                                        }
+                                        playback: { playInline: true }
                                       });
+                                      if (!window._clapprPlayers) window._clapprPlayers = {};
                                       window._clapprPlayers[pid] = player;
-                                      console.log('[Clappr] Player inicializado:', pid);
+                                      console.log('[Clappr] ✅ (backup) Player:', pid);
                                     } catch(e) {
-                                      console.warn('[Clappr] Error al inicializar:', pid, e);
+                                      container.outerHTML = `<video src="${mediaUrl}" controls playsinline style="max-width:100%;border-radius:8px;"></video>`;
                                     }
                                   });
-                                  console.log('✅ Sistema de videos Clappr inicializado');
-                                }, 600);
+                                }, 700);
                               }
 
                               // 🔹 PAUSAR TODOS LOS REPRODUCTORES (Clappr + nativos)

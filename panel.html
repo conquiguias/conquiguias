@@ -5567,7 +5567,7 @@ const diffMins = Math.floor(diffMs / 60000);
       if (grabaciones.length === 0) { grabEmpty.classList.remove('hidden'); return; }
       grabaciones.forEach(({ post, id: postId }) => {
         const timestamp = post.timestamp?.toDate ? post.timestamp.toDate() : new Date(post.timestamp || Date.now());
-        const timeAgo = formatTimeAgo(timestamp);
+        const timeAgo = getTimeAgo(timestamp);
         const userPhotoUrl = post.userPhotoURL || 'https://dummyimage.com/45x45/ccc/fff';
         const userName = post.userName || 'Usuario';
         const pid = `grab-clappr-${postId}`;

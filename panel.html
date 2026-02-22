@@ -9,8 +9,8 @@
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <script src="lib/html2pdf.bundle.min.js"></script>
-  <!-- Clappr Video Player -->
-  <script src="https://cdn.jsdelivr.net/npm/clappr@latest/dist/clappr.min.js"></script>
+  <!-- Clappr Video Player - versión estable -->
+  <script src="https://cdn.jsdelivr.net/npm/clappr@0.4.24/dist/clappr.min.js"></script>
 
   <title>Panel del Usuario</title>
   <script>
@@ -5804,22 +5804,35 @@ const diffMins = Math.floor(diffMs / 60000);
               const pid = `clappr-player-${postId}`;
               if (!window._clapprPlayers) window._clapprPlayers = {};
               if (!window._clapprPlayers[pid]) {
-                setTimeout(() => {
-                  const container = document.getElementById(pid);
-                  if (!container) return;
+                // Esperar a que el DOM calcule dimensiones reales
+                function iniciarClappr(intentos) {
+                  if (intentos <= 0) {
+                    const c = document.getElementById(pid);
+                    if (c) c.innerHTML = `<video src="${post.mediaUrl}" controls playsinline style="width:100%;border-radius:8px;"></video>`;
+                    return;
+                  }
+                  requestAnimationFrame(() => {
+                    const container = document.getElementById(pid);
+                    if (!container) return;
+                    const w = container.offsetWidth;
+                    if (w === 0) {
+                      // El layout aún no está listo, reintentar
+                      setTimeout(() => iniciarClappr(intentos - 1), 150);
+                      return;
+                    }
+                    const h = Math.round(w * 9 / 16);
+                    container.style.height = h + 'px';
 
-                  // Dimensiones 16:9 exactas
-                  const w = container.offsetWidth || (container.closest('.post-card') ? container.closest('.post-card').offsetWidth : 360);
-                  const h = Math.round(w * 9/16);
-                  container.style.width = w + 'px';
-                  container.style.height = h + 'px';
-
-                  if (typeof Clappr !== 'undefined') {
+                    if (typeof Clappr === 'undefined') {
+                      container.innerHTML = `<video src="${post.mediaUrl}" controls playsinline style="width:100%;border-radius:8px;"></video>`;
+                      return;
+                    }
                     try {
+                      // Limpiar el contenedor antes de montar
                       container.innerHTML = '';
                       const player = new Clappr.Player({
                         source: post.mediaUrl,
-                        el: container,
+                        parentId: '#' + pid,
                         width: w,
                         height: h,
                         autoPlay: false,
@@ -5828,15 +5841,15 @@ const diffMins = Math.floor(diffMs / 60000);
                         playback: { playInline: true }
                       });
                       window._clapprPlayers[pid] = player;
-                      console.log('[Clappr] ✅ Player URL creado:', postId);
-                    } catch(e) {
-                      console.warn('[Clappr] Fallback vid nativo:', e);
-                      container.outerHTML = `<video src="${post.mediaUrl}" controls playsinline style="max-width:100%;border-radius:8px;"></video>`;
+                      console.log('[Clappr] ✅ Player listo:', pid, w + 'x' + h);
+                    } catch (e) {
+                      console.warn('[Clappr] Error, fallback nativo:', e.message);
+                      const c2 = document.getElementById(pid);
+                      if (c2) c2.innerHTML = `<video src="${post.mediaUrl}" controls playsinline style="width:100%;border-radius:8px;"></video>`;
                     }
-                  } else {
-                    container.outerHTML = `<video src="${post.mediaUrl}" controls playsinline style="max-width:100%;border-radius:8px;"></video>`;
-                  }
-                }, 400);
+                  });
+                }
+                setTimeout(() => iniciarClappr(5), 200);
               }
             }
             }
@@ -6886,23 +6899,23 @@ const diffMins = Math.floor(diffMs / 60000);
 
                               // 🔹 INICIALIZAR REPRODUCTORES CLAPPR (backup para scroll infinito)
                               function inicializarSistemaVideos() {
-                                setTimeout(() => {
-                                  if (typeof Clappr === 'undefined') return;
-                                  document.querySelectorAll('.clappr-container').forEach(container => {
-                                    const pid = container.id;
-                                    if (!pid || (window._clapprPlayers && window._clapprPlayers[pid])) return;
-                                    const mediaUrl = container.dataset.src;
-                                    if (!mediaUrl) return;
+                                if (typeof Clappr === 'undefined') return;
+                                document.querySelectorAll('.clappr-container').forEach(container => {
+                                  const pid = container.id;
+                                  if (!pid || (window._clapprPlayers && window._clapprPlayers[pid])) return;
+                                  const mediaUrl = container.dataset.src;
+                                  if (!mediaUrl) return;
 
-                                    const w = container.closest('.post-card')?.offsetWidth || container.offsetWidth || 360;
+                                  // Esperar dimensiones reales con requestAnimationFrame
+                                  requestAnimationFrame(() => {
+                                    const w = container.offsetWidth || container.closest('.post-card')?.offsetWidth || 360;
                                     const h = Math.round(w * 9/16);
-                                    container.style.width = w + 'px';
                                     container.style.height = h + 'px';
                                     container.innerHTML = '';
                                     try {
                                       const player = new Clappr.Player({
                                         source: mediaUrl,
-                                        el: container,
+                                        parentId: '#' + pid,
                                         width: w,
                                         height: h,
                                         autoPlay: false,
@@ -6914,10 +6927,11 @@ const diffMins = Math.floor(diffMs / 60000);
                                       window._clapprPlayers[pid] = player;
                                       console.log('[Clappr] ✅ (backup) Player:', pid);
                                     } catch(e) {
-                                      container.outerHTML = `<video src="${mediaUrl}" controls playsinline style="max-width:100%;border-radius:8px;"></video>`;
+                                      const c = document.getElementById(pid);
+                                      if (c) c.innerHTML = `<video src="${mediaUrl}" controls playsinline style="width:100%;border-radius:8px;"></video>`;
                                     }
                                   });
-                                }, 700);
+                                });
                               }
 
                               // 🔹 PAUSAR TODOS LOS REPRODUCTORES (Clappr + nativos)

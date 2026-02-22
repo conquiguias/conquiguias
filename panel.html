@@ -773,10 +773,17 @@
       width: 100%;
     }
 
-    .post-content img,
-    .post-content video {
+    .post-content img {
       width: 100%;
       max-height: 350px;
+      object-fit: contain;
+      background: #000;
+      border-radius: 0px;
+      overflow: hidden;
+    }
+
+    .post-content video {
+      width: 100%;
       object-fit: contain;
       background: #000;
       border-radius: 0px;

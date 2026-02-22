@@ -771,12 +771,13 @@
 
     .post-content {
       width: 100%;
+      min-height: 200px;
     }
 
     .post-content img,
     .post-content video {
       width: 100%;
-      max-height: 400px;
+      max-height: 350px;
       object-fit: contain;
       background: #000;
       border-radius: 0px;
@@ -5810,7 +5811,7 @@ const diffMins = Math.floor(diffMs / 60000);
                   source: post.mediaUrl,
                   parentId: '#' + pid,
                   width: w || '100%',
-                  height: Math.round((w || 200) * 9 / 16)
+                  height: Math.round((w || 400) * 9 / 16)
                 });
                 window._clapprPlayers[pid] = player;
 

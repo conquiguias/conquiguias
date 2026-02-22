@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <script src="lib/html2pdf.bundle.min.js"></script>
   <!-- Clappr Video Player - versión estable -->
-  <script src="https://proyectoja.github.io/clappr.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@clappr/player@latest/dist/clappr.plainhtml5.min.js"></script>
 
   <title>Panel del Usuario</title>
   <script>
@@ -1876,54 +1876,6 @@
       border-radius: 8px;
       overflow: hidden;
       position: relative;
-    }
-
-    /* Pantalla completa: sin restricciones de tamaño */
-    .clappr-container:fullscreen,
-    .clappr-container:-webkit-full-screen,
-    .clappr-container:-moz-full-screen {
-      max-height: none !important;
-      height: 100vh !important;
-      width: 100vw !important;
-      overflow: visible !important;
-      border-radius: 0 !important;
-    }
-
-    /* El player interno también debe liberarse */
-    .clappr-container > div {
-      max-height: 350px;
-    }
-
-    .clappr-container:fullscreen > div,
-    .clappr-container:-webkit-full-screen > div,
-    .clappr-container:-moz-full-screen > div {
-      max-height: none !important;
-      height: 100% !important;
-      width: 100% !important;
-    }
-
-    /* Clappr pone en fullscreen su div interno — liberar también esos elementos */
-    .clappr-container *:fullscreen,
-    .clappr-container *:-webkit-full-screen,
-    .clappr-container *:-moz-full-screen {
-      max-height: none !important;
-      max-width: none !important;
-      width: 100vw !important;
-      height: 100vh !important;
-      overflow: visible !important;
-    }
-
-    /* También el propio contenedor si detecta el estado fullscreen en el árbol */
-    :fullscreen .clappr-container,
-    :-webkit-full-screen .clappr-container,
-    :-moz-full-screen .clappr-container {
-      max-height: none !important;
-      overflow: visible !important;
-    }
-
-    .clappr-container .player-container {
-      width: 100% !important;
-      height: 100% !important;
     }
 
     /* Estilos para el botón flotante y modal de subida */
@@ -5916,11 +5868,10 @@ const diffMins = Math.floor(diffMs / 60000);
               setTimeout(() => {
                 const container = document.getElementById(pid);
                 if (!container) return;
-                const w = container.offsetWidth || 400;
                 const player = new Clappr.Player({
                   source: post.mediaUrl,
                   parentId: '#' + pid,
-                  width: w,
+                  width: "100%",
                   height: 350
                 });
                 window._clapprPlayers[pid] = player;

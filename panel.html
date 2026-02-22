@@ -1871,10 +1871,15 @@
     /* Estilos para el reproductor Clappr */
     .clappr-container {
       width: 100%;
+      max-height: 350px;
       display: block;
       border-radius: 8px;
       overflow: hidden;
       position: relative;
+    }
+
+    .clappr-container > div {
+      max-height: 350px !important;
     }
 
     .clappr-container .player-container {
@@ -5805,12 +5810,12 @@ const diffMins = Math.floor(diffMs / 60000);
               setTimeout(() => {
                 const container = document.getElementById(pid);
                 if (!container) return;
-                const w = container.parentElement ? container.parentElement.offsetWidth : container.offsetWidth;
+                const w = container.offsetWidth || 400;
                 const player = new Clappr.Player({
                   source: post.mediaUrl,
                   parentId: '#' + pid,
-                  width: w || '100%',
-                  height: Math.round((w || 400) * 9 / 16)
+                  width: w,
+                  height: 350
                 });
                 window._clapprPlayers[pid] = player;
 

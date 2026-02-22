@@ -1878,8 +1878,47 @@
       position: relative;
     }
 
+    /* Pantalla completa: sin restricciones de tamaño */
+    .clappr-container:fullscreen,
+    .clappr-container:-webkit-full-screen,
+    .clappr-container:-moz-full-screen {
+      max-height: none !important;
+      height: 100vh !important;
+      width: 100vw !important;
+      overflow: visible !important;
+      border-radius: 0 !important;
+    }
+
+    /* El player interno también debe liberarse */
     .clappr-container > div {
-      max-height: 350px !important;
+      max-height: 350px;
+    }
+
+    .clappr-container:fullscreen > div,
+    .clappr-container:-webkit-full-screen > div,
+    .clappr-container:-moz-full-screen > div {
+      max-height: none !important;
+      height: 100% !important;
+      width: 100% !important;
+    }
+
+    /* Clappr pone en fullscreen su div interno — liberar también esos elementos */
+    .clappr-container *:fullscreen,
+    .clappr-container *:-webkit-full-screen,
+    .clappr-container *:-moz-full-screen {
+      max-height: none !important;
+      max-width: none !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      overflow: visible !important;
+    }
+
+    /* También el propio contenedor si detecta el estado fullscreen en el árbol */
+    :fullscreen .clappr-container,
+    :-webkit-full-screen .clappr-container,
+    :-moz-full-screen .clappr-container {
+      max-height: none !important;
+      overflow: visible !important;
     }
 
     .clappr-container .player-container {

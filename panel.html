@@ -5728,12 +5728,10 @@ const diffMins = Math.floor(diffMs / 60000);
             </div>
 
             <div class="post-content">
-              ${post.mediaType.startsWith('image/')
+              ${post.mediaType && post.mediaType.startsWith('image/')
               ? `<img src="${post.mediaUrl}" alt="Publicación" loading="lazy" onerror="this.style.display='none'">`
-              : post.mediaType === 'video/url'
+              : post.mediaType && (post.mediaType === 'video/url' || post.mediaType.startsWith('video/'))
               ? `<div id="clappr-player-${postId}" class="clappr-container" data-src="${post.mediaUrl}"></div>`
-              : post.mediaType && post.mediaType.startsWith('video/')
-              ? `<video src="${post.mediaUrl}" playsinline loop controls style="max-width:100%; border-radius:8px;"></video>`
               : `<div style="padding: 20px; text-align: center; color: #666;">Tipo de archivo no compatible</div>`
               }
             </div>
@@ -5799,8 +5797,8 @@ const diffMins = Math.floor(diffMs / 60000);
 
             feed.appendChild(postElement);
 
-            // Inicializar Clappr para posts de URL de video
-            if (post.mediaType === 'video/url') {
+            // Inicializar Clappr para cualquier publicación con video
+            if (post.mediaType && (post.mediaType === 'video/url' || post.mediaType.startsWith('video/'))) {
               if (!window._clapprPlayers) window._clapprPlayers = {};
               const pid = `clappr-player-${postId}`;
               setTimeout(() => {

@@ -3157,8 +3157,120 @@ transition: all 0.3s ease;
                 </button>
             </div>
         </div>
-        <div id="visorPDFContainer" style="flex:1; background:#0f172a; position:relative; width: 100%; height: 100%;">
-            <iframe id="iframePDFEvaluador" style="width:100%; height:100%; border:none;"></iframe>
+        <div id="visorPDFContainer" style="flex:1; display:flex; flex-direction:row; background:#0f172a; position:relative; width:100%; height:calc(100vh - 60px); overflow:hidden;">
+            <!-- Visor PDF -->
+            <div style="flex:1; height:100%;">
+                <iframe id="iframePDFEvaluador" style="width:100%; height:100%; border:none;"></iframe>
+            </div>
+
+            <!-- Panel Rúbrica -->
+            <div style="width:420px; min-width:320px; height:100%; overflow-y:auto; background:#0f172a; border-left:1px solid #334155; padding:16px; box-sizing:border-box;">
+                <h4 style="color:#94a3b8; font-size:13px; text-transform:uppercase; letter-spacing:1px; margin:0 0 12px 0;">
+                    <i class="fas fa-clipboard-list" style="margin-right:6px; color:var(--accent-color);"></i> Rúbrica de Calificación
+                </h4>
+
+                <!-- Tabla rúbrica -->
+                <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:12px; color:#cbd5e1;">
+                    <thead>
+                        <tr style="background:#1e293b;">
+                            <th style="padding:8px 10px; text-align:left; border:1px solid #334155; color:#94a3b8; width:22%;">Criterio</th>
+                            <th style="padding:8px 10px; text-align:left; border:1px solid #334155; color:#10b981;">Excelente</th>
+                            <th style="padding:8px 10px; text-align:left; border:1px solid #334155; color:#3b82f6;">Bueno</th>
+                            <th style="padding:8px 10px; text-align:left; border:1px solid #334155; color:#f59e0b;">Básico</th>
+                            <th style="padding:8px 10px; text-align:left; border:1px solid #334155; color:#ef4444;">Deficiente</th>
+                            <th style="padding:8px 10px; text-align:center; border:1px solid #334155; color:#94a3b8; white-space:nowrap;">Pts.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Criterio 1 -->
+                        <tr style="background:#0f172a;">
+                            <td style="padding:8px 10px; border:1px solid #334155; font-weight:600; color:#e2e8f0; vertical-align:top;">
+                                1. Cumplimiento del formato solicitado<br><small style="color:#94a3b8; font-weight:400;">(Portada y Diseño)</small>
+                            </td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Cumple exactamente el formato solicitado: portada correcta, tipografía, tamaños, alineación, línea azul, datos completos y orden visual profesional.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Presenta casi todo el formato correcto, con pequeños errores de alineación o estilo.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Presenta formato incompleto o varios elementos mal configurados.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">No respeta el formato solicitado o falta la portada requerida.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top;">10 pts</td>
+                        </tr>
+                        <!-- Criterio 2 -->
+                        <tr style="background:#111827;">
+                            <td style="padding:8px 10px; border:1px solid #334155; font-weight:600; color:#e2e8f0; vertical-align:top;">
+                                2. Originalidad del contenido<br><small style="color:#94a3b8; font-weight:400;">(Plagio e IA)</small>
+                            </td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Contenido auténtico, redacción propia, coherente con el nivel del estudiante. Sin coincidencias relevantes en detector de plagio ni uso indebido de IA.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Coincidencias mínimas o uso leve de apoyo externo con adecuada adaptación personal.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Evidencia moderada de copia, parafraseo pobre o dependencia excesiva de IA.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Copia directa, trabajo generado por IA sin edición o plagio evidente.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top;">10 pts</td>
+                        </tr>
+                        <!-- Criterio 3 -->
+                        <tr style="background:#0f172a;">
+                            <td style="padding:8px 10px; border:1px solid #334155; font-weight:600; color:#e2e8f0; vertical-align:top;">
+                                3. Desarrollo del contenido de la especialidad
+                            </td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Responde completamente todos los requisitos de la especialidad con profundidad, claridad y comprensión.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Responde la mayoría de los requisitos correctamente.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Respuestas incompletas o superficiales.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">No cumple con los requisitos de la especialidad.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top;">40 pts</td>
+                        </tr>
+                        <!-- Criterio 4 -->
+                        <tr style="background:#111827;">
+                            <td style="padding:8px 10px; border:1px solid #334155; font-weight:600; color:#e2e8f0; vertical-align:top;">
+                                4. Claridad y organización del trabajo
+                            </td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Información ordenada, coherente, bien estructurada y fácil de leer.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Buena organización con pequeños desordenes.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Organización confusa en algunas partes.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Desorden general, difícil de entender.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top;">10 pts</td>
+                        </tr>
+                        <!-- Criterio 5 -->
+                        <tr style="background:#0f172a;">
+                            <td style="padding:8px 10px; border:1px solid #334155; font-weight:600; color:#e2e8f0; vertical-align:top;">
+                                5. Redacción y ortografía
+                            </td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Excelente ortografía, redacción clara y formal.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Algunos errores menores.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Varios errores que afectan la lectura.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Muchos errores que dificultan la comprensión.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top;">10 pts</td>
+                        </tr>
+                        <!-- Criterio 6 -->
+                        <tr style="background:#111827;">
+                            <td style="padding:8px 10px; border:1px solid #334155; font-weight:600; color:#e2e8f0; vertical-align:top;">
+                                6. Evidencias de aprendizaje / aplicación práctica
+                            </td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Incluye evidencias claras: fotos, ejercicios, ejemplos, actividades realizadas o demostraciones.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Incluye evidencias pero limitadas o poco detalladas.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Evidencias mínimas o poco claras.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">No incluye evidencias.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top;">10 pts</td>
+                        </tr>
+                        <!-- Criterio 7 -->
+                        <tr style="background:#0f172a;">
+                            <td style="padding:8px 10px; border:1px solid #334155; font-weight:600; color:#e2e8f0; vertical-align:top;">
+                                7. Reflexión personal del aprendizaje
+                            </td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Explica claramente lo que aprendió, cómo lo aplicó y qué significado tuvo la experiencia para su crecimiento personal.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Presenta reflexión clara pero poco profunda o breve.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Reflexión limitada o muy general.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">No incluye reflexión o es irrelevante.</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top;">10 pts</td>
+                        </tr>
+                        <!-- Total -->
+                        <tr style="background:#1e293b;">
+                            <td colspan="5" style="padding:10px; border:1px solid #334155; text-align:right; font-weight:700; color:#e2e8f0; font-size:13px;">
+                                Total máximo:
+                            </td>
+                            <td style="padding:10px; border:1px solid #334155; text-align:center; font-weight:700; color:#10b981; font-size:14px;">100 pts</td>
+                        </tr>
+                    </tbody>
+                </table>
+                </div>
+            </div>
         </div>
     </div>
 

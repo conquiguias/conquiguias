@@ -2684,10 +2684,63 @@ transition: all 0.3s ease;
 
     <!-- Modal Subir Tarea -->
     <div id="modalSubirTarea" class="preview-modal" style="z-index: 5000;">
-        <div class="preview-content" style="width: 90%; max-width: 500px; text-align: center;">
+        <div class="preview-content" style="width: 90%; max-width: 560px; text-align: center;">
             <h3>Subir Tarea (PDF)</h3>
             <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 15px;">Solo formato PDF. Máx 5MB.</p>
-            
+
+            <!-- 🔹 TABS: Formato e Instrucciones -->
+            <div style="display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 15px; gap: 4px;">
+                <button id="tabBtnFormato" onclick="switchTabTarea('formato')" style="
+                    flex: 1; padding: 9px 14px; border: none; border-radius: 6px 6px 0 0;
+                    background: var(--accent-color); color: white;
+                    font-weight: 600; font-size: 13px; cursor: pointer;
+                    display: flex; align-items: center; justify-content: center; gap: 6px;
+                    transition: all 0.2s ease;
+                ">
+                    <i class="fas fa-file-image"></i> Formato
+                </button>
+                <button id="tabBtnInstrucciones" onclick="switchTabTarea('instrucciones')" style="
+                    flex: 1; padding: 9px 14px; border: none; border-radius: 6px 6px 0 0;
+                    background: transparent; color: var(--text-secondary);
+                    border: 1px solid var(--border-color); border-bottom: none;
+                    font-weight: 600; font-size: 13px; cursor: pointer;
+                    display: flex; align-items: center; justify-content: center; gap: 6px;
+                    transition: all 0.2s ease;
+                ">
+                    <i class="fas fa-info-circle"></i> Instrucciones
+                </button>
+            </div>
+
+            <!-- TAB: Formato -->
+            <div id="tabPanelFormato" style="margin-bottom: 15px; text-align: center;">
+                <div id="formatoImagenContainer" style="
+                    background: var(--bg-secondary);
+                    border-radius: 8px;
+                    border: 1px solid var(--border-color);
+                    padding: 12px;
+                    min-height: 120px;
+                    display: flex; align-items: center; justify-content: center;
+                ">
+                    <p style="color: var(--text-secondary); font-style: italic; font-size: 13px;">
+                        <i class="fas fa-image" style="font-size: 30px; display: block; margin-bottom: 8px; opacity: 0.4;"></i>
+                        No hay imagen de formato disponible.
+                    </p>
+                </div>
+            </div>
+
+            <!-- TAB: Instrucciones -->
+            <div id="tabPanelInstrucciones" style="margin-bottom: 15px; display: none; text-align: left;">
+                <div id="modalDetalleTareaContainer" style="
+                    background: var(--bg-secondary);
+                    border-left: 4px solid var(--accent-color);
+                    padding: 15px;
+                    border-radius: 0 4px 4px 0;
+                    font-size: 14px;
+                    line-height: 1.6;
+                    color: var(--text-primary);
+                ">Sin instrucciones adicionales.</div>
+            </div>
+
             <input type="file" id="inputTareaPDF" accept="application/pdf" style="margin-bottom: 20px;">
             
             <!-- Contenedor Visor Previo -->
@@ -8405,7 +8458,8 @@ const diffMins = Math.floor(diffMs / 60000);
                       } else {
                           estadoTareaHtml = '<span style="color:#EF4444; font-weight:500;">Pendiente</span>';
                           const detalleSafe = (item.configTarea.detalle || '').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
-                          botonTarea = `<button onclick="abrirModalSubirTarea('${item.id}', '${item.titulo}', '${detalleSafe}')" style="background:var(--accent-color); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; transition:transform 0.2s;">Entregar</button>`;
+                          const imagenSafe = (item.imagenEspecialidad || '').replace(/'/g, "\\'");
+                          botonTarea = `<button onclick="abrirModalSubirTarea('${item.id}', '${item.titulo}', '${detalleSafe}', '${imagenSafe}')" style="background:var(--accent-color); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; transition:transform 0.2s;">Entregar</button>`;
                       }
                   }
               }
@@ -8476,34 +8530,63 @@ const diffMins = Math.floor(diffMs / 60000);
   }
 
   // --- SUBIDA DE TAREA ---
-  window.abrirModalSubirTarea = function(id, titulo, detalle) {
+  // Función para alternar entre pestañas del modal de tarea
+  window.switchTabTarea = function(tab) {
+      const panelFormato = document.getElementById('tabPanelFormato');
+      const panelInstrucciones = document.getElementById('tabPanelInstrucciones');
+      const btnFormato = document.getElementById('tabBtnFormato');
+      const btnInstrucciones = document.getElementById('tabBtnInstrucciones');
+
+      if (tab === 'formato') {
+          panelFormato.style.display = 'block';
+          panelInstrucciones.style.display = 'none';
+          btnFormato.style.background = 'var(--accent-color)';
+          btnFormato.style.color = 'white';
+          btnFormato.style.border = 'none';
+          btnInstrucciones.style.background = 'transparent';
+          btnInstrucciones.style.color = 'var(--text-secondary)';
+          btnInstrucciones.style.border = '1px solid var(--border-color)';
+          btnInstrucciones.style.borderBottom = 'none';
+      } else {
+          panelFormato.style.display = 'none';
+          panelInstrucciones.style.display = 'block';
+          btnInstrucciones.style.background = 'var(--accent-color)';
+          btnInstrucciones.style.color = 'white';
+          btnInstrucciones.style.border = 'none';
+          btnFormato.style.background = 'transparent';
+          btnFormato.style.color = 'var(--text-secondary)';
+          btnFormato.style.border = '1px solid var(--border-color)';
+          btnFormato.style.borderBottom = 'none';
+      }
+  };
+
+  window.abrirModalSubirTarea = function(id, titulo, detalle, imagenFormato) {
       document.getElementById('modalSubirTarea').style.display = 'flex';
       document.querySelector('#modalSubirTarea h3').textContent = `Subir Tarea: ${titulo}`;
       
-      // Mostrar detalle de la tarea
-      let detalleContainer = document.getElementById('modalDetalleTareaContainer');
-      if (!detalleContainer) {
-          detalleContainer = document.createElement('div');
-          detalleContainer.id = 'modalDetalleTareaContainer';
-          detalleContainer.style.background = 'var(--bg-secondary)'; // Usar variable de tema
-          detalleContainer.style.borderLeft = '4px solid var(--accent-color)';
-          detalleContainer.style.padding = '15px';
-          detalleContainer.style.margin = '15px 0';
-          detalleContainer.style.borderRadius = '0 4px 4px 0';
-          detalleContainer.style.fontSize = '14px';
-          detalleContainer.style.lineHeight = '1.6';
-          detalleContainer.style.color = 'var(--text-primary)';
-          
-          const modalBody = document.querySelector('#modalSubirTarea .modal-content') || document.querySelector('#modalSubirTarea > div');
-          const tituloEl = document.querySelector('#modalSubirTarea h3');
-          if (tituloEl && tituloEl.parentNode) {
-              tituloEl.parentNode.insertBefore(detalleContainer, tituloEl.nextSibling);
-          }
+      // Mostrar imagen de formato en la pestaña Formato
+      const formatoContainer = document.getElementById('formatoImagenContainer');
+      if (imagenFormato && imagenFormato.trim() !== '') {
+          formatoContainer.innerHTML = `
+              <img src="${imagenFormato}" alt="Formato de la Especialidad"
+                   style="max-width: 100%; max-height: 350px; border-radius: 6px; object-fit: contain; cursor: zoom-in;"
+                   onclick="this.style.maxHeight = this.style.maxHeight === '350px' ? 'none' : '350px';"
+                   title="Haz clic para ampliar/reducir">`;
+      } else {
+          formatoContainer.innerHTML = `
+              <p style="color: var(--text-secondary); font-style: italic; font-size: 13px;">
+                  <i class="fas fa-image" style="font-size: 30px; display: block; margin-bottom: 8px; opacity: 0.4;"></i>
+                  No hay imagen de formato disponible.
+              </p>`;
       }
-      
-      // Formatear saltos de línea si los hay
+
+      // Mostrar instrucciones en la pestaña Instrucciones
+      const detalleContainer = document.getElementById('modalDetalleTareaContainer');
       const detalleFormateado = (detalle || 'Sin instrucciones adicionales.').replace(/\n/g, '<br>');
       detalleContainer.innerHTML = `<strong style="color:var(--accent-color); display:block; margin-bottom:5px;"><i class="fas fa-info-circle"></i> Instrucciones de la tarea:</strong>${detalleFormateado}`;
+
+      // Mostrar siempre la pestaña Formato primero al abrir
+      switchTabTarea('formato');
       
       const btn = document.getElementById('btnEnviarTareaReal');
       // Clonar boton para eliminar listeners anteriores

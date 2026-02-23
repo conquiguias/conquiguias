@@ -4449,6 +4449,11 @@ transition: all 0.3s ease;
                 }
                 
                 const tr = document.createElement("tr");
+                // Guardar rúbrica en window para acceso desde onclick
+                const rubricaItemId = `rubrica_${item.id}`;
+                if (item.miTarea && item.miTarea.rubrica) {
+                    window[rubricaItemId] = item.miTarea.rubrica;
+                }
                 tr.innerHTML = `
                     <td>${index + 1}</td>
                     <td style="text-align: left; font-weight: 500;">${item.titulo}</td>
@@ -4460,7 +4465,7 @@ transition: all 0.3s ease;
                     <td class="${estadoClass}">${estado}</td>
                     <td style="text-align:center;">
                         ${examenHecho && item.miExamen.visitanteId ? 
-                      `<button onclick="verCertificacionCompleta('${item.id}', '${item.miExamen.visitanteId}')" 
+                      `<button onclick="verCertificacionCompleta('${item.id}', '${item.miExamen.visitanteId}', window['rubrica_${item.id}'])" 
                                  style="background: #17a2b8; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size:12px;">
                             Ver
                         </button>`
@@ -4500,7 +4505,7 @@ transition: all 0.3s ease;
       window.extraerNombreFirma = extraerNombreFirma;
 
       // 🔹 FUNCIONES PARA CERTIFICACIÓN COMPLETA
-      async function verCertificacionCompleta(formularioId, visitanteId) {
+      async function verCertificacionCompleta(formularioId, visitanteId, rubricaExterna) {
         try {
           // Obtener la evaluación (preguntas)
           const resExamen = await fetch(`/api/formulario?action=obtenerEvaluacion&id=${formularioId}`);
@@ -4531,7 +4536,7 @@ transition: all 0.3s ease;
           const formulario = await resFormulario.json();
 
           // Mostrar en el modal extendido
-          mostrarCertificacionCompleta(examen, resultado, formulario, formularioId);
+          mostrarCertificacionCompleta(examen, resultado, formulario, formularioId, rubricaExterna);
 
         } catch (error) {
           console.error('Error al cargar certificación completa:', error);
@@ -4539,7 +4544,7 @@ transition: all 0.3s ease;
         }
       }
 
-      function mostrarCertificacionCompleta(examen, resultado, formulario, formularioId) {
+      function mostrarCertificacionCompleta(examen, resultado, formulario, formularioId, rubricaExterna) {
         // Usar el modal del visor PDF pero con contenido personalizado
         const modal = document.getElementById('pdfViewerModal');
         const pdfFrame = document.getElementById('pdfFrame');
@@ -4564,9 +4569,8 @@ transition: all 0.3s ease;
 
         certContainer.style.display = 'block';
 
-        // Extraer rúbrica de la tarea si existe
-        const tareaData = formulario.tareas ? formulario.tareas[formularioId] : null;
-        const rubricaCert = tareaData ? (tareaData.rubrica || null) : null;
+        // Usar la rúbrica pasada directamente (viene de item.miTarea.rubrica)
+        const rubricaCert = rubricaExterna || null;
 
         // Generar el contenido de la certificación
         const respuestasUsuario = resultado.respuestas || {};

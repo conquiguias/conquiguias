@@ -2671,6 +2671,7 @@ transition: all 0.3s ease;
               <th style="padding: 12px; text-align: left; border: 1px solid var(--border-color);">Fecha Cierre</th>
               <th style="padding: 12px; text-align: left; border: 1px solid var(--border-color);">Asistencias</th>
               <th style="padding: 12px; text-align: center; border: 1px solid var(--border-color);">Tarea</th>
+              <th style="padding: 12px; text-align: center; border: 1px solid var(--border-color);">Rúbrica</th>
               <th style="padding: 12px; text-align: center; border: 1px solid var(--border-color);">Examen</th>
             </tr>
           </thead>
@@ -3417,6 +3418,161 @@ transition: all 0.3s ease;
             }
             const totalCell = document.getElementById('total-rubrica-pts');
             if (totalCell) { totalCell.textContent = '—'; totalCell.style.color = '#64748b'; }
+        };
+
+        // ─── Datos de la rúbrica (compartidos para visualización) ───────────────
+        const _rubricaDefinicion = [
+            { n: 1, label: '1. Cumplimiento del formato solicitado', sub: '(Portada y Diseño)',
+              excelente: 'Cumple exactamente el formato solicitado: portada correcta, tipografía, tamaños, alineación, línea azul, datos completos y orden visual profesional.',
+              bueno: 'Presenta casi todo el formato correcto, con pequeños errores de alineación o estilo.',
+              basico: 'Presenta formato incompleto o varios elementos mal configurados.',
+              deficiente: 'No respeta el formato solicitado o falta la portada requerida.', pts: '10 pts' },
+            { n: 2, label: '2. Originalidad del contenido', sub: '(Plagio e IA)',
+              excelente: 'Contenido auténtico, redacción propia, coherente con el nivel del estudiante. Sin coincidencias relevantes en detector de plagio ni uso indebido de IA.',
+              bueno: 'Coincidencias mínimas o uso leve de apoyo externo con adecuada adaptación personal.',
+              basico: 'Evidencia moderada de copia, parafraseo pobre o dependencia excesiva de IA.',
+              deficiente: 'Copia directa, trabajo generado por IA sin edición o plagio evidente.', pts: '10 pts' },
+            { n: 3, label: '3. Desarrollo del contenido de la especialidad', sub: '',
+              excelente: 'Responde completamente todos los requisitos de la especialidad con profundidad, claridad y comprensión.',
+              bueno: 'Responde la mayoría de los requisitos correctamente.',
+              basico: 'Respuestas incompletas o superficiales.',
+              deficiente: 'No cumple con los requisitos de la especialidad.', pts: '40 pts',
+              pExcelente: 40, pBueno: 30, pBasico: 15, pDeficiente: 0 },
+            { n: 4, label: '4. Claridad y organización del trabajo', sub: '',
+              excelente: 'Información ordenada, coherente, bien estructurada y fácil de leer.',
+              bueno: 'Buena organización con pequeños desordenes.',
+              basico: 'Organización confusa en algunas partes.',
+              deficiente: 'Desorden general, difícil de entender.', pts: '10 pts' },
+            { n: 5, label: '5. Redacción y ortografía', sub: '',
+              excelente: 'Excelente ortografía, redacción clara y formal.',
+              bueno: 'Algunos errores menores.',
+              basico: 'Varios errores que afectan la lectura.',
+              deficiente: 'Muchos errores que dificultan la comprensión.', pts: '10 pts' },
+            { n: 6, label: '6. Evidencias de aprendizaje / aplicación práctica', sub: '',
+              excelente: 'Incluye evidencias claras: fotos, ejercicios, ejemplos, actividades realizadas o demostraciones.',
+              bueno: 'Incluye evidencias pero limitadas o poco detalladas.',
+              basico: 'Evidencias mínimas o poco claras.',
+              deficiente: 'No incluye evidencias.', pts: '10 pts' },
+            { n: 7, label: '7. Reflexión personal del aprendizaje', sub: '',
+              excelente: 'Explica claramente lo que aprendió, cómo lo aplicó y qué significado tuvo la experiencia para su crecimiento personal.',
+              bueno: 'Presenta reflexión clara pero poco profunda o breve.',
+              basico: 'Reflexión limitada o muy general.',
+              deficiente: 'No incluye reflexión o es irrelevante.', pts: '10 pts' }
+        ];
+        const _ptsVisuales = { excelente:'10 pts', bueno:'7 pts', basico:'5 pts', deficiente:'0 pts' };
+        const _ptsVisualesC3 = { excelente:'40 pts', bueno:'30 pts', basico:'15 pts', deficiente:'0 pts' };
+
+        // Genera el HTML de la tabla de rúbrica con las celdas resaltadas según rubricaData
+        window.generarHTMLRubrica = function(rubricaData) {
+            const colNiveles = [
+                { key:'excelente', color:'#10b981', label:'Excelente' },
+                { key:'bueno',     color:'#3b82f6', label:'Bueno' },
+                { key:'basico',    color:'#f59e0b', label:'Básico' },
+                { key:'deficiente',color:'#ef4444', label:'Deficiente' }
+            ];
+            const bgAlts = ['#0f172a','#111827'];
+            const bgPtsAlts = ['#0a1120','#0d1626'];
+
+            let html = `<div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:12px; color:#cbd5e1; table-layout:auto;">
+              <thead>
+                <tr style="background:#1e293b;">
+                  <th style="padding:8px 10px;text-align:left;border:1px solid #334155;color:#94a3b8;width:22%;">Criterio</th>
+                  ${colNiveles.map(c=>`<th style="padding:8px 10px;text-align:left;border:1px solid #334155;color:${c.color};">${c.label}</th>`).join('')}
+                  <th style="padding:8px 10px;text-align:center;border:1px solid #334155;color:#94a3b8;white-space:nowrap;">Pts.</th>
+                </tr>
+              </thead><tbody>`;
+
+            let totalObtenido = 0;
+
+            _rubricaDefinicion.forEach((crit, idx) => {
+                const selNivel = rubricaData ? rubricaData[String(crit.n)] : null;
+                const ptsPorNivel = crit.n === 3
+                    ? { excelente:40, bueno:30, basico:15, deficiente:0 }
+                    : { excelente:10, bueno:7,  basico:5,  deficiente:0 };
+                const ptsRef = crit.n === 3 ? _ptsVisualesC3 : _ptsVisuales;
+                const ptsObtenidos = selNivel ? ptsPorNivel[selNivel] : null;
+                if (ptsObtenidos !== null) totalObtenido += ptsObtenidos;
+
+                const bg  = bgAlts[idx % 2];
+                const bgP = bgPtsAlts[idx % 2];
+
+                // Fila de descripción
+                html += `<tr style="background:${bg};">
+                  <td style="padding:8px 10px;border:1px solid #334155;font-weight:600;color:#e2e8f0;vertical-align:top;">
+                    ${crit.label}${crit.sub ? `<br><small style="color:#94a3b8;font-weight:400;">${crit.sub}</small>` : ''}
+                  </td>`;
+
+                colNiveles.forEach(c => {
+                    const esSel = selNivel === c.key;
+                    const estiloSel = esSel
+                        ? `background:${c.color}22;box-shadow:inset 0 0 0 2px ${c.color};font-weight:600;`
+                        : '';
+                    html += `<td style="padding:8px 10px;border:1px solid #334155;vertical-align:top;${estiloSel}">${crit[c.key]}</td>`;
+                });
+
+                // Columna pts obtenidos
+                const ptsColor = selNivel ? _rubricaColores[selNivel].texto : '#64748b';
+                html += `<td style="padding:8px 10px;border:1px solid #334155;text-align:center;font-weight:700;color:${ptsColor};vertical-align:top;white-space:nowrap;">
+                    ${ptsObtenidos !== null ? ptsObtenidos + ' pts' : '—'}
+                </td></tr>`;
+
+                // Fila de referencia de puntajes
+                html += `<tr style="background:${bgP};">
+                  <td style="padding:4px 10px;border:1px solid #334155;color:#64748b;font-size:11px;">Puntaje:</td>
+                  ${colNiveles.map(c=>`<td style="padding:4px 10px;border:1px solid #334155;text-align:center;font-weight:700;color:${c.color};font-size:12px;white-space:nowrap;">${ptsRef[c.key]}</td>`).join('')}
+                  <td style="border:1px solid #334155;"></td>
+                </tr>`;
+            });
+
+            // Fila total
+            const totalColor = totalObtenido >= 70 ? '#10b981' : totalObtenido >= 50 ? '#f59e0b' : '#ef4444';
+            html += `<tr style="background:#1e293b;">
+              <td colspan="5" style="padding:10px;border:1px solid #334155;text-align:right;font-weight:700;color:#e2e8f0;font-size:13px;">
+                Total máximo: <span style="color:#10b981;">100 pts</span> &nbsp;|&nbsp; Nota obtenida:
+              </td>
+              <td style="padding:10px;border:1px solid #334155;text-align:center;font-weight:700;font-size:14px;white-space:nowrap;color:${totalColor};">
+                ${rubricaData && Object.keys(rubricaData).length > 0 ? totalObtenido + ' pts' : '—'}
+              </td>
+            </tr>
+            </tbody></table></div>`;
+            return html;
+        };
+
+        // Modal popup para que el estudiante vea su rúbrica
+        window.mostrarRubricaEstudiante = function(rubricaData) {
+            // Crear overlay si no existe
+            let overlay = document.getElementById('modalRubricaEstudiante');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'modalRubricaEstudiante';
+                overlay.style.cssText = `
+                    position:fixed; inset:0; z-index:99999;
+                    background:rgba(0,0,0,0.85);
+                    display:flex; align-items:center; justify-content:center;
+                    padding:20px; box-sizing:border-box;
+                `;
+                overlay.onclick = e => { if (e.target === overlay) overlay.style.display='none'; };
+                document.body.appendChild(overlay);
+            }
+            overlay.innerHTML = `
+              <div style="background:#0f172a; border:1px solid #334155; border-radius:12px;
+                          width:95%; max-width:1100px; max-height:90vh; overflow-y:auto;
+                          padding:24px; box-sizing:border-box; position:relative;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                  <h3 style="color:#e2e8f0; margin:0; font-size:16px;">
+                    <i class="fas fa-clipboard-list" style="color:var(--accent-color); margin-right:8px;"></i>
+                    Rúbrica de Calificación
+                  </h3>
+                  <button onclick="document.getElementById('modalRubricaEstudiante').style.display='none'"
+                          style="background:#334155; border:none; color:#94a3b8; padding:6px 12px;
+                                 border-radius:6px; cursor:pointer; font-size:14px;">
+                    <i class="fas fa-times"></i> Cerrar
+                  </button>
+                </div>
+                ${window.generarHTMLRubrica(rubricaData)}
+              </div>`;
+            overlay.style.display = 'flex';
         };
     </script>
 
@@ -4408,6 +4564,10 @@ transition: all 0.3s ease;
 
         certContainer.style.display = 'block';
 
+        // Extraer rúbrica de la tarea si existe
+        const tareaData = formulario.tareas ? formulario.tareas[formularioId] : null;
+        const rubricaCert = tareaData ? (tareaData.rubrica || null) : null;
+
         // Generar el contenido de la certificación
         const respuestasUsuario = resultado.respuestas || {};
         let correctas = 0;
@@ -4529,7 +4689,22 @@ transition: all 0.3s ease;
 
 
 
-        certContainer.innerHTML = contenidoHTML;
+        // Construir sección de rúbrica (si existe) + examen
+        let rubricaSeccionHTML = '';
+        if (rubricaCert && typeof window.generarHTMLRubrica === 'function') {
+            rubricaSeccionHTML = `
+            <div style="margin-bottom:28px; background:#0f172a; border:1px solid #334155; border-radius:10px; overflow:hidden;">
+              <div style="padding:14px 18px; background:#1e293b; display:flex; align-items:center; gap:10px;">
+                <i class="fas fa-clipboard-list" style="color:#a78bfa; font-size:16px;"></i>
+                <span style="font-weight:700; color:#e2e8f0; font-size:15px;">Rúbrica de Calificación de la Tarea</span>
+              </div>
+              <div style="padding:14px;">
+                ${window.generarHTMLRubrica(rubricaCert)}
+              </div>
+            </div>`;
+        }
+
+        certContainer.innerHTML = rubricaSeccionHTML + contenidoHTML;
         modal.style.display = 'flex';
 
         // Configurar event listeners para los botones SOLO si aprobó
@@ -8729,6 +8904,13 @@ const diffMins = Math.floor(diffMs / 60000);
                       <div style="margin-top:5px;">${botonTarea}</div>
                   </td>
                   <td style="text-align:center;">
+                      ${
+                          item.miTarea && item.miTarea.rubrica
+                          ? `<button onclick='mostrarRubricaEstudiante(${JSON.stringify(item.miTarea.rubrica)})' style="background:#7c3aed; color:white; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:600;"><i class='fas fa-table'></i> Ver</button>`
+                          : '<span style="color:#555; font-size:12px;">—</span>'
+                      }
+                  </td>
+                  <td style="text-align:center;">
                       ${estadoExamenHtml}
                       <div style="margin-top:5px;">${botonExamen}</div>
                   </td>
@@ -10067,10 +10249,17 @@ const diffMins = Math.floor(diffMs / 60000);
       if(!nota || nota < 0 || nota > 10) { alert("Nota inválida (0-10)"); return; }
       
       // Actualizar local
-      // Actualizar local
       if(window.currentEvaluandoId && currentEntregasData[window.currentEvaluandoId]) {
-          currentEntregasData[window.currentEvaluandoId].nota = nota;
+          currentEntregasData[window.currentEvaluandoId].nota   = nota;
           currentEntregasData[window.currentEvaluandoId].estado = 'calificado';
+          // Guardar rúbrica: { "1": "excelente", "2": "bueno", ... }
+          const rubricaGuardada = {};
+          for (let i = 1; i <= 7; i++) {
+              if (_selecciones[i] !== undefined) rubricaGuardada[String(i)] = _selecciones[i];
+          }
+          if (Object.keys(rubricaGuardada).length > 0) {
+              currentEntregasData[window.currentEvaluandoId].rubrica = rubricaGuardada;
+          }
       } else {
           console.error("No se encontró el ID de evaluación actual:", window.currentEvaluandoId);
       }

@@ -9358,6 +9358,9 @@ const diffMins = Math.floor(diffMs / 60000);
       // Restaurar scroll
       document.body.style.overflow = '';
       
+      // Resetear rúbrica de calificación
+      if (typeof resetRubrica === 'function') resetRubrica();
+
       // No llamar a renderTablaEntregas() aquí porque sobrescribe el contenedor listaEntregasContainer
       // y borra el título necesario para guardarNotaIndividualYSalir,
       // además de cerrar la lista si se está usando la vista de detalles.

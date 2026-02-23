@@ -4714,14 +4714,14 @@ transition: all 0.3s ease;
         // Configurar event listeners para los botones SOLO si aprobó
         if (aprobado) {
           document.getElementById('btnImprimirExamen').addEventListener('click', () => {
-            imprimirExamenCompleto(examen, resultado, formulario, formularioId);
+            imprimirExamenCompleto(examen, resultado, formulario, formularioId, rubricaExterna);
           });
 
         }
 
       }
 
-      function imprimirExamenCompleto(examen, resultado, formulario, formularioId) {
+      function imprimirExamenCompleto(examen, resultado, formulario, formularioId, rubricaImpresion) {
         const btnImprimir = document.getElementById('btnImprimirExamen');
         const textoOriginal = btnImprimir.innerHTML;
 
@@ -5192,6 +5192,73 @@ transition: all 0.3s ease;
           contenidoImpresion += `
         </div>
       </div>
+
+      <!-- RÚBRICA DE CALIFICACIÓN -->
+      ${(() => {
+        if (!rubricaImpresion || typeof window.generarHTMLRubrica !== 'function') return '';
+        const _rubricaPtsPrint = {
+          1:{excelente:10,bueno:7,basico:5,deficiente:0},
+          2:{excelente:10,bueno:7,basico:5,deficiente:0},
+          3:{excelente:40,bueno:30,basico:15,deficiente:0},
+          4:{excelente:10,bueno:7,basico:5,deficiente:0},
+          5:{excelente:10,bueno:7,basico:5,deficiente:0},
+          6:{excelente:10,bueno:7,basico:5,deficiente:0},
+          7:{excelente:10,bueno:7,basico:5,deficiente:0}
+        };
+        const _critDef = [
+          {n:1,label:'1. Cumplimiento del formato solicitado',sub:'(Portada y Diseño)',excelente:'Cumple exactamente el formato solicitado: portada correcta, tipografía, tamaños, alineación, línea azul, datos completos y orden visual profesional.',bueno:'Presenta casi todo el formato correcto, con pequeños errores de alineación o estilo.',basico:'Presenta formato incompleto o varios elementos mal configurados.',deficiente:'No respeta el formato solicitado o falta la portada requerida.'},
+          {n:2,label:'2. Originalidad del contenido',sub:'(Plagio e IA)',excelente:'Contenido auténtico, redacción propia, coherente con el nivel del estudiante. Sin coincidencias relevantes en detector de plagio ni uso indebido de IA.',bueno:'Coincidencias mínimas o uso leve de apoyo externo con adecuada adaptación personal.',basico:'Evidencia moderada de copia, parafraseo pobre o dependencia excesiva de IA.',deficiente:'Copia directa, trabajo generado por IA sin edición o plagio evidente.'},
+          {n:3,label:'3. Desarrollo del contenido de la especialidad',sub:'',excelente:'Responde completamente todos los requisitos de la especialidad con profundidad, claridad y comprensión.',bueno:'Responde la mayoría de los requisitos correctamente.',basico:'Respuestas incompletas o superficiales.',deficiente:'No cumple con los requisitos de la especialidad.'},
+          {n:4,label:'4. Claridad y organización del trabajo',sub:'',excelente:'Información ordenada, coherente, bien estructurada y fácil de leer.',bueno:'Buena organización con pequeños desordenes.',basico:'Organización confusa en algunas partes.',deficiente:'Desorden general, difícil de entender.'},
+          {n:5,label:'5. Redacción y ortografía',sub:'',excelente:'Excelente ortografía, redacción clara y formal.',bueno:'Algunos errores menores.',basico:'Varios errores que afectan la lectura.',deficiente:'Muchos errores que dificultan la comprensión.'},
+          {n:6,label:'6. Evidencias de aprendizaje / aplicación práctica',sub:'',excelente:'Incluye evidencias claras: fotos, ejercicios, ejemplos, actividades realizadas o demostraciones.',bueno:'Incluye evidencias pero limitadas o poco detalladas.',basico:'Evidencias mínimas o poco claras.',deficiente:'No incluye evidencias.'},
+          {n:7,label:'7. Reflexión personal del aprendizaje',sub:'',excelente:'Explica claramente lo que aprendió, cómo lo aplicó y qué significado tuvo la experiencia para su crecimiento personal.',bueno:'Presenta reflexión clara pero poco profunda o breve.',basico:'Reflexión limitada o muy general.',deficiente:'No incluye reflexión o es irrelevante.'}
+        ];
+        const cols = [
+          {key:'excelente',color:'#10b981',label:'Excelente'},
+          {key:'bueno',color:'#3b82f6',label:'Bueno'},
+          {key:'basico',color:'#f59e0b',label:'Básico'},
+          {key:'deficiente',color:'#ef4444',label:'Deficiente'}
+        ];
+        const ptsVisRef = {1:{excelente:'10 pts',bueno:'7 pts',basico:'5 pts',deficiente:'0 pts'},3:{excelente:'40 pts',bueno:'30 pts',basico:'15 pts',deficiente:'0 pts'}};
+        const bgAlts=['#f8fafc','#ffffff'];
+        const bgPAll='#f1f5f9';
+        let totalObt=0;
+        let tbl = `<div style="margin:30px 0; border-top:2px dashed #ccc; padding-top:20px;">
+          <h3 style="color:#2c3e50; margin-bottom:20px; text-align:center;"><i class="fas fa-clipboard-list"></i> Rúbrica de Calificación de la Tarea</h3>
+          <div style="overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; font-size:12px; color:#1e293b; table-layout:auto;">
+          <thead><tr style="background:#e2e8f0;">
+            <th style="padding:8px 10px;text-align:left;border:1px solid #94a3b8;color:#475569;width:22%;">Criterio</th>
+            ${cols.map(c=>`<th style="padding:8px 10px;text-align:left;border:1px solid #94a3b8;color:${c.color};">${c.label}</th>`).join('')}
+            <th style="padding:8px 10px;text-align:center;border:1px solid #94a3b8;color:#475569;white-space:nowrap;">Pts.</th>
+          </tr></thead><tbody>`;
+        _critDef.forEach((crit,idx)=>{
+          const sel = rubricaImpresion[String(crit.n)]||null;
+          const ptsMap = _rubricaPtsPrint[crit.n];
+          const pts = sel ? ptsMap[sel] : null;
+          if(pts!==null) totalObt+=pts;
+          const ptsRef = ptsVisRef[crit.n] || ptsVisRef[1];
+          const bg = bgAlts[idx%2];
+          const selColor = sel === 'excelente' ? '#10b981' : sel === 'bueno' ? '#3b82f6' : sel === 'basico' ? '#f59e0b' : sel === 'deficiente' ? '#ef4444' : '#64748b';
+          tbl+=`<tr style="background:${bg};">`;
+          tbl+=`<td style="padding:8px 10px;border:1px solid #e2e8f0;font-weight:600;color:#1e293b;vertical-align:top;">${crit.label}${crit.sub?`<br><small style="color:#64748b;font-weight:400;">${crit.sub}</small>`:''}</td>`;
+          cols.forEach(c=>{
+            const esSel = sel===c.key;
+            const bg2 = esSel ? `background:${c.color}22;box-shadow:inset 0 0 0 2px ${c.color};font-weight:600;` : '';
+            tbl+=`<td style="padding:8px 10px;border:1px solid #e2e8f0;vertical-align:top;${bg2}">${crit[c.key]}</td>`;
+          });
+          tbl+=`<td style="padding:8px 10px;border:1px solid #e2e8f0;text-align:center;font-weight:700;color:${selColor};vertical-align:top;white-space:nowrap;">${pts!==null?pts+' pts':'—'}</td></tr>`;
+          tbl+=`<tr style="background:${bgPAll};"><td style="padding:4px 10px;border:1px solid #e2e8f0;color:#64748b;font-size:11px;">Puntaje:</td>${cols.map(c=>`<td style="padding:4px 10px;border:1px solid #e2e8f0;text-align:center;font-weight:700;color:${c.color};font-size:12px;white-space:nowrap;">${ptsRef[c.key]}</td>`).join('')}<td style="border:1px solid #e2e8f0;"></td></tr>`;
+        });
+        const totalColor = totalObt>=70?'#10b981':totalObt>=50?'#f59e0b':'#ef4444';
+        tbl+=`<tr style="background:#e2e8f0;"><td colspan="5" style="padding:10px;border:1px solid #94a3b8;text-align:right;font-weight:700;color:#1e293b;font-size:13px;">Total máximo: <span style="color:#10b981;">100 pts</span> &nbsp;|&nbsp; Nota obtenida:</td><td style="padding:10px;border:1px solid #94a3b8;text-align:center;font-weight:700;font-size:14px;white-space:nowrap;color:${totalColor};">${totalObt} pts</td></tr>`;
+        tbl += '</tbody></table></div></div>';
+        return tbl;
+      })()}
+      `;
+
+      contenidoImpresion += `
 
       <!-- CERTIFICADO - HOJA COMPLETA SEPARADA -->
       <div class="certificacion-page">

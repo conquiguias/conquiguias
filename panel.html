@@ -3164,14 +3164,14 @@ transition: all 0.3s ease;
             </div>
 
             <!-- Panel Rúbrica -->
-            <div style="width:420px; min-width:320px; height:100%; overflow-y:auto; background:#0f172a; border-left:1px solid #334155; padding:16px; box-sizing:border-box;">
+            <div style="width:700px; min-width:700px; height:100%; overflow-y:auto; overflow-x:hidden; background:#0f172a; border-left:1px solid #334155; padding:16px; box-sizing:border-box;">
                 <h4 style="color:#94a3b8; font-size:13px; text-transform:uppercase; letter-spacing:1px; margin:0 0 12px 0;">
                     <i class="fas fa-clipboard-list" style="margin-right:6px; color:var(--accent-color);"></i> Rúbrica de Calificación
                 </h4>
 
                 <!-- Tabla rúbrica -->
-                <div style="overflow-x:auto;">
-                <table style="width:100%; border-collapse:collapse; font-size:12px; color:#cbd5e1;">
+                <div style="overflow:hidden;">
+                <table style="width:100%; border-collapse:collapse; font-size:12px; color:#cbd5e1; table-layout:auto;">
                     <thead>
                         <tr style="background:#1e293b;">
                             <th style="padding:8px 10px; text-align:left; border:1px solid #334155; color:#94a3b8; width:22%;">Criterio</th>
@@ -3192,7 +3192,7 @@ transition: all 0.3s ease;
                             <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Presenta casi todo el formato correcto, con pequeños errores de alineación o estilo.</td>
                             <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Presenta formato incompleto o varios elementos mal configurados.</td>
                             <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">No respeta el formato solicitado o falta la portada requerida.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top;">10 pts</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top; white-space:nowrap;">10 pts</td>
                         </tr>
                         <!-- Criterio 2 -->
                         <tr style="background:#111827;">
@@ -3203,7 +3203,7 @@ transition: all 0.3s ease;
                             <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Coincidencias mínimas o uso leve de apoyo externo con adecuada adaptación personal.</td>
                             <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Evidencia moderada de copia, parafraseo pobre o dependencia excesiva de IA.</td>
                             <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Copia directa, trabajo generado por IA sin edición o plagio evidente.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top;">10 pts</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top; white-space:nowrap;">10 pts</td>
                         </tr>
                         <!-- Criterio 3 -->
                         <tr style="background:#0f172a;">
@@ -3214,7 +3214,7 @@ transition: all 0.3s ease;
                             <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Responde la mayoría de los requisitos correctamente.</td>
                             <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Respuestas incompletas o superficiales.</td>
                             <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">No cumple con los requisitos de la especialidad.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top;">40 pts</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top; white-space:nowrap;">40 pts</td>
                         </tr>
                         <!-- Criterio 4 -->
                         <tr style="background:#111827;">
@@ -3225,7 +3225,7 @@ transition: all 0.3s ease;
                             <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Buena organización con pequeños desordenes.</td>
                             <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Organización confusa en algunas partes.</td>
                             <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Desorden general, difícil de entender.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top;">10 pts</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top; white-space:nowrap;">10 pts</td>
                         </tr>
                         <!-- Criterio 5 -->
                         <tr style="background:#0f172a;">
@@ -3236,7 +3236,7 @@ transition: all 0.3s ease;
                             <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Algunos errores menores.</td>
                             <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Varios errores que afectan la lectura.</td>
                             <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Muchos errores que dificultan la comprensión.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top;">10 pts</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top; white-space:nowrap;">10 pts</td>
                         </tr>
                         <!-- Criterio 6 -->
                         <tr style="background:#111827;">
@@ -3247,7 +3247,7 @@ transition: all 0.3s ease;
                             <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Incluye evidencias pero limitadas o poco detalladas.</td>
                             <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Evidencias mínimas o poco claras.</td>
                             <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">No incluye evidencias.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top;">10 pts</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top; white-space:nowrap;">10 pts</td>
                         </tr>
                         <!-- Criterio 7 -->
                         <tr style="background:#0f172a;">
@@ -3258,7 +3258,7 @@ transition: all 0.3s ease;
                             <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Presenta reflexión clara pero poco profunda o breve.</td>
                             <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Reflexión limitada o muy general.</td>
                             <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">No incluye reflexión o es irrelevante.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top;">10 pts</td>
+                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top; white-space:nowrap;">10 pts</td>
                         </tr>
                         <!-- Total -->
                         <tr style="background:#1e293b;">

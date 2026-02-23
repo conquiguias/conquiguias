@@ -3188,11 +3188,11 @@ transition: all 0.3s ease;
                             <td style="padding:8px 10px; border:1px solid #334155; font-weight:600; color:#e2e8f0; vertical-align:top;">
                                 1. Cumplimiento del formato solicitado<br><small style="color:#94a3b8; font-weight:400;">(Portada y Diseño)</small>
                             </td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Cumple exactamente el formato solicitado: portada correcta, tipografía, tamaños, alineación, línea azul, datos completos y orden visual profesional.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Presenta casi todo el formato correcto, con pequeños errores de alineación o estilo.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Presenta formato incompleto o varios elementos mal configurados.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">No respeta el formato solicitado o falta la portada requerida.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top; white-space:nowrap;">10 pts</td>
+                            <td id="cel-1-excelente" onclick="seleccionarNivel(1,'excelente')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Cumple exactamente el formato solicitado: portada correcta, tipografía, tamaños, alineación, línea azul, datos completos y orden visual profesional.</td>
+                            <td id="cel-1-bueno" onclick="seleccionarNivel(1,'bueno')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Presenta casi todo el formato correcto, con pequeños errores de alineación o estilo.</td>
+                            <td id="cel-1-basico" onclick="seleccionarNivel(1,'basico')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Presenta formato incompleto o varios elementos mal configurados.</td>
+                            <td id="cel-1-deficiente" onclick="seleccionarNivel(1,'deficiente')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">No respeta el formato solicitado o falta la portada requerida.</td>
+                            <td id="pts-c1" style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#64748b; vertical-align:top; white-space:nowrap;">—</td>
                         </tr>
                         <tr style="background:#0a1120;">
                             <td style="padding:4px 10px; border:1px solid #334155; color:#64748b; font-size:11px;">Puntaje:</td>
@@ -3207,11 +3207,11 @@ transition: all 0.3s ease;
                             <td style="padding:8px 10px; border:1px solid #334155; font-weight:600; color:#e2e8f0; vertical-align:top;">
                                 2. Originalidad del contenido<br><small style="color:#94a3b8; font-weight:400;">(Plagio e IA)</small>
                             </td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Contenido auténtico, redacción propia, coherente con el nivel del estudiante. Sin coincidencias relevantes en detector de plagio ni uso indebido de IA.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Coincidencias mínimas o uso leve de apoyo externo con adecuada adaptación personal.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Evidencia moderada de copia, parafraseo pobre o dependencia excesiva de IA.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Copia directa, trabajo generado por IA sin edición o plagio evidente.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top; white-space:nowrap;">10 pts</td>
+                            <td id="cel-2-excelente" onclick="seleccionarNivel(2,'excelente')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Contenido auténtico, redacción propia, coherente con el nivel del estudiante. Sin coincidencias relevantes en detector de plagio ni uso indebido de IA.</td>
+                            <td id="cel-2-bueno" onclick="seleccionarNivel(2,'bueno')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Coincidencias mínimas o uso leve de apoyo externo con adecuada adaptación personal.</td>
+                            <td id="cel-2-basico" onclick="seleccionarNivel(2,'basico')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Evidencia moderada de copia, parafraseo pobre o dependencia excesiva de IA.</td>
+                            <td id="cel-2-deficiente" onclick="seleccionarNivel(2,'deficiente')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Copia directa, trabajo generado por IA sin edición o plagio evidente.</td>
+                            <td id="pts-c2" style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#64748b; vertical-align:top; white-space:nowrap;">—</td>
                         </tr>
                         <tr style="background:#0d1626;">
                             <td style="padding:4px 10px; border:1px solid #334155; color:#64748b; font-size:11px;">Puntaje:</td>
@@ -3226,11 +3226,11 @@ transition: all 0.3s ease;
                             <td style="padding:8px 10px; border:1px solid #334155; font-weight:600; color:#e2e8f0; vertical-align:top;">
                                 3. Desarrollo del contenido de la especialidad
                             </td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Responde completamente todos los requisitos de la especialidad con profundidad, claridad y comprensión.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Responde la mayoría de los requisitos correctamente.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Respuestas incompletas o superficiales.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">No cumple con los requisitos de la especialidad.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top; white-space:nowrap;">40 pts</td>
+                            <td id="cel-3-excelente" onclick="seleccionarNivel(3,'excelente')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Responde completamente todos los requisitos de la especialidad con profundidad, claridad y comprensión.</td>
+                            <td id="cel-3-bueno" onclick="seleccionarNivel(3,'bueno')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Responde la mayoría de los requisitos correctamente.</td>
+                            <td id="cel-3-basico" onclick="seleccionarNivel(3,'basico')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Respuestas incompletas o superficiales.</td>
+                            <td id="cel-3-deficiente" onclick="seleccionarNivel(3,'deficiente')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">No cumple con los requisitos de la especialidad.</td>
+                            <td id="pts-c3" style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#64748b; vertical-align:top; white-space:nowrap;">—</td>
                         </tr>
                         <tr style="background:#0a1120;">
                             <td style="padding:4px 10px; border:1px solid #334155; color:#64748b; font-size:11px;">Puntaje:</td>
@@ -3245,11 +3245,11 @@ transition: all 0.3s ease;
                             <td style="padding:8px 10px; border:1px solid #334155; font-weight:600; color:#e2e8f0; vertical-align:top;">
                                 4. Claridad y organización del trabajo
                             </td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Información ordenada, coherente, bien estructurada y fácil de leer.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Buena organización con pequeños desordenes.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Organización confusa en algunas partes.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Desorden general, difícil de entender.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top; white-space:nowrap;">10 pts</td>
+                            <td id="cel-4-excelente" onclick="seleccionarNivel(4,'excelente')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Información ordenada, coherente, bien estructurada y fácil de leer.</td>
+                            <td id="cel-4-bueno" onclick="seleccionarNivel(4,'bueno')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Buena organización con pequeños desordenes.</td>
+                            <td id="cel-4-basico" onclick="seleccionarNivel(4,'basico')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Organización confusa en algunas partes.</td>
+                            <td id="cel-4-deficiente" onclick="seleccionarNivel(4,'deficiente')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Desorden general, difícil de entender.</td>
+                            <td id="pts-c4" style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#64748b; vertical-align:top; white-space:nowrap;">—</td>
                         </tr>
                         <tr style="background:#0d1626;">
                             <td style="padding:4px 10px; border:1px solid #334155; color:#64748b; font-size:11px;">Puntaje:</td>
@@ -3264,11 +3264,11 @@ transition: all 0.3s ease;
                             <td style="padding:8px 10px; border:1px solid #334155; font-weight:600; color:#e2e8f0; vertical-align:top;">
                                 5. Redacción y ortografía
                             </td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Excelente ortografía, redacción clara y formal.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Algunos errores menores.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Varios errores que afectan la lectura.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Muchos errores que dificultan la comprensión.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top; white-space:nowrap;">10 pts</td>
+                            <td id="cel-5-excelente" onclick="seleccionarNivel(5,'excelente')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Excelente ortografía, redacción clara y formal.</td>
+                            <td id="cel-5-bueno" onclick="seleccionarNivel(5,'bueno')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Algunos errores menores.</td>
+                            <td id="cel-5-basico" onclick="seleccionarNivel(5,'basico')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Varios errores que afectan la lectura.</td>
+                            <td id="cel-5-deficiente" onclick="seleccionarNivel(5,'deficiente')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Muchos errores que dificultan la comprensión.</td>
+                            <td id="pts-c5" style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#64748b; vertical-align:top; white-space:nowrap;">—</td>
                         </tr>
                         <tr style="background:#0a1120;">
                             <td style="padding:4px 10px; border:1px solid #334155; color:#64748b; font-size:11px;">Puntaje:</td>
@@ -3283,11 +3283,11 @@ transition: all 0.3s ease;
                             <td style="padding:8px 10px; border:1px solid #334155; font-weight:600; color:#e2e8f0; vertical-align:top;">
                                 6. Evidencias de aprendizaje / aplicación práctica
                             </td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Incluye evidencias claras: fotos, ejercicios, ejemplos, actividades realizadas o demostraciones.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Incluye evidencias pero limitadas o poco detalladas.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Evidencias mínimas o poco claras.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">No incluye evidencias.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top; white-space:nowrap;">10 pts</td>
+                            <td id="cel-6-excelente" onclick="seleccionarNivel(6,'excelente')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Incluye evidencias claras: fotos, ejercicios, ejemplos, actividades realizadas o demostraciones.</td>
+                            <td id="cel-6-bueno" onclick="seleccionarNivel(6,'bueno')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Incluye evidencias pero limitadas o poco detalladas.</td>
+                            <td id="cel-6-basico" onclick="seleccionarNivel(6,'basico')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Evidencias mínimas o poco claras.</td>
+                            <td id="cel-6-deficiente" onclick="seleccionarNivel(6,'deficiente')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">No incluye evidencias.</td>
+                            <td id="pts-c6" style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#64748b; vertical-align:top; white-space:nowrap;">—</td>
                         </tr>
                         <tr style="background:#0d1626;">
                             <td style="padding:4px 10px; border:1px solid #334155; color:#64748b; font-size:11px;">Puntaje:</td>
@@ -3302,11 +3302,11 @@ transition: all 0.3s ease;
                             <td style="padding:8px 10px; border:1px solid #334155; font-weight:600; color:#e2e8f0; vertical-align:top;">
                                 7. Reflexión personal del aprendizaje
                             </td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Explica claramente lo que aprendió, cómo lo aplicó y qué significado tuvo la experiencia para su crecimiento personal.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Presenta reflexión clara pero poco profunda o breve.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">Reflexión limitada o muy general.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; vertical-align:top;">No incluye reflexión o es irrelevante.</td>
-                            <td style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#fbbf24; vertical-align:top; white-space:nowrap;">10 pts</td>
+                            <td id="cel-7-excelente" onclick="seleccionarNivel(7,'excelente')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Explica claramente lo que aprendió, cómo lo aplicó y qué significado tuvo la experiencia para su crecimiento personal.</td>
+                            <td id="cel-7-bueno" onclick="seleccionarNivel(7,'bueno')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Presenta reflexión clara pero poco profunda o breve.</td>
+                            <td id="cel-7-basico" onclick="seleccionarNivel(7,'basico')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">Reflexión limitada o muy general.</td>
+                            <td id="cel-7-deficiente" onclick="seleccionarNivel(7,'deficiente')" style="padding:8px 10px; border:1px solid #334155; vertical-align:top; cursor:pointer; transition:background 0.15s, box-shadow 0.15s;">No incluye reflexión o es irrelevante.</td>
+                            <td id="pts-c7" style="padding:8px 10px; border:1px solid #334155; text-align:center; font-weight:700; color:#64748b; vertical-align:top; white-space:nowrap;">—</td>
                         </tr>
                         <tr style="background:#0a1120;">
                             <td style="padding:4px 10px; border:1px solid #334155; color:#64748b; font-size:11px;">Puntaje:</td>
@@ -3319,9 +3319,9 @@ transition: all 0.3s ease;
                         <!-- Total -->
                         <tr style="background:#1e293b;">
                             <td colspan="5" style="padding:10px; border:1px solid #334155; text-align:right; font-weight:700; color:#e2e8f0; font-size:13px;">
-                                Total máximo:
+                                Total máximo: <span style="color:#10b981;">100 pts</span> &nbsp;|&nbsp; Nota obtenida:
                             </td>
-                            <td style="padding:10px; border:1px solid #334155; text-align:center; font-weight:700; color:#10b981; font-size:14px; white-space:nowrap;">100 pts</td>
+                            <td id="total-rubrica-pts" style="padding:10px; border:1px solid #334155; text-align:center; font-weight:700; color:#64748b; font-size:14px; white-space:nowrap;">—</td>
                         </tr>
                     </tbody>
                 </table>
@@ -3330,6 +3330,95 @@ transition: all 0.3s ease;
         </div>
     </div>
 
+
+    <!-- Lógica rúbrica de calificación -->
+    <script>
+        const _rubricaPuntos = {
+            1: { excelente: 10, bueno: 7,  basico: 5,  deficiente: 0 },
+            2: { excelente: 10, bueno: 7,  basico: 5,  deficiente: 0 },
+            3: { excelente: 40, bueno: 30, basico: 15, deficiente: 0 },
+            4: { excelente: 10, bueno: 7,  basico: 5,  deficiente: 0 },
+            5: { excelente: 10, bueno: 7,  basico: 5,  deficiente: 0 },
+            6: { excelente: 10, bueno: 7,  basico: 5,  deficiente: 0 },
+            7: { excelente: 10, bueno: 7,  basico: 5,  deficiente: 0 }
+        };
+        const _rubricaColores = {
+            excelente:  { bg: 'rgba(16,185,129,0.18)',  sombra: '#10b981', texto: '#10b981' },
+            bueno:      { bg: 'rgba(59,130,246,0.18)',  sombra: '#3b82f6', texto: '#3b82f6' },
+            basico:     { bg: 'rgba(245,158,11,0.18)',  sombra: '#f59e0b', texto: '#f59e0b' },
+            deficiente: { bg: 'rgba(239,68,68,0.18)',   sombra: '#ef4444', texto: '#ef4444' }
+        };
+        const _selecciones = {}; // { 1: 'excelente', 2: 'bueno', ... }
+
+        function seleccionarNivel(criterio, nivel) {
+            const niveles = ['excelente', 'bueno', 'basico', 'deficiente'];
+
+            // Quitar resaltado de todos los niveles del criterio
+            niveles.forEach(n => {
+                const cel = document.getElementById(`cel-${criterio}-${n}`);
+                if (cel) {
+                    cel.style.background = '';
+                    cel.style.boxShadow = '';
+                    cel.style.fontWeight = '';
+                }
+            });
+
+            // Resaltar celda seleccionada
+            const selCell = document.getElementById(`cel-${criterio}-${nivel}`);
+            if (selCell) {
+                const c = _rubricaColores[nivel];
+                selCell.style.background  = c.bg;
+                selCell.style.boxShadow   = `inset 0 0 0 2px ${c.sombra}`;
+                selCell.style.fontWeight  = '600';
+            }
+
+            // Guardar selección
+            _selecciones[criterio] = nivel;
+
+            // Actualizar pts del criterio
+            const pts = _rubricaPuntos[criterio][nivel];
+            const ptsCell = document.getElementById(`pts-c${criterio}`);
+            if (ptsCell) {
+                ptsCell.textContent = `${pts} pts`;
+                ptsCell.style.color = _rubricaColores[nivel].texto;
+            }
+
+            // Recalcular total
+            let total = 0;
+            for (let i = 1; i <= 7; i++) {
+                if (_selecciones[i] !== undefined) {
+                    total += _rubricaPuntos[i][_selecciones[i]];
+                }
+            }
+
+            // Actualizar celda total
+            const totalCell = document.getElementById('total-rubrica-pts');
+            if (totalCell) {
+                totalCell.textContent = `${total} pts`;
+                totalCell.style.color = total >= 70 ? '#10b981' : total >= 50 ? '#f59e0b' : '#ef4444';
+            }
+
+            // Convertir a nota 0-10 y actualizar input del header
+            const nota = (total / 10).toFixed(1);
+            const inputNota = document.getElementById('inputNotaIndividual');
+            if (inputNota) inputNota.value = nota;
+        }
+
+        // Resetear rúbrica al abrir nuevo alumno (se puede llamar externamente)
+        window.resetRubrica = function() {
+            for (let i = 1; i <= 7; i++) {
+                delete _selecciones[i];
+                ['excelente','bueno','basico','deficiente'].forEach(n => {
+                    const cel = document.getElementById(`cel-${i}-${n}`);
+                    if (cel) { cel.style.background=''; cel.style.boxShadow=''; cel.style.fontWeight=''; }
+                });
+                const ptsCell = document.getElementById(`pts-c${i}`);
+                if (ptsCell) { ptsCell.textContent = '—'; ptsCell.style.color = '#64748b'; }
+            }
+            const totalCell = document.getElementById('total-rubrica-pts');
+            if (totalCell) { totalCell.textContent = '—'; totalCell.style.color = '#64748b'; }
+        };
+    </script>
 
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";

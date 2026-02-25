@@ -940,6 +940,119 @@
       line-height: 1.4;
     }
 
+    .comments-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      color: var(--text-primary);
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .comments-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 220px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      padding-right: 2px;
+    }
+
+    .comment-item {
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 8px;
+      padding: 8px;
+      background: rgba(15, 23, 42, 0.35);
+    }
+
+    .comment-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .comment-author {
+      font-weight: 600;
+      color: var(--text-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .comment-text {
+      color: var(--text-primary);
+      font-size: 13px;
+      line-height: 1.35;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .comment-actions {
+      margin-top: 6px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .comment-delete-btn {
+      background: none;
+      border: 1px solid rgba(239, 68, 68, 0.45);
+      color: #f87171;
+      border-radius: 6px;
+      font-size: 11px;
+      padding: 2px 8px;
+      cursor: pointer;
+    }
+
+    .comment-empty {
+      color: var(--text-secondary);
+      font-size: 12px;
+      padding: 8px 4px;
+      border: 1px dashed rgba(148, 163, 184, 0.3);
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .comment-form {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .comment-input {
+      flex: 1;
+      min-width: 0;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+
+    .comment-submit-btn {
+      border: none;
+      border-radius: 8px;
+      background: var(--accent-color);
+      color: white;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .comments-count {
+      font-weight: 700;
+      color: var(--text-secondary);
+      font-size: 12px;
+      margin-left: 3px;
+    }
+
     .comments-mobile-modal {
       position: fixed;
       inset: 0;
@@ -6697,10 +6810,7 @@ const diffMins = Math.floor(diffMs / 60000);
 
               <div class="post-sidebar-column">
                 <div class="post-comments-side hidden" id="post-comments-side-${postId}">
-                  <div class="post-comments-side-box">
-                    <strong>Comentarios</strong><br>
-                    Próximamente aquí irá el hilo de comentarios.
-                  </div>
+                  ${getCommentsPanelMarkup(postId, post.comments || [])}
                 </div>
               </div>
             </div>
@@ -6726,6 +6836,7 @@ const diffMins = Math.floor(diffMs / 60000);
               <div class="post-actions-right">
                 <button class="post-action-link comments-btn" type="button" data-postid="${postId}">
                   <i class="fas fa-comment"></i> <span class="comments-label">Comentarios</span>
+                  <span class="comments-count">${formatReactionCount((post.comments || []).length)}</span>
                 </button>
                 <span class="post-actions-separator">|</span>
                 <button class="share-btn" type="button" data-postid="${postId}" title="Compartir">
@@ -7045,6 +7156,157 @@ const diffMins = Math.floor(diffMs / 60000);
                                 return numericCount.toString();
                               }
 
+                              function escapeCommentHtml(value) {
+                                const div = document.createElement('div');
+                                div.textContent = value == null ? '' : String(value);
+                                return div.innerHTML;
+                              }
+
+                              function parseCommentDate(value) {
+                                if (!value) return new Date();
+                                if (value instanceof Date) return value;
+                                if (typeof value === 'string' || typeof value === 'number') {
+                                  const date = new Date(value);
+                                  return Number.isNaN(date.getTime()) ? new Date() : date;
+                                }
+                                if (value?.seconds) {
+                                  return new Date(value.seconds * 1000);
+                                }
+                                return new Date();
+                              }
+
+                              function canDeleteComment(comment) {
+                                if (!comment) return false;
+                                return comment.userId === currentUserId || !!window.isAdmin;
+                              }
+
+                              function getCommentsPanelMarkup(postId, comments = []) {
+                                const normalized = Array.isArray(comments) ? comments : [];
+
+                                const commentsHTML = normalized.length
+                                  ? normalized
+                                      .sort((a, b) => parseCommentDate(a?.createdAt) - parseCommentDate(b?.createdAt))
+                                      .map((comment) => {
+                                        const author = escapeCommentHtml(comment?.userName || 'Usuario');
+                                        const text = escapeCommentHtml(comment?.text || '');
+                                        const timeText = getTimeAgo(parseCommentDate(comment?.createdAt));
+                                        const commentId = escapeCommentHtml(comment?.id || '');
+
+                                        return `
+                                          <div class="comment-item">
+                                            <div class="comment-meta">
+                                              <span class="comment-author">${author}</span>
+                                              <span>${timeText}</span>
+                                            </div>
+                                            <div class="comment-text">${text}</div>
+                                            ${canDeleteComment(comment)
+                                              ? `<div class="comment-actions"><button type="button" class="comment-delete-btn" data-postid="${postId}" data-commentid="${commentId}">Eliminar</button></div>`
+                                              : ''}
+                                          </div>
+                                        `;
+                                      })
+                                      .join('')
+                                  : '<div class="comment-empty">Aún no hay comentarios. Sé el primero en comentar.</div>';
+
+                                return `
+                                  <div class="post-comments-side-box comments-panel" data-postid="${postId}">
+                                    <div class="comments-head">
+                                      <span>Comentarios</span>
+                                      <span>${formatReactionCount(normalized.length)}</span>
+                                    </div>
+                                    <div class="comments-list">${commentsHTML}</div>
+                                    <form class="comment-form" data-postid="${postId}">
+                                      <input class="comment-input" type="text" maxlength="300" placeholder="Escribe un comentario..." required>
+                                      <button class="comment-submit-btn" type="submit">Enviar</button>
+                                    </form>
+                                  </div>
+                                `;
+                              }
+
+                              async function getPostComments(postId) {
+                                const postRef = doc(db, 'posts', postId);
+                                const postSnap = await getDoc(postRef);
+                                if (!postSnap.exists()) return [];
+                                const data = postSnap.data() || {};
+                                return Array.isArray(data.comments) ? data.comments : [];
+                              }
+
+                              async function syncCommentsUI(postId) {
+                                const comments = await getPostComments(postId);
+
+                                const sideContainer = document.getElementById(`post-comments-side-${postId}`);
+                                if (sideContainer) {
+                                  sideContainer.innerHTML = getCommentsPanelMarkup(postId, comments);
+                                }
+
+                                const countEls = document.querySelectorAll(`.comments-btn[data-postid="${postId}"] .comments-count`);
+                                countEls.forEach((countEl) => {
+                                  countEl.textContent = formatReactionCount(comments.length);
+                                });
+
+                                const modal = document.getElementById('commentsMobileModal');
+                                const modalBody = document.getElementById('commentsMobileBody');
+                                if (modal && modalBody && modal.style.display === 'flex' && modal.dataset.postid === postId) {
+                                  modalBody.innerHTML = getCommentsPanelMarkup(postId, comments);
+                                }
+                              }
+
+                              async function submitComment(postId, text) {
+                                if (!currentUserId) {
+                                  mostrarMensaje('info', 'Inicia sesión', 'Debes iniciar sesión para comentar.');
+                                  return;
+                                }
+
+                                const normalizedText = String(text || '').trim();
+                                if (!normalizedText) return;
+                                if (normalizedText.length > 300) {
+                                  mostrarMensaje('info', 'Comentario muy largo', 'El comentario no puede superar 300 caracteres.');
+                                  return;
+                                }
+
+                                const postRef = doc(db, 'posts', postId);
+                                const postSnap = await getDoc(postRef);
+                                if (!postSnap.exists()) {
+                                  mostrarMensaje('error', 'Post no encontrado', 'La publicación ya no existe.');
+                                  return;
+                                }
+
+                                const data = postSnap.data() || {};
+                                const currentComments = Array.isArray(data.comments) ? data.comments : [];
+                                const newComment = {
+                                  id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+                                  userId: currentUserId,
+                                  userName: `${window.userData?.nombre || ''} ${window.userData?.apellido || ''}`.trim() || 'Usuario',
+                                  userPhoto: window.userData?.fotoURL || '',
+                                  text: normalizedText,
+                                  createdAt: new Date().toISOString(),
+                                };
+
+                                await updateDoc(postRef, {
+                                  comments: [...currentComments, newComment],
+                                });
+
+                                await syncCommentsUI(postId);
+                              }
+
+                              async function deleteComment(postId, commentId) {
+                                const postRef = doc(db, 'posts', postId);
+                                const postSnap = await getDoc(postRef);
+                                if (!postSnap.exists()) return;
+
+                                const data = postSnap.data() || {};
+                                const currentComments = Array.isArray(data.comments) ? data.comments : [];
+                                const targetComment = currentComments.find((comment) => comment?.id === commentId);
+                                if (!canDeleteComment(targetComment)) {
+                                  mostrarMensaje('error', 'Sin permisos', 'No puedes eliminar este comentario.');
+                                  return;
+                                }
+
+                                const updatedComments = currentComments.filter((comment) => comment?.id !== commentId);
+                                await updateDoc(postRef, { comments: updatedComments });
+                                await syncCommentsUI(postId);
+                              }
+
                               function ensureCommentsMobileModal() {
                                 let modal = document.getElementById('commentsMobileModal');
                                 if (modal) return modal;
@@ -7080,19 +7342,49 @@ const diffMins = Math.floor(diffMs / 60000);
                                 return modal;
                               }
 
-                              function openCommentsModalMobile(postId) {
+                              async function openCommentsModalMobile(postId) {
                                 const modal = ensureCommentsMobileModal();
                                 const body = document.getElementById('commentsMobileBody');
                                 if (!modal || !body) return;
 
-                                const commentsSide = document.getElementById(`post-comments-side-${postId}`);
-                                const sourceHTML = commentsSide
-                                  ? commentsSide.innerHTML
-                                  : '<div class="post-comments-side-box"><strong>Comentarios</strong><br>Próximamente aquí irá el hilo de comentarios.</div>';
-
-                                body.innerHTML = sourceHTML;
+                                modal.dataset.postid = postId;
+                                body.innerHTML = getCommentsPanelMarkup(postId, []);
                                 modal.style.display = 'flex';
+                                await syncCommentsUI(postId);
                               }
+
+                              document.addEventListener('submit', async (event) => {
+                                const form = event.target.closest('.comment-form');
+                                if (!form) return;
+
+                                event.preventDefault();
+                                const postId = form.getAttribute('data-postid');
+                                const input = form.querySelector('.comment-input');
+                                const text = input?.value || '';
+
+                                try {
+                                  await submitComment(postId, text);
+                                  if (input) input.value = '';
+                                } catch (error) {
+                                  console.error('Error guardando comentario:', error);
+                                  mostrarMensaje('error', 'Error', 'No se pudo guardar el comentario.');
+                                }
+                              });
+
+                              document.addEventListener('click', async (event) => {
+                                const deleteBtn = event.target.closest('.comment-delete-btn');
+                                if (!deleteBtn) return;
+
+                                const postId = deleteBtn.getAttribute('data-postid');
+                                const commentId = deleteBtn.getAttribute('data-commentid');
+
+                                try {
+                                  await deleteComment(postId, commentId);
+                                } catch (error) {
+                                  console.error('Error eliminando comentario:', error);
+                                  mostrarMensaje('error', 'Error', 'No se pudo eliminar el comentario.');
+                                }
+                              });
 
                               // 🔹 Manejar reacciones
                               feed.addEventListener('click', async (e) => {
@@ -7129,6 +7421,10 @@ const diffMins = Math.floor(diffMs / 60000);
 
                               const willOpen = commentsSide.classList.contains('hidden');
                               commentsSide.classList.toggle('hidden');
+
+                              if (willOpen) {
+                                await syncCommentsUI(postId);
+                              }
 
                               if (postCard) {
                                 if (willOpen) {

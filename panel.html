@@ -1525,12 +1525,45 @@
       }
 
       #sidebar {
-        padding: 8px 10px;
+        padding: 10px 10px 12px;
+        gap: 8px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+        background: linear-gradient(180deg, rgba(30, 41, 59, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%);
+        backdrop-filter: blur(6px);
+        scroll-snap-type: x proximity;
       }
 
       #sidebar button {
         padding: 8px 12px;
-        font-size: 13px;
+        font-size: 12.5px;
+        font-weight: 600;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: rgba(15, 23, 42, 0.55);
+        color: #dbe7ff;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 36px;
+        scroll-snap-align: start;
+        letter-spacing: 0.1px;
+      }
+
+      #sidebar button i {
+        margin-right: 0 !important;
+        font-size: 12px;
+      }
+
+      #sidebar button.active {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.92), rgba(37, 99, 235, 0.95));
+        color: #ffffff;
+        border-color: rgba(147, 197, 253, 0.75);
+        box-shadow: 0 8px 18px rgba(37, 99, 235, 0.28);
+      }
+
+      #sidebar #logoutBtn {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.92), rgba(220, 38, 38, 0.95));
+        border-color: rgba(248, 113, 113, 0.6);
       }
 
       #userHeader {
@@ -1589,12 +1622,16 @@
       }
 
       #sidebar {
-        padding: 5px 8px;
+        padding: 8px 8px 10px;
       }
 
       #sidebar button {
         padding: 6px 10px;
-        font-size: 12px;
+        font-size: 11.5px;
+        min-height: 34px;
+        max-width: 148px;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       #userHeader {

@@ -776,6 +776,7 @@
     .post-options-wrap {
       margin-left: auto;
       position: relative;
+      flex-shrink: 0;
     }
 
     .post-options-toggle {
@@ -903,12 +904,16 @@
       align-items: center;
       gap: 8px;
       flex-wrap: nowrap;
+    }
+
+    .post-actions-left {
       overflow-x: auto;
     }
 
     .post-actions-right {
       justify-content: flex-end;
       min-width: max-content;
+      overflow: visible;
     }
 
     .reaction-btn {
@@ -1187,6 +1192,7 @@
       .post-actions-right {
         justify-content: flex-end;
         gap: 2px;
+        overflow: visible;
       }
 
       .reaction-btn {

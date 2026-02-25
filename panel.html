@@ -800,7 +800,7 @@
       display: flex;
       gap: 12px;
       padding: 10px 12px 12px;
-      align-items: flex-start;
+      align-items: stretch;
     }
 
     .post-main-column {
@@ -811,14 +811,24 @@
     .post-sidebar-column {
       width: 30%;
       min-width: 220px;
+      position: relative;
+    }
+
+    .post-interactions-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      height: 100%;
+      border-left: 1px solid var(--border-color);
+      padding-left: 12px;
     }
 
     .post-actions {
-      padding: 10px 0 0;
+      padding: 0;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: space-between;
-      border-top: 1px solid var(--border-color);
+      justify-content: flex-start;
       gap: 10px;
     }
 
@@ -829,11 +839,12 @@
       gap: 8px;
       flex-wrap: nowrap;
       overflow-x: auto;
+      width: 100%;
     }
 
     .post-actions-right {
       justify-content: flex-end;
-      min-width: max-content;
+      min-width: 0;
     }
 
     .reaction-btn {
@@ -932,6 +943,21 @@
       .post-sidebar-column {
         width: 100%;
         min-width: 0;
+      }
+
+      .post-interactions-panel {
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+        padding-left: 0;
+        padding-top: 10px;
+      }
+
+      .post-actions {
+        align-items: stretch;
+      }
+
+      .post-actions-right {
+        justify-content: flex-start;
       }
     }
 
@@ -6451,22 +6477,24 @@ const diffMins = Math.floor(diffMs / 60000);
               ` : ''}
             </div>
 
-            <div class="post-content">
-              ${post.mediaType && post.mediaType.startsWith('image/')
-              ? `<img src="${post.mediaUrl}" alt="Publicación" loading="lazy" onerror="this.style.display='none'">`
-              : post.mediaType && (post.mediaType === 'video/url' || post.mediaType.startsWith('video/'))
-              ? `<div id="clappr-player-${postId}" class="clappr-container" data-src="${post.mediaUrl}"></div>`
-              : `<div style="padding: 20px; text-align: center; color: #666;">Tipo de archivo no compatible</div>`
-              }
-            </div>
-
-
             <div class="post-body-layout">
               <div class="post-main-column">
+                <div class="post-content">
+                  ${post.mediaType && post.mediaType.startsWith('image/')
+                  ? `<img src="${post.mediaUrl}" alt="Publicación" loading="lazy" onerror="this.style.display='none'">`
+                  : post.mediaType && (post.mediaType === 'video/url' || post.mediaType.startsWith('video/'))
+                  ? `<div id="clappr-player-${postId}" class="clappr-container" data-src="${post.mediaUrl}"></div>`
+                  : `<div style="padding: 20px; text-align: center; color: #666;">Tipo de archivo no compatible</div>`
+                  }
+                </div>
+
                 <div class="post-description" id="post-description-${postId}">
                   ${formatPostDescription(post.description, postId) || ''}
                 </div>
+              </div>
 
+              <div class="post-sidebar-column">
+                <div class="post-interactions-panel">
                 <div class="post-actions">
                   <div class="post-actions-left">
                     <button class="reaction-btn ${userReactions.like ? 'active' : ''}" data-reaction="like"
@@ -6495,14 +6523,13 @@ const diffMins = Math.floor(diffMs / 60000);
                     </button>
                   </div>
                 </div>
-              </div>
 
-              <div class="post-sidebar-column">
                 <div class="post-comments-side hidden" id="post-comments-side-${postId}">
                   <div class="post-comments-side-box">
                     <strong>Comentarios</strong><br>
                     Próximamente aquí irá el hilo de comentarios.
                   </div>
+                </div>
                 </div>
               </div>
             </div>

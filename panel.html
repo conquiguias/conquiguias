@@ -890,6 +890,10 @@
       padding: 0 15px 12px;
     }
 
+    .post-comments-side.hidden {
+      display: none;
+    }
+
     .post-comments-side-box {
       width: min(100%, 320px);
       min-height: 44px;
@@ -899,6 +903,7 @@
       padding: 10px 12px;
       color: var(--text-secondary);
       font-size: 13px;
+      line-height: 1.4;
     }
 
     /* Previsualización */
@@ -6460,8 +6465,11 @@ const diffMins = Math.floor(diffMs / 60000);
               </div>
             </div>
 
-            <div class="post-comments-side" id="post-comments-side-${postId}">
-              <div class="post-comments-side-box"></div>
+            <div class="post-comments-side hidden" id="post-comments-side-${postId}">
+              <div class="post-comments-side-box">
+                <strong>Comentarios</strong><br>
+                Próximamente aquí irá el hilo de comentarios.
+              </div>
             </div>
             `;
 
@@ -6762,6 +6770,21 @@ const diffMins = Math.floor(diffMs / 60000);
                               const postId = btn.getAttribute('data-postid');
 
                               await addReaction(postId, reaction);
+                              }
+
+                              if (e.target.classList.contains('comments-btn') || e.target.closest('.comments-btn')) {
+                              const btn = e.target.classList.contains('comments-btn') ? e.target :
+                              e.target.closest('.comments-btn');
+                              const postId = btn.getAttribute('data-postid');
+                              const commentsSide = document.getElementById(`post-comments-side-${postId}`);
+
+                              if (commentsSide) {
+                              commentsSide.classList.toggle('hidden');
+                              }
+                              }
+
+                              if (e.target.classList.contains('share-btn') || e.target.closest('.share-btn')) {
+                              mostrarMensaje('info', 'Compartir', 'Próximamente estará disponible compartir publicaciones.');
                               }
 
                               // Manejar eliminación de posts

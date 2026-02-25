@@ -773,6 +773,64 @@
       color: var(--text-secondary);
     }
 
+    .post-options-wrap {
+      margin-left: auto;
+      position: relative;
+    }
+
+    .post-options-toggle {
+      border: 1px solid var(--border-color);
+      background: rgba(15, 23, 42, 0.6);
+      color: var(--text-secondary);
+      border-radius: 8px;
+      padding: 6px 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .post-options-toggle:hover {
+      color: var(--text-primary);
+      border-color: var(--accent-color);
+      background: rgba(30, 41, 59, 0.9);
+    }
+
+    .post-options-menu {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      min-width: 190px;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      background: var(--bg-card);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+      overflow: hidden;
+      z-index: 30;
+    }
+
+    .post-options-item {
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      cursor: pointer;
+      font-size: 13px;
+      text-align: left;
+    }
+
+    .post-options-item:hover {
+      background: rgba(59, 130, 246, 0.12);
+    }
+
+    .post-option-delete-btn {
+      color: #f87171;
+    }
+
     .post-content {
       width: 100%;
     }
@@ -6785,11 +6843,6 @@ const diffMins = Math.floor(diffMs / 60000);
                   ${isLocalPost ? ' (Guardado localmente)' : ''}
                 </div>
               </div>
-              ${(window.isAdmin || isPostOwner) ? `
-              <button class="delete-post-btn" data-postid="${postId}" data-deletehash="${post.imgurData?.deletehash}">
-                <i class="fas fa-trash-alt"></i> Eliminar
-              </button>
-              ` : ''}
             </div>
 
             <div class="post-body-layout">
@@ -6842,6 +6895,21 @@ const diffMins = Math.floor(diffMs / 60000);
                 <button class="share-btn" type="button" data-postid="${postId}" title="Compartir">
                   <i class="fas fa-share-alt"></i>
                 </button>
+                ${(window.isAdmin || isPostOwner) ? `
+                <div class="post-options-wrap">
+                  <button class="post-options-toggle" type="button" title="Opciones">
+                    <i class="fas fa-cog"></i>
+                  </button>
+                  <div class="post-options-menu hidden">
+                    <button class="post-options-item post-option-edit-btn" type="button" data-postid="${post.id || postId}" data-renderid="${postId}">
+                      <i class="fas fa-pen"></i> Editar descripción
+                    </button>
+                    <button class="post-options-item post-option-delete-btn" type="button" data-postid="${post.id || postId}" data-deletehash="${post.imgurData?.deletehash}">
+                      <i class="fas fa-trash-alt"></i> Eliminar publicación
+                    </button>
+                  </div>
+                </div>
+                ` : ''}
               </div>
             </div>
             `;
@@ -7388,6 +7456,116 @@ const diffMins = Math.floor(diffMs / 60000);
 
                               // 🔹 Manejar reacciones
                               feed.addEventListener('click', async (e) => {
+                              const optionsToggle = e.target.closest('.post-options-toggle');
+                              const optionsMenu = e.target.closest('.post-options-menu');
+
+                              if (!optionsToggle && !optionsMenu) {
+                                document.querySelectorAll('.post-options-menu').forEach((menu) => {
+                                  menu.classList.add('hidden');
+                                });
+                              }
+
+                              if (optionsToggle) {
+                                const wrap = optionsToggle.closest('.post-options-wrap');
+                                const menu = wrap?.querySelector('.post-options-menu');
+                                document.querySelectorAll('.post-options-menu').forEach((otherMenu) => {
+                                  if (otherMenu !== menu) otherMenu.classList.add('hidden');
+                                });
+                                if (menu) menu.classList.toggle('hidden');
+                                return;
+                              }
+
+                              if (e.target.closest('.post-option-edit-btn')) {
+                                const editBtn = e.target.closest('.post-option-edit-btn');
+                                const postId = editBtn.getAttribute('data-postid');
+                                const renderId = editBtn.getAttribute('data-renderid');
+                                const postRef = doc(db, 'posts', postId);
+
+                                try {
+                                  const snap = await getDoc(postRef);
+                                  if (!snap.exists()) {
+                                    mostrarMensaje('error', 'No encontrado', 'La publicación ya no existe.');
+                                    return;
+                                  }
+
+                                  const data = snap.data() || {};
+                                  const currentDescription = String(data.description || '');
+                                  const newDescriptionRaw = prompt('Editar descripción de la publicación:', currentDescription);
+
+                                  if (newDescriptionRaw === null) return;
+
+                                  const newDescription = newDescriptionRaw.trim();
+                                  if (!newDescription) {
+                                    mostrarMensaje('info', 'Descripción vacía', 'La descripción no puede quedar vacía.');
+                                    return;
+                                  }
+
+                                  if (newDescription.length > 500) {
+                                    mostrarMensaje('info', 'Muy larga', 'La descripción no puede superar 500 caracteres.');
+                                    return;
+                                  }
+
+                                  await updateDoc(postRef, {
+                                    description: newDescription,
+                                    updatedAt: new Date().toISOString(),
+                                  });
+
+                                  const descriptionEl = document.getElementById(`post-description-${renderId}`);
+                                  if (descriptionEl) {
+                                    descriptionEl.innerHTML = formatPostDescription(newDescription, renderId);
+                                  }
+
+                                  const menu = editBtn.closest('.post-options-menu');
+                                  if (menu) menu.classList.add('hidden');
+
+                                  mostrarMensaje('success', '✅ Publicación actualizada', 'La descripción fue actualizada correctamente.');
+                                } catch (error) {
+                                  console.error('Error editando descripción:', error);
+                                  mostrarMensaje('error', 'Error', 'No se pudo actualizar la descripción.');
+                                }
+
+                                return;
+                              }
+
+                              if (e.target.closest('.post-option-delete-btn')) {
+                                const deleteBtn = e.target.closest('.post-option-delete-btn');
+                                const postId = deleteBtn.getAttribute('data-postid');
+                                const deletehash = deleteBtn.getAttribute('data-deletehash');
+
+                                mostrarMensaje('confirm',
+                                  'Eliminar publicación',
+                                  '¿Estás seguro de que quieres eliminar esta publicación? Esta acción no se puede deshacer.',
+                                  async () => {
+                                    try {
+                                      await deletePost(postId, deletehash);
+
+                                      const postElement = deleteBtn.closest('.post-card');
+                                      if (postElement) {
+                                        postElement.style.opacity = '0.5';
+                                        setTimeout(() => {
+                                          postElement.remove();
+                                          if (feed.children.length === 0) {
+                                            feed.innerHTML = `
+                                            <div class="empty-feed">
+                                              <h3>📷 No hay publicaciones aún</h3>
+                                              <p>¡Sé el primero en compartir algo!</p>
+                                            </div>
+                                            `;
+                                          }
+                                        }, 300);
+                                      }
+
+                                      mostrarMensaje('success', '✅ Publicación eliminada', 'La publicación ha sido eliminada correctamente.');
+                                    } catch (error) {
+                                      console.error('Error al eliminar:', error);
+                                      mostrarMensaje('error', 'Error al eliminar', 'No se pudo eliminar la publicación: ' + error.message);
+                                    }
+                                  }
+                                );
+
+                                return;
+                              }
+
                               if (e.target.classList.contains('reaction-btn') || e.target.closest('.reaction-btn')) {
                               const btn = e.target.classList.contains('reaction-btn') ? e.target :
                               e.target.closest('.reaction-btn');

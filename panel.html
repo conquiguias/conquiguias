@@ -799,11 +799,24 @@
     .post-actions {
       padding: 10px 15px;
       display: flex;
-      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
       border-top: 1px solid var(--border-color);
+      gap: 10px;
+    }
+
+    .post-actions-left,
+    .post-actions-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       flex-wrap: nowrap;
-      overflow: hidden;
       overflow-x: auto;
+    }
+
+    .post-actions-right {
+      justify-content: flex-end;
+      min-width: max-content;
     }
 
     .reaction-btn {
@@ -845,6 +858,47 @@
     .reaction-btn.active .reaction-count {
       color: var(--accent-color);
       font-weight: bold;
+    }
+
+    .post-action-link,
+    .share-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+    }
+
+    .post-action-link:hover,
+    .share-btn:hover {
+      color: var(--accent-color);
+    }
+
+    .post-actions-separator {
+      color: var(--text-secondary);
+      opacity: 0.7;
+      user-select: none;
+    }
+
+    .post-comments-side {
+      display: flex;
+      justify-content: flex-end;
+      padding: 0 15px 12px;
+    }
+
+    .post-comments-side-box {
+      width: min(100%, 320px);
+      min-height: 44px;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      background: var(--bg-secondary);
+      padding: 10px 12px;
+      color: var(--text-secondary);
+      font-size: 13px;
     }
 
     /* Previsualización */
@@ -5754,7 +5808,7 @@ const diffMins = Math.floor(diffMs / 60000);
       moderatedAt: null,
       moderationReason: null,
       reactions: {
-      like: [], love: [], laugh: [], wow: [], sad: [], angry: [], seven: []
+      like: [], laugh: [], seven: []
       },
       comments: []
       };
@@ -5825,7 +5879,7 @@ const diffMins = Math.floor(diffMs / 60000);
             description: description,
             timestamp: new Date().toISOString(),
             imgurData: { id: null, deletehash: null },
-            reactions: { like: [], love: [], laugh: [], wow: [], sad: [], angry: [], seven: [] },
+            reactions: { like: [], laugh: [], seven: [] },
             comments: [],
             status: 'approved'
           };
@@ -5913,7 +5967,7 @@ const diffMins = Math.floor(diffMs / 60000);
       description: description,
       timestamp: new Date().toISOString(),
       imgurData: mediaData,
-      reactions: { like: [], love: [], laugh: [], wow: [], sad: [], angry: [], seven: [] },
+      reactions: { like: [], laugh: [], seven: [] },
       comments: [],
       status: window.isAdmin ? 'approved' : 'pending'
       };
@@ -6310,17 +6364,13 @@ const diffMins = Math.floor(diffMs / 60000);
 
             // Preparar reacciones (con valores por defecto si no existen)
             const reactions = post.reactions || {
-            like: [], love: [], laugh: [], wow: [], sad: [], angry: [], seven: []
+            like: [], laugh: [], seven: []
             };
 
             // Determinar si el usuario actual está en cada reacción
             const userReactions = {
             like: reactions.like?.includes(currentUserId) || false,
-            love: reactions.love?.includes(currentUserId) || false,
             laugh: reactions.laugh?.includes(currentUserId) || false,
-            wow: reactions.wow?.includes(currentUserId) || false,
-            sad: reactions.sad?.includes(currentUserId) || false,
-            angry: reactions.angry?.includes(currentUserId) || false,
             seven: reactions.seven?.includes(currentUserId) || false
             };
 
@@ -6382,57 +6432,37 @@ const diffMins = Math.floor(diffMs / 60000);
             </div>
 
             <div class="post-actions">
-              <button class="reaction-btn ${userReactions.like ? 'active' : ''}" data-reaction="like"
-                data-postid="${postId}">
-                <i class="fas fa-heart"></i> <span class="reaction-count">${reactions.like?.length || 0}</span>
-              </button>
+              <div class="post-actions-left">
+                <button class="reaction-btn ${userReactions.like ? 'active' : ''}" data-reaction="like"
+                  data-postid="${postId}">
+                  <i class="fas fa-heart"></i> <span class="reaction-count">${reactions.like?.length || 0}</span>
+                </button>
 
-              <button class="reaction-btn ${userReactions.love ? 'active' : ''}" data-reaction="love"
-                data-postid="${postId}">
-                <i class="fas fa-grin-hearts"></i> <span class="reaction-count">${reactions.love?.length || 0}</span>
-              </button>
+                <button class="reaction-btn ${userReactions.laugh ? 'active' : ''}" data-reaction="laugh"
+                  data-postid="${postId}">
+                  <i class="fas fa-laugh"></i> <span class="reaction-count">${reactions.laugh?.length || 0}</span>
+                </button>
 
-              <button class="reaction-btn ${userReactions.laugh ? 'active' : ''}" data-reaction="laugh"
-                data-postid="${postId}">
-                <i class="fas fa-laugh"></i> <span class="reaction-count">${reactions.laugh?.length || 0}</span>
-              </button>
+                <button class="reaction-btn ${userReactions.seven ? 'active' : ''}" data-reaction="seven"
+                  data-postid="${postId}">
+                  <span style="font-weight: bold; font-size: 16px;">7</span> <span class="reaction-count">${reactions.seven?.length || 0}</span>
+                </button>
+              </div>
 
-              <button class="reaction-btn ${userReactions.wow ? 'active' : ''}" data-reaction="wow"
-                data-postid="${postId}">
-                <i class="fas fa-grin-squint-tears"></i> <span class="reaction-count">${reactions.wow?.length || 0}</span>
-              </button>
-
-              <button class="reaction-btn ${userReactions.sad ? 'active' : ''}" data-reaction="sad"
-                data-postid="${postId}">
-                <i class="fas fa-surprise"></i> <span class="reaction-count">${reactions.sad?.length || 0}</span>
-              </button>
-
-              <button class="reaction-btn ${userReactions.angry ? 'active' : ''}" data-reaction="angry"
-                data-postid="${postId}">
-                <i class="fas fa-angry"></i> <span class="reaction-count">${reactions.angry?.length || 0}</span>
-              </button>
-
-              <button class="reaction-btn ${userReactions.seven ? 'active' : ''}" data-reaction="seven"
-                data-postid="${postId}">
-                <span style="font-weight: bold; font-size: 16px;">7</span> <span class="reaction-count">${reactions.seven?.length || 0}</span>
-              </button>
+              <div class="post-actions-right">
+                <button class="post-action-link comments-btn" type="button" data-postid="${postId}">
+                  <i class="fas fa-comment"></i> Comentarios
+                </button>
+                <span class="post-actions-separator">|</span>
+                <button class="share-btn" type="button" data-postid="${postId}" title="Compartir">
+                  <i class="fas fa-share-alt"></i>
+                </button>
+              </div>
             </div>
 
-            ${post.comments && post.comments.length > 0 ? `
-            <div class="post-comments" style="padding: 10px 15px; border-top: 1px solid #f0f0f0;">
-              <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Comentarios:</div>
-              ${post.comments.slice(0, 2).map(comment => `
-              <div style="margin-bottom: 5px; font-size: 13px;">
-                <strong>${comment.userName}:</strong> ${comment.text}
-              </div>
-              `).join('')}
-              ${post.comments.length > 2 ? `
-              <div style="font-size: 12px; color: #1976d2; cursor: pointer;">
-                Ver ${post.comments.length - 2} comentarios más...
-              </div>
-              ` : ''}
+            <div class="post-comments-side" id="post-comments-side-${postId}">
+              <div class="post-comments-side-box"></div>
             </div>
-            ` : ''}
             `;
 
             feedDestino.appendChild(postElement);
@@ -6805,13 +6835,13 @@ const diffMins = Math.floor(diffMs / 60000);
                               // Inicializar reactions si no existen
                               if (!postData.reactions) {
                               postData.reactions = {
-                              like: [], love: [], laugh: [], wow: [], sad: [], angry: [], seven: []
+                              like: [], laugh: [], seven: []
                               };
                               }
 
                               // 🔥 NUEVA LÓGICA: Reacciones exclusivas
                               const updatedReactions = { ...postData.reactions };
-                              const allReactionTypes = ['like', 'love', 'laugh', 'wow', 'sad', 'angry', 'seven'];
+                              const allReactionTypes = ['like', 'laugh', 'seven'];
 
                               // 1. Verificar si el usuario ya tenía esta misma reacción
                               const currentReactionIndex = updatedReactions[newReaction]?.indexOf(currentUserId);

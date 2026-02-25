@@ -2607,6 +2607,13 @@ transition: all 0.3s ease;
         </select>
         <input type="text" id="pais" placeholder="País" required>
 
+        <h3 id="passwordSectionTitle">Contraseña:</h3>
+        <input type="password" id="newPassword" placeholder="Nueva contraseña (mínimo 6 caracteres)">
+        <input type="password" id="confirmPassword" placeholder="Confirmar nueva contraseña">
+        <p id="passwordSectionHelp" style="margin-top: 8px; font-size: 12px; color: #666;">
+          Si completas estos campos, tu contraseña se actualizará.
+        </p>
+
         <button type="submit" class="saveBtn">Guardar cambios</button>
       </form>
     </div>
@@ -3619,6 +3626,21 @@ transition: all 0.3s ease;
       const db = getFirestore(app);
       const storage = getStorage(app);
 
+      async function callAuthAPI(action, data) {
+        const response = await fetch('/api/auth.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, data })
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error || 'Error en autenticación');
+        }
+
+        return result;
+      }
+
       // Elementos UI
       const inicioNombre = document.getElementById("inicioNombre");
       const inicioFoto = document.getElementById("inicioFoto");
@@ -3642,6 +3664,10 @@ transition: all 0.3s ease;
       const edadInput = document.getElementById("edad");
       const sexoInput = document.getElementById("sexo");
       const paisInput = document.getElementById("pais");
+      const newPasswordInput = document.getElementById("newPassword");
+      const confirmPasswordInput = document.getElementById("confirmPassword");
+      const passwordSectionTitle = document.getElementById("passwordSectionTitle");
+      const passwordSectionHelp = document.getElementById("passwordSectionHelp");
       const listaEspecialidades = document.getElementById("listaEspecialidades");
       const archivosContainer = document.getElementById("archivosContainer");
       const especialidadActualH3 = document.getElementById("especialidadActual");
@@ -3744,6 +3770,16 @@ transition: all 0.3s ease;
         }
 
         window.currentUserId = user.uid;
+        const hasPasswordProvider = (user.providerData || []).some(
+          provider => provider.providerId === "password",
+        );
+
+        passwordSectionTitle.textContent = hasPasswordProvider
+          ? "Cambiar contraseña:"
+          : "Crear contraseña de acceso:";
+        passwordSectionHelp.textContent = hasPasswordProvider
+          ? "Si completas estos campos, reemplazaremos tu contraseña actual."
+          : "Aún no tienes contraseña. Configúrala para iniciar sesión también con correo y contraseña.";
 
         const docRef = doc(db, "usuarios", currentUserId);
         const docSnap = await getDoc(docRef);
@@ -3843,8 +3879,28 @@ transition: all 0.3s ease;
 
         let newPhotoURL = currentPhotoURL;
         const file = fotoInput.files[0];
+        const newPassword = newPasswordInput.value.trim();
+        const confirmPassword = confirmPasswordInput.value.trim();
 
         try {
+          if (newPassword || confirmPassword) {
+            if (newPassword.length < 6) {
+              mostrarMensaje("info", "⚠️ Contraseña inválida", "La contraseña debe tener al menos 6 caracteres.");
+              return;
+            }
+
+            if (newPassword !== confirmPassword) {
+              mostrarMensaje("info", "⚠️ Contraseñas no coinciden", "Verifica que ambas contraseñas sean iguales.");
+              return;
+            }
+
+            const idToken = await auth.currentUser.getIdToken(true);
+            await callAuthAPI("setUserPassword", {
+              idToken,
+              newPassword,
+            });
+          }
+
           // ✅ Validar tamaño antes de subir
           if (file && file.size > 1024 * 1024) {
             mostrarMensaje("info", "⚠️ La imagen no debe superar 1 MB.", "");
@@ -3880,6 +3936,9 @@ transition: all 0.3s ease;
             pais: paisInput.value,
             fotoURL: newPhotoURL
           });
+
+          newPasswordInput.value = "";
+          confirmPasswordInput.value = "";
 
           mostrarMensaje("info", "✅ Información actualizada correctamente.", "", () => {
             window.location.reload();

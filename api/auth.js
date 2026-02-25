@@ -249,6 +249,47 @@ module.exports = async (req, res) => {
       });
     }
 
+    // 🔹 CONFIGURAR / CAMBIAR CONTRASEÑA DEL USUARIO AUTENTICADO
+    else if (action === "setUserPassword") {
+      const { idToken, newPassword } = data || {};
+
+      if (!idToken || !newPassword) {
+        return res
+          .status(400)
+          .json({ error: "Token y nueva contraseña son obligatorios" });
+      }
+
+      if (String(newPassword).length < 6) {
+        return res
+          .status(400)
+          .json({ error: "La contraseña debe tener al menos 6 caracteres" });
+      }
+
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      const uid = decodedToken.uid;
+
+      await admin.auth().updateUser(uid, {
+        password: String(newPassword),
+      });
+
+      await admin
+        .firestore()
+        .collection("usuarios")
+        .doc(uid)
+        .set(
+          {
+            passwordConfigurada: true,
+            actualizado: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
+
+      return res.status(200).json({
+        success: true,
+        message: "Contraseña actualizada correctamente",
+      });
+    }
+
     // 🔹 VERIFICAR CONTRASEÑA ADMIN (Simulada/Hardcoded por solicitud)
     else if (action === "verifyAdminPassword") {
       const { password } = data;

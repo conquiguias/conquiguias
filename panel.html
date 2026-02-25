@@ -800,35 +800,37 @@
       display: flex;
       gap: 12px;
       padding: 10px 12px 12px;
-      align-items: stretch;
+      align-items: flex-start;
     }
 
     .post-main-column {
-      width: 70%;
+      width: 100%;
       min-width: 0;
     }
 
     .post-sidebar-column {
       width: 30%;
       min-width: 220px;
-      position: relative;
-    }
-
-    .post-interactions-panel {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      height: 100%;
+      display: none;
       border-left: 1px solid var(--border-color);
       padding-left: 12px;
     }
 
+    .post-card.comments-open .post-main-column {
+      width: 70%;
+    }
+
+    .post-card.comments-open .post-sidebar-column {
+      display: block;
+    }
+
     .post-actions {
-      padding: 0;
+      padding: 10px 15px;
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       align-items: center;
-      justify-content: flex-start;
+      justify-content: space-between;
+      border-top: 1px solid var(--border-color);
       gap: 10px;
     }
 
@@ -839,12 +841,11 @@
       gap: 8px;
       flex-wrap: nowrap;
       overflow-x: auto;
-      width: 100%;
     }
 
     .post-actions-right {
       justify-content: flex-end;
-      min-width: 0;
+      min-width: max-content;
     }
 
     .reaction-btn {
@@ -945,19 +946,11 @@
         min-width: 0;
       }
 
-      .post-interactions-panel {
+      .post-sidebar-column {
         border-left: none;
         border-top: 1px solid var(--border-color);
         padding-left: 0;
         padding-top: 10px;
-      }
-
-      .post-actions {
-        align-items: stretch;
-      }
-
-      .post-actions-right {
-        justify-content: flex-start;
       }
     }
 
@@ -6494,43 +6487,41 @@ const diffMins = Math.floor(diffMs / 60000);
               </div>
 
               <div class="post-sidebar-column">
-                <div class="post-interactions-panel">
-                <div class="post-actions">
-                  <div class="post-actions-left">
-                    <button class="reaction-btn ${userReactions.like ? 'active' : ''}" data-reaction="like"
-                      data-postid="${postId}">
-                      <i class="fas fa-heart"></i> <span class="reaction-count">${reactions.like?.length || 0}</span>
-                    </button>
-
-                    <button class="reaction-btn ${userReactions.laugh ? 'active' : ''}" data-reaction="laugh"
-                      data-postid="${postId}">
-                      <i class="fas fa-laugh"></i> <span class="reaction-count">${reactions.laugh?.length || 0}</span>
-                    </button>
-
-                    <button class="reaction-btn ${userReactions.seven ? 'active' : ''}" data-reaction="seven"
-                      data-postid="${postId}">
-                      <span style="font-weight: bold; font-size: 16px;">7</span> <span class="reaction-count">${reactions.seven?.length || 0}</span>
-                    </button>
-                  </div>
-
-                  <div class="post-actions-right">
-                    <button class="post-action-link comments-btn" type="button" data-postid="${postId}">
-                      <i class="fas fa-comment"></i> Comentarios
-                    </button>
-                    <span class="post-actions-separator">|</span>
-                    <button class="share-btn" type="button" data-postid="${postId}" title="Compartir">
-                      <i class="fas fa-share-alt"></i>
-                    </button>
-                  </div>
-                </div>
-
                 <div class="post-comments-side hidden" id="post-comments-side-${postId}">
                   <div class="post-comments-side-box">
                     <strong>Comentarios</strong><br>
                     Próximamente aquí irá el hilo de comentarios.
                   </div>
                 </div>
-                </div>
+              </div>
+            </div>
+
+            <div class="post-actions">
+              <div class="post-actions-left">
+                <button class="reaction-btn ${userReactions.like ? 'active' : ''}" data-reaction="like"
+                  data-postid="${postId}">
+                  <i class="fas fa-heart"></i> <span class="reaction-count">${reactions.like?.length || 0}</span>
+                </button>
+
+                <button class="reaction-btn ${userReactions.laugh ? 'active' : ''}" data-reaction="laugh"
+                  data-postid="${postId}">
+                  <i class="fas fa-laugh"></i> <span class="reaction-count">${reactions.laugh?.length || 0}</span>
+                </button>
+
+                <button class="reaction-btn ${userReactions.seven ? 'active' : ''}" data-reaction="seven"
+                  data-postid="${postId}">
+                  <span style="font-weight: bold; font-size: 16px;">7</span> <span class="reaction-count">${reactions.seven?.length || 0}</span>
+                </button>
+              </div>
+
+              <div class="post-actions-right">
+                <button class="post-action-link comments-btn" type="button" data-postid="${postId}">
+                  <i class="fas fa-comment"></i> Comentarios
+                </button>
+                <span class="post-actions-separator">|</span>
+                <button class="share-btn" type="button" data-postid="${postId}" title="Compartir">
+                  <i class="fas fa-share-alt"></i>
+                </button>
               </div>
             </div>
             `;
@@ -6839,9 +6830,28 @@ const diffMins = Math.floor(diffMs / 60000);
                               e.target.closest('.comments-btn');
                               const postId = btn.getAttribute('data-postid');
                               const commentsSide = document.getElementById(`post-comments-side-${postId}`);
+                              const postCard = btn.closest('.post-card');
 
                               if (commentsSide) {
+                              const allCommentsSide = document.querySelectorAll('.post-comments-side');
+                              allCommentsSide.forEach(panel => {
+                                if (panel.id !== `post-comments-side-${postId}`) {
+                                  panel.classList.add('hidden');
+                                  const otherPostCard = panel.closest('.post-card');
+                                  if (otherPostCard) otherPostCard.classList.remove('comments-open');
+                                }
+                              });
+
+                              const willOpen = commentsSide.classList.contains('hidden');
                               commentsSide.classList.toggle('hidden');
+
+                              if (postCard) {
+                                if (willOpen) {
+                                  postCard.classList.add('comments-open');
+                                } else {
+                                  postCard.classList.remove('comments-open');
+                                }
+                              }
                               }
                               }
 

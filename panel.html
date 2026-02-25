@@ -1003,7 +1003,9 @@
 
       .post-actions-left {
         flex: 1;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        justify-content: stretch;
         gap: 4px;
       }
 
@@ -1017,6 +1019,8 @@
         margin: 0;
         gap: 4px;
         min-width: 0;
+        width: 100%;
+        justify-content: center;
       }
 
       .reaction-count {

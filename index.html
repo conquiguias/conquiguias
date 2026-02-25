@@ -171,8 +171,58 @@
         const registerForm = document.getElementById("registerForm");
         const resetPasswordForm = document.getElementById("resetPasswordForm");
         const loginBtn = document.getElementById("loginBtn");
+        const googleLoginBtn = document.getElementById("googleLoginBtn");
         const registerBtn = document.getElementById("registerBtn");
         const resetPasswordBtn = document.getElementById("resetPasswordBtn");
+
+        let app;
+        let auth;
+
+        async function ensureFirebaseAuth() {
+          if (auth) return auth;
+
+          if (!firebaseConfig) {
+            await new Promise((r) => setTimeout(r, 1000));
+            if (!firebaseConfig)
+              throw new Error("Configuración de seguridad no cargada");
+          }
+
+          const { initializeApp } =
+            await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js");
+          const { getAuth } =
+            await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
+
+          app = app || initializeApp(firebaseConfig);
+          auth = getAuth(app);
+          return auth;
+        }
+
+        async function syncSocialProfile(user) {
+          const idToken = await user.getIdToken();
+          await callAPI("upsertSocialUser", { idToken });
+        }
+
+        async function processGoogleRedirectResult() {
+          try {
+            const authInstance = await ensureFirebaseAuth();
+            const { getRedirectResult } = await import(
+              "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js"
+            );
+
+            const redirectResult = await getRedirectResult(authInstance);
+            if (!redirectResult?.user) return;
+
+            await syncSocialProfile(redirectResult.user);
+            window.location.href = "panel.html";
+          } catch (error) {
+            console.error("Error procesando login por redirección:", error);
+            mostrarMensaje(
+              "error",
+              "⚠️ No se pudo completar el acceso con Google",
+              "Intenta nuevamente. Si persiste, revisa la configuración de Firebase Authentication.",
+            );
+          }
+        }
 
         // 🔹 LOGIN - MANTENEMOS FIREBASE AUTH (es seguro)
         loginForm.addEventListener("submit", async (e) => {
@@ -183,24 +233,12 @@
           showLoader(loginBtn, "⏳ Iniciando sesión...");
 
           try {
-            if (!firebaseConfig) {
-              // Intentar esperar un poco si la config aun no carga
-              await new Promise((r) => setTimeout(r, 1000));
-              if (!firebaseConfig)
-                throw new Error("Configuración de seguridad no cargada");
-            }
-
-            // Importamos Firebase Auth solo para login
-            const { initializeApp } =
-              await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js");
-            const { getAuth, signInWithEmailAndPassword } =
+            const authInstance = await ensureFirebaseAuth();
+            const { signInWithEmailAndPassword } =
               await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
 
-            const app = initializeApp(firebaseConfig);
-            const auth = getAuth(app);
-
             const userCredential = await signInWithEmailAndPassword(
-              auth,
+              authInstance,
               email,
               password,
             );
@@ -220,6 +258,61 @@
             );
           }
         });
+
+        googleLoginBtn.addEventListener("click", async () => {
+          showLoader(googleLoginBtn, "⏳ Conectando con Google...");
+
+          try {
+            const authInstance = await ensureFirebaseAuth();
+            const {
+              GoogleAuthProvider,
+              signInWithPopup,
+              signInWithRedirect,
+            } = await import(
+              "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js"
+            );
+
+            const provider = new GoogleAuthProvider();
+            provider.setCustomParameters({ prompt: "select_account" });
+
+            const result = await signInWithPopup(authInstance, provider);
+            await syncSocialProfile(result.user);
+
+            showLoader(googleLoginBtn, "✅ Redirigiendo...");
+            setTimeout(() => {
+              window.location.href = "panel.html";
+            }, 700);
+          } catch (error) {
+            if (
+              error?.code === "auth/popup-blocked" ||
+              error?.code === "auth/popup-closed-by-user"
+            ) {
+              try {
+                const authInstance = await ensureFirebaseAuth();
+                const { GoogleAuthProvider, signInWithRedirect } = await import(
+                  "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js"
+                );
+                const provider = new GoogleAuthProvider();
+                provider.setCustomParameters({ prompt: "select_account" });
+                await signInWithRedirect(authInstance, provider);
+                return;
+              } catch (redirectError) {
+                hideLoader(googleLoginBtn, "Continuar con Google");
+                console.error(redirectError);
+              }
+            }
+
+            hideLoader(googleLoginBtn, "Continuar con Google");
+            console.error(error);
+            mostrarMensaje(
+              "error",
+              "⚠️ No se pudo iniciar con Google",
+              "Verifica que Google esté habilitado en Firebase Authentication y que tu dominio esté autorizado.",
+            );
+          }
+        });
+
+        processGoogleRedirectResult();
 
         // 🔹 REGISTRO - USAMOS NUESTRA API SEGURA
         registerForm.addEventListener("submit", async (e) => {
@@ -486,6 +579,39 @@
         cursor: not-allowed;
       }
 
+      .divider {
+        margin: 18px 0 10px;
+        display: flex;
+        align-items: center;
+        color: var(--text-secondary);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .divider::before,
+      .divider::after {
+        content: "";
+        flex: 1;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .divider span {
+        padding: 0 10px;
+      }
+
+      #googleLoginBtn {
+        margin-top: 8px;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+      }
+
+      #googleLoginBtn:hover:not(:disabled) {
+        background: var(--bg-card);
+        border-color: var(--accent-color);
+      }
+
       /* Links */
       .toggle, .forgot-password, .back-link {
         color: var(--accent-color);
@@ -672,6 +798,10 @@
           </div>
           <button type="submit" id="loginBtn" style="font-size: 20px">
             Entrar
+          </button>
+          <div class="divider"><span>o</span></div>
+          <button type="button" id="googleLoginBtn" style="font-size: 18px">
+            <i class="fab fa-google" style="margin-right: 8px"></i>Continuar con Google
           </button>
         </form>
         <div class="forgot-password" onclick="showResetPassword()">

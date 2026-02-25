@@ -183,6 +183,72 @@ module.exports = async (req, res) => {
       });
     }
 
+    // 🔹 CREAR/ACTUALIZAR PERFIL SOCIAL (GOOGLE)
+    else if (action === "upsertSocialUser") {
+      const { idToken } = data || {};
+
+      if (!idToken) {
+        return res.status(400).json({ error: "Token de autenticación requerido" });
+      }
+
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      const uid = decodedToken.uid;
+      const user = await admin.auth().getUser(uid);
+
+      const displayName = (user.displayName || "").trim();
+      const nameParts = displayName ? displayName.split(/\s+/) : [];
+      const nombreSugerido =
+        nameParts.length > 0
+          ? nameParts.shift()
+          : user.email
+            ? user.email.split("@")[0]
+            : "Usuario";
+      const apellidoSugerido = nameParts.join(" ");
+
+      const userRef = admin.firestore().collection("usuarios").doc(uid);
+      const userDoc = await userRef.get();
+      const existingData = userDoc.exists ? userDoc.data() || {} : {};
+
+      const baseData = {
+        email: user.email || "",
+        emailVerificado: !!user.emailVerified,
+        fotoURL: user.photoURL || null,
+        proveedor: decodedToken.firebase?.sign_in_provider || "google.com",
+        actualizado: admin.firestore.FieldValue.serverTimestamp(),
+      };
+
+      const profileData = {
+        nombre: existingData.nombre || nombreSugerido,
+        apellido: existingData.apellido || apellidoSugerido,
+      };
+
+      if (!userDoc.exists) {
+        await userRef.set({
+          ...baseData,
+          ...profileData,
+          edad: null,
+          sexo: "",
+          pais: "",
+          creado: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      } else {
+        await userRef.set(
+          {
+            ...baseData,
+            ...profileData,
+          },
+          { merge: true },
+        );
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Perfil social sincronizado correctamente",
+        userId: uid,
+        isNewUser: !userDoc.exists,
+      });
+    }
+
     // 🔹 VERIFICAR CONTRASEÑA ADMIN (Simulada/Hardcoded por solicitud)
     else if (action === "verifyAdminPassword") {
       const { password } = data;

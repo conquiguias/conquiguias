@@ -813,6 +813,7 @@
       min-width: 220px;
       display: none;
       border-left: 1px solid var(--border-color);
+      padding-top: 12px;
       padding-left: 12px;
     }
 
@@ -935,6 +936,50 @@
       line-height: 1.4;
     }
 
+    .comments-mobile-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      z-index: 5000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+
+    .comments-mobile-content {
+      width: min(100%, 520px);
+      max-height: 85vh;
+      overflow: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      background: var(--bg-card);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .comments-mobile-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .comments-mobile-close {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 2px 6px;
+    }
+
+    .comments-mobile-body {
+      padding: 12px 14px;
+    }
+
     @media (max-width: 980px) {
       .post-body-layout {
         flex-direction: column;
@@ -951,6 +996,10 @@
         border-top: 1px solid var(--border-color);
         padding-left: 0;
         padding-top: 10px;
+      }
+
+      .post-card.comments-open .post-sidebar-column {
+        display: none;
       }
     }
 
@@ -6814,6 +6863,55 @@ const diffMins = Math.floor(diffMs / 60000);
                               });
                               }
 
+                              function ensureCommentsMobileModal() {
+                                let modal = document.getElementById('commentsMobileModal');
+                                if (modal) return modal;
+
+                                modal = document.createElement('div');
+                                modal.id = 'commentsMobileModal';
+                                modal.className = 'comments-mobile-modal';
+                                modal.innerHTML = `
+                                  <div class="comments-mobile-content" role="dialog" aria-modal="true" aria-label="Comentarios">
+                                    <div class="comments-mobile-header">
+                                      <span>Comentarios</span>
+                                      <button type="button" class="comments-mobile-close" id="commentsMobileClose">×</button>
+                                    </div>
+                                    <div class="comments-mobile-body" id="commentsMobileBody"></div>
+                                  </div>
+                                `;
+
+                                document.body.appendChild(modal);
+
+                                modal.addEventListener('click', (event) => {
+                                  if (event.target === modal) {
+                                    modal.style.display = 'none';
+                                  }
+                                });
+
+                                const closeBtn = modal.querySelector('#commentsMobileClose');
+                                if (closeBtn) {
+                                  closeBtn.addEventListener('click', () => {
+                                    modal.style.display = 'none';
+                                  });
+                                }
+
+                                return modal;
+                              }
+
+                              function openCommentsModalMobile(postId) {
+                                const modal = ensureCommentsMobileModal();
+                                const body = document.getElementById('commentsMobileBody');
+                                if (!modal || !body) return;
+
+                                const commentsSide = document.getElementById(`post-comments-side-${postId}`);
+                                const sourceHTML = commentsSide
+                                  ? commentsSide.innerHTML
+                                  : '<div class="post-comments-side-box"><strong>Comentarios</strong><br>Próximamente aquí irá el hilo de comentarios.</div>';
+
+                                body.innerHTML = sourceHTML;
+                                modal.style.display = 'flex';
+                              }
+
                               // 🔹 Manejar reacciones
                               feed.addEventListener('click', async (e) => {
                               if (e.target.classList.contains('reaction-btn') || e.target.closest('.reaction-btn')) {
@@ -6831,6 +6929,11 @@ const diffMins = Math.floor(diffMs / 60000);
                               const postId = btn.getAttribute('data-postid');
                               const commentsSide = document.getElementById(`post-comments-side-${postId}`);
                               const postCard = btn.closest('.post-card');
+
+                              if (window.matchMedia('(max-width: 980px)').matches) {
+                                openCommentsModalMobile(postId);
+                                return;
+                              }
 
                               if (commentsSide) {
                               const allCommentsSide = document.querySelectorAll('.post-comments-side');

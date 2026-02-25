@@ -991,6 +991,52 @@
         min-width: 0;
       }
 
+      .post-actions {
+        gap: 6px;
+      }
+
+      .post-actions-left,
+      .post-actions-right {
+        overflow-x: hidden;
+        min-width: 0;
+      }
+
+      .post-actions-left {
+        flex: 1;
+        justify-content: space-between;
+        gap: 4px;
+      }
+
+      .post-actions-right {
+        justify-content: flex-end;
+        gap: 2px;
+      }
+
+      .reaction-btn {
+        padding: 6px 7px;
+        margin: 0;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      .reaction-count {
+        min-width: 0;
+        font-size: 12px;
+      }
+
+      .post-action-link,
+      .share-btn {
+        padding: 6px;
+      }
+
+      .comments-label {
+        display: none;
+      }
+
+      .post-actions-separator {
+        margin: 0 2px;
+      }
+
       .post-sidebar-column {
         border-left: none;
         border-top: 1px solid var(--border-color);
@@ -1359,7 +1405,7 @@
     /* 🔹 LAPTOP (1024px - 1440px) */
     @media (max-width: 1440px) {
       #mainContent {
-        padding: 20px;
+        padding: 0px;
       }
 
       .card:not(.card-certificaciones) {
@@ -6549,23 +6595,23 @@ const diffMins = Math.floor(diffMs / 60000);
               <div class="post-actions-left">
                 <button class="reaction-btn ${userReactions.like ? 'active' : ''}" data-reaction="like"
                   data-postid="${postId}">
-                  <i class="fas fa-heart"></i> <span class="reaction-count">${reactions.like?.length || 0}</span>
+                  <i class="fas fa-heart"></i> <span class="reaction-count">${formatReactionCount(reactions.like?.length || 0)}</span>
                 </button>
 
                 <button class="reaction-btn ${userReactions.laugh ? 'active' : ''}" data-reaction="laugh"
                   data-postid="${postId}">
-                  <i class="fas fa-grin-squint-tears"></i> <span class="reaction-count">${reactions.laugh?.length || 0}</span>
+                  <i class="fas fa-grin-squint-tears"></i> <span class="reaction-count">${formatReactionCount(reactions.laugh?.length || 0)}</span>
                 </button>
 
                 <button class="reaction-btn ${userReactions.seven ? 'active' : ''}" data-reaction="seven"
                   data-postid="${postId}">
-                  <span style="font-weight: bold; font-size: 16px;">7</span> <span class="reaction-count">${reactions.seven?.length || 0}</span>
+                  <span style="font-weight: bold; font-size: 16px;">7</span> <span class="reaction-count">${formatReactionCount(reactions.seven?.length || 0)}</span>
                 </button>
               </div>
 
               <div class="post-actions-right">
                 <button class="post-action-link comments-btn" type="button" data-postid="${postId}">
-                  <i class="fas fa-comment"></i> Comentarios
+                  <i class="fas fa-comment"></i> <span class="comments-label">Comentarios</span>
                 </button>
                 <span class="post-actions-separator">|</span>
                 <button class="share-btn" type="button" data-postid="${postId}" title="Compartir">
@@ -6863,6 +6909,28 @@ const diffMins = Math.floor(diffMs / 60000);
                               });
                               }
 
+                              function formatReactionCount(count) {
+                                const numericCount = Number(count) || 0;
+
+                                if (numericCount >= 1000000) {
+                                  const valueInMillions = numericCount / 1000000;
+                                  const formatted = valueInMillions >= 10
+                                    ? Math.floor(valueInMillions).toString()
+                                    : valueInMillions.toFixed(1).replace(/\.0$/, '');
+                                  return `${formatted} M`;
+                                }
+
+                                if (numericCount >= 1000) {
+                                  const valueInThousands = numericCount / 1000;
+                                  const formatted = valueInThousands >= 10
+                                    ? Math.floor(valueInThousands).toString()
+                                    : valueInThousands.toFixed(1).replace(/\.0$/, '');
+                                  return `${formatted} mil`;
+                                }
+
+                                return numericCount.toString();
+                              }
+
                               function ensureCommentsMobileModal() {
                                 let modal = document.getElementById('commentsMobileModal');
                                 if (modal) return modal;
@@ -7102,7 +7170,7 @@ const diffMins = Math.floor(diffMs / 60000);
 
                               // Actualizar contador
                               if (countElement) {
-                              countElement.textContent = count;
+                              countElement.textContent = formatReactionCount(count);
                               }
 
                               // Actualizar estado activo

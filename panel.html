@@ -796,8 +796,25 @@
       font-size: 14px;
     }
 
+    .post-body-layout {
+      display: flex;
+      gap: 12px;
+      padding: 10px 12px 12px;
+      align-items: flex-start;
+    }
+
+    .post-main-column {
+      width: 70%;
+      min-width: 0;
+    }
+
+    .post-sidebar-column {
+      width: 30%;
+      min-width: 220px;
+    }
+
     .post-actions {
-      padding: 10px 15px;
+      padding: 10px 0 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -886,8 +903,8 @@
 
     .post-comments-side {
       display: flex;
-      justify-content: flex-end;
-      padding: 0 15px 12px;
+      justify-content: flex-start;
+      padding: 0;
     }
 
     .post-comments-side.hidden {
@@ -895,7 +912,7 @@
     }
 
     .post-comments-side-box {
-      width: min(100%, 320px);
+      width: 100%;
       min-height: 44px;
       border: 1px solid var(--border-color);
       border-radius: 10px;
@@ -904,6 +921,18 @@
       color: var(--text-secondary);
       font-size: 13px;
       line-height: 1.4;
+    }
+
+    @media (max-width: 980px) {
+      .post-body-layout {
+        flex-direction: column;
+      }
+
+      .post-main-column,
+      .post-sidebar-column {
+        width: 100%;
+        min-width: 0;
+      }
     }
 
     /* Previsualización */
@@ -6432,43 +6461,49 @@ const diffMins = Math.floor(diffMs / 60000);
             </div>
 
 
-            <div class="post-description" id="post-description-${postId}">
-              ${formatPostDescription(post.description, postId) || ''}
-            </div>
+            <div class="post-body-layout">
+              <div class="post-main-column">
+                <div class="post-description" id="post-description-${postId}">
+                  ${formatPostDescription(post.description, postId) || ''}
+                </div>
 
-            <div class="post-actions">
-              <div class="post-actions-left">
-                <button class="reaction-btn ${userReactions.like ? 'active' : ''}" data-reaction="like"
-                  data-postid="${postId}">
-                  <i class="fas fa-heart"></i> <span class="reaction-count">${reactions.like?.length || 0}</span>
-                </button>
+                <div class="post-actions">
+                  <div class="post-actions-left">
+                    <button class="reaction-btn ${userReactions.like ? 'active' : ''}" data-reaction="like"
+                      data-postid="${postId}">
+                      <i class="fas fa-heart"></i> <span class="reaction-count">${reactions.like?.length || 0}</span>
+                    </button>
 
-                <button class="reaction-btn ${userReactions.laugh ? 'active' : ''}" data-reaction="laugh"
-                  data-postid="${postId}">
-                  <i class="fas fa-laugh"></i> <span class="reaction-count">${reactions.laugh?.length || 0}</span>
-                </button>
+                    <button class="reaction-btn ${userReactions.laugh ? 'active' : ''}" data-reaction="laugh"
+                      data-postid="${postId}">
+                      <i class="fas fa-laugh"></i> <span class="reaction-count">${reactions.laugh?.length || 0}</span>
+                    </button>
 
-                <button class="reaction-btn ${userReactions.seven ? 'active' : ''}" data-reaction="seven"
-                  data-postid="${postId}">
-                  <span style="font-weight: bold; font-size: 16px;">7</span> <span class="reaction-count">${reactions.seven?.length || 0}</span>
-                </button>
+                    <button class="reaction-btn ${userReactions.seven ? 'active' : ''}" data-reaction="seven"
+                      data-postid="${postId}">
+                      <span style="font-weight: bold; font-size: 16px;">7</span> <span class="reaction-count">${reactions.seven?.length || 0}</span>
+                    </button>
+                  </div>
+
+                  <div class="post-actions-right">
+                    <button class="post-action-link comments-btn" type="button" data-postid="${postId}">
+                      <i class="fas fa-comment"></i> Comentarios
+                    </button>
+                    <span class="post-actions-separator">|</span>
+                    <button class="share-btn" type="button" data-postid="${postId}" title="Compartir">
+                      <i class="fas fa-share-alt"></i>
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              <div class="post-actions-right">
-                <button class="post-action-link comments-btn" type="button" data-postid="${postId}">
-                  <i class="fas fa-comment"></i> Comentarios
-                </button>
-                <span class="post-actions-separator">|</span>
-                <button class="share-btn" type="button" data-postid="${postId}" title="Compartir">
-                  <i class="fas fa-share-alt"></i>
-                </button>
-              </div>
-            </div>
-
-            <div class="post-comments-side hidden" id="post-comments-side-${postId}">
-              <div class="post-comments-side-box">
-                <strong>Comentarios</strong><br>
-                Próximamente aquí irá el hilo de comentarios.
+              <div class="post-sidebar-column">
+                <div class="post-comments-side hidden" id="post-comments-side-${postId}">
+                  <div class="post-comments-side-box">
+                    <strong>Comentarios</strong><br>
+                    Próximamente aquí irá el hilo de comentarios.
+                  </div>
+                </div>
               </div>
             </div>
             `;

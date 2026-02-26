@@ -5528,6 +5528,7 @@ transition: all 0.3s ease;
                           flex-direction: column;
                           justify-content: space-between;
                           align-items: center;
+                          padding-top: 12px;
                             margin: 0 auto;
                         }
                         .imagen-especialidad-certificado {
@@ -5612,10 +5613,14 @@ transition: all 0.3s ease;
                         }
                         .firmas-row-bottom {
                           align-items: flex-start;
+                          justify-content: center;
                         }
                         .firmas-row-bottom .firma {
-                          flex: 0 0 220px;
-                          max-width: 220px;
+                          flex: 0 0 230px;
+                          max-width: 230px;
+                          display: flex;
+                          flex-direction: column;
+                          align-items: center;
                         }
                         .firma {
                             text-align: center;
@@ -5657,38 +5662,56 @@ transition: all 0.3s ease;
                             margin-left: auto;
                             margin-right: auto;
                         }
+                        .firmas-row-bottom .firma img {
+                          height: 80px;
+                          width: 160px;
+                          object-fit: contain;
+                          display: block;
+                          margin: 0 auto;
+                        }
                         .firma-vacia::before {
                           content: '';
                           display: block;
-                          width: 1px;
+                          width: 160px;
                           height: 80px;
                           margin: 0 auto;
                         }
                         .firma-vacia .linea-firma {
                           margin-top: 0;
+                          max-width: 160px;
                         }
                         .firma-vacia .nombre-firma {
                           min-height: 40px;
+                        }
+                        .no-print {
+                          position: fixed;
+                          left: 0;
+                          right: 0;
+                          bottom: 10px;
+                          z-index: 999;
+                          margin: 0 !important;
+                          padding: 0 !important;
                         }
                         
                         /* ESTILOS GENERALES DE IMPRESIÓN */
                         @media print {
                           @page {
                             size: A4 portrait;
-                            margin: 0;
+                            margin: 6mm;
                           }
                             body { margin: 0; padding: 0; }
                             .examen-section { margin: 15px; }
                             .certificacion-page {
                                 margin: 0;
-                            min-height: 297mm;
-                            height: 297mm;
-                            padding: 12mm 14mm 10mm;
+                            min-height: calc(297mm - 12mm);
+                            height: calc(297mm - 12mm);
+                            padding: 14mm 14mm 10mm;
                                 border: none;
                             page-break-inside: avoid;
                             break-inside: avoid;
                             justify-content: space-between;
                             }
+                          .certificacion-contenido { padding-top: 6mm; }
                           .certificacion-header { margin-bottom: 14px; }
                           .nombre-usuario { margin: 12px 0; padding: 10px 18px; }
                           .texto-certificacion { font-size: 17px; line-height: 1.45; margin: 12px 0 6px 0; }
@@ -5700,7 +5723,8 @@ transition: all 0.3s ease;
                           .linea-firma { margin-top: 4px; }
                           .nombre-firma { font-size: 12px; margin-top: 5px; }
                           .cargo-firma { font-size: 11px; margin-top: 3px; }
-                          .firma-vacia::before { height: 62px; }
+                          .firmas-row-bottom .firma img { height: 62px; width: 150px; }
+                          .firma-vacia::before { height: 62px; width: 150px; }
                           .firma-vacia .linea-firma { margin-top: 0; }
                           .firma-vacia .nombre-firma { min-height: 30px; }
                           .decoracion-abajo { height: 104px; }

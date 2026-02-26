@@ -7515,7 +7515,7 @@ const diffMins = Math.floor(diffMs / 60000);
                                       .map((comment) => {
                                         const author = escapeCommentHtml(comment?.userName || 'Usuario');
                                         const text = escapeCommentHtml(comment?.text || '');
-                                        const timeText = getTimeAgo(parseCommentDate(comment?.createdAt));
+                                        const timeText = getPostDateLabel(parseCommentDate(comment?.createdAt));
                                         const commentId = escapeCommentHtml(comment?.id || '');
 
                                         return `

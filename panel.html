@@ -12,7 +12,7 @@
   <!-- Clappr Video Player - versión estable -->
   <script src="https://cdn.jsdelivr.net/npm/@clappr/player@latest/dist/clappr.plainhtml5.min.js"></script>
 
-  <title>Panel del Usuario</title>
+  <title>Conquiguias World</title>
   <script>
     // Globals initialized before modules
     window.isAdmin = false;
@@ -908,7 +908,9 @@
     }
 
     .post-actions-left {
-      overflow-x: auto;
+      flex: 1;
+      min-width: 0;
+      overflow-x: hidden;
     }
 
     .post-actions-right {
@@ -934,13 +936,13 @@
 
     .reaction-btn:hover {
       background-color: rgba(255, 255, 255, 0.05);
-      transform: scale(1.05);
+      transform: none;
     }
 
     .reaction-btn.active {
       background-color: rgba(59, 130, 246, 0.2);
       border-color: var(--accent-color);
-      transform: scale(1.1);
+      transform: none;
       box-shadow: 0 2px 5px rgba(59, 130, 246, 0.3);
       color: var(--accent-color);
     }

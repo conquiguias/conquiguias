@@ -4172,7 +4172,7 @@
 
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-      import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+      import { getAuth, onAuthStateChanged, signOut, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
       import {
         getFirestore,
         doc,
@@ -4345,7 +4345,7 @@
           return;
         }
         // 🔒 VERIFICACIÓN DE CORREO ELECTRÓNICO
-        if (false && user && !user.emailVerified) {
+        if (user && !user.emailVerified) {
           console.log("[WARNING] Acceso denegado: correo no verificado");
 
           mostrarMensaje("confirm", "<i class='fas fa-envelope'></i> Verificación requerida",

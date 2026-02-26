@@ -234,7 +234,7 @@
 
           try {
             const authInstance = await ensureFirebaseAuth();
-            const { signInWithEmailAndPassword } =
+            const { signInWithEmailAndPassword, sendEmailVerification, signOut } =
               await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
 
             const userCredential = await signInWithEmailAndPassword(
@@ -242,6 +242,35 @@
               email,
               password,
             );
+
+            if (!userCredential.user.emailVerified) {
+              hideLoader(loginBtn, "Entrar");
+              mostrarMensaje(
+                "confirm",
+                "⚠️ Correo no verificado",
+                "Debes verificar tu correo electrónico antes de ingresar al panel. ¿Quieres reenviar el correo de verificación?",
+                async () => {
+                  try {
+                    await sendEmailVerification(userCredential.user);
+                    mostrarMensaje(
+                      "info",
+                      "📧 Verificación reenviada",
+                      "Revisa tu bandeja de entrada y la carpeta de spam.",
+                    );
+                  } catch (verificationError) {
+                    console.error("Error reenviando verificación:", verificationError);
+                    mostrarMensaje(
+                      "error",
+                      "❌ No se pudo reenviar",
+                      "No se pudo reenviar el correo de verificación. Inténtalo de nuevo más tarde.",
+                    );
+                  }
+                },
+              );
+
+              await signOut(authInstance);
+              return;
+            }
 
             console.log("✅ Bienvenido de nuevo");
             showLoader(loginBtn, "✅ Redirigiendo...");
@@ -362,11 +391,24 @@
               fileName,
             });
 
+            updateLoader(registerBtn, "⏳ Enviando verificación...");
+            const authInstance = await ensureFirebaseAuth();
+            const { signInWithEmailAndPassword, sendEmailVerification, signOut } =
+              await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
+
+            const registerCredential = await signInWithEmailAndPassword(
+              authInstance,
+              email,
+              password,
+            );
+            await sendEmailVerification(registerCredential.user);
+            await signOut(authInstance);
+
             hideLoader(registerBtn, "Registrar");
             mostrarMensaje(
               "info",
-              `🎉 Registro exitoso, ¡bienvenido ${nombre}!`,
-              "Tu cuenta ha sido creada exitosamente. Ahora puedes iniciar sesión directamente.",
+              `🎉 Registro exitoso, ${nombre}`,
+              "Tu cuenta fue creada. Te enviamos un correo de verificación; debes confirmarlo antes de iniciar sesión.",
               () => {
                 registerForm.reset();
                 toggleForms();

@@ -75,7 +75,7 @@ module.exports = async (req, res) => {
         email: email,
         password: password,
         displayName: `${nombre} ${apellido}`,
-        emailVerified: true, // ✅ Ahora se crea verificado directamente
+        emailVerified: false,
       });
 
       let fotoURL = null;
@@ -112,7 +112,7 @@ module.exports = async (req, res) => {
         pais,
         email,
         fotoURL,
-        emailVerificado: true, // ✅ Ahora se guarda como verificado
+        emailVerificado: false,
         creado: admin.firestore.FieldValue.serverTimestamp(),
       });
 
@@ -126,7 +126,7 @@ module.exports = async (req, res) => {
 
       return res.status(200).json({
         success: true,
-        message: "Usuario registrado correctamente. Ya puedes iniciar sesión.",
+        message: "Usuario registrado correctamente. Debe verificar su correo para continuar.",
         userId: userRecord.uid,
       });
     }

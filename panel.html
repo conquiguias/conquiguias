@@ -7447,8 +7447,8 @@ const diffMins = Math.floor(diffMs / 60000);
 
                                 const relative = getTimeAgo(safeDate);
                                 const absoluteDate = safeDate.toLocaleDateString('es-DO', {
-                                  day: 'numeric',
-                                  month: 'numeric',
+                                  day: '2-digit',
+                                  month: '2-digit',
                                   year: 'numeric'
                                 });
                                 const absoluteTime = safeDate.toLocaleTimeString('es-DO', {

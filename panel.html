@@ -5526,7 +5526,7 @@ transition: all 0.3s ease;
                           height: 100%;
                           display: flex;
                           flex-direction: column;
-                          justify-content: space-between;
+                          justify-content: flex-start;
                           align-items: center;
                           padding-top: 12px;
                             margin: 0 auto;
@@ -5542,14 +5542,15 @@ transition: all 0.3s ease;
                         .certificacion-header {
                             width: 100%;
                             justify-content: center;
-                            margin-bottom: 10px;
+                          margin-bottom: 4px;
                         }
                         .certificacion-titulo {
                             font-size: 18px;
                             width: 80%;
                             margin: auto;
-                            margin-bottom: 10px;
+                          margin-bottom: 4px;
                             letter-spacing: 1px;
+                          line-height: 1.25;
                         }
                         .certificado-texto {
                             font-size: 50px;
@@ -5593,7 +5594,7 @@ transition: all 0.3s ease;
                         }
                         
                         .firmas-container {
-                          margin-top: 10px;
+                          margin-top: auto;
                           padding-bottom: 6px;
                             width: 100%;
                         }
@@ -5697,25 +5698,26 @@ transition: all 0.3s ease;
                         @media print {
                           @page {
                             size: A4 portrait;
-                            margin: 6mm;
+                            margin: 0;
                           }
                             body { margin: 0; padding: 0; }
                             .examen-section { margin: 15px; }
                             .certificacion-page {
                                 margin: 0;
-                            min-height: calc(297mm - 12mm);
-                            height: calc(297mm - 12mm);
-                            padding: 14mm 14mm 10mm;
+                            min-height: 297mm;
+                            height: 297mm;
+                            padding: 16mm 14mm 8mm;
                                 border: none;
                             page-break-inside: avoid;
                             break-inside: avoid;
                             justify-content: space-between;
                             }
-                          .certificacion-contenido { padding-top: 6mm; }
-                          .certificacion-header { margin-bottom: 14px; }
+                          .certificacion-contenido { padding-top: 3mm; justify-content: flex-start; }
+                          .certificacion-header { margin-bottom: 6px; }
+                          .certificacion-titulo { margin-bottom: 2px; line-height: 1.2; }
                           .nombre-usuario { margin: 12px 0; padding: 10px 18px; }
-                          .texto-certificacion { font-size: 17px; line-height: 1.45; margin: 12px 0 6px 0; }
-                          .firmas-container { margin-top: 10px; }
+                          .texto-certificacion { font-size: 17px; line-height: 1.45; margin: 8px 0 4px 0; }
+                          .firmas-container { margin-top: auto; padding-bottom: 4mm; }
                           .firmas-divider { margin: 8px auto 6px auto; }
                           .firmas-row { gap: 14px; }
                           .firma { margin: 2px 8px; }

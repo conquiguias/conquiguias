@@ -865,6 +865,7 @@
       padding: 0;
       margin: 0;
       align-items: stretch;
+      position: relative;
     }
 
     .post-main-column {
@@ -889,7 +890,11 @@
 
     .post-card.comments-open .post-sidebar-column {
       display: flex;
-      align-self: stretch;
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 30%;
     }
 
     .post-actions {

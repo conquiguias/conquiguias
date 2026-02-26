@@ -5584,12 +5584,21 @@ transition: all 0.3s ease;
                         
                         .firmas-container {
                             margin-top: 80px;
-                            display: flex;
-                            justify-content: space-around;
-                            align-items: flex-start;
-                            flex-wrap: wrap;
                             width: 100%;
-                            gap: 20px;
+                        }
+                        .firmas-row {
+                          display: flex;
+                          justify-content: center;
+                          align-items: flex-start;
+                          flex-wrap: wrap;
+                          gap: 20px;
+                          width: 100%;
+                        }
+                        .firmas-divider {
+                          width: 100%;
+                          max-width: 720px;
+                          border-top: 1px solid #2c3e50;
+                          margin: 22px auto 16px auto;
                         }
                         .firma {
                             text-align: center;
@@ -5936,35 +5945,56 @@ transition: all 0.3s ease;
           </div>
 
           <div class="firmas-container">
-            ${formulario.imagenFirma1 ? `
-            <div class="firma">
-              <img src="${formulario.imagenFirma1}" alt="Firma Instructor">
-              <div class="linea-firma"></div>
-              <div class="nombre-firma" style="word-wrap: break-word; max-width: 180px;">
-                ${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma1))}
-              </div>
-              <div class="cargo-firma"><strong>INSTRUCTOR</strong></div>
-            </div>` : ''}
+            <div class="firmas-row firmas-row-top">
+              ${formulario.imagenFirma1 ? `
+              <div class="firma">
+                <img src="${formulario.imagenFirma1}" alt="Firma Instructor">
+                <div class="linea-firma"></div>
+                <div class="nombre-firma" style="word-wrap: break-word; max-width: 180px;">
+                  ${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma1))}
+                </div>
+                <div class="cargo-firma"><strong>INSTRUCTOR</strong></div>
+              </div>` : ''}
 
-            ${formulario.imagenFirma2 ? `
-            <div class="firma">
-              <img src="${formulario.imagenFirma2}" alt="Firma Director">
-              <div class="linea-firma"></div>
-              <div class="nombre-firma" style="word-wrap: break-word; max-width: 180px;">
-                ${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma2))}
-              </div>
-              <div class="cargo-firma"><strong></strong></div>
-            </div>` : ''}
+              ${formulario.imagenFirma2 ? `
+              <div class="firma">
+                <img src="${formulario.imagenFirma2}" alt="Firma Director">
+                <div class="linea-firma"></div>
+                <div class="nombre-firma" style="word-wrap: break-word; max-width: 180px;">
+                  ${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma2))}
+                </div>
+                <div class="cargo-firma"><strong></strong></div>
+              </div>` : ''}
 
-            ${formulario.imagenFirma3 ? `
-            <div class="firma">
-              <img src="${formulario.imagenFirma3}" alt="Firma Coordinador">
-              <div class="linea-firma"></div>
-              <div class="nombre-firma" style="word-wrap: break-word; max-width: 180px;">
-                ${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma3))}
+              ${formulario.imagenFirma3 ? `
+              <div class="firma">
+                <img src="${formulario.imagenFirma3}" alt="Firma Coordinador">
+                <div class="linea-firma"></div>
+                <div class="nombre-firma" style="word-wrap: break-word; max-width: 180px;">
+                  ${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma3))}
+                </div>
+                <div class="cargo-firma"><strong></strong></div>
+              </div>` : ''}
+            </div>
+
+            <div class="firmas-divider"></div>
+
+            <div class="firmas-row firmas-row-bottom">
+              <div class="firma">
+                <img src="https://raw.githubusercontent.com/conquiguias/conquiguias-data/main/images/firmas/Coord.%20e%20Ing.%20Kendall%20Torres%20B%C3%A1ez.png" alt="Firma CEO de la plataforma">
+                <div class="linea-firma"></div>
+                <div class="nombre-firma" style="word-wrap: break-word; max-width: 180px;">
+                  Coord. e Ing. Kendall Torres Báez
+                </div>
+                <div class="cargo-firma"><strong>CEO De la plataforma</strong></div>
               </div>
-              <div class="cargo-firma"><strong></strong></div>
-            </div>` : ''}
+
+              <div class="firma">
+                <div class="linea-firma" style="margin-top: 40px;"></div>
+                <div class="nombre-firma" style="word-wrap: break-word; max-width: 180px; min-height: 18px;">&nbsp;</div>
+                <div class="cargo-firma" style="margin-top: 14px;"><strong>Unión, campo, asociación, pastor o director (Opcional)</strong></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

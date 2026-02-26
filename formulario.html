@@ -694,18 +694,19 @@
 
     <script>
       // === CONFIGURACIÓN ===
-      let visitanteId = localStorage.getItem("visitanteId");
-      if (!visitanteId) {
-        visitanteId = crypto.randomUUID();
-        localStorage.setItem("visitanteId", visitanteId);
-      }
-      let userEmail = localStorage.getItem("userEmail") || "";
+      let visitanteId = crypto.randomUUID();
+      let userEmail = "";
+      let isSubmittingAsistencia = false;
 
       let currentIdFormulario = new URLSearchParams(location.search).get("id");
       let isAdmin = false;
       let pollInterval = null;
       let estadoAsistencias = { 1: false, 2: false };
       let misAsistencias = []; // [1, 2]
+
+      function normalizarEmail(value) {
+        return (value || "").trim().toLowerCase();
+      }
 
       // === INICIALIZACIÓN ===
       document.addEventListener("DOMContentLoaded", async () => {
@@ -774,12 +775,10 @@
 
         // Si hay algo activo que no ha hecho, mostrarlo
 
-        // Asistencia 2 activa
+        // Asistencia 2 activa (la validación real la hace el servidor por correo)
         if (estadoAsistencias[2] && !yaHizo2) {
-          if (yaHizo1) {
-            zona2.style.display = "block";
-            mostrandoAlgo = true;
-          }
+          zona2.style.display = "block";
+          mostrandoAlgo = true;
         }
 
         // Asistencia 1 activa (y no la ha hecho) - Prioridad normal
@@ -908,6 +907,10 @@
       function abrirFormulario(num) {
         document.getElementById("asistenciaNumInput").value = num;
         document.getElementById("modalFormulario").style.display = "flex";
+        const inputCorreo = document.querySelector("input[name='correo']");
+        if (userEmail) {
+          inputCorreo.value = userEmail;
+        }
 
         // Configurar campos
         const campos1 = document.getElementById("camposAsistencia1");
@@ -927,19 +930,28 @@
 
       async function enviarAsistencia(e) {
         e.preventDefault();
+        if (isSubmittingAsistencia) return;
+
         const form = e.target;
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
+        data.correo = normalizarEmail(data.correo);
+
+        if (!data.correo) {
+          alert("❌ Debes ingresar un correo válido.");
+          return;
+        }
 
         data.id = currentIdFormulario;
-        data.visitanteId = visitanteId;
         data.asistenciaNumero = parseInt(
           document.getElementById("asistenciaNumInput").value,
         );
 
         const btn = document.getElementById("btnSubmitForm");
+        isSubmittingAsistencia = true;
         btn.disabled = true;
-        btn.textContent = "Enviando...";
+        btn.setAttribute("aria-busy", "true");
+        btn.textContent = "⏳ Enviando...";
 
         try {
           const res = await fetch("/api/formulario?action=guardar", {
@@ -959,10 +971,9 @@
 
           if (res.ok) {
             // Éxito o Recuperación
-            const savedEmail = responseData.correo || data.correo;
-            if (savedEmail) {
-              localStorage.setItem("userEmail", savedEmail.toLowerCase());
-              userEmail = savedEmail.toLowerCase();
+            userEmail = normalizarEmail(responseData.correo || data.correo);
+            if (responseData.visitanteId) {
+              visitanteId = responseData.visitanteId;
             }
 
             alert(
@@ -980,7 +991,9 @@
           console.error("Error:", err);
           alert("Error de conexión. Verifica tu internet.");
         } finally {
+          isSubmittingAsistencia = false;
           btn.disabled = false;
+          btn.removeAttribute("aria-busy");
           btn.textContent = "Enviar Registro";
         }
       }
@@ -1010,40 +1023,27 @@
           const examenes = data.examenes || [];
           const tareasMap = data.tareas || {};
 
-          // Identificar mis asistencias (Lógica Híbrida)
-          misAsistencias = respuestas
-            .filter((r) => {
-              // Trimmed and lowercase versions
-              const rEmail = r.correo ? r.correo.trim().toLowerCase() : null;
-              const uEmail = userEmail ? userEmail.trim().toLowerCase() : null;
-
-              // 1. Si ambos tienen email, deben coincidir
-              if (rEmail && uEmail) {
-                return rEmail === uEmail;
-              }
-
-              // 2. Si el usuario tiene email pero el registro no, verificar visitanteId
-              // (permite compatibilidad con registros antiguos del mismo dispositivo)
-              if (uEmail && !rEmail) {
-                return r.visitanteId === visitanteId;
-              }
-
-              // 3. Si el usuario NO tiene email aún (primera vez), usar solo visitanteId
-              if (!uEmail) {
-                return r.visitanteId === visitanteId;
-              }
-
-              return false;
-            })
-            .map((r) => r.asistenciaNumero);
+          const correoActual = normalizarEmail(userEmail);
+          misAsistencias = correoActual
+            ? [
+                ...new Set(
+                  respuestas
+                    .filter((r) => normalizarEmail(r.correo) === correoActual)
+                    .map((r) => Number(r.asistenciaNumero))
+                    .filter((n) => [1, 2].includes(n)),
+                ),
+              ].sort((a, b) => a - b)
+            : [];
 
           actualizarUI();
 
           // Agrupar para tabla
           const agrupadas = {};
-          respuestas.forEach((r) => {
-            if (!agrupadas[r.visitanteId]) {
-              agrupadas[r.visitanteId] = {
+          respuestas.forEach((r, idx) => {
+            const key =
+              normalizarEmail(r.correo) || r.visitanteId || `anon-${idx}`;
+            if (!agrupadas[key]) {
+              agrupadas[key] = {
                 ...r,
                 maxAsistencia: 0,
                 asistencias: [],
@@ -1051,9 +1051,9 @@
               };
             }
             if (r.asistenciaNumero) {
-              agrupadas[r.visitanteId].asistencias.push(r.asistenciaNumero);
-              agrupadas[r.visitanteId].maxAsistencia = Math.max(
-                agrupadas[r.visitanteId].maxAsistencia,
+              agrupadas[key].asistencias.push(r.asistenciaNumero);
+              agrupadas[key].maxAsistencia = Math.max(
+                agrupadas[key].maxAsistencia,
                 r.asistenciaNumero,
               );
             }
@@ -1061,25 +1061,18 @@
 
           // Combinar examenes
           examenes.forEach((ex) => {
-            if (agrupadas[ex.visitanteId]) {
-              agrupadas[ex.visitanteId].examen = ex;
+            const exKey = normalizarEmail(ex.correo) || ex.visitanteId;
+            if (exKey && agrupadas[exKey]) {
+              agrupadas[exKey].examen = ex;
             }
           });
 
           // Render tabla
           tbody.innerHTML = "";
           Object.values(agrupadas).forEach((r, idx) => {
-            const rEmail = r.correo ? r.correo.trim().toLowerCase() : null;
-            const uEmail = userEmail ? userEmail.trim().toLowerCase() : null;
-
-            let esYo = false;
-            if (rEmail && uEmail) {
-              esYo = rEmail === uEmail;
-            } else if (uEmail && !rEmail) {
-              esYo = r.visitanteId === visitanteId;
-            } else if (!uEmail) {
-              esYo = r.visitanteId === visitanteId;
-            }
+            const rEmail = normalizarEmail(r.correo);
+            const uEmail = normalizarEmail(userEmail);
+            const esYo = Boolean(rEmail && uEmail && rEmail === uEmail);
             const completo = r.maxAsistencia >= 2;
 
             let botonAccion = "";
@@ -1416,6 +1409,7 @@
                 visitanteId: visitanteId,
                 respuestas: respuestasEnviar,
                 puntaje: finalScore,
+                email: userEmail || null,
               }),
             },
           );
@@ -1459,6 +1453,7 @@
                 visitanteId: visitanteId,
                 respuestas: respuestas,
                 puntaje: finalScore,
+                email: userEmail || null,
               }),
             },
           );

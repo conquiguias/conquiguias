@@ -309,6 +309,29 @@ async function handleGuardar(req, res) {
     asistenciaNumero,
   } = req.body;
 
+  const asistenciaNum = Number(asistenciaNumero);
+  const correoNormalizado = (correo || "").trim().toLowerCase();
+
+  if (!id) {
+    return res.status(400).json({ error: "❌ Falta el ID del formulario." });
+  }
+
+  if (![1, 2].includes(asistenciaNum)) {
+    return res
+      .status(400)
+      .json({ error: "❌ Número de asistencia inválido (solo 1 o 2)." });
+  }
+
+  if (!correoNormalizado) {
+    return res.status(400).json({ error: "❌ El correo es obligatorio." });
+  }
+
+  if (asistenciaNum === 1 && !(nombre || "").trim()) {
+    return res
+      .status(400)
+      .json({ error: "❌ El nombre es obligatorio para la primera asistencia." });
+  }
+
   // 1. Verificar estado activo desde Supabase
   const { data: formData, error: fErr } = await supabase
     .from("formularios")
@@ -317,7 +340,7 @@ async function handleGuardar(req, res) {
     .single();
   if (fErr || !formData) throw new Error("Formulario no encontrado");
 
-  if (!formData.data.asistenciasActivas?.[asistenciaNumero]) {
+  if (!formData.data.asistenciasActivas?.[asistenciaNum]) {
     return res
       .status(403)
       .json({ error: "❌ La asistencia no está activa en este momento." });
@@ -331,49 +354,77 @@ async function handleGuardar(req, res) {
     .single();
   let registros = rData?.contenido_respuestas || [];
 
-  // 3. Validar secuencia (Lógica original)
-  if (asistenciaNumero > 1) {
-    const tienePrevia = registros.some(
-      (r) =>
-        (r.visitanteId === visitanteId ||
-          (correo && r.correo?.toLowerCase() === correo.toLowerCase())) &&
-        r.asistenciaNumero < asistenciaNumero,
-    );
-    if (!tienePrevia)
-      return res.status(400).json({
-        error: `❌ Debes completar la asistencia ${asistenciaNumero - 1} antes`,
-      });
+  const misRegistros = registros.filter(
+    (r) => (r.correo || "").trim().toLowerCase() === correoNormalizado,
+  );
+  const registroPrimera = misRegistros.find(
+    (r) => Number(r.asistenciaNumero) === 1,
+  );
+  const misAsistencias = new Set(
+    misRegistros
+      .map((r) => Number(r.asistenciaNumero))
+      .filter((n) => [1, 2].includes(n)),
+  );
+
+  const visitanteIdCanonico =
+    registroPrimera?.visitanteId ||
+    misRegistros.find((r) => r.visitanteId)?.visitanteId ||
+    visitanteId;
+
+  if (asistenciaNum === 2 && !misAsistencias.has(1)) {
+    return res.status(400).json({
+      error:
+        "❌ No registraste primera asistencia, perdiste la especialidad. Vuelve a intentar en otro momento.",
+    });
   }
 
-  // 4. Evitar duplicados
-  if (
-    registros.some(
-      (r) =>
-        r.visitanteId === visitanteId &&
-        r.asistenciaNumero === asistenciaNumero,
-    )
-  ) {
-    return res
-      .status(200)
-      .json({ ok: true, message: "Asistencia ya registrada" });
+  if (misAsistencias.has(asistenciaNum)) {
+    const duplicateMsg =
+      asistenciaNum === 1
+        ? "❌ Ya se encuentra registrada la primera asistencia para este correo."
+        : "❌ Ya se encuentra registrada la segunda asistencia para este correo.";
+
+    return res.status(200).json({
+      ok: true,
+      message: duplicateMsg,
+      correo: correoNormalizado,
+      visitanteId: visitanteIdCanonico,
+      misAsistencias: Array.from(misAsistencias).sort((a, b) => a - b),
+    });
+  }
+
+  if (misAsistencias.size >= 2) {
+    return res.status(400).json({
+      error: "❌ Ya completaste el máximo de asistencias permitidas (2).",
+    });
   }
 
   const fecha = new Date().toISOString();
+  const visitanteIdRegistro =
+    asistenciaNum === 2 ? visitanteIdCanonico : visitanteId;
+
   const nuevoRegistro =
-    asistenciaNumero === 1
+    asistenciaNum === 1
       ? {
-          nombre,
-          correo,
+          nombre: nombre.trim(),
+          correo: correoNormalizado,
           edad: edad || "",
           telefono: telefono || "",
           asociacion: asociacion || "",
           fecha,
-          visitanteId,
-          asistenciaNumero,
+          visitanteId: visitanteIdRegistro,
+          asistenciaNumero: asistenciaNum,
         }
-      : { correo: correo || "", fecha, visitanteId, asistenciaNumero, id };
+      : {
+          correo: correoNormalizado,
+          fecha,
+          visitanteId: visitanteIdRegistro,
+          asistenciaNumero: asistenciaNum,
+          id,
+        };
 
   registros.push(nuevoRegistro);
+  misAsistencias.add(asistenciaNum);
 
   // Guardar array actualizado
   await supabase
@@ -383,7 +434,9 @@ async function handleGuardar(req, res) {
   res.status(200).json({
     ok: true,
     message: "✅ Asistencia registrada correctamente.",
-    correo,
+    correo: correoNormalizado,
+    visitanteId: visitanteIdRegistro,
+    misAsistencias: Array.from(misAsistencias).sort((a, b) => a - b),
   });
 }
 

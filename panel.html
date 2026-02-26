@@ -5579,12 +5579,17 @@ transition: all 0.3s ease;
                             line-height: 1.8;
                             margin: 40px 0;
                             max-width: 600px;
+                            width: 100%;
                             margin-left: auto;
                             margin-right: auto;
                           text-align: center;
                         }
                         .certificacion-cuerpo {
                             width: 100%;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            text-align: center;
                         }
                         
                         .firmas-container {
@@ -5713,7 +5718,8 @@ transition: all 0.3s ease;
                             }
                           .certificacion-header { margin-bottom: 28px; }
                           .certificacion-titulo { margin-bottom: 8px; }
-                          .texto-certificacion { margin: 28px 0 12px 0; text-align: center; }
+                          .certificacion-cuerpo { width: 100%; max-width: 760px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+                          .texto-certificacion { width: 100%; max-width: 600px; margin: 28px auto 12px auto; text-align: center !important; }
                           .firmas-container { margin-top: 30px; padding-bottom: 14px; }
                           .firmas-divider { margin: 10px auto 8px auto; }
                           .firmas-row { gap: 14px; }

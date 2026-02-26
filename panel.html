@@ -4659,7 +4659,7 @@ transition: all 0.3s ease;
             });
 
             const infoSpan = document.createElement("span");
-            infoSpan.textContent = `${file.fecha.toLocaleDateString()} ${file.fecha.toLocaleTimeString()} • ${(file.size / 1024).toFixed(2)} KB`;
+            infoSpan.textContent = formatFileDate(file.fecha);
             infoSpan.style.color = "#555";
             infoSpan.style.fontSize = "13px";
 

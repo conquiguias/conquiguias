@@ -5486,11 +5486,12 @@ transition: all 0.3s ease;
                             page-break-before: always;
                             width: 100%;
                             min-height: 100vh;
+                            height: 100vh;
                             margin: 0;
-                          padding: 30px 40px;
+                            padding: 24px 40px 18px;
                             display: flex;
                             flex-direction: column;
-                            justify-content: center;
+                            justify-content: space-between;
                             align-items: center;
                             position: relative;
                             box-sizing: border-box;
@@ -5506,12 +5507,12 @@ transition: all 0.3s ease;
                         .decoracion-izquierda { left: 0; width: 140px; }
                         .decoracion-derecha { right: 0; width: 140px; }
                         .decoracion-abajo {
-                            position: relative;
-                            bottom: 0px;
-                            margin: auto;
-                          margin-top: -22px;
-                          margin-bottom: -22px;
-                          height: 145px;
+                            position: absolute;
+                            left: 50%;
+                            bottom: 0;
+                            transform: translateX(-50%);
+                            margin: 0;
+                            height: 120px;
                             width: auto;
                             z-index: 0;
                         }
@@ -5521,7 +5522,12 @@ transition: all 0.3s ease;
                             z-index: 1;
                             text-align: center;
                             width: 100%;
-                            max-width: 800px;
+                          max-width: 820px;
+                          height: 100%;
+                          display: flex;
+                          flex-direction: column;
+                          justify-content: space-between;
+                          align-items: center;
                             margin: 0 auto;
                         }
                         .imagen-especialidad-certificado {
@@ -5535,7 +5541,7 @@ transition: all 0.3s ease;
                         .certificacion-header {
                             width: 100%;
                             justify-content: center;
-                          margin-bottom: 24px;
+                            margin-bottom: 10px;
                         }
                         .certificacion-titulo {
                             font-size: 18px;
@@ -5576,14 +5582,18 @@ transition: all 0.3s ease;
                         .texto-certificacion {
                           font-size: 18px;
                           line-height: 1.55;
-                          margin: 18px 0 8px 0;
+                          margin: 12px 0 0 0;
                             max-width: 600px;
                             margin-left: auto;
                             margin-right: auto;
                         }
+                        .certificacion-cuerpo {
+                            width: 100%;
+                        }
                         
                         .firmas-container {
-                          margin-top: 26px;
+                          margin-top: 10px;
+                          padding-bottom: 6px;
                             width: 100%;
                         }
                         .firmas-row {
@@ -5601,7 +5611,11 @@ transition: all 0.3s ease;
                           margin: 14px auto 10px auto;
                         }
                         .firmas-row-bottom {
-                          align-items: flex-end;
+                          align-items: flex-start;
+                        }
+                        .firmas-row-bottom .firma {
+                          flex: 0 0 220px;
+                          max-width: 220px;
                         }
                         .firma {
                             text-align: center;
@@ -5635,9 +5649,23 @@ transition: all 0.3s ease;
                             color: #666;
                             margin-top: 5px;
                             font-weight: bold;
+                            line-height: 1.2;
+                            text-align: center;
+                        }
+                        .firmas-row-bottom .cargo-firma {
+                            max-width: 200px;
+                            margin-left: auto;
+                            margin-right: auto;
+                        }
+                        .firma-vacia::before {
+                          content: '';
+                          display: block;
+                          width: 1px;
+                          height: 80px;
+                          margin: 0 auto;
                         }
                         .firma-vacia .linea-firma {
-                          margin-top: 24px;
+                          margin-top: 0;
                         }
                         .firma-vacia .nombre-firma {
                           min-height: 40px;
@@ -5647,19 +5675,19 @@ transition: all 0.3s ease;
                         @media print {
                           @page {
                             size: A4 portrait;
-                            margin: 8mm;
+                            margin: 0;
                           }
                             body { margin: 0; padding: 0; }
                             .examen-section { margin: 15px; }
                             .certificacion-page {
                                 margin: 0;
-                            min-height: auto;
-                            height: auto;
-                            padding: 12mm 14mm 8mm;
+                            min-height: 297mm;
+                            height: 297mm;
+                            padding: 12mm 14mm 10mm;
                                 border: none;
                             page-break-inside: avoid;
                             break-inside: avoid;
-                            justify-content: flex-start;
+                            justify-content: space-between;
                             }
                           .certificacion-header { margin-bottom: 14px; }
                           .nombre-usuario { margin: 12px 0; padding: 10px 18px; }
@@ -5672,9 +5700,10 @@ transition: all 0.3s ease;
                           .linea-firma { margin-top: 4px; }
                           .nombre-firma { font-size: 12px; margin-top: 5px; }
                           .cargo-firma { font-size: 11px; margin-top: 3px; }
-                          .firma-vacia .linea-firma { margin-top: 16px; }
+                          .firma-vacia::before { height: 62px; }
+                          .firma-vacia .linea-firma { margin-top: 0; }
                           .firma-vacia .nombre-firma { min-height: 30px; }
-                          .decoracion-abajo { height: 95px; margin-top: -8px; margin-bottom: -10px; }
+                          .decoracion-abajo { height: 104px; }
                             .no-print { display: none !important; }
                         }
                         

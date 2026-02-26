@@ -1538,7 +1538,7 @@
       border: 2px solid var(--accent-color);
     }
 
-    #userHeader span {
+    #headerUserName {
       font-weight: 600;
       color: var(--text-primary);
       font-size: 20px;
@@ -1880,7 +1880,7 @@
         height: 35px;
       }
 
-      #userHeader span {
+      #headerUserName {
         font-size: 14px;
       }
 
@@ -1953,7 +1953,7 @@
         height: 30px;
       }
 
-      #userHeader span {
+      #headerUserName {
         font-size: 12px;
       }
 
@@ -2428,15 +2428,36 @@
       position: relative;
     }
 
-    /* Estilos para el botón flotante y modal de subida */
+    /* Acción de publicar integrada en el header */
     #floatingUploadBtn {
       display: none;
-      /* Oculto por defecto */
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-left: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      background: var(--accent-color);
+      color: #fff;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px var(--shadow-color);
+      transition: all 0.2s ease;
     }
 
     #floatingUploadBtn:hover {
-      transform: scale(1.1);
+      transform: translateY(-1px);
       background: var(--accent-hover);
+    }
+
+    #floatingUploadBtn:active {
+      transform: translateY(0);
+    }
+
+    #floatingUploadBtn i {
+      font-size: 12px;
     }
 
     #uploadModal {
@@ -2522,10 +2543,15 @@
     /* Responsive */
     @media (max-width: 767px) {
       #floatingUploadBtn {
-        bottom: 20px;
-        right: 20px;
-        width: 50px;
-        height: 50px;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        margin-left: 6px;
+        border-radius: 50%;
+      }
+
+      #floatingUploadBtn .upload-label {
+        display: none;
       }
 
       .upload-modal-backdrop {
@@ -2931,26 +2957,10 @@
     <div id="userHeader">
       <img id="headerUserPhoto" src="https://dummyimage.com/45x45/ccc/fff">
       <span id="headerUserName">Cargando...</span>
-    </div>
-
-    <!-- Botón flotante para crear publicación -->
-    <div id="floatingUploadBtn" class="hidden" style="
-position: fixed;
-bottom: 30px;
-right: 30px;
-width: 50px;
-height: 50px;
-background: var(--accent-color);
-border-radius: 50%;
-display: flex;
-align-items: center;
-justify-content: center;
-cursor: pointer;
-box-shadow: 0 4px 15px var(--shadow-color);
-z-index: 999;
-transition: all 0.3s ease;
-">
-      <span style="font-size: 24px; color: white;">+</span>
+      <button id="floatingUploadBtn" class="hidden" type="button" aria-label="Crear publicación">
+        <i class="fas fa-pen"></i>
+        <span class="upload-label">Publicar</span>
+      </button>
     </div>
 
 
@@ -7516,7 +7526,7 @@ const diffMins = Math.floor(diffMs / 60000);
                                       .map((comment) => {
                                         const author = escapeCommentHtml(comment?.userName || 'Usuario');
                                         const text = escapeCommentHtml(comment?.text || '');
-                                        const timeText = getPostDateLabel(parseCommentDate(comment?.createdAt));
+                                        const timeText = getTimeAgo(parseCommentDate(comment?.createdAt));
                                         const commentId = escapeCommentHtml(comment?.id || '');
 
                                         return `

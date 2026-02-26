@@ -5488,10 +5488,10 @@ transition: all 0.3s ease;
                             min-height: 100vh;
                             height: 100vh;
                             margin: 0;
-                            padding: 24px 40px 18px;
+                          padding: 22px 40px 14px;
                             display: flex;
                             flex-direction: column;
-                            justify-content: space-between;
+                          justify-content: flex-start;
                             align-items: center;
                             position: relative;
                             box-sizing: border-box;
@@ -5522,42 +5522,46 @@ transition: all 0.3s ease;
                             z-index: 1;
                             text-align: center;
                             width: 100%;
-                          max-width: 820px;
-                          min-height: 100%;
+                          max-width: 860px;
+                          min-height: calc(100vh - 36px);
                           display: flex;
                           flex-direction: column;
                           justify-content: flex-start;
                           align-items: center;
-                          padding-top: 12px;
+                          padding-top: 14px;
                             margin: 0 auto;
                         }
                         .imagen-especialidad-certificado {
                             position: absolute;
-                            top: 250px;
-                            right: 20px;
-                            max-width: 180px;
-                            max-height: 180px;
+                            top: 150px;
+                            right: 12px;
+                            max-width: 200px;
+                            max-height: 200px;
                             z-index: 1;
                         }
                         .certificacion-header {
                             width: 100%;
                             justify-content: center;
-                          margin-bottom: 4px;
+                          margin-bottom: 2px;
+                          text-align: center;
                         }
                         .certificacion-titulo {
-                            font-size: 18px;
-                            width: 80%;
+                            font-size: 19px;
+                            width: 100%;
+                            max-width: 760px;
                             margin: auto;
-                          margin-bottom: 4px;
+                          margin-bottom: 2px;
                             letter-spacing: 1px;
-                          line-height: 1.25;
+                          line-height: 1.2;
+                          text-align: center;
                         }
                         .certificado-texto {
-                            font-size: 50px;
+                            font-size: 56px;
                             color: #2c3e50;
                             font-weight: bold;
-                            margin: auto;
+                            margin: 0 auto;
                             text-transform: uppercase;
+                            text-align: center;
                         }
                         .otorgado-a {
                             font-size: 18px;
@@ -5585,18 +5589,24 @@ transition: all 0.3s ease;
                           font-size: 18px;
                           line-height: 1.55;
                           margin: 12px 0 0 0;
-                            max-width: 600px;
+                            max-width: 760px;
+                            padding-right: 190px;
                             margin-left: auto;
                             margin-right: auto;
+                            text-align: center;
                         }
                         .certificacion-cuerpo {
                             width: 100%;
+                            max-width: 760px;
+                            margin: 0 auto;
+                            text-align: center;
                         }
                         
                         .firmas-container {
-                          margin-top: 60px;
-                          padding-bottom: 6px;
+                          margin-top: auto;
+                          padding-bottom: 14px;
                             width: 100%;
+                            max-width: 780px;
                         }
                         .firmas-row {
                           display: flex;
@@ -5616,6 +5626,7 @@ transition: all 0.3s ease;
                           align-items: flex-start;
                           justify-content: center;
                         }
+                        .firmas-row-top .firma,
                         .firmas-row-bottom .firma {
                           flex: 0 0 230px;
                           max-width: 230px;
@@ -5706,22 +5717,23 @@ transition: all 0.3s ease;
                                 margin: 0;
                             min-height: 297mm;
                             height: 297mm;
-                            padding: 16mm 14mm 8mm;
+                            padding: 14mm 14mm 12px;
                                 border: none;
                             page-break-inside: avoid;
                             break-inside: avoid;
-                            justify-content: space-between;
+                            justify-content: flex-start;
                             }
                           .certificacion-contenido {
-                            min-height: calc(297mm - 24mm);
+                            min-height: calc(297mm - 28mm);
                             padding-top: 3mm;
                             justify-content: flex-start;
                           }
                           .certificacion-header { margin-bottom: 6px; }
-                          .certificacion-titulo { margin-bottom: 2px; line-height: 1.2; }
+                          .certificacion-titulo { margin-bottom: 2px; line-height: 1.2; max-width: 760px; }
+                          .certificado-texto { font-size: 56px; }
                           .nombre-usuario { margin: 12px 0; padding: 10px 18px; }
-                          .texto-certificacion { font-size: 17px; line-height: 1.45; margin: 8px 0 4px 0; }
-                          .firmas-container { margin-top: 32mm; padding-bottom: 4mm; }
+                          .texto-certificacion { font-size: 17px; line-height: 1.45; margin: 8px 0 4px 0; max-width: 760px; padding-right: 180px; }
+                          .firmas-container { margin-top: auto; padding-bottom: 12px; max-width: 780px; }
                           .firmas-divider { margin: 8px auto 6px auto; }
                           .firmas-row { gap: 14px; }
                           .firma { margin: 2px 8px; }
@@ -5734,6 +5746,7 @@ transition: all 0.3s ease;
                           .firma-vacia .linea-firma { margin-top: 0; }
                           .firma-vacia .nombre-firma { min-height: 30px; }
                           .decoracion-abajo { height: 104px; }
+                          .imagen-especialidad-certificado { top: 42mm; right: 14mm; max-width: 185px; max-height: 185px; }
                             .no-print { display: none !important; }
                         }
                         

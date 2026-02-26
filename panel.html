@@ -2466,6 +2466,9 @@
       height: 100vh;
       z-index: 10000;
       display: none;
+      overflow-y: auto;
+      overflow-x: hidden;
+      box-sizing: border-box;
     }
 
     #uploadModal:not(.hiddenX) {
@@ -2478,28 +2481,32 @@
       top: 0;
       left: 0;
       width: 100%;
-      height: 100%;
+      min-height: 100%;
       background: rgba(0, 0, 0, 0.7);
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
-      padding: 20px;
+      padding: 24px 20px;
+      box-sizing: border-box;
+      overflow-x: hidden;
     }
 
     .upload-modal-content {
-      width: 100%;
-      max-width: 500px;
+      width: min(760px, 100%);
+      max-width: 760px;
       max-height: 90vh;
       overflow-y: auto;
+      overflow-x: hidden;
       margin: 0;
       animation: slideUp 0.3s ease;
       position: relative; /* Para que los hijos se posicionen respecto a este */
+      padding: 0;
     }
 
     .close-modal-btn {
       background: rgba(255,255,255,0.1);
       border: none;
-      font-size: 24px;
+      font-size: 22px;
       cursor: pointer;
       color: var(--text-primary);
       width: 36px;
@@ -2510,6 +2517,26 @@
       justify-content: center;
       z-index: 10;
       transition: background 0.2s;
+      flex-shrink: 0;
+      border: 1px solid var(--border-color);
+    }
+
+    .upload-modal-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin: 0;
+      padding: 16px 20px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .upload-modal-body {
+      padding: 16px 20px 20px;
     }
 
     .close-modal-btn:hover {
@@ -2559,11 +2586,24 @@
       .upload-modal-content {
         max-height: 95vh;
       }
+
+      .upload-modal-header {
+        padding: 12px 14px;
+      }
+
+      .upload-modal-body {
+        padding: 12px 14px 16px;
+      }
     }
 
     /* Mejoras para el textarea y descripciones de posts */
     #postDescription {
       transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    #postDescription::placeholder {
+      color: var(--text-primary);
+      opacity: 0.8;
     }
 
     #postDescription:focus {
@@ -2579,6 +2619,8 @@
       margin: 0%;
       padding: 0%;
       transition: all 0.2s ease;
+      font-weight: 600;
+      text-underline-offset: 2px;
     }
 
     .post-description a:hover {
@@ -2967,26 +3009,14 @@
     <div id="uploadModal" class="hiddenX">
       <div class="upload-modal-backdrop">
         <div class="card upload-modal-content">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+          <div class="upload-modal-header">
             <h3>Crear Publicación</h3>
             <button id="closeUploadModal" class="close-modal-btn">×</button>
           </div>
 
 
           <!-- Sección Social (Feed) - AHORA DENTRO DEL MODAL -->
-          <div id="socialSection" style="margin-bottom: 0;">
-            <div class="social-header">
-              <div class="user-info">
-                <img id="socialProfilePic" src="https://dummyimage.com/120x120/ccc/fff"
-                  style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-color);">
-                <div>
-                  <strong id="socialName" style="font-size: 16px;">Usuario</strong>
-                  <div style="font-size: 12px; color: var(--text-secondary);">Compartir con la comunidad</div>
-                </div>
-              </div>
-            </div>
-
-            <div style="padding: 15px;">
+          <div id="socialSection" class="upload-modal-body" style="margin-bottom: 0;">
               <div id="uploadBox">
                 <input type="file" id="fileInput" accept="image/*,video/*"
                   style="margin-bottom: 10px; width: 100%; padding: 8px;">
@@ -3002,7 +3032,7 @@
                     <input type="url" id="videoUrlInput" placeholder="URL del video (mp4, m3u8, YouTube...)" 
                       style="padding-left: 35px; width: 100%; background: var(--bg-secondary); border: 1px dashed var(--accent-color); color: var(--text-primary); border-radius: 8px; font-size: 13px;">
                   </div>
-                  <small style="color: var(--text-secondary); font-size: 11px; margin-top: 4px; display: block;">⚡ Admin: Ingresa una URL directa de video para publicarla.</small>
+                  <small style="color: var(--text-primary); opacity: 0.9; font-size: 11px; margin-top: 4px; display: block;">⚡ Admin: Ingresa una URL directa de video para publicarla.</small>
                 </div>
                 <textarea id="postDescription" placeholder="¿Qué quieres compartir? Puedes usar:
                   • Saltos de línea (Enter)
@@ -3013,7 +3043,7 @@
                                    background: var(--bg-secondary); color: var(--text-primary);
                                    min-height: 120px; resize: vertical; font-size: 14px; line-height: 1.4;"></textarea>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                  <small style="color: var(--text-secondary); font-size: 12px;">
+                  <small style="color: var(--text-primary); opacity: 0.9; font-size: 12px;">
                     Presiona Enter para saltos de línea • Los enlaces se abrirán en nueva pestaña
                   </small>
                   <small id="charCount" style="color: var(--text-secondary); font-size: 12px;">
@@ -3036,7 +3066,6 @@
                     style="margin-left: 15px; color: var(--warning-color); font-weight: bold; display: none;"></span>
                 </div>
               </div>
-            </div>
           </div>
           <!-- Fin Social Section -->
         </div>
@@ -7192,84 +7221,17 @@ const diffMins = Math.floor(diffMs / 60000);
             }
             }
 
-            // 🔹 Formatear descripción del post - mantener espacios y detectar enlaces
-            // 🔹 Formatear descripción del post con "Leer más" para textos largos
+            // 🔹 Formatear descripción del post con detección robusta de enlaces
             function formatPostDescription(text, postId) {
-            if (!text || typeof text !== 'string') return '';
+              if (!text || typeof text !== 'string') return '';
 
-            const MAX_LENGTH = 300; // Límite de caracteres antes de mostrar "Leer más"
-            const hasLongText = text.length > MAX_LENGTH;
+              const MAX_LENGTH = 300;
+              const hasLongText = text.length > MAX_LENGTH;
+              const displayText = hasLongText ? `${text.substring(0, MAX_LENGTH)}...` : text;
 
-            // Escapar HTML para seguridad
-            let safeText = text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;' ) .replace( />/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
+              let formattedText = formatRichText(displayText);
 
-            // Texto corto o texto completo si es largo
-            let displayText = hasLongText ? safeText.substring(0, MAX_LENGTH) + '...' : safeText;
-
-            // 1. Mantener formato original (saltos de línea y espacios)
-            let formattedText = displayText
-            .replace(/\n/g, '<br>') // Saltos de línea
-            .replace(/ /g, ' &nbsp;') // Espacios dobles
-            .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;'); // Tabs
-
-            // 2. Detectar URLs complejas (incluye dominios comunes)
-            const urlRegex = /(https?:\/\/[^\s<]+[^<.,!?;:)\]\s]) /g; formattedText=formattedText.replace(urlRegex,
-              (url)=> {
-              try {
-              new URL(url);
-
-              let displayUrl = url;
-              try {
-              const urlObj = new URL(url);
-              displayUrl = urlObj.hostname + (urlObj.pathname !== '/' ? urlObj.pathname : '');
-              if (displayUrl.length > 30) {
-              displayUrl = displayUrl.substring(0, 27) + '...';
-              }
-              } catch (e) {
-              if (url.length > 30) {
-              displayUrl = url.substring(0, 27) + '...';
-              }
-              }
-
-              return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-color); text-decoration: underline; 
-                      word-break: break-all; font-weight: 500;" onmouseover="this.style.textDecoration='none'"
-                onmouseout="this.style.textDecoration='underline'" title="${url}">
-                🔗 ${displayUrl}
-              </a>`;
-              } catch (error) {
-              return url;
-              }
-              });
-
-              // 3. Detectar enlaces sin protocolo (www.example.com)
-              const wwwRegex = /(^|\s)(www\.[^\s<]+\.[^\s<]+) /g; formattedText=formattedText.replace(wwwRegex, (match,
-                space, url)=> {
-                const fullUrl = 'https://' + url;
-                return `${space}<a href="${fullUrl}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-color); text-decoration: underline; 
-                    word-break: break-all; font-weight: 500;" onmouseover="this.style.textDecoration='none'"
-                  onmouseout="this.style.textDecoration='underline'" title="${fullUrl}">
-                  🔗 ${url}
-                </a>`;
-                });
-
-                // 4. Menciones @usuario
-                const mentionRegex = /@([a-zA-Z0-9_]+)/g;
-                formattedText = formattedText.replace(mentionRegex,
-                '<span style="color: var(--accent-color); font-weight: bold;">@$1</span>'
-                );
-
-                // 5. Hashtags #tema
-                const hashtagRegex = /#([a-zA-Z0-9_]+)/g;
-                formattedText = formattedText.replace(hashtagRegex,
-                '<span style="color: var(--success-color); font-weight: bold;">#$1</span>'
-                );
-
-                // 6. Agregar botón "Leer más" si el texto es largo
-                if (hasLongText) {
+              if (hasLongText) {
                 formattedText += `
                 <br>
                 <button class="read-more-btn" onclick="toggleReadMore('${postId}', '${escapeHtml(text)}')" style="background: none; border: none; color: var(--accent-color); 
@@ -7278,10 +7240,38 @@ const diffMins = Math.floor(diffMs / 60000);
                   Leer más
                 </button>
                 `;
+              }
+
+              return formattedText;
+            }
+
+            function formatRichText(text) {
+              const escaped = escapeHtml(text);
+
+              const withMentions = escaped
+                .replace(/@([a-zA-Z0-9_]+)/g, '<span style="color: var(--accent-color); font-weight: bold;">@$1</span>')
+                .replace(/#([a-zA-Z0-9_]+)/g, '<span style="color: var(--success-color); font-weight: bold;">#$1</span>');
+
+              const linkRegex = /(^|[\s(])((?:https?:\/\/|www\.)[^\s<]+)/gi;
+              const withLinks = withMentions.replace(linkRegex, (match, prefix = '', rawUrl = '') => {
+                let cleanUrl = rawUrl;
+                let trailing = '';
+
+                while (/[.,!?;:)]$/.test(cleanUrl)) {
+                  trailing = cleanUrl.slice(-1) + trailing;
+                  cleanUrl = cleanUrl.slice(0, -1);
                 }
 
-                return formattedText;
-                }
+                if (!cleanUrl) return match;
+
+                const href = cleanUrl.startsWith('www.') ? `https://${cleanUrl}` : cleanUrl;
+                const displayUrl = cleanUrl.length > 45 ? `${cleanUrl.slice(0, 42)}...` : cleanUrl;
+
+                return `${prefix}<a href="${href}" target="_blank" rel="noopener noreferrer" title="${href}">🔗 ${displayUrl}</a>${trailing}`;
+              });
+
+              return withLinks.replace(/\n/g, '<br>');
+            }
 
                 // 🔹 Función auxiliar para escapar HTML (seguridad)
                 function escapeHtml(text) {
@@ -7319,66 +7309,9 @@ const diffMins = Math.floor(diffMs / 60000);
 
                 // 🔹 Formatear texto completo (sin límite de caracteres)
                 function formatFullText(text) {
-                if (!text || typeof text !== 'string') return '';
-
-                // Escapar HTML para seguridad
-                let safeText = escapeHtml(text);
-
-                // Mantener formato original
-                let formattedText = safeText
-                .replace(/\n/g, '<br>')
-                .replace(/ /g, ' &nbsp;')
-                .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
-
-                // Detectar y formatear URLs
-                const urlRegex = /(https?:\/\/[^\s<]+[^<.,!?;:)\]\s]) /g; formattedText=formattedText.replace(urlRegex,
-                  (url)=> {
-                  try {
-                  new URL(url);
-
-                  let displayUrl = url;
-                  try {
-                  const urlObj = new URL(url);
-                  displayUrl = urlObj.hostname + (urlObj.pathname !== '/' ? urlObj.pathname : '');
-                  } catch (e) {
-                  // Usar URL original si falla el parsing
-                  }
-
-                  return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-color); text-decoration: underline; 
-                      word-break: break-all; font-weight: 500;" onmouseover="this.style.textDecoration='none'"
-                    onmouseout="this.style.textDecoration='underline'" title="${url}">
-                    🔗 ${displayUrl}
-                  </a>`;
-                  } catch (error) {
-                  return url;
-                  }
-                  });
-
-                  // Detectar enlaces sin protocolo
-                  const wwwRegex = /(^|\s)(www\.[^\s<]+\.[^\s<]+) /g; formattedText=formattedText.replace(wwwRegex,
-                    (match, space, url)=> {
-                    const fullUrl = 'https://' + url;
-                    return `${space}<a href="${fullUrl}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-color); text-decoration: underline; 
-                    word-break: break-all; font-weight: 500;" onmouseover="this.style.textDecoration='none'"
-                      onmouseout="this.style.textDecoration='underline'" title="${fullUrl}">
-                      🔗 ${url}
-                    </a>`;
-                    });
-
-                    // Menciones @usuario
-                    const mentionRegex = /@([a-zA-Z0-9_]+)/g;
-                    formattedText = formattedText.replace(mentionRegex,
-                    '<span style="color: var(--accent-color); font-weight: bold;">@$1</span>'
-                    );
-
-                    // Hashtags #tema
-                    const hashtagRegex = /#([a-zA-Z0-9_]+)/g;
-                    formattedText = formattedText.replace(hashtagRegex,
-                    '<span style="color: var(--success-color); font-weight: bold;">#$1</span>'
-                    );
-
-                    return formattedText;
-                    }
+                  if (!text || typeof text !== 'string') return '';
+                  return formatRichText(text);
+                }
 
                     // Contador de caracteres mejorado para el textarea
                     postDescription.addEventListener('input', function () {

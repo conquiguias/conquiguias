@@ -864,7 +864,7 @@
       display: flex;
       padding: 0;
       margin: 0;
-      align-items: flex-start;
+      align-items: stretch;
     }
 
     .post-main-column {
@@ -886,7 +886,7 @@
     }
 
     .post-card.comments-open .post-sidebar-column {
-      display: block;
+      display: flex;
     }
 
     .post-actions {
@@ -988,6 +988,8 @@
       display: flex;
       justify-content: flex-start;
       padding: 0;
+      flex: 1;
+      height: 100%;
     }
 
     .post-comments-side.hidden {
@@ -1004,6 +1006,9 @@
       color: var(--text-secondary);
       font-size: 13px;
       line-height: 1.4;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
     }
 
     .comments-head {
@@ -1020,7 +1025,9 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      max-height: 220px;
+      flex: 1;
+      min-height: 120px;
+      max-height: none;
       overflow-y: auto;
       margin-bottom: 10px;
       padding-right: 2px;
@@ -7082,7 +7089,7 @@ const diffMins = Math.floor(diffMs / 60000);
               </div>
 
               <div class="post-sidebar-column">
-                <div class="post-comments-side hidden" id="post-comments-side-${renderPostId}">
+                <div class="post-comments-side hidden" id="post-comments-side-${renderPostId}" data-postid="${firestorePostId}" data-renderid="${renderPostId}">
                   ${getCommentsPanelMarkup(firestorePostId, post.comments || [])}
                 </div>
               </div>
@@ -7522,10 +7529,10 @@ const diffMins = Math.floor(diffMs / 60000);
                               async function syncCommentsUI(postId) {
                                 const comments = await getPostComments(postId);
 
-                                const sideContainer = document.getElementById(`post-comments-side-${postId}`);
-                                if (sideContainer) {
+                                const sideContainers = document.querySelectorAll(`.post-comments-side[data-postid="${postId}"]`);
+                                sideContainers.forEach((sideContainer) => {
                                   sideContainer.innerHTML = getCommentsPanelMarkup(postId, comments);
-                                }
+                                });
 
                                 const countEls = document.querySelectorAll(`.comments-btn[data-postid="${postId}"] .comments-count`);
                                 countEls.forEach((countEl) => {

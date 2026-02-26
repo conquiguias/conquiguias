@@ -5487,7 +5487,7 @@ transition: all 0.3s ease;
                             width: 100%;
                             min-height: 100vh;
                             margin: 0;
-                            padding: 40px;
+                          padding: 30px 40px;
                             display: flex;
                             flex-direction: column;
                             justify-content: center;
@@ -5509,9 +5509,9 @@ transition: all 0.3s ease;
                             position: relative;
                             bottom: 0px;
                             margin: auto;
-                            margin-top: -50px;
-                            margin-bottom: -50px;
-                            height: 200px;
+                          margin-top: -22px;
+                          margin-bottom: -22px;
+                          height: 145px;
                             width: auto;
                             z-index: 0;
                         }
@@ -5535,7 +5535,7 @@ transition: all 0.3s ease;
                         .certificacion-header {
                             width: 100%;
                             justify-content: center;
-                            margin-bottom: 40px;
+                          margin-bottom: 24px;
                         }
                         .certificacion-titulo {
                             font-size: 18px;
@@ -5560,8 +5560,8 @@ transition: all 0.3s ease;
                             font-family: "Great Vibes", cursive;
                             font-size: 40px;
                             font-weight: bold;
-                            margin: 30px 0;
-                            padding: 20px;
+                          margin: 18px 0;
+                          padding: 12px 20px;
                             border-bottom: 3px solid #2c3e50;
                             display: inline-block;
                             min-width: 400px;
@@ -5574,16 +5574,16 @@ transition: all 0.3s ease;
                             margin: 30px auto;
                         }
                         .texto-certificacion {
-                            font-size: 20px;
-                            line-height: 1.8;
-                            margin: 40px 0;
+                          font-size: 18px;
+                          line-height: 1.55;
+                          margin: 18px 0 8px 0;
                             max-width: 600px;
                             margin-left: auto;
                             margin-right: auto;
                         }
                         
                         .firmas-container {
-                            margin-top: 80px;
+                          margin-top: 26px;
                             width: 100%;
                         }
                         .firmas-row {
@@ -5598,11 +5598,14 @@ transition: all 0.3s ease;
                           width: 100%;
                           max-width: 720px;
                           border-top: 1px solid #2c3e50;
-                          margin: 22px auto 16px auto;
+                          margin: 14px auto 10px auto;
+                        }
+                        .firmas-row-bottom {
+                          align-items: flex-end;
                         }
                         .firma {
                             text-align: center;
-                            margin: 10px;
+                            margin: 6px 10px;
                             min-width: 150px;
                             max-width: 200px;
                             flex: 1;
@@ -5633,16 +5636,32 @@ transition: all 0.3s ease;
                             margin-top: 5px;
                             font-weight: bold;
                         }
+                        .firma-vacia .linea-firma {
+                          margin-top: 24px;
+                        }
+                        .firma-vacia .nombre-firma {
+                          min-height: 40px;
+                        }
                         
                         /* ESTILOS GENERALES DE IMPRESIÓN */
                         @media print {
+                          @page {
+                            size: A4 portrait;
+                            margin: 8mm;
+                          }
                             body { margin: 0; padding: 0; }
                             .examen-section { margin: 15px; }
                             .certificacion-page {
                                 margin: 0;
-                                padding: 50px;
+                            min-height: auto;
+                            height: auto;
+                            padding: 20px 28px;
                                 border: none;
+                            page-break-inside: avoid;
+                            break-inside: avoid;
                             }
+                          .decoracion-abajo { height: 120px; margin-top: -16px; margin-bottom: -16px; }
+                          .firmas-container { margin-top: 18px; }
                             .no-print { display: none !important; }
                         }
                         
@@ -5989,10 +6008,10 @@ transition: all 0.3s ease;
                 <div class="cargo-firma"><strong>CEO De la plataforma</strong></div>
               </div>
 
-              <div class="firma">
-                <div class="linea-firma" style="margin-top: 40px;"></div>
-                <div class="nombre-firma" style="word-wrap: break-word; max-width: 180px; min-height: 18px;">&nbsp;</div>
-                <div class="cargo-firma" style="margin-top: 14px;"><strong>Unión, campo, asociación, pastor o director (Opcional)</strong></div>
+              <div class="firma firma-vacia">
+                <div class="linea-firma"></div>
+                <div class="nombre-firma" style="word-wrap: break-word; max-width: 180px;">&nbsp;</div>
+                <div class="cargo-firma"><strong>Unión, campo, asociación, pastor o director (Opcional)</strong></div>
               </div>
             </div>
           </div>

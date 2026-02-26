@@ -112,7 +112,7 @@ async function handleGetAdmins(req, res) {
   try {
     // Lista de administradores - SEGURA en el backend
     const ADMIN_EMAILS = [
-      "kendall.torres.17@gmail.co"
+      "kendall.torres.17@gmail.com"
       // Agrega más correos de administradores aquí
     ];
 

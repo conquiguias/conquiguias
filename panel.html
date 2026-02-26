@@ -7005,9 +7005,14 @@ const diffMins = Math.floor(diffMs / 60000);
             const { currentUserId, isAdmin } = window;
             const postElement = document.createElement('div');
             postElement.className = 'post-card';
+            const renderPostId = postId;
+            const firestorePostId = post.id || postId;
 
             const timeAgo = getTimeAgo(new Date(post.timestamp));
-            const isPostOwner = post.userId === currentUserId;
+            const currentUserEmail = (window.userData?.email || '').toLowerCase();
+            const postUserEmail = (post.userEmail || '').toLowerCase();
+            const isPostOwner = (!!currentUserId && post.userId === currentUserId) ||
+              (!!currentUserEmail && !!postUserEmail && postUserEmail === currentUserEmail);
             const isLocalPost = post.source === 'local';
 
             // Preparar reacciones (con valores por defecto si no existen)
@@ -7066,19 +7071,19 @@ const diffMins = Math.floor(diffMs / 60000);
                   ${post.mediaType && post.mediaType.startsWith('image/')
                   ? `<img src="${post.mediaUrl}" alt="Publicación" loading="lazy" onerror="this.style.display='none'">`
                   : post.mediaType && (post.mediaType === 'video/url' || post.mediaType.startsWith('video/'))
-                  ? `<div id="clappr-player-${postId}" class="clappr-container" data-src="${post.mediaUrl}"></div>`
+                  ? `<div id="clappr-player-${renderPostId}" class="clappr-container" data-src="${post.mediaUrl}"></div>`
                   : `<div style="padding: 20px; text-align: center; color: #666;">Tipo de archivo no compatible</div>`
                   }
                 </div>
 
-                <div class="post-description" id="post-description-${postId}">
-                  ${formatPostDescription(post.description, postId) || ''}
+                <div class="post-description" id="post-description-${renderPostId}">
+                  ${formatPostDescription(post.description, firestorePostId) || ''}
                 </div>
               </div>
 
               <div class="post-sidebar-column">
-                <div class="post-comments-side hidden" id="post-comments-side-${postId}">
-                  ${getCommentsPanelMarkup(postId, post.comments || [])}
+                <div class="post-comments-side hidden" id="post-comments-side-${renderPostId}">
+                  ${getCommentsPanelMarkup(firestorePostId, post.comments || [])}
                 </div>
               </div>
             </div>
@@ -7086,28 +7091,28 @@ const diffMins = Math.floor(diffMs / 60000);
             <div class="post-actions">
               <div class="post-actions-left">
                 <button class="reaction-btn ${userReactions.like ? 'active' : ''}" data-reaction="like"
-                  data-postid="${postId}">
+                  data-postid="${firestorePostId}">
                   <i class="fas fa-heart"></i> <span class="reaction-count">${formatReactionCount(reactions.like?.length || 0)}</span>
                 </button>
 
                 <button class="reaction-btn ${userReactions.laugh ? 'active' : ''}" data-reaction="laugh"
-                  data-postid="${postId}">
+                  data-postid="${firestorePostId}">
                   <i class="fas fa-grin-squint-tears"></i> <span class="reaction-count">${formatReactionCount(reactions.laugh?.length || 0)}</span>
                 </button>
 
                 <button class="reaction-btn ${userReactions.seven ? 'active' : ''}" data-reaction="seven"
-                  data-postid="${postId}">
+                  data-postid="${firestorePostId}">
                   <span style="font-weight: bold; font-size: 16px;">7</span> <span class="reaction-count">${formatReactionCount(reactions.seven?.length || 0)}</span>
                 </button>
               </div>
 
               <div class="post-actions-right">
-                <button class="post-action-link comments-btn" type="button" data-postid="${postId}">
+                <button class="post-action-link comments-btn" type="button" data-postid="${firestorePostId}" data-renderid="${renderPostId}">
                   <i class="fas fa-comment"></i> <span class="comments-label">Comentarios</span>
                   <span class="comments-count">${formatReactionCount((post.comments || []).length)}</span>
                 </button>
                 <span class="post-actions-separator">|</span>
-                <button class="share-btn" type="button" data-postid="${postId}" title="Compartir">
+                <button class="share-btn" type="button" data-postid="${firestorePostId}" title="Compartir">
                   <i class="fas fa-share-alt"></i>
                 </button>
                 ${(window.isAdmin || isPostOwner) ? `
@@ -7116,10 +7121,10 @@ const diffMins = Math.floor(diffMs / 60000);
                     <i class="fas fa-cog"></i>
                   </button>
                   <div class="post-options-menu hidden">
-                    <button class="post-options-item post-option-edit-btn" type="button" data-postid="${post.id || postId}" data-renderid="${postId}">
+                    <button class="post-options-item post-option-edit-btn" type="button" data-postid="${firestorePostId}" data-renderid="${renderPostId}">
                       <i class="fas fa-pen"></i> Editar descripción
                     </button>
-                    <button class="post-options-item post-option-delete-btn" type="button" data-postid="${post.id || postId}" data-deletehash="${post.imgurData?.deletehash}">
+                    <button class="post-options-item post-option-delete-btn" type="button" data-postid="${firestorePostId}" data-deletehash="${post.imgurData?.deletehash}">
                       <i class="fas fa-trash-alt"></i> Eliminar publicación
                     </button>
                   </div>
@@ -7134,7 +7139,7 @@ const diffMins = Math.floor(diffMs / 60000);
             // Inicializar Clappr para cualquier publicación con video
             if (post.mediaType && (post.mediaType === 'video/url' || post.mediaType.startsWith('video/'))) {
               if (!window._clapprPlayers) window._clapprPlayers = {};
-              const pid = `clappr-player-${postId}`;
+              const pid = `clappr-player-${renderPostId}`;
               window._clapprPlayers[pid] = 'pending'; // Bloquear doble init
               setTimeout(() => {
                 const container = document.getElementById(pid);
@@ -7776,7 +7781,7 @@ const diffMins = Math.floor(diffMs / 60000);
                               });
 
                               // 🔹 Manejar reacciones
-                              feed.addEventListener('click', async (e) => {
+                              document.addEventListener('click', async (e) => {
                               const optionsToggle = e.target.closest('.post-options-toggle');
                               const optionsMenu = e.target.closest('.post-options-menu');
 
@@ -7880,7 +7885,8 @@ const diffMins = Math.floor(diffMs / 60000);
                               const btn = e.target.classList.contains('comments-btn') ? e.target :
                               e.target.closest('.comments-btn');
                               const postId = btn.getAttribute('data-postid');
-                              const commentsSide = document.getElementById(`post-comments-side-${postId}`);
+                              const renderId = btn.getAttribute('data-renderid') || postId;
+                              const commentsSide = document.getElementById(`post-comments-side-${renderId}`);
                               const postCard = btn.closest('.post-card');
 
                               if (window.matchMedia('(max-width: 980px)').matches) {
@@ -7891,7 +7897,7 @@ const diffMins = Math.floor(diffMs / 60000);
                               if (commentsSide) {
                               const allCommentsSide = document.querySelectorAll('.post-comments-side');
                               allCommentsSide.forEach(panel => {
-                                if (panel.id !== `post-comments-side-${postId}`) {
+                                if (panel.id !== `post-comments-side-${renderId}`) {
                                   panel.classList.add('hidden');
                                   const otherPostCard = panel.closest('.post-card');
                                   if (otherPostCard) otherPostCard.classList.remove('comments-open');

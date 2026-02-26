@@ -5486,12 +5486,11 @@ transition: all 0.3s ease;
                             page-break-before: always;
                             width: 100%;
                             min-height: 100vh;
-                            height: 100vh;
                             margin: 0;
-                          padding: 22px 40px 14px;
+                          padding: 40px;
                             display: flex;
                             flex-direction: column;
-                          justify-content: flex-start;
+                          justify-content: center;
                             align-items: center;
                             position: relative;
                             box-sizing: border-box;
@@ -5507,12 +5506,12 @@ transition: all 0.3s ease;
                         .decoracion-izquierda { left: 0; width: 140px; }
                         .decoracion-derecha { right: 0; width: 140px; }
                         .decoracion-abajo {
-                            position: absolute;
-                            left: 50%;
-                            bottom: 0;
-                            transform: translateX(-50%);
-                            margin: 0;
-                            height: 120px;
+                          position: relative;
+                          bottom: 0px;
+                          margin: auto;
+                          margin-top: -50px;
+                          margin-bottom: -50px;
+                          height: 200px;
                             width: auto;
                             z-index: 0;
                         }
@@ -5522,46 +5521,36 @@ transition: all 0.3s ease;
                             z-index: 1;
                             text-align: center;
                             width: 100%;
-                          max-width: 860px;
-                          min-height: calc(100vh - 36px);
-                          display: flex;
-                          flex-direction: column;
-                          justify-content: flex-start;
-                          align-items: center;
-                          padding-top: 14px;
+                            max-width: 800px;
                             margin: 0 auto;
                         }
                         .imagen-especialidad-certificado {
                             position: absolute;
-                            top: 150px;
-                            right: 12px;
-                            max-width: 200px;
-                            max-height: 200px;
+                            top: 250px;
+                            right: 20px;
+                            max-width: 180px;
+                            max-height: 180px;
                             z-index: 1;
                         }
                         .certificacion-header {
                             width: 100%;
                             justify-content: center;
-                          margin-bottom: 2px;
-                          text-align: center;
+                            margin-bottom: 40px;
                         }
                         .certificacion-titulo {
-                            font-size: 19px;
-                            width: 100%;
-                            max-width: 760px;
+                            font-size: 18px;
+                            width: 80%;
                             margin: auto;
-                          margin-bottom: 2px;
+                            margin-bottom: 10px;
                             letter-spacing: 1px;
-                          line-height: 1.2;
-                          text-align: center;
+                            line-height: 1.25;
                         }
                         .certificado-texto {
-                            font-size: 56px;
+                            font-size: 50px;
                             color: #2c3e50;
                             font-weight: bold;
-                            margin: 0 auto;
+                            margin: auto;
                             text-transform: uppercase;
-                            text-align: center;
                         }
                         .otorgado-a {
                             font-size: 18px;
@@ -5572,8 +5561,8 @@ transition: all 0.3s ease;
                             font-family: "Great Vibes", cursive;
                             font-size: 40px;
                             font-weight: bold;
-                          margin: 18px 0;
-                          padding: 12px 20px;
+                            margin: 30px 0;
+                            padding: 20px;
                             border-bottom: 3px solid #2c3e50;
                             display: inline-block;
                             min-width: 400px;
@@ -5586,57 +5575,58 @@ transition: all 0.3s ease;
                             margin: 30px auto;
                         }
                         .texto-certificacion {
-                          font-size: 18px;
-                          line-height: 1.55;
-                          margin: 12px 0 0 0;
-                            max-width: 760px;
-                            padding-right: 190px;
+                            font-size: 20px;
+                            line-height: 1.8;
+                            margin: 40px 0;
+                            max-width: 600px;
                             margin-left: auto;
                             margin-right: auto;
-                            text-align: center;
                         }
                         .certificacion-cuerpo {
                             width: 100%;
-                            max-width: 760px;
-                            margin: 0 auto;
-                            text-align: center;
                         }
                         
                         .firmas-container {
-                          margin-top: auto;
-                          padding-bottom: 14px;
+                            margin-top: 46px;
                             width: 100%;
-                            max-width: 780px;
                         }
                         .firmas-row {
                           display: flex;
-                          justify-content: center;
+                          justify-content: space-around;
                           align-items: flex-start;
-                          flex-wrap: wrap;
-                          gap: 20px;
+                          flex-wrap: nowrap;
+                          gap: 14px;
                           width: 100%;
                         }
                         .firmas-divider {
                           width: 100%;
                           max-width: 720px;
                           border-top: 1px solid #2c3e50;
-                          margin: 14px auto 10px auto;
+                          margin: 12px auto 8px auto;
                         }
                         .firmas-row-bottom {
                           align-items: flex-start;
                           justify-content: center;
+                          gap: 28px;
                         }
-                        .firmas-row-top .firma,
+                        .firmas-row-top {
+                          gap: 8px;
+                        }
+                        .firmas-row-top .firma {
+                          flex: 1 1 0;
+                          min-width: 0;
+                          max-width: 210px;
+                        }
                         .firmas-row-bottom .firma {
-                          flex: 0 0 230px;
-                          max-width: 230px;
+                          flex: 0 0 220px;
+                          max-width: 220px;
                           display: flex;
                           flex-direction: column;
                           align-items: center;
                         }
                         .firma {
                             text-align: center;
-                            margin: 6px 10px;
+                            margin: 4px 8px;
                             min-width: 150px;
                             max-width: 200px;
                             flex: 1;
@@ -5696,13 +5686,7 @@ transition: all 0.3s ease;
                           min-height: 40px;
                         }
                         .no-print {
-                          position: fixed;
-                          left: 0;
-                          right: 0;
-                          bottom: 10px;
-                          z-index: 999;
-                          margin: 0 !important;
-                          padding: 0 !important;
+                          position: static;
                         }
                         
                         /* ESTILOS GENERALES DE IMPRESIÓN */
@@ -5715,28 +5699,18 @@ transition: all 0.3s ease;
                             .examen-section { margin: 15px; }
                             .certificacion-page {
                                 margin: 0;
-                            min-height: 297mm;
-                            height: 297mm;
-                            padding: 14mm 14mm 12px;
+                                padding: 38px;
                                 border: none;
                             page-break-inside: avoid;
                             break-inside: avoid;
-                            justify-content: flex-start;
                             }
-                          .certificacion-contenido {
-                            min-height: calc(297mm - 28mm);
-                            padding-top: 3mm;
-                            justify-content: flex-start;
-                          }
-                          .certificacion-header { margin-bottom: 6px; }
-                          .certificacion-titulo { margin-bottom: 2px; line-height: 1.2; max-width: 760px; }
-                          .certificado-texto { font-size: 56px; }
-                          .nombre-usuario { margin: 12px 0; padding: 10px 18px; }
-                          .texto-certificacion { font-size: 17px; line-height: 1.45; margin: 8px 0 4px 0; max-width: 760px; padding-right: 180px; }
-                          .firmas-container { margin-top: auto; padding-bottom: 12px; max-width: 780px; }
-                          .firmas-divider { margin: 8px auto 6px auto; }
+                          .certificacion-header { margin-bottom: 28px; }
+                          .certificacion-titulo { margin-bottom: 8px; }
+                          .texto-certificacion { margin: 28px 0 12px 0; }
+                          .firmas-container { margin-top: 30px; padding-bottom: 14px; }
+                          .firmas-divider { margin: 10px auto 8px auto; }
                           .firmas-row { gap: 14px; }
-                          .firma { margin: 2px 8px; }
+                          .firma { margin: 2px 8px; min-width: 0; }
                           .firma img { max-height: 62px; }
                           .linea-firma { margin-top: 4px; }
                           .nombre-firma { font-size: 12px; margin-top: 5px; }
@@ -5745,8 +5719,8 @@ transition: all 0.3s ease;
                           .firma-vacia::before { height: 62px; width: 150px; }
                           .firma-vacia .linea-firma { margin-top: 0; }
                           .firma-vacia .nombre-firma { min-height: 30px; }
-                          .decoracion-abajo { height: 104px; }
-                          .imagen-especialidad-certificado { top: 42mm; right: 14mm; max-width: 185px; max-height: 185px; }
+                          .decoracion-abajo { height: 170px; margin-top: -40px; margin-bottom: -40px; }
+                          .imagen-especialidad-certificado { top: 230px; right: 20px; max-width: 170px; max-height: 170px; }
                             .no-print { display: none !important; }
                         }
                         

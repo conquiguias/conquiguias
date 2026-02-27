@@ -9106,6 +9106,34 @@ const diffMins = Math.floor(diffMs / 60000);
         });
     }
 
+    function normalizarNombreImagen(nombre) {
+      if (!nombre) return '';
+
+      let texto = String(nombre).trim();
+      const teniaComillas = texto.startsWith('"') && texto.endsWith('"');
+      const teniaOctalGit = /\\[0-7]{3}/.test(texto);
+
+      if (teniaComillas) {
+        texto = texto.slice(1, -1);
+      }
+
+      if (teniaOctalGit) {
+        texto = texto.replace(/\\([0-7]{3})/g, (_, oct) => String.fromCharCode(parseInt(oct, 8)));
+        try {
+          const bytes = Uint8Array.from([...texto].map((char) => char.charCodeAt(0) & 0xff));
+          texto = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        } catch (e) {}
+      }
+
+      if (texto.includes('%')) {
+        try {
+          texto = decodeURIComponent(texto);
+        } catch (e) {}
+      }
+
+      return texto;
+    }
+
     // Función para cargar imágenes en un select - EXPORTADA A WINDOW
     // PROTEGIDA CON CACHÉ Y COOLDOWN PARA EVITAR 429
     window.cargarImagenesInstructor = async function(carpeta, selectId) {
@@ -9196,11 +9224,12 @@ const diffMins = Math.floor(diffMs / 60000);
             option.className = 'image-option';
             
             // Guardar nombre limpio para búsqueda
-            const nombreLimpio = imagen.nombre.replace(/\.[^/.]+$/, "");
+            const nombreNormalizado = normalizarNombreImagen(imagen.nombre);
+            const nombreLimpio = nombreNormalizado.replace(/\.[^/.]+$/, "");
 
             const img = document.createElement('img');
             img.src = imagen.url;
-            img.alt = imagen.nombre;
+            img.alt = nombreLimpio;
             img.loading = "lazy"; // Mejora de rendimiento
             img.onerror = function () {
               this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAxMUMyMi43NjE0IDExIDI1IDEzLjIzODYgMjUgMTZDMjUgMTguNzYxNCAyMi43NjE0IDIxIDIwIDIxQzE3LjIzODYgMjEgMTUgMTguNzYxNCAxNSAxNkMxNSAxMy4yMzg2IDE3LjIzODYgMTEgMjAgMTFaIiBmaWxsPSIjOTRBQkNEIi8+CjxwYXRoIGQ9Ik0xMSAyOUMyOSAyOSAyOSAyOSAyOSAyOUMyOSAzMS4yMDkxIDI3LjIwOTEgMzMgMjUgMzNIMTVDMTIuNzkwOSAzMyAxMSAzMS4yMDkxIDExIDI5QzExIDI5IDExIDI5IDExIDI5WiIgZmlsbD0iIzk0QUJDRCIvPgo8L3N2Zz4K';
@@ -9263,7 +9292,7 @@ const diffMins = Math.floor(diffMs / 60000);
               if (carpeta === 'especialidades') {
                 imagenEspecialidadSeleccionada = imagen;
                 // Auto-rellenar titulo y ID (ocultos)
-                const nombre = imagen.nombre.replace(/\.[^/.]+$/, "");
+                const nombre = nombreLimpio;
                 const tituloInput = document.getElementById('titulo');
                 const idInput = document.getElementById('formId');
                 if(tituloInput) tituloInput.value = nombre;
@@ -9276,13 +9305,13 @@ const diffMins = Math.floor(diffMs / 60000);
               } else if (carpeta === 'firmas') {
                 if (selectId === 'selectFirma1') {
                   imagenFirma1Seleccionada = imagen;
-                  document.getElementById('mensajeFirma1').innerHTML = `<span style="color: var(--success-color); font-weight: bold;"><i class="fas fa-check-circle"></i> Seleccionado: ${imagen.nombre}</span>`;
+                  document.getElementById('mensajeFirma1').innerHTML = `<span style="color: var(--success-color); font-weight: bold;"><i class="fas fa-check-circle"></i> Seleccionado: ${nombreLimpio}</span>`;
                 } else if (selectId === 'selectFirma2') {
                   imagenFirma2Seleccionada = imagen;
-                  document.getElementById('mensajeFirma2').innerHTML = `<span style="color: var(--success-color); font-weight: bold;"><i class="fas fa-check-circle"></i> Seleccionado: ${imagen.nombre}</span>`;
+                  document.getElementById('mensajeFirma2').innerHTML = `<span style="color: var(--success-color); font-weight: bold;"><i class="fas fa-check-circle"></i> Seleccionado: ${nombreLimpio}</span>`;
                 } else if (selectId === 'selectFirma3') {
                   imagenFirma3Seleccionada = imagen;
-                  document.getElementById('mensajeFirma3').innerHTML = `<span style="color: var(--success-color); font-weight: bold;"><i class="fas fa-check-circle"></i> Seleccionado: ${imagen.nombre}</span>`;
+                  document.getElementById('mensajeFirma3').innerHTML = `<span style="color: var(--success-color); font-weight: bold;"><i class="fas fa-check-circle"></i> Seleccionado: ${nombreLimpio}</span>`;
                 }
               }
             });

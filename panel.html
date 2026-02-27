@@ -9134,6 +9134,39 @@ const diffMins = Math.floor(diffMs / 60000);
       return texto;
     }
 
+    function codificarSegmentoSeguro(segmento) {
+      if (!segmento) return '';
+      try {
+        return encodeURIComponent(decodeURIComponent(segmento));
+      } catch (e) {
+        return encodeURIComponent(segmento);
+      }
+    }
+
+    function normalizarRutaGithub(path) {
+      if (!path) return '';
+      return String(path)
+        .split('/')
+        .map(codificarSegmentoSeguro)
+        .join('/');
+    }
+
+    function construirUrlImagenGithub(imagen, carpeta) {
+      const repoRawBase = 'https://raw.githubusercontent.com/conquiguias/conquiguias-data/main/';
+      const nombreNormalizado = normalizarNombreImagen(imagen?.nombre || '');
+
+      if (imagen?.ruta) {
+        return `${repoRawBase}${normalizarRutaGithub(imagen.ruta)}`;
+      }
+
+      if (nombreNormalizado) {
+        const pathFallback = `images/${carpeta}/${nombreNormalizado}`;
+        return `${repoRawBase}${normalizarRutaGithub(pathFallback)}`;
+      }
+
+      return imagen?.url || '';
+    }
+
     // Función para cargar imágenes en un select - EXPORTADA A WINDOW
     // PROTEGIDA CON CACHÉ Y COOLDOWN PARA EVITAR 429
     window.cargarImagenesInstructor = async function(carpeta, selectId) {
@@ -9226,9 +9259,10 @@ const diffMins = Math.floor(diffMs / 60000);
             // Guardar nombre limpio para búsqueda
             const nombreNormalizado = normalizarNombreImagen(imagen.nombre);
             const nombreLimpio = nombreNormalizado.replace(/\.[^/.]+$/, "");
+            const urlImagen = construirUrlImagenGithub(imagen, carpeta);
 
             const img = document.createElement('img');
-            img.src = imagen.url;
+            img.src = urlImagen;
             img.alt = nombreLimpio;
             img.loading = "lazy"; // Mejora de rendimiento
             img.onerror = function () {
@@ -9290,7 +9324,7 @@ const diffMins = Math.floor(diffMs / 60000);
 
               // Guardar selección y actualizar campos correspondientes
               if (carpeta === 'especialidades') {
-                imagenEspecialidadSeleccionada = imagen;
+                imagenEspecialidadSeleccionada = { ...imagen, nombre: nombreNormalizado, url: urlImagen };
                 // Auto-rellenar titulo y ID (ocultos)
                 const nombre = nombreLimpio;
                 const tituloInput = document.getElementById('titulo');
@@ -9304,13 +9338,13 @@ const diffMins = Math.floor(diffMs / 60000);
                 
               } else if (carpeta === 'firmas') {
                 if (selectId === 'selectFirma1') {
-                  imagenFirma1Seleccionada = imagen;
+                  imagenFirma1Seleccionada = { ...imagen, nombre: nombreNormalizado, url: urlImagen };
                   document.getElementById('mensajeFirma1').innerHTML = `<span style="color: var(--success-color); font-weight: bold;"><i class="fas fa-check-circle"></i> Seleccionado: ${nombreLimpio}</span>`;
                 } else if (selectId === 'selectFirma2') {
-                  imagenFirma2Seleccionada = imagen;
+                  imagenFirma2Seleccionada = { ...imagen, nombre: nombreNormalizado, url: urlImagen };
                   document.getElementById('mensajeFirma2').innerHTML = `<span style="color: var(--success-color); font-weight: bold;"><i class="fas fa-check-circle"></i> Seleccionado: ${nombreLimpio}</span>`;
                 } else if (selectId === 'selectFirma3') {
-                  imagenFirma3Seleccionada = imagen;
+                  imagenFirma3Seleccionada = { ...imagen, nombre: nombreNormalizado, url: urlImagen };
                   document.getElementById('mensajeFirma3').innerHTML = `<span style="color: var(--success-color); font-weight: bold;"><i class="fas fa-check-circle"></i> Seleccionado: ${nombreLimpio}</span>`;
                 }
               }

@@ -9147,24 +9147,43 @@ const diffMins = Math.floor(diffMs / 60000);
       if (!path) return '';
       return String(path)
         .split('/')
-        .map(codificarSegmentoSeguro)
+        .map(segmento => codificarSegmentoSeguro(normalizarNombreImagen(segmento)))
         .join('/');
+    }
+
+    function normalizarUrlGithub(url) {
+      if (!url || typeof url !== 'string') return '';
+      const githubRawPrefix = 'https://raw.githubusercontent.com/';
+      if (!url.startsWith(githubRawPrefix)) return url;
+
+      const resto = url.slice(githubRawPrefix.length);
+      const partes = resto.split('/');
+      if (partes.length < 5) return url;
+
+      const owner = partes[0];
+      const repo = partes[1];
+      const branch = partes[2];
+      const ruta = partes.slice(3).join('/');
+      return `${githubRawPrefix}${owner}/${repo}/${branch}/${normalizarRutaGithub(ruta)}`;
     }
 
     function construirUrlImagenGithub(imagen, carpeta) {
       const repoRawBase = 'https://raw.githubusercontent.com/conquiguias/conquiguias-data/main/';
       const nombreNormalizado = normalizarNombreImagen(imagen?.nombre || '');
+      const urlOriginalNormalizada = normalizarUrlGithub(imagen?.url || '');
 
       if (imagen?.ruta) {
-        return `${repoRawBase}${normalizarRutaGithub(imagen.ruta)}`;
+        const urlPorRuta = `${repoRawBase}${normalizarRutaGithub(imagen.ruta)}`;
+        return urlPorRuta || urlOriginalNormalizada;
       }
 
       if (nombreNormalizado) {
         const pathFallback = `images/${carpeta}/${nombreNormalizado}`;
-        return `${repoRawBase}${normalizarRutaGithub(pathFallback)}`;
+        const urlPorNombre = `${repoRawBase}${normalizarRutaGithub(pathFallback)}`;
+        return urlPorNombre || urlOriginalNormalizada;
       }
 
-      return imagen?.url || '';
+      return urlOriginalNormalizada;
     }
 
     // Función para cargar imágenes en un select - EXPORTADA A WINDOW
@@ -9260,12 +9279,18 @@ const diffMins = Math.floor(diffMs / 60000);
             const nombreNormalizado = normalizarNombreImagen(imagen.nombre);
             const nombreLimpio = nombreNormalizado.replace(/\.[^/.]+$/, "");
             const urlImagen = construirUrlImagenGithub(imagen, carpeta);
+            const urlAlterna = normalizarUrlGithub(imagen?.url || '');
 
             const img = document.createElement('img');
             img.src = urlImagen;
             img.alt = nombreLimpio;
             img.loading = "lazy"; // Mejora de rendimiento
             img.onerror = function () {
+              if (!this.dataset.retryDone && urlAlterna && this.src !== urlAlterna) {
+                this.dataset.retryDone = '1';
+                this.src = urlAlterna;
+                return;
+              }
               this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAxMUMyMi43NjE0IDExIDI1IDEzLjIzODYgMjUgMTZDMjUgMTguNzYxNCAyMi43NjE0IDIxIDIwIDIxQzE3LjIzODYgMjEgMTUgMTguNzYxNCAxNSAxNkMxNSAxMy4yMzg2IDE3LjIzODYgMTEgMjAgMTFaIiBmaWxsPSIjOTRBQkNEIi8+CjxwYXRoIGQ9Ik0xMSAyOUMyOSAyOSAyOSAyOSAyOSAyOUMyOSAzMS4yMDkxIDI3LjIwOTEgMzMgMjUgMzNIMTVDMTIuNzkwOSAzMyAxMSAzMS4yMDkxIDExIDI5QzExIDI5IDExIDI5IDExIDI5WiIgZmlsbD0iIzk0QUJDRCIvPgo8L3N2Zz4K';
             };
 

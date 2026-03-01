@@ -835,23 +835,48 @@
 
     .post-content {
       width: 100%;
+      position: relative;
     }
 
-    .post-content img {
+    .media-blur-shell {
+      position: relative;
       width: 100%;
-      max-height: 350px;
-      object-fit: contain;
+      height: 350px;
+      overflow: hidden;
       background: #000;
-      border-radius: 0px;
+      border-radius: 0;
+    }
+
+    .media-blur-bg-img,
+    .media-blur-bg-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: blur(22px);
+      transform: scale(1.12);
+      opacity: 0.72;
+      pointer-events: none;
+    }
+
+    .post-content .media-front-media {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: transparent;
+      border-radius: 0;
       overflow: hidden;
     }
 
-    .post-content video {
+    .media-blur-video-shell .clappr-container {
+      position: relative;
+      z-index: 1;
       width: 100%;
-      object-fit: contain;
-      background: #000;
-      border-radius: 0px;
-      overflow: hidden;
+      height: 100%;
+      border-radius: 0;
     }
 
     .post-description {
@@ -6660,6 +6685,11 @@ async function resolveImgurImage(imgElement, mediaUrl) {
       imgElement.dataset.loadState = 'loading';
       await loadImageWithElement(imgElement, mediaUrl);
       imgElement.dataset.loadState = 'loaded';
+      const blurShell = imgElement.closest('.media-blur-shell');
+      const bgImage = blurShell ? blurShell.querySelector('.media-blur-bg-img') : null;
+      if (bgImage instanceof HTMLImageElement) {
+        bgImage.src = mediaUrl;
+      }
       imgElement.style.cursor = 'default';
       imgElement.title = '';
       imgElement.onclick = null;
@@ -6669,6 +6699,11 @@ async function resolveImgurImage(imgElement, mediaUrl) {
       if (!hasMoreRetries) {
         imgElement.dataset.loadState = 'failed';
         imgElement.src = 'https://dummyimage.com/900x600/1f2937/ffffff&text=Imagen+temporalmente+no+disponible';
+        const blurShell = imgElement.closest('.media-blur-shell');
+        const bgImage = blurShell ? blurShell.querySelector('.media-blur-bg-img') : null;
+        if (bgImage instanceof HTMLImageElement) {
+          bgImage.src = imgElement.src;
+        }
         imgElement.alt = 'Imagen no disponible temporalmente';
         imgElement.style.cursor = 'pointer';
         imgElement.title = 'Haz clic para reintentar';
@@ -7567,10 +7602,19 @@ const diffMins = Math.floor(diffMs / 60000);
                 <div class="post-content">
                   ${post.mediaType && post.mediaType.startsWith('image/')
                   ? (isImgurUrl(post.mediaUrl)
-                    ? `<img src="${IMGUR_IMAGE_PLACEHOLDER}" data-media-url="${escapeHtml(post.mediaUrl)}" alt="Publicación" loading="lazy">`
-                    : `<img src="${post.mediaUrl}" alt="Publicación" loading="lazy" onerror="this.style.display='none'">`)
+                    ? `<div class="media-blur-shell">
+                        <img class="media-blur-bg-img" src="${IMGUR_IMAGE_PLACEHOLDER}" alt="" aria-hidden="true" loading="lazy">
+                        <img class="media-front-media" src="${IMGUR_IMAGE_PLACEHOLDER}" data-media-url="${escapeHtml(post.mediaUrl)}" alt="Publicación" loading="lazy">
+                      </div>`
+                    : `<div class="media-blur-shell">
+                        <img class="media-blur-bg-img" src="${post.mediaUrl}" alt="" aria-hidden="true" loading="lazy">
+                        <img class="media-front-media" src="${post.mediaUrl}" alt="Publicación" loading="lazy" onerror="this.closest('.media-blur-shell').style.display='none'">
+                      </div>`)
                   : post.mediaType && (post.mediaType === 'video/url' || post.mediaType.startsWith('video/'))
-                  ? `<div id="clappr-player-${renderPostId}" class="clappr-container" data-src="${post.mediaUrl}"></div>`
+                  ? `<div class="media-blur-shell media-blur-video-shell">
+                      <video class="media-blur-bg-video" src="${post.mediaUrl}" muted autoplay loop playsinline preload="metadata"></video>
+                      <div id="clappr-player-${renderPostId}" class="clappr-container" data-src="${post.mediaUrl}"></div>
+                    </div>`
                   : `<div style="padding: 20px; text-align: center; color: #666;">Tipo de archivo no compatible</div>`
                   }
                 </div>
@@ -7648,7 +7692,7 @@ const diffMins = Math.floor(diffMs / 60000);
                   source: post.mediaUrl,
                   parentId: '#' + pid,
                   width: "100%",
-                  height: 350
+                  height: "100%"
                 });
                 window._clapprPlayers[pid] = player;
 
@@ -9124,12 +9168,18 @@ const diffMins = Math.floor(diffMs / 60000);
                               <div class="post-content">
                                 ${post.mediaType.startsWith('image/')
                                 ? (isImgurUrl(post.mediaUrl)
-                                  ? `<img src="${IMGUR_IMAGE_PLACEHOLDER}" data-media-url="${escapeHtml(post.mediaUrl)}" alt="Publicación pendiente" loading="lazy"
-                                  style="max-width: 100%; border-radius: 8px;">`
-                                  : `<img src="${post.mediaUrl}" alt="Publicación pendiente" loading="lazy"
-                                  style="max-width: 100%; border-radius: 8px;">`)
-                                : `<video src="${post.mediaUrl}" controls
-                                  style="max-width: 100%; border-radius: 8px;"></video>`
+                                  ? `<div class="media-blur-shell">
+                                      <img class="media-blur-bg-img" src="${IMGUR_IMAGE_PLACEHOLDER}" alt="" aria-hidden="true" loading="lazy">
+                                      <img class="media-front-media" src="${IMGUR_IMAGE_PLACEHOLDER}" data-media-url="${escapeHtml(post.mediaUrl)}" alt="Publicación pendiente" loading="lazy">
+                                    </div>`
+                                  : `<div class="media-blur-shell">
+                                      <img class="media-blur-bg-img" src="${post.mediaUrl}" alt="" aria-hidden="true" loading="lazy">
+                                      <img class="media-front-media" src="${post.mediaUrl}" alt="Publicación pendiente" loading="lazy" onerror="this.closest('.media-blur-shell').style.display='none'">
+                                    </div>`)
+                                : `<div class="media-blur-shell media-blur-video-shell">
+                                    <video class="media-blur-bg-video" src="${post.mediaUrl}" muted autoplay loop playsinline preload="metadata"></video>
+                                    <video class="media-front-media" src="${post.mediaUrl}" controls playsinline preload="metadata"></video>
+                                   </div>`
                                 }
                               </div>
 

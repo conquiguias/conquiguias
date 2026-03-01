@@ -3669,7 +3669,18 @@
     <!-- 🔧 SECCIÓN ADMIN -->
     <div id="adminSection" class="card hidden">
       <h2><i class="fas fa-cog" style="margin-right: 8px; color: var(--accent-color);"></i> Panel de Administración</h2>
-      <p>Desde aquí puedes moderar las publicaciones pendientes de aprobación.</p>
+      <p>Desde aquí puedes moderar publicaciones y gestionar instructores.</p>
+
+      <div style="display:flex; gap:10px; margin: 14px 0 20px 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+        <button id="adminTabPublicaciones" class="active" style="padding: 8px 16px; background: var(--accent-color); color: white; border: none; border-radius: 4px; cursor: pointer;">
+          Publicaciones
+        </button>
+        <button id="adminTabInstructores" style="padding: 8px 16px; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;">
+          Instructores
+        </button>
+      </div>
+
+      <div id="adminModeracionView">
 
       <div id="adminStats" style="padding: 15px; border-radius: 8px; margin-bottom: 20px;">
         <h4><i class="fas fa-chart-bar" style="margin-right: 8px; color: var(--accent-color);"></i> Estadísticas de Moderación</h4>
@@ -3701,6 +3712,54 @@
       <div id="noPendingPosts" style="text-align: center; padding: 40px; display: none;">
         <h3><i class="fas fa-check-circle" style="margin-right: 8px; color: var(--success-color);"></i> No hay publicaciones pendientes</h3>
         <p>Todas las publicaciones han sido moderadas.</p>
+      </div>
+      </div>
+
+      <div id="adminInstructoresView" class="hidden">
+        <div style="background: var(--bg-secondary); padding: 16px; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 16px;">
+          <h4 style="margin: 0 0 10px 0;"><i class="fas fa-user-plus" style="margin-right:8px; color: var(--accent-color);"></i> Asignar Instructor a Especialidades</h4>
+
+          <div style="margin-bottom: 10px;">
+            <label style="display:block; margin-bottom:6px; font-weight:600;">Seleccionar usuario</label>
+            <input id="adminInstructorSearch" type="text" placeholder="Buscar por nombre o correo..." style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-primary);">
+          </div>
+
+          <div id="adminInstructorUsersList" class="custom-select" style="max-height: 220px; overflow-y: auto; margin-bottom: 10px;">
+            <div style="padding: 12px; text-align:center; color: var(--text-secondary);">Cargando usuarios...</div>
+          </div>
+
+          <div id="adminSelectedInstructorLabel" style="margin-bottom: 10px; font-size: 13px; color: var(--text-secondary);">Instructor seleccionado: Ninguno</div>
+
+          <div style="margin-bottom: 8px; font-weight:600;">Especialidades con tareas pendientes</div>
+          <div id="adminInstructorEspecialidadesList" style="max-height: 220px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; margin-bottom: 10px; background: var(--bg-card);">
+            <div style="text-align:center; color: var(--text-secondary);">Cargando especialidades...</div>
+          </div>
+
+          <button id="btnAsignarInstructorEspecialidades" style="width:100%; padding:10px 14px; border:none; border-radius:8px; background: var(--accent-color); color:white; font-weight:600; cursor:pointer;">
+            Asignar Instructor a Especialidades
+          </button>
+          <div id="adminInstructorAssignMsg" style="margin-top:8px; font-size:13px;"></div>
+        </div>
+
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px;">
+          <h4 style="margin: 0 0 12px 0;"><i class="fas fa-list" style="margin-right:8px; color: var(--accent-color);"></i> Instructores con especialidades asignadas</h4>
+          <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse: collapse;">
+              <thead>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <th style="text-align:left; padding:8px;">Instructor</th>
+                  <th style="text-align:left; padding:8px;">Correo</th>
+                  <th style="text-align:left; padding:8px;">Especialidades</th>
+                  <th style="text-align:left; padding:8px;">Actualizado</th>
+                  <th style="text-align:left; padding:8px;">Acción</th>
+                </tr>
+              </thead>
+              <tbody id="adminInstructorAssignmentsBody">
+                <tr><td colspan="5" style="padding:12px; text-align:center; color:var(--text-secondary);">Sin asignaciones.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -4327,6 +4386,7 @@
       // currentUserId, isAdmin, userData ahora son globales (window.*)
       let currentPhotoURL = "";
       const placeholderURL = "https://dummyimage.com/120x120/ccc/fff";
+      let OWNER_EMAIL = "";
       let puedeEntrarEspecialidades = false;
       let isSocialNetworkInitialized = false;
       let postsLoading = false;
@@ -4334,6 +4394,109 @@
       let certificacionesCache = null;
       let certificacionesCacheTime = 0;
       const CACHE_DURATION = 5 * 60 * 1000;
+      let instructorAssignmentsConfig = {};
+
+      window.isOwner = false;
+      window.isInstructorRole = false;
+      window.canAccessInstructorPanel = false;
+      window.canAccessAdminPanel = false;
+      window.canAccessEspecialidadesStorage = false;
+      window.allowedInstructorSpecialties = [];
+
+      function normalizeEmail(email) {
+        return (email || '').trim().toLowerCase();
+      }
+
+      function getInstructorAssignmentForUser(uid, email) {
+        const emailKey = normalizeEmail(email);
+        if (uid && instructorAssignmentsConfig[uid]) return instructorAssignmentsConfig[uid];
+        if (emailKey && instructorAssignmentsConfig[emailKey]) return instructorAssignmentsConfig[emailKey];
+
+        for (const item of Object.values(instructorAssignmentsConfig || {})) {
+          if (normalizeEmail(item?.email) === emailKey) return item;
+        }
+
+        return null;
+      }
+
+      async function loadInstructorAssignmentsConfig() {
+        try {
+          const response = await fetch('/api/social?action=get-instructor-assignments');
+          if (!response.ok) {
+            throw new Error('No se pudieron cargar las asignaciones de instructores');
+          }
+
+          const payload = await response.json();
+          OWNER_EMAIL = normalizeEmail(payload?.ownerEmail || OWNER_EMAIL || '');
+          instructorAssignmentsConfig = payload?.instructores || {};
+          return instructorAssignmentsConfig;
+        } catch (error) {
+          console.warn('[WARN] No se pudo cargar configuración de instructores:', error);
+          instructorAssignmentsConfig = {};
+          return instructorAssignmentsConfig;
+        }
+      }
+
+      async function saveInstructorAssignmentsConfig(nextAssignments) {
+        const cleanAssignments = nextAssignments || {};
+        const updatedBy = normalizeEmail(window.userData?.email || auth.currentUser?.email || '');
+
+        const response = await fetch('/api/social?action=save-instructor-assignments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            instructores: cleanAssignments,
+            updatedBy
+          })
+        });
+
+        if (!response.ok) {
+          const errorPayload = await response.json().catch(() => ({}));
+          throw new Error(errorPayload.error || 'No se pudieron guardar las asignaciones');
+        }
+
+        const payload = await response.json();
+        OWNER_EMAIL = normalizeEmail(payload?.ownerEmail || OWNER_EMAIL || '');
+        instructorAssignmentsConfig = payload?.instructores || {};
+      }
+
+      function isSpecialtyAllowedForCurrentInstructor(formId) {
+        if (window.isOwner) return true;
+        if (!window.isInstructorRole) return false;
+        const allowedIds = (window.allowedInstructorSpecialties || []).map(item => item.id);
+        return allowedIds.includes(formId);
+      }
+
+      function applyRoleBasedNavigation() {
+        const menuAdminBtn = document.getElementById('menuAdmin');
+        const menuInstructorBtn = document.getElementById('menuInstructor');
+        const tabCrearBtn = document.getElementById('tabInstructorCrear');
+        const tabEvaluarBtn = document.getElementById('tabInstructorEvaluar');
+        const viewCrearForm = document.getElementById('viewCrearFormulario');
+        const viewEvaluarTareas = document.getElementById('viewEvaluarTareas');
+        const sectionAlmacenamiento = document.getElementById('sectionAlmacenamientoPDFs');
+
+        if (menuAdminBtn) menuAdminBtn.classList.toggle('hidden', !window.canAccessAdminPanel);
+        if (menuInstructorBtn) menuInstructorBtn.classList.toggle('hidden', !window.canAccessInstructorPanel);
+
+        if (!window.isOwner) {
+          if (tabCrearBtn) tabCrearBtn.classList.add('hidden');
+          if (viewCrearForm) viewCrearForm.style.display = 'none';
+          if (tabEvaluarBtn) {
+            tabEvaluarBtn.classList.add('active');
+            tabEvaluarBtn.style.background = 'var(--accent-color)';
+            tabEvaluarBtn.style.color = 'white';
+          }
+          if (viewEvaluarTareas) viewEvaluarTareas.style.display = 'block';
+        } else {
+          if (tabCrearBtn) tabCrearBtn.classList.remove('hidden');
+          if (sectionAlmacenamiento) sectionAlmacenamiento.classList.remove('hidden');
+        }
+
+        if (sectionAlmacenamiento && !window.isOwner) {
+          sectionAlmacenamiento.classList.add('hidden');
+        }
+      }
 
 
       // 🔹 Detectar usuario logueado
@@ -4392,18 +4555,35 @@
         if (user) {
           // Obtener lista de admins desde el backend
           const adminEmails = await getAdminEmails();
-          const email = user.email;
-          puedeEntrarEspecialidades = adminEmails.includes(email);
-          window.isAdmin = adminEmails.includes(email); // También para el panel admin
+          const email = normalizeEmail(user.email);
+          const adminsNormalizados = Array.from(new Set([
+            ...((adminEmails || []).map(normalizeEmail).filter(Boolean)),
+            OWNER_EMAIL
+          ]));
+
+          window.isOwner = email === OWNER_EMAIL;
+          window.isAdmin = adminsNormalizados.includes(email);
+
+          await loadInstructorAssignmentsConfig();
+          const instructorAssignment = getInstructorAssignmentForUser(user.uid, user.email);
+          window.isInstructorRole = !!instructorAssignment;
+          window.allowedInstructorSpecialties = instructorAssignment?.especialidades || [];
+
+          window.canAccessAdminPanel = window.isAdmin || window.isOwner;
+          window.canAccessInstructorPanel = window.isOwner || window.isInstructorRole;
+          window.canAccessEspecialidadesStorage = window.canAccessAdminPanel;
+          puedeEntrarEspecialidades = window.canAccessEspecialidadesStorage;
+
+          applyRoleBasedNavigation();
         }
 
         // Configurar panel admin si es administrador
-        if (window.isAdmin) {
+        if (window.canAccessAdminPanel) {
           setupAdminSection();
           setupAdminEventListeners();
-          const menuInstructor = document.getElementById('menuInstructor');
-          if (menuInstructor) menuInstructor.classList.remove('hidden');
-          // Start Instructor panel
+        }
+
+        if (window.canAccessInstructorPanel) {
           if (typeof inicializarPanelInstructor === 'function') inicializarPanelInstructor();
         }
 
@@ -4446,8 +4626,6 @@
             ...data,
             email: user.email // 🔥 Asegurar que userData tenga el email
           };
-
-          window.isAdmin = ADMIN_EMAILS.includes(user.email);
           lastPostTime = data.lastPostTime || null;
 
           // 🔹 INICIALIZAR RED SOCIAL INMEDIATAMENTE SI ESTAMOS EN INICIO
@@ -4466,11 +4644,20 @@
       const instructorSection = document.getElementById("instructorSection");
       if(menuInstructor) {
           menuInstructor.addEventListener("click", () => {
+            if (!window.canAccessInstructorPanel) {
+              mostrarMensaje('error', 'Acceso restringido', 'No tienes permisos para entrar al panel de instructor.');
+              return;
+            }
               mostrarSeccion(instructorSection, menuInstructor);
               // Inicializar si es necesario
               if(typeof window.inicializarPanelInstructor === 'function') {
                   window.inicializarPanelInstructor();
               }
+
+            if (!window.isOwner) {
+            const tabEvaluar = document.getElementById('tabInstructorEvaluar');
+            if (tabEvaluar) tabEvaluar.click();
+            }
           });
       }
 
@@ -4492,7 +4679,7 @@
       // 🔹 Menú Especialidades con bloqueo si no es autorizado
       menuEspecialidades.addEventListener("click", () => {
         if (!puedeEntrarEspecialidades) {
-          mostrarMensaje("error", "Acceso restringido", "<i class='fas fa-ban'></i> Solo personal Premium puede ingresar a esta sección.");
+          mostrarMensaje("error", "Acceso restringido", "<i class='fas fa-ban'></i> Solo administradores y propietario pueden ingresar a Especialidades Storage.");
           return;
         }
 
@@ -8289,14 +8476,374 @@ const diffMins = Math.floor(diffMs / 60000);
                               const menuAdmin = document.getElementById('menuAdmin');
                               const adminSection = document.getElementById('adminSection');
 
-                              if (window.isAdmin) {
+                              if (window.canAccessAdminPanel) {
                               menuAdmin.classList.remove('hidden');
 
                               menuAdmin.addEventListener('click', () => {
                               mostrarSeccion(adminSection, menuAdmin);
-                              loadPendingPosts();
+                              setupAdminTabs();
+                              activarTabAdmin('publicaciones');
                               });
                               }
+                              }
+
+                              let adminTabInitialized = false;
+                              let adminInstructorUsers = [];
+                              let adminPendingSpecialties = [];
+                              let adminSelectedInstructor = null;
+
+                              function activarTabAdmin(tabName) {
+                                const tabPublicaciones = document.getElementById('adminTabPublicaciones');
+                                const tabInstructores = document.getElementById('adminTabInstructores');
+                                const viewModeracion = document.getElementById('adminModeracionView');
+                                const viewInstructores = document.getElementById('adminInstructoresView');
+
+                                if (!tabPublicaciones || !tabInstructores || !viewModeracion || !viewInstructores) return;
+
+                                const isPublicaciones = tabName === 'publicaciones';
+
+                                tabPublicaciones.classList.toggle('active', isPublicaciones);
+                                tabPublicaciones.style.background = isPublicaciones ? 'var(--accent-color)' : 'transparent';
+                                tabPublicaciones.style.color = isPublicaciones ? 'white' : 'var(--text-primary)';
+                                tabPublicaciones.style.border = isPublicaciones ? 'none' : '1px solid var(--border-color)';
+
+                                tabInstructores.classList.toggle('active', !isPublicaciones);
+                                tabInstructores.style.background = !isPublicaciones ? 'var(--accent-color)' : 'transparent';
+                                tabInstructores.style.color = !isPublicaciones ? 'white' : 'var(--text-primary)';
+                                tabInstructores.style.border = !isPublicaciones ? 'none' : '1px solid var(--border-color)';
+
+                                viewModeracion.classList.toggle('hidden', !isPublicaciones);
+                                viewInstructores.classList.toggle('hidden', isPublicaciones);
+
+                                if (isPublicaciones) {
+                                  loadPendingPosts();
+                                } else {
+                                  inicializarAdminInstructores();
+                                }
+                              }
+
+                              function setupAdminTabs() {
+                                if (adminTabInitialized) return;
+                                const tabPublicaciones = document.getElementById('adminTabPublicaciones');
+                                const tabInstructores = document.getElementById('adminTabInstructores');
+                                const searchInput = document.getElementById('adminInstructorSearch');
+                                const assignBtn = document.getElementById('btnAsignarInstructorEspecialidades');
+
+                                if (tabPublicaciones) {
+                                  tabPublicaciones.addEventListener('click', () => activarTabAdmin('publicaciones'));
+                                }
+                                if (tabInstructores) {
+                                  tabInstructores.addEventListener('click', () => activarTabAdmin('instructores'));
+                                }
+                                if (searchInput) {
+                                  searchInput.addEventListener('input', () => {
+                                    renderAdminInstructorUsers(searchInput.value);
+                                  });
+                                }
+                                if (assignBtn) {
+                                  assignBtn.addEventListener('click', asignarInstructorEspecialidades);
+                                }
+
+                                adminTabInitialized = true;
+                              }
+
+                              function getInstructorAssignmentKey(user) {
+                                if (!user) return null;
+                                return user.uid || normalizeEmail(user.email);
+                              }
+
+                              function renderAdminInstructorUsers(searchTerm = '') {
+                                const list = document.getElementById('adminInstructorUsersList');
+                                if (!list) return;
+
+                                const needle = (searchTerm || '').trim().toLowerCase();
+                                const filtered = adminInstructorUsers.filter(user => {
+                                  const name = (user.name || '').toLowerCase();
+                                  const email = normalizeEmail(user.email);
+                                  return !needle || name.includes(needle) || email.includes(needle);
+                                });
+
+                                if (!filtered.length) {
+                                  list.innerHTML = '<div style="padding: 12px; text-align:center; color: var(--text-secondary);">No se encontraron usuarios.</div>';
+                                  return;
+                                }
+
+                                list.innerHTML = filtered.map(user => {
+                                  const selected = adminSelectedInstructor && getInstructorAssignmentKey(adminSelectedInstructor) === getInstructorAssignmentKey(user);
+                                  return `
+                                    <div class="image-option ${selected ? 'selected' : ''}" data-user-key="${getInstructorAssignmentKey(user)}" style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:6px;">
+                                      <div style="font-weight:600;">${escapeHtml(user.name || 'Sin nombre')}</div>
+                                      <div style="font-size:12px; color: var(--text-secondary);">${escapeHtml(user.email || 'Sin correo')}</div>
+                                    </div>
+                                  `;
+                                }).join('');
+
+                                list.querySelectorAll('[data-user-key]').forEach(option => {
+                                  option.addEventListener('click', () => {
+                                    const key = option.getAttribute('data-user-key');
+                                    const selectedUser = adminInstructorUsers.find(u => getInstructorAssignmentKey(u) === key);
+                                    adminSelectedInstructor = selectedUser || null;
+                                    actualizarInstructorSeleccionado();
+                                    renderAdminInstructorUsers(searchTerm);
+                                    renderEspecialidadesAsignables();
+                                  });
+                                });
+                              }
+
+                              function actualizarInstructorSeleccionado() {
+                                const label = document.getElementById('adminSelectedInstructorLabel');
+                                if (!label) return;
+
+                                if (!adminSelectedInstructor) {
+                                  label.textContent = 'Instructor seleccionado: Ninguno';
+                                  return;
+                                }
+
+                                label.textContent = `Instructor seleccionado: ${adminSelectedInstructor.name} (${adminSelectedInstructor.email})`;
+                              }
+
+                              function renderEspecialidadesAsignables() {
+                                const container = document.getElementById('adminInstructorEspecialidadesList');
+                                if (!container) return;
+
+                                if (!adminPendingSpecialties.length) {
+                                  container.innerHTML = '<div style="text-align:center; color:var(--text-secondary);">No hay especialidades pendientes actualmente.</div>';
+                                  return;
+                                }
+
+                                const assigned = (() => {
+                                  if (!adminSelectedInstructor) return [];
+                                  const key = getInstructorAssignmentKey(adminSelectedInstructor);
+                                  return (instructorAssignmentsConfig[key]?.especialidades || []).map(item => item.id);
+                                })();
+
+                                container.innerHTML = adminPendingSpecialties.map(item => `
+                                  <label style="display:flex; gap:8px; align-items:flex-start; margin-bottom:8px; cursor:pointer;">
+                                    <input type="checkbox" class="admin-esp-checkbox" value="${item.id}" ${assigned.includes(item.id) ? 'checked' : ''}>
+                                    <span>
+                                      <strong>${escapeHtml(item.titulo || item.id)}</strong><br>
+                                      <small style="color:var(--text-secondary);">Pendientes: ${item.pendientes ?? 0}</small>
+                                    </span>
+                                  </label>
+                                `).join('');
+                              }
+
+                              function renderInstructorAssignmentsTable() {
+                                const tbody = document.getElementById('adminInstructorAssignmentsBody');
+                                if (!tbody) return;
+
+                                const rows = Object.entries(instructorAssignmentsConfig || {})
+                                  .filter(([, item]) => item && Array.isArray(item.especialidades) && item.especialidades.length > 0);
+
+                                if (!rows.length) {
+                                  tbody.innerHTML = '<tr><td colspan="5" style="padding:12px; text-align:center; color:var(--text-secondary);">Sin asignaciones.</td></tr>';
+                                  return;
+                                }
+
+                                tbody.innerHTML = rows.map(([assignmentKey, item]) => {
+                                  const especialidades = item.especialidades.map(esp => esp.titulo || esp.id).join(', ');
+                                  const updatedAt = item.updatedAt ? new Date(item.updatedAt).toLocaleString() : '—';
+                                  return `
+                                    <tr style="border-bottom: 1px solid var(--border-color);">
+                                      <td style="padding:8px;">${escapeHtml(item.name || 'Sin nombre')}</td>
+                                      <td style="padding:8px;">${escapeHtml(item.email || 'Sin correo')}</td>
+                                      <td style="padding:8px;">${escapeHtml(especialidades || '—')}</td>
+                                      <td style="padding:8px;">${updatedAt}</td>
+                                      <td style="padding:8px;">
+                                        <button type="button" onclick="revocarAsignacionInstructor('${encodeURIComponent(assignmentKey)}')" style="background: var(--danger-color); color: white; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer;">
+                                          Revocar
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  `;
+                                }).join('');
+                              }
+
+                              window.revocarAsignacionInstructor = async function(encodedKey) {
+                                if (!window.canAccessAdminPanel) return;
+
+                                const msg = document.getElementById('adminInstructorAssignMsg');
+                                const assignmentKey = decodeURIComponent(encodedKey || '');
+                                if (!assignmentKey || !instructorAssignmentsConfig[assignmentKey]) {
+                                  if (msg) {
+                                    msg.style.color = 'var(--error-color)';
+                                    msg.textContent = 'No se encontró la asignación a revocar.';
+                                  }
+                                  return;
+                                }
+
+                                const assignment = instructorAssignmentsConfig[assignmentKey];
+                                const ok = confirm(`¿Revocar las especialidades asignadas a ${assignment.name || assignment.email}?`);
+                                if (!ok) return;
+
+                                const nextAssignments = { ...instructorAssignmentsConfig };
+                                delete nextAssignments[assignmentKey];
+
+                                try {
+                                  await saveInstructorAssignmentsConfig(nextAssignments);
+                                  renderInstructorAssignmentsTable();
+
+                                  if (adminSelectedInstructor && getInstructorAssignmentKey(adminSelectedInstructor) === assignmentKey) {
+                                    adminSelectedInstructor = null;
+                                    actualizarInstructorSeleccionado();
+                                    renderAdminInstructorUsers((document.getElementById('adminInstructorSearch')?.value || ''));
+                                    renderEspecialidadesAsignables();
+                                  }
+
+                                  const currentUserEmail = normalizeEmail(window.userData?.email || auth.currentUser?.email || '');
+                                  if (assignment.userId === window.currentUserId || normalizeEmail(assignment.email) === currentUserEmail) {
+                                    window.isInstructorRole = false;
+                                    window.allowedInstructorSpecialties = [];
+                                    window.canAccessInstructorPanel = window.isOwner;
+                                    applyRoleBasedNavigation();
+                                  }
+
+                                  if (msg) {
+                                    msg.style.color = 'var(--success-color)';
+                                    msg.textContent = 'Asignación revocada correctamente.';
+                                  }
+                                } catch (error) {
+                                  if (msg) {
+                                    msg.style.color = 'var(--error-color)';
+                                    msg.textContent = `Error revocando asignación: ${error.message}`;
+                                  }
+                                }
+                              }
+
+                              async function cargarUsuariosParaAdminInstructores() {
+                                const map = new Map();
+
+                                const usuariosSnap = await getDocs(collection(db, 'usuarios'));
+                                usuariosSnap.forEach(docSnap => {
+                                  const data = docSnap.data() || {};
+                                  const email = normalizeEmail(data.email || data.correo || data.mail || '');
+                                  if (!email) return;
+                                  const name = `${data.nombre || ''} ${data.apellido || ''}`.trim() || data.userName || email;
+                                  map.set(docSnap.id, { uid: docSnap.id, email, name });
+                                });
+
+                                try {
+                                  const postsSnap = await getDocs(query(collection(db, 'posts'), orderBy('timestamp', 'desc'), limit(200)));
+                                  postsSnap.forEach(docSnap => {
+                                    const post = docSnap.data() || {};
+                                    const key = post.userId || normalizeEmail(post.userEmail || '');
+                                    const email = normalizeEmail(post.userEmail || '');
+                                    if (!key || !email) return;
+                                    if (!map.has(key)) {
+                                      map.set(key, {
+                                        uid: post.userId || '',
+                                        email,
+                                        name: post.userName || email
+                                      });
+                                    }
+                                  });
+                                } catch (error) {
+                                  console.warn('[WARN] No se pudieron completar usuarios desde publicaciones:', error);
+                                }
+
+                                adminInstructorUsers = Array.from(map.values())
+                                  .filter(item => !!item.email)
+                                  .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+                              }
+
+                              async function cargarEspecialidadesPendientesParaAsignacion() {
+                                const res = await fetch('/api/formulario?action=listarFormulariosPendientes');
+                                if (!res.ok) throw new Error('No se pudieron cargar especialidades pendientes');
+                                adminPendingSpecialties = await res.json();
+                              }
+
+                              async function inicializarAdminInstructores() {
+                                try {
+                                  await loadInstructorAssignmentsConfig();
+                                  await Promise.all([
+                                    cargarUsuariosParaAdminInstructores(),
+                                    cargarEspecialidadesPendientesParaAsignacion()
+                                  ]);
+
+                                  const searchInput = document.getElementById('adminInstructorSearch');
+                                  renderAdminInstructorUsers(searchInput?.value || '');
+                                  actualizarInstructorSeleccionado();
+                                  renderEspecialidadesAsignables();
+                                  renderInstructorAssignmentsTable();
+                                } catch (error) {
+                                  const msg = document.getElementById('adminInstructorAssignMsg');
+                                  if (msg) {
+                                    msg.style.color = 'var(--error-color)';
+                                    msg.textContent = `Error cargando datos: ${error.message}`;
+                                  }
+                                }
+                              }
+
+                              async function asignarInstructorEspecialidades() {
+                                const msg = document.getElementById('adminInstructorAssignMsg');
+                                if (!window.canAccessAdminPanel) return;
+
+                                if (!adminSelectedInstructor) {
+                                  if (msg) {
+                                    msg.style.color = 'var(--error-color)';
+                                    msg.textContent = 'Selecciona un instructor antes de asignar especialidades.';
+                                  }
+                                  return;
+                                }
+
+                                const checks = Array.from(document.querySelectorAll('.admin-esp-checkbox:checked'));
+                                if (!checks.length) {
+                                  if (msg) {
+                                    msg.style.color = 'var(--error-color)';
+                                    msg.textContent = 'Selecciona al menos una especialidad.';
+                                  }
+                                  return;
+                                }
+
+                                const selectedIds = checks.map(item => item.value);
+                                const selectedSpecialties = adminPendingSpecialties
+                                  .filter(item => selectedIds.includes(item.id))
+                                  .map(item => ({ id: item.id, titulo: item.titulo || item.id }));
+
+                                const assignmentKey = getInstructorAssignmentKey(adminSelectedInstructor);
+                                if (!assignmentKey) {
+                                  if (msg) {
+                                    msg.style.color = 'var(--error-color)';
+                                    msg.textContent = 'No se pudo resolver un identificador del instructor.';
+                                  }
+                                  return;
+                                }
+
+                                const nextAssignments = {
+                                  ...instructorAssignmentsConfig,
+                                  [assignmentKey]: {
+                                    userId: adminSelectedInstructor.uid || assignmentKey,
+                                    email: normalizeEmail(adminSelectedInstructor.email),
+                                    name: adminSelectedInstructor.name || adminSelectedInstructor.email,
+                                    especialidades: selectedSpecialties,
+                                    updatedAt: new Date().toISOString(),
+                                    assignedBy: normalizeEmail(window.userData?.email || auth.currentUser?.email || '')
+                                  }
+                                };
+
+                                try {
+                                  await saveInstructorAssignmentsConfig(nextAssignments);
+                                  if (msg) {
+                                    msg.style.color = 'var(--success-color)';
+                                    msg.textContent = 'Asignación guardada correctamente.';
+                                  }
+
+                                  renderInstructorAssignmentsTable();
+
+                                  const currentUserEmail = normalizeEmail(window.userData?.email || auth.currentUser?.email || '');
+                                  if (normalizeEmail(adminSelectedInstructor.email) === currentUserEmail) {
+                                    const myAssignment = getInstructorAssignmentForUser(window.currentUserId, currentUserEmail);
+                                    window.isInstructorRole = !!myAssignment;
+                                    window.allowedInstructorSpecialties = myAssignment?.especialidades || [];
+                                    window.canAccessInstructorPanel = window.isOwner || window.isInstructorRole;
+                                    applyRoleBasedNavigation();
+                                  }
+                                } catch (error) {
+                                  if (msg) {
+                                    msg.style.color = 'var(--error-color)';
+                                    msg.textContent = `Error guardando asignación: ${error.message}`;
+                                  }
+                                }
                               }
 
                               // Cargar publicaciones pendientes
@@ -8718,14 +9265,20 @@ const diffMins = Math.floor(diffMs / 60000);
 
                               const data = await response.json();
                               if (data.success) {
-                              ADMIN_EMAILS = data.admins;
+                              OWNER_EMAIL = normalizeEmail(data.ownerEmail || OWNER_EMAIL || '');
+                              ADMIN_EMAILS = Array.from(new Set([
+                                ...((data.admins || []).map(email => normalizeEmail(email)).filter(Boolean)),
+                                OWNER_EMAIL
+                              ]));
                               console.log('[SUCCESS] Administradores cargados:', ADMIN_EMAILS);
-                              return data.admins;
+                              return ADMIN_EMAILS;
                               } else {
                               throw new Error(data.error);
                               }
                               } catch (error) {
                               console.error('[ERROR] Error obteniendo administradores:', error);
+                              ADMIN_EMAILS = OWNER_EMAIL ? [OWNER_EMAIL] : [];
+                              return ADMIN_EMAILS;
                               }
                               }
 
@@ -9723,6 +10276,11 @@ const diffMins = Math.floor(diffMs / 60000);
         crearFormulario.addEventListener("submit", async function (e) {
           e.preventDefault();
 
+          if (!window.isOwner) {
+            alert('❌ Solo el propietario puede crear formularios. Como instructor, utiliza únicamente la opción de Evaluar Tareas.');
+            return;
+          }
+
           if (!imagenEspecialidadSeleccionada || !imagenFirma1Seleccionada || !imagenFirma2Seleccionada || !imagenFirma3Seleccionada) {
             alert('❌ Debes seleccionar una especialidad y las tres firmas requeridas.');
             return;
@@ -9895,6 +10453,11 @@ const diffMins = Math.floor(diffMs / 60000);
     window.cargarFormulariosInstructor = async function() {
       const tabla = document.querySelector("#tablaFormularios tbody");
       if(!tabla) return;
+
+      if (!window.isOwner) {
+        tabla.innerHTML = "<tr><td colspan='7' style='text-align:center'>Solo el propietario puede gestionar formularios.</td></tr>";
+        return;
+      }
       
       tabla.innerHTML = "<tr><td colspan='7' style='text-align:center'>Cargando...</td></tr>";
 
@@ -10091,6 +10654,10 @@ const diffMins = Math.floor(diffMs / 60000);
 
     // Función para eliminar formulario
     window.eliminarFormulario = async function(id) {
+      if (!window.isOwner) {
+        alert('❌ Solo el propietario puede eliminar formularios.');
+        return;
+      }
         if(confirm(`¿Estás seguro de eliminar el formulario "${id}"? Esta acción borrará todas las asistencias y resultados asociados.`)) {
             try {
                 const res = await fetch('/api/formulario?action=eliminarFormulario', {
@@ -10123,6 +10690,11 @@ const diffMins = Math.floor(diffMs / 60000);
             console.warn("⚠️ No se encontró cuerpoTablaEspecialidadesTareas");
             return;
         }
+
+      if (!window.isOwner && !window.isInstructorRole) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--error-color);">No tienes permisos para evaluar tareas.</td></tr>';
+        return;
+      }
         
         console.log("📊 [EVAL] Cargando tabla de especialidades para evaluar...");
         tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-secondary);">Cargando especialidades...</td></tr>';
@@ -10139,6 +10711,9 @@ const diffMins = Math.floor(diffMs / 60000);
             
             for (const [id, form] of Object.entries(formularios)) {
                 if (form.tarea && form.tarea.activa) {
+                if (!window.isOwner && !isSpecialtyAllowedForCurrentInstructor(id)) {
+                  continue;
+                }
                     try {
                         // Obtener las entregas de esta especialidad
                         const resEntregas = await fetch(`/api/formulario?action=listarEntregas&id=${id}`);
@@ -10219,6 +10794,8 @@ const diffMins = Math.floor(diffMs / 60000);
             tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:red;">Error al cargar especialidades. Intenta recargar la página.</td></tr>';
         }
     }
+
+        window.cargarTablaEspecialidadesParaEvaluar = cargarTablaEspecialidadesParaEvaluar;
     
     // Inicializar panel instructor
     // La lógica de inicialización del panel instructor se maneja ahora al final del archivo.
@@ -10754,6 +11331,11 @@ const diffMins = Math.floor(diffMs / 60000);
           return;
       }
 
+      if (!window.isOwner && !window.isInstructorRole) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--error-color);">No tienes permisos para evaluar tareas.</td></tr>';
+        return;
+      }
+
       tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Cargando tareas pendientes...</td></tr>';
 
       try {
@@ -10761,6 +11343,10 @@ const diffMins = Math.floor(diffMs / 60000);
           const resp = await fetch("/api/formulario?action=listarFormulariosPendientes");
           let pendientes = [];
           if(resp.ok) pendientes = await resp.json();
+
+            if (!window.isOwner) {
+              pendientes = pendientes.filter(item => isSpecialtyAllowedForCurrentInstructor(item.id));
+            }
           
           tbody.innerHTML = '';
           
@@ -11451,46 +12037,55 @@ const diffMins = Math.floor(diffMs / 60000);
 
     // Nueva inicialización unificada para el panel instructor
     window.inicializarPanelInstructor = function() {
-        console.log("🚀 [DEBUG] inicializarPanelInstructor() ejecutada, isAdmin:", window.isAdmin);
-        if(!window.isAdmin) return;
+        console.log("🚀 [DEBUG] inicializarPanelInstructor() ejecutada", {
+          isOwner: window.isOwner,
+          isAdmin: window.isAdmin,
+          isInstructorRole: window.isInstructorRole
+        });
+        if(!window.canAccessInstructorPanel) return;
+
+        const isOwnerInstructor = !!window.isOwner;
         
-        // 1. Cargar datos básicos de instructor
-        if(typeof window.cargarFormulariosInstructor === 'function') window.cargarFormulariosInstructor();
-        if(typeof window.cargarImagenesInstructor === 'function') {
-             window.cargarImagenesInstructor('especialidades', 'selectEspecialidad');
-             window.cargarImagenesInstructor('firmas', 'selectFirma1');
-             window.cargarImagenesInstructor('firmas', 'selectFirma2');
-             window.cargarImagenesInstructor('firmas', 'selectFirma3');
+        // 1. Cargar datos de creación SOLO para propietario
+        if(isOwnerInstructor && typeof window.cargarFormulariosInstructor === 'function') {
+          window.cargarFormulariosInstructor();
+        }
+        if(isOwnerInstructor && typeof window.cargarImagenesInstructor === 'function') {
+          window.cargarImagenesInstructor('especialidades', 'selectEspecialidad');
+          window.cargarImagenesInstructor('firmas', 'selectFirma1');
+          window.cargarImagenesInstructor('firmas', 'selectFirma2');
+          window.cargarImagenesInstructor('firmas', 'selectFirma3');
         }
 
-        // 1.1 Re-asignar eventos de botones de subida (CRÍTICO)
-        const btnSubirEsp = document.getElementById('btnSubirEspReal');
-        if(btnSubirEsp) {
-            // Clonar para eliminar listeners anteriores
-            const newBtn = btnSubirEsp.cloneNode(true);
-            btnSubirEsp.parentNode.replaceChild(newBtn, btnSubirEsp);
-            newBtn.addEventListener('click', () => window.procesarSubidaImagen('especialidades', 'uploadEspecialidad', 'nombreEspecialidad', 'mensajeEspecialidad', 'selectEspecialidad'));
-        }
+        // 1.1 Re-asignar eventos de botones de subida (solo propietario)
+        if (isOwnerInstructor) {
+          const btnSubirEsp = document.getElementById('btnSubirEspReal');
+          if(btnSubirEsp) {
+              const newBtn = btnSubirEsp.cloneNode(true);
+              btnSubirEsp.parentNode.replaceChild(newBtn, btnSubirEsp);
+              newBtn.addEventListener('click', () => window.procesarSubidaImagen('especialidades', 'uploadEspecialidad', 'nombreEspecialidad', 'mensajeEspecialidad', 'selectEspecialidad'));
+          }
 
-        const btnSubirF1 = document.getElementById('btnSubirF1Real');
-        if(btnSubirF1) {
-            const newBtn = btnSubirF1.cloneNode(true);
-            btnSubirF1.parentNode.replaceChild(newBtn, btnSubirF1);
-            newBtn.addEventListener('click', () => window.procesarSubidaImagen('firmas', 'uploadFirma1', 'nombreFirma1', 'mensajeFirma1', 'selectFirma1'));
-        }
+          const btnSubirF1 = document.getElementById('btnSubirF1Real');
+          if(btnSubirF1) {
+              const newBtn = btnSubirF1.cloneNode(true);
+              btnSubirF1.parentNode.replaceChild(newBtn, btnSubirF1);
+              newBtn.addEventListener('click', () => window.procesarSubidaImagen('firmas', 'uploadFirma1', 'nombreFirma1', 'mensajeFirma1', 'selectFirma1'));
+          }
 
-        const btnSubirF2 = document.getElementById('btnSubirF2Real');
-        if(btnSubirF2) {
-             const newBtn = btnSubirF2.cloneNode(true);
-             btnSubirF2.parentNode.replaceChild(newBtn, btnSubirF2);
-             newBtn.addEventListener('click', () => window.procesarSubidaImagen('firmas', 'uploadFirma2', 'nombreFirma2', 'mensajeFirma2', 'selectFirma2'));
-        }
+          const btnSubirF2 = document.getElementById('btnSubirF2Real');
+          if(btnSubirF2) {
+               const newBtn = btnSubirF2.cloneNode(true);
+               btnSubirF2.parentNode.replaceChild(newBtn, btnSubirF2);
+               newBtn.addEventListener('click', () => window.procesarSubidaImagen('firmas', 'uploadFirma2', 'nombreFirma2', 'mensajeFirma2', 'selectFirma2'));
+          }
 
-        const btnSubirF3 = document.getElementById('btnSubirF3Real');
-        if(btnSubirF3) {
-             const newBtn = btnSubirF3.cloneNode(true);
-             btnSubirF3.parentNode.replaceChild(newBtn, btnSubirF3);
-             newBtn.addEventListener('click', () => window.procesarSubidaImagen('firmas', 'uploadFirma3', 'nombreFirma3', 'mensajeFirma3', 'selectFirma3'));
+          const btnSubirF3 = document.getElementById('btnSubirF3Real');
+          if(btnSubirF3) {
+               const newBtn = btnSubirF3.cloneNode(true);
+               btnSubirF3.parentNode.replaceChild(newBtn, btnSubirF3);
+               newBtn.addEventListener('click', () => window.procesarSubidaImagen('firmas', 'uploadFirma3', 'nombreFirma3', 'mensajeFirma3', 'selectFirma3'));
+          }
         }
 
         // 2. Configurar Tabs
@@ -11498,6 +12093,11 @@ const diffMins = Math.floor(diffMs / 60000);
         const tabEvaluar = document.getElementById('tabInstructorEvaluar');
         const viewCrear = document.getElementById('viewCrearFormulario');
         const viewEvaluar = document.getElementById('viewEvaluarTareas');
+        const sectionAlmacenamiento = document.getElementById('sectionAlmacenamientoPDFs');
+
+        if (sectionAlmacenamiento && !isOwnerInstructor) {
+          sectionAlmacenamiento.classList.add('hidden');
+        }
 
         // Configurar selector de historial si existe
         const selectFiltro = document.getElementById('selectFiltroEvaluacion');
@@ -11546,7 +12146,14 @@ const diffMins = Math.floor(diffMs / 60000);
                 if(viewEvaluar) viewEvaluar.style.display = 'block';
                 if(typeof cargarTablaEspecialidadesParaEvaluar === 'function') cargarTablaEspecialidadesParaEvaluar();
             });
+
+            if (!isOwnerInstructor) {
+              nTabCrear.classList.add('hidden');
+              nTabEvaluar.click();
+            }
         }
+
+          applyRoleBasedNavigation();
     };
 
 
@@ -11559,6 +12166,10 @@ const diffMins = Math.floor(diffMs / 60000);
 
   // Función restaurada para ver entregas
   window.verEntregasEspecialidad = function(formId, titulo) {
+      if (!window.isOwner && !isSpecialtyAllowedForCurrentInstructor(formId)) {
+        alert('❌ No tienes permiso para evaluar esta especialidad.');
+        return;
+      }
       currentEvalFormId = formId;
       console.log("Revisando especialidad:", titulo, formId);
       if(typeof cargarEntregasInstructor === 'function') {
@@ -11579,6 +12190,7 @@ const diffMins = Math.floor(diffMs / 60000);
   // --- GESTIÓN DE ALMACENAMIENTO (PDFs) ---
   
   window.cargarTablaLimpiezaPDFs = async function() {
+      if (!window.isOwner) return;
       const tbody = document.getElementById('cuerpoTablaLimpiezaPDFs');
       if(!tbody) return; // Si no existe el elemento en el DOM aún
       
@@ -11624,6 +12236,10 @@ const diffMins = Math.floor(diffMs / 60000);
   };
   
   window.eliminarTodoMasivo = async function() {
+      if (!window.isOwner) {
+        alert('❌ Solo el propietario puede eliminar masivamente los PDFs.');
+        return;
+      }
       if(!confirm("⚠️ ¿ADVERTENCIA: Estás seguro de eliminar TODOS los archivos PDF de la carpeta temporal 'tareas_files'?\n\nEsta acción NO se puede deshacer y borrará los archivos físicos de todas las tareas subidas. Asegúrate de haber calificado todo primero.")) return;
       
       if(!confirm("⚠️ CONFIRMACIÓN FINAL: Se borrarán todos los PDFs para liberar espacio. ¿Proceder?")) return;
@@ -11659,6 +12275,10 @@ const diffMins = Math.floor(diffMs / 60000);
    // Se eliminaron variables y funciones redundantes.
 
   window.verEntregasEspecialidad = async function(formId, titulo) {
+      if (!window.isOwner && !isSpecialtyAllowedForCurrentInstructor(formId)) {
+        alert('❌ No tienes permiso para evaluar esta especialidad.');
+        return;
+      }
       currentEvaluandoFormId = formId;
       const container = document.getElementById('listaEntregasContainer');
       container.style.display = 'block';

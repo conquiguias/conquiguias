@@ -156,6 +156,19 @@
         }
       }
 
+      function isTooManyRequestsError(error) {
+        const code = String(error?.code || "").toLowerCase();
+        const message = String(error?.message || "").toLowerCase();
+        return code === "auth/too-many-requests" || message.includes("auth/too-many-requests");
+      }
+
+      function getFriendlyAuthMessage(error, fallback) {
+        if (isTooManyRequestsError(error)) {
+          return "Demasiados intentos en poco tiempo. Espera unos minutos e inténtalo nuevamente.";
+        }
+        return fallback;
+      }
+
       // Función para convertir imagen a Base64
       function fileToBase64(file) {
         return new Promise((resolve, reject) => {
@@ -283,7 +296,7 @@
             mostrarMensaje(
               "error",
               "⚠️ Error al iniciar sesión",
-              "Verifica tus credenciales e intenta nuevamente.",
+              getFriendlyAuthMessage(error, "Verifica tus credenciales e intenta nuevamente."),
             );
           }
         });
@@ -391,24 +404,33 @@
               fileName,
             });
 
-            updateLoader(registerBtn, "⏳ Enviando verificación...");
-            const authInstance = await ensureFirebaseAuth();
-            const { signInWithEmailAndPassword, sendEmailVerification, signOut } =
-              await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
+            let verificationMessage = "Tu cuenta fue creada. Te enviamos un correo de verificación; debes confirmarlo antes de iniciar sesión.";
 
-            const registerCredential = await signInWithEmailAndPassword(
-              authInstance,
-              email,
-              password,
-            );
-            await sendEmailVerification(registerCredential.user);
-            await signOut(authInstance);
+            try {
+              updateLoader(registerBtn, "⏳ Enviando verificación...");
+              const authInstance = await ensureFirebaseAuth();
+              const { signInWithEmailAndPassword, sendEmailVerification, signOut } =
+                await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
+
+              const registerCredential = await signInWithEmailAndPassword(
+                authInstance,
+                email,
+                password,
+              );
+              await sendEmailVerification(registerCredential.user);
+              await signOut(authInstance);
+            } catch (verificationError) {
+              console.warn("Aviso al enviar verificación tras registro:", verificationError);
+              verificationMessage = isTooManyRequestsError(verificationError)
+                ? "Tu cuenta fue creada correctamente, pero Firebase limitó temporalmente el envío del correo de verificación. Espera unos minutos y luego usa la opción de reenvío en el inicio de sesión."
+                : "Tu cuenta fue creada correctamente, pero no pudimos enviar el correo de verificación en este momento. Intenta iniciar sesión y usar la opción de reenvío.";
+            }
 
             hideLoader(registerBtn, "Registrar");
             mostrarMensaje(
               "info",
               `🎉 Registro exitoso, ${nombre}`,
-              "Tu cuenta fue creada. Te enviamos un correo de verificación; debes confirmarlo antes de iniciar sesión.",
+              verificationMessage,
               () => {
                 registerForm.reset();
                 toggleForms();
@@ -417,7 +439,11 @@
           } catch (error) {
             hideLoader(registerBtn, "Registrar");
             console.error("Error al registrarse:", error);
-            mostrarMensaje("error", "❌ Error en el registro", error.message);
+            mostrarMensaje(
+              "error",
+              "❌ Error en el registro",
+              getFriendlyAuthMessage(error, error.message || "No se pudo completar el registro."),
+            );
           }
         });
 

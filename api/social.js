@@ -5,8 +5,8 @@ const IMGUR_CLIENT_ID = process.env.IMGUR_CLIENT_ID;
 const OWNER_EMAIL = "kendall.torres.17@gmail.com";
 const ADMIN_EMAILS = [
   OWNER_EMAIL,
-  "",
-  "",
+  "pruebaja@gmail.com",
+  "lunabecky026@gmail.com",
   // Agrega más correos de administradores aquí
 ];
 

@@ -6616,6 +6616,32 @@ function isImgurUrl(url) {
   return typeof url === 'string' && IMGUR_URL_REGEX.test(url);
 }
 
+function getVideoBlurBackgroundUrl(post) {
+  if (!post || typeof post !== 'object') return '';
+
+  const candidates = [
+    post.thumbnailUrl,
+    post.thumbnail,
+    post.thumbUrl,
+    post.posterUrl,
+    post.poster,
+    post.imgurData?.thumbnail,
+    post.imgurData?.thumb,
+    post.imgurData?.poster,
+  ].filter(value => typeof value === 'string' && value.trim());
+
+  if (candidates.length > 0) {
+    return candidates[0].trim();
+  }
+
+  const imgurId = typeof post.imgurData?.id === 'string' ? post.imgurData.id.trim() : '';
+  if (imgurId) {
+    return `https://i.imgur.com/${imgurId}h.jpg`;
+  }
+
+  return '';
+}
+
 function wait(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -7593,6 +7619,7 @@ const diffMins = Math.floor(diffMs / 60000);
             const userActiveReaction = Object.keys(userReactions).find(
             reaction => userReactions[reaction]
             );
+            const videoBlurBackgroundUrl = getVideoBlurBackgroundUrl(post);
 
             postElement.innerHTML = `
             <div class="post-header">
@@ -7626,6 +7653,7 @@ const diffMins = Math.floor(diffMs / 60000);
                   : post.mediaType && (post.mediaType === 'video/url' || post.mediaType.startsWith('video/'))
                   ? `<div class="media-blur-shell media-blur-video-shell">
                       <div class="media-blur-bg-fallback" aria-hidden="true"></div>
+                      ${videoBlurBackgroundUrl ? `<img class="media-blur-bg-img" src="${escapeHtml(videoBlurBackgroundUrl)}" alt="" aria-hidden="true" loading="lazy" onerror="this.style.display='none'">` : ''}
                       <div id="clappr-player-${renderPostId}" class="clappr-container" data-src="${post.mediaUrl}"></div>
                     </div>`
                   : `<div style="padding: 20px; text-align: center; color: #666;">Tipo de archivo no compatible</div>`
@@ -9164,6 +9192,7 @@ const diffMins = Math.floor(diffMs / 60000);
                               postElement.style.border = '2px solid #ff9800';
 
                               const postDateLabel = getPostDateLabel(new Date(post.timestamp));
+                              const videoBlurBackgroundUrl = getVideoBlurBackgroundUrl(post);
 
                               postElement.innerHTML = `
                               <div class="post-header">
@@ -9191,6 +9220,7 @@ const diffMins = Math.floor(diffMs / 60000);
                                     </div>`)
                                 : `<div class="media-blur-shell media-blur-video-shell">
                                     <div class="media-blur-bg-fallback" aria-hidden="true"></div>
+                                    ${videoBlurBackgroundUrl ? `<img class="media-blur-bg-img" src="${escapeHtml(videoBlurBackgroundUrl)}" alt="" aria-hidden="true" loading="lazy" onerror="this.style.display='none'">` : ''}
                                     <video class="media-front-media" src="${post.mediaUrl}" controls playsinline preload="metadata"></video>
                                    </div>`
                                 }

@@ -422,7 +422,7 @@
             } catch (verificationError) {
               console.warn("Aviso al enviar verificación tras registro:", verificationError);
               verificationMessage = isTooManyRequestsError(verificationError)
-                ? "Tu cuenta fue creada correctamente, pero Firebase limitó temporalmente el envío del correo de verificación. Espera unos minutos y luego usa la opción de reenvío en el inicio de sesión."
+                ? "Tu cuenta fue creada correctamente, pero el sistema limitó temporalmente el envío del correo de verificación. Espera unos minutos y luego usa la opción de reenvío en el inicio de sesión."
                 : "Tu cuenta fue creada correctamente, pero no pudimos enviar el correo de verificación en este momento. Intenta iniciar sesión y usar la opción de reenvío.";
             }
 

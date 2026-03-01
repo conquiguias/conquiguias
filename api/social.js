@@ -69,6 +69,9 @@ export default async function handler(req, res) {
       case "get-instructor-assignments":
         await handleGetInstructorAssignments(req, res);
         break;
+      case "get-my-instructor-assignment":
+        await handleGetMyInstructorAssignment(req, res);
+        break;
       case "save-instructor-assignments":
         await handleSaveInstructorAssignments(req, res);
         break;
@@ -240,6 +243,30 @@ async function requireAdminOrOwner(req, body = {}) {
   return requesterEmail;
 }
 
+async function requireAuthenticated(req, body = {}) {
+  const token = getBearerToken(req) || String(body.idToken || "").trim();
+
+  if (!token) {
+    const error = new Error("Token de autenticación requerido");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  let decodedToken;
+  try {
+    decodedToken = await admin.auth().verifyIdToken(token);
+  } catch (_error) {
+    const error = new Error("Token de autenticación inválido");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  return {
+    uid: String(decodedToken?.uid || "").trim(),
+    email: normalizeEmail(decodedToken?.email || ""),
+  };
+}
+
 function sanitizeSpecialties(value) {
   if (!Array.isArray(value)) return [];
 
@@ -301,6 +328,53 @@ async function handleGetInstructorAssignments(req, res) {
     res.status(error.statusCode || 500).json({
       success: false,
       error: error.message || "Error al obtener asignaciones de instructores",
+    });
+  }
+}
+
+async function handleGetMyInstructorAssignment(req, res) {
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
+  try {
+    const requester = await requireAuthenticated(req);
+    const configRef = admin.firestore().collection("configuracion").doc("rolesPermisos");
+    const configSnap = await configRef.get();
+    const data = configSnap.exists ? configSnap.data() || {} : {};
+    const assignments = data.instructores || {};
+
+    let assignment = null;
+    let assignmentKey = "";
+
+    if (requester.uid && assignments[requester.uid]) {
+      assignment = assignments[requester.uid];
+      assignmentKey = requester.uid;
+    } else if (requester.email && assignments[requester.email]) {
+      assignment = assignments[requester.email];
+      assignmentKey = requester.email;
+    } else if (requester.email) {
+      for (const [key, value] of Object.entries(assignments)) {
+        if (!value || typeof value !== "object") continue;
+        if (normalizeEmail(value.email || "") === requester.email) {
+          assignment = value;
+          assignmentKey = key;
+          break;
+        }
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      ownerEmail: data.ownerEmail || OWNER_EMAIL,
+      assignmentKey,
+      assignment: assignment || null,
+    });
+  } catch (error) {
+    console.error("Error obteniendo asignación del instructor actual:", error);
+    res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || "Error al obtener asignación del instructor",
     });
   }
 }

@@ -4452,6 +4452,41 @@
         }
       }
 
+      async function loadMyInstructorAssignment() {
+        try {
+          const idToken = auth.currentUser ? await auth.currentUser.getIdToken(true) : '';
+          if (!idToken) return null;
+
+          const response = await fetch('/api/social?action=get-my-instructor-assignment', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${idToken}`
+            }
+          });
+
+          if (!response.ok) {
+            const errorPayload = await response.json().catch(() => ({}));
+            throw new Error(errorPayload.error || 'No se pudo cargar la asignación del instructor');
+          }
+
+          const payload = await response.json();
+          OWNER_EMAIL = normalizeEmail(payload?.ownerEmail || OWNER_EMAIL || '');
+
+          if (payload?.assignment && payload?.assignmentKey) {
+            const assignment = payload.assignment;
+            instructorAssignmentsConfig = {
+              [payload.assignmentKey]: assignment
+            };
+            return assignment;
+          }
+
+          return null;
+        } catch (error) {
+          console.warn('[WARN] No se pudo cargar asignación del instructor actual:', error);
+          return null;
+        }
+      }
+
       async function saveInstructorAssignmentsConfig(nextAssignments) {
         const cleanAssignments = nextAssignments || {};
         const updatedBy = normalizeEmail(window.userData?.email || auth.currentUser?.email || '');
@@ -4588,8 +4623,7 @@
           window.isAdmin = adminsNormalizados.includes(email);
           isAdmin = window.isAdmin;
 
-          await loadInstructorAssignmentsConfig();
-          const instructorAssignment = getInstructorAssignmentForUser(user.uid, user.email);
+          const instructorAssignment = await loadMyInstructorAssignment();
           window.isInstructorRole = !!instructorAssignment;
           window.allowedInstructorSpecialties = instructorAssignment?.especialidades || [];
 

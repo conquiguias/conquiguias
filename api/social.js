@@ -3,6 +3,12 @@ import admin from "firebase-admin";
 
 const IMGUR_CLIENT_ID = process.env.IMGUR_CLIENT_ID;
 const OWNER_EMAIL = "kendall.torres.17@gmail.com";
+const ADMIN_EMAILS = [
+  OWNER_EMAIL,
+  "",
+  "",
+  // Agrega más correos de administradores aquí
+];
 
 if (!admin.apps.length) {
   const serviceAccount = {
@@ -34,7 +40,7 @@ export default async function handler(req, res) {
   );
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
+    "Authorization, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
   );
 
   if (req.method === "OPTIONS") {
@@ -65,6 +71,9 @@ export default async function handler(req, res) {
         break;
       case "save-instructor-assignments":
         await handleSaveInstructorAssignments(req, res);
+        break;
+      case "get-assignable-users":
+        await handleGetAssignableUsers(req, res);
         break;
       default:
         res.status(400).json({ error: "Acción no válida" });
@@ -139,15 +148,9 @@ async function handleGetAdmins(req, res) {
   }
 
   try {
-    // Lista de administradores - SEGURA en el backend
-    const ADMIN_EMAILS = [
-      OWNER_EMAIL,
-      // Agrega más correos de administradores aquí
-    ];
+    await requireAdminOrOwner(req);
 
-    const adminsUnicos = Array.from(
-      new Set(ADMIN_EMAILS.map((email) => (email || "").trim().toLowerCase()))
-    ).filter(Boolean);
+    const adminsUnicos = getAdminEmails();
 
     res.status(200).json({
       success: true,
@@ -156,15 +159,85 @@ async function handleGetAdmins(req, res) {
     });
   } catch (error) {
     console.error("Error obteniendo administradores:", error);
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
-      error: "Error al obtener lista de administradores",
+      error: error.message || "Error al obtener lista de administradores",
     });
   }
 }
 
 function normalizeEmail(value) {
   return (value || "").trim().toLowerCase();
+}
+
+function getAdminEmails() {
+  return Array.from(
+    new Set(ADMIN_EMAILS.map((email) => normalizeEmail(email)).filter(Boolean))
+  );
+}
+
+function getBearerToken(req) {
+  const authHeader = req.headers?.authorization || req.headers?.Authorization || "";
+  if (typeof authHeader !== "string") return "";
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : "";
+}
+
+async function requireOwner(req, body = {}) {
+  const token = getBearerToken(req) || String(body.idToken || "").trim();
+
+  if (!token) {
+    const error = new Error("Token de autenticación requerido");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  let decodedToken;
+  try {
+    decodedToken = await admin.auth().verifyIdToken(token);
+  } catch (_error) {
+    const error = new Error("Token de autenticación inválido");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const requesterEmail = normalizeEmail(decodedToken?.email || "");
+  if (!requesterEmail || requesterEmail !== normalizeEmail(OWNER_EMAIL)) {
+    const error = new Error("Solo el propietario puede realizar esta acción");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  return requesterEmail;
+}
+
+async function requireAdminOrOwner(req, body = {}) {
+  const token = getBearerToken(req) || String(body.idToken || "").trim();
+
+  if (!token) {
+    const error = new Error("Token de autenticación requerido");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  let decodedToken;
+  try {
+    decodedToken = await admin.auth().verifyIdToken(token);
+  } catch (_error) {
+    const error = new Error("Token de autenticación inválido");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const requesterEmail = normalizeEmail(decodedToken?.email || "");
+  const admins = getAdminEmails();
+  if (!requesterEmail || !admins.includes(requesterEmail)) {
+    const error = new Error("No tienes permisos para realizar esta acción");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  return requesterEmail;
 }
 
 function sanitizeSpecialties(value) {
@@ -212,6 +285,8 @@ async function handleGetInstructorAssignments(req, res) {
   }
 
   try {
+    await requireAdminOrOwner(req);
+
     const configRef = admin.firestore().collection("configuracion").doc("rolesPermisos");
     const configSnap = await configRef.get();
     const data = configSnap.exists ? configSnap.data() || {} : {};
@@ -223,9 +298,9 @@ async function handleGetInstructorAssignments(req, res) {
     });
   } catch (error) {
     console.error("Error obteniendo asignaciones de instructores:", error);
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
-      error: "Error al obtener asignaciones de instructores",
+      error: error.message || "Error al obtener asignaciones de instructores",
     });
   }
 }
@@ -237,6 +312,7 @@ async function handleSaveInstructorAssignments(req, res) {
 
   try {
     const body = req.body || {};
+    const requesterEmail = await requireOwner(req, body);
     const instructoresSanitizados = sanitizeAssignments(body.instructores);
 
     const configRef = admin.firestore().collection("configuracion").doc("rolesPermisos");
@@ -245,7 +321,7 @@ async function handleSaveInstructorAssignments(req, res) {
         ownerEmail: OWNER_EMAIL,
         instructores: instructoresSanitizados,
         updatedAt: new Date().toISOString(),
-        updatedBy: normalizeEmail(body.updatedBy || ""),
+        updatedBy: requesterEmail,
       },
       { merge: true }
     );
@@ -257,9 +333,79 @@ async function handleSaveInstructorAssignments(req, res) {
     });
   } catch (error) {
     console.error("Error guardando asignaciones de instructores:", error);
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
-      error: "Error al guardar asignaciones de instructores",
+      error: error.message || "Error al guardar asignaciones de instructores",
+    });
+  }
+}
+
+async function handleGetAssignableUsers(req, res) {
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
+  try {
+    await requireAdminOrOwner(req);
+
+    const map = new Map();
+
+    const usuariosSnap = await admin.firestore().collection("usuarios").get();
+    usuariosSnap.forEach((docSnap) => {
+      const data = docSnap.data() || {};
+      const email = normalizeEmail(data.email || data.correo || data.mail || "");
+      if (!email) return;
+
+      const nombre = String(data.nombre || "").trim();
+      const apellido = String(data.apellido || "").trim();
+      const name = `${nombre} ${apellido}`.trim() || String(data.userName || email).trim();
+
+      map.set(docSnap.id, {
+        uid: docSnap.id,
+        email,
+        name,
+      });
+    });
+
+    try {
+      const postsSnap = await admin
+        .firestore()
+        .collection("posts")
+        .orderBy("timestamp", "desc")
+        .limit(200)
+        .get();
+
+      postsSnap.forEach((docSnap) => {
+        const post = docSnap.data() || {};
+        const key = String(post.userId || normalizeEmail(post.userEmail || "")).trim();
+        const email = normalizeEmail(post.userEmail || "");
+        if (!key || !email) return;
+
+        if (!map.has(key)) {
+          map.set(key, {
+            uid: String(post.userId || "").trim(),
+            email,
+            name: String(post.userName || email).trim(),
+          });
+        }
+      });
+    } catch (error) {
+      console.warn("[WARN] No se pudieron completar usuarios desde publicaciones:", error);
+    }
+
+    const users = Array.from(map.values())
+      .filter((item) => !!item.email)
+      .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+
+    res.status(200).json({
+      success: true,
+      users,
+    });
+  } catch (error) {
+    console.error("Error obteniendo usuarios asignables:", error);
+    res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || "Error al obtener usuarios asignables",
     });
   }
 }

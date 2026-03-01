@@ -4421,9 +4421,21 @@
 
       async function loadInstructorAssignmentsConfig() {
         try {
-          const response = await fetch('/api/social?action=get-instructor-assignments');
+          const idToken = auth.currentUser ? await auth.currentUser.getIdToken(true) : '';
+
+          if (!idToken) {
+            throw new Error('No se pudo validar la sesión');
+          }
+
+          const response = await fetch('/api/social?action=get-instructor-assignments', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${idToken}`
+            }
+          });
           if (!response.ok) {
-            throw new Error('No se pudieron cargar las asignaciones de instructores');
+            const errorPayload = await response.json().catch(() => ({}));
+            throw new Error(errorPayload.error || 'No se pudieron cargar las asignaciones de instructores');
           }
 
           const payload = await response.json();
@@ -4440,11 +4452,17 @@
       async function saveInstructorAssignmentsConfig(nextAssignments) {
         const cleanAssignments = nextAssignments || {};
         const updatedBy = normalizeEmail(window.userData?.email || auth.currentUser?.email || '');
+        const idToken = auth.currentUser ? await auth.currentUser.getIdToken(true) : '';
+
+        if (!idToken) {
+          throw new Error('No se pudo validar la sesión del propietario');
+        }
 
         const response = await fetch('/api/social?action=save-instructor-assignments', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            idToken,
             instructores: cleanAssignments,
             updatedBy
           })
@@ -6465,10 +6483,14 @@ const feed = document.getElementById('feed');
 
 const IMGUR_URL_REGEX = /^https?:\/\/i\.imgur\.com\//i;
 const IMGUR_IMAGE_PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
-const IMGUR_MAX_CONCURRENT_LOADS = 2;
-const IMGUR_RETRY_DELAYS_MS = [1500, 4000, 9000];
+const IMGUR_MAX_CONCURRENT_LOADS = 1;
+const IMGUR_RETRY_DELAYS_MS = [4000, 10000, 20000];
+const IMGUR_MIN_START_INTERVAL_MS = 1800;
 const imgurImageLoadQueue = [];
 let imgurActiveLoads = 0;
+let imgurLastStartAt = 0;
+let imgurQueueTimer = null;
+let imgurIntersectionObserver = null;
 
 // isAdmin y userData son globales
 let lastPostTime = null;
@@ -6480,6 +6502,35 @@ function isImgurUrl(url) {
 
 function wait(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function scheduleImgurQueue(delay = 0) {
+  if (imgurQueueTimer) return;
+  imgurQueueTimer = setTimeout(() => {
+    imgurQueueTimer = null;
+    processImgurImageQueue();
+  }, Math.max(0, delay));
+}
+
+function ensureImgurObserver() {
+  if (imgurIntersectionObserver) return imgurIntersectionObserver;
+
+  const rootElement = document.getElementById('mainContent') || null;
+  imgurIntersectionObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const img = entry.target;
+      if (!(img instanceof HTMLImageElement)) return;
+      imgurIntersectionObserver.unobserve(img);
+      enqueueImgurImage(img);
+    });
+  }, {
+    root: rootElement,
+    rootMargin: '280px 0px',
+    threshold: 0.05
+  });
+
+  return imgurIntersectionObserver;
 }
 
 function loadImageWithElement(imgElement, url) {
@@ -6505,13 +6556,21 @@ function loadImageWithElement(imgElement, url) {
   });
 }
 
-function enqueueImgurImage(imgElement) {
+function enqueueImgurImage(imgElement, force = false) {
   if (!(imgElement instanceof HTMLImageElement)) return;
-  if (imgElement.dataset.loadState === 'queued' || imgElement.dataset.loadState === 'loading' || imgElement.dataset.loadState === 'loaded') return;
+
+  if (!force && (imgElement.dataset.loadState === 'queued' || imgElement.dataset.loadState === 'loading' || imgElement.dataset.loadState === 'loaded')) return;
+
+  const existsInQueue = imgurImageLoadQueue.includes(imgElement);
+  if (!existsInQueue) {
+    imgurImageLoadQueue.push(imgElement);
+  }
 
   imgElement.dataset.loadState = 'queued';
   imgElement.src = IMGUR_IMAGE_PLACEHOLDER;
-  imgurImageLoadQueue.push(imgElement);
+  imgElement.style.cursor = 'default';
+  imgElement.title = '';
+  imgElement.onclick = null;
   processImgurImageQueue();
 }
 
@@ -6523,6 +6582,9 @@ async function resolveImgurImage(imgElement, mediaUrl) {
       imgElement.dataset.loadState = 'loading';
       await loadImageWithElement(imgElement, mediaUrl);
       imgElement.dataset.loadState = 'loaded';
+      imgElement.style.cursor = 'default';
+      imgElement.title = '';
+      imgElement.onclick = null;
       return;
     } catch (error) {
       const hasMoreRetries = attempt < IMGUR_RETRY_DELAYS_MS.length;
@@ -6530,6 +6592,9 @@ async function resolveImgurImage(imgElement, mediaUrl) {
         imgElement.dataset.loadState = 'failed';
         imgElement.src = 'https://dummyimage.com/900x600/1f2937/ffffff&text=Imagen+temporalmente+no+disponible';
         imgElement.alt = 'Imagen no disponible temporalmente';
+        imgElement.style.cursor = 'pointer';
+        imgElement.title = 'Haz clic para reintentar';
+        imgElement.onclick = () => enqueueImgurImage(imgElement, true);
         return;
       }
 
@@ -6541,6 +6606,12 @@ async function resolveImgurImage(imgElement, mediaUrl) {
 
 function processImgurImageQueue() {
   while (imgurActiveLoads < IMGUR_MAX_CONCURRENT_LOADS && imgurImageLoadQueue.length > 0) {
+    const elapsed = Date.now() - imgurLastStartAt;
+    if (elapsed < IMGUR_MIN_START_INTERVAL_MS) {
+      scheduleImgurQueue(IMGUR_MIN_START_INTERVAL_MS - elapsed);
+      return;
+    }
+
     const imgElement = imgurImageLoadQueue.shift();
     if (!imgElement || !imgElement.isConnected) continue;
 
@@ -6548,10 +6619,11 @@ function processImgurImageQueue() {
     if (!mediaUrl || !isImgurUrl(mediaUrl)) continue;
 
     imgurActiveLoads++;
+    imgurLastStartAt = Date.now();
     resolveImgurImage(imgElement, mediaUrl)
       .finally(() => {
         imgurActiveLoads = Math.max(0, imgurActiveLoads - 1);
-        processImgurImageQueue();
+        scheduleImgurQueue(IMGUR_MIN_START_INTERVAL_MS);
       });
   }
 }
@@ -6559,7 +6631,15 @@ function processImgurImageQueue() {
 function queuePostImgurImages(containerElement) {
   if (!(containerElement instanceof HTMLElement)) return;
   const queuedImages = containerElement.querySelectorAll('img[data-media-url]');
-  queuedImages.forEach(enqueueImgurImage);
+  const observer = ensureImgurObserver();
+
+  queuedImages.forEach((imgElement) => {
+    if (observer) {
+      observer.observe(imgElement);
+    } else {
+      enqueueImgurImage(imgElement);
+    }
+  });
 }
 
 // 🔹 RED SOCIAL - Funciones principales
@@ -8711,39 +8791,25 @@ const diffMins = Math.floor(diffMs / 60000);
                               }
 
                               async function cargarUsuariosParaAdminInstructores() {
-                                const map = new Map();
+                                const idToken = auth.currentUser ? await auth.currentUser.getIdToken(true) : '';
+                                if (!idToken) throw new Error('No se pudo validar la sesión');
 
-                                const usuariosSnap = await getDocs(collection(db, 'usuarios'));
-                                usuariosSnap.forEach(docSnap => {
-                                  const data = docSnap.data() || {};
-                                  const email = normalizeEmail(data.email || data.correo || data.mail || '');
-                                  if (!email) return;
-                                  const name = `${data.nombre || ''} ${data.apellido || ''}`.trim() || data.userName || email;
-                                  map.set(docSnap.id, { uid: docSnap.id, email, name });
+                                const res = await fetch('/api/social?action=get-assignable-users', {
+                                  method: 'GET',
+                                  headers: {
+                                    'Authorization': `Bearer ${idToken}`
+                                  }
                                 });
 
-                                try {
-                                  const postsSnap = await getDocs(query(collection(db, 'posts'), orderBy('timestamp', 'desc'), limit(200)));
-                                  postsSnap.forEach(docSnap => {
-                                    const post = docSnap.data() || {};
-                                    const key = post.userId || normalizeEmail(post.userEmail || '');
-                                    const email = normalizeEmail(post.userEmail || '');
-                                    if (!key || !email) return;
-                                    if (!map.has(key)) {
-                                      map.set(key, {
-                                        uid: post.userId || '',
-                                        email,
-                                        name: post.userName || email
-                                      });
-                                    }
-                                  });
-                                } catch (error) {
-                                  console.warn('[WARN] No se pudieron completar usuarios desde publicaciones:', error);
+                                if (!res.ok) {
+                                  const errorPayload = await res.json().catch(() => ({}));
+                                  throw new Error(errorPayload.error || 'No se pudieron cargar los usuarios');
                                 }
 
-                                adminInstructorUsers = Array.from(map.values())
-                                  .filter(item => !!item.email)
-                                  .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+                                const payload = await res.json();
+                                adminInstructorUsers = Array.isArray(payload?.users)
+                                  ? payload.users
+                                  : [];
                               }
 
                               async function cargarEspecialidadesPendientesParaAsignacion() {
@@ -9258,9 +9324,20 @@ const diffMins = Math.floor(diffMs / 60000);
                               // 🔹 Obtener lista de administradores desde el backend
                               async function getAdminEmails() {
                               try {
-                              const response = await fetch('/api/social?action=get-admins');
+                              const idToken = auth.currentUser ? await auth.currentUser.getIdToken(true) : '';
+                              if (!idToken) {
+                              throw new Error('No se pudo validar la sesión');
+                              }
+
+                              const response = await fetch('/api/social?action=get-admins', {
+                              method: 'GET',
+                              headers: {
+                                'Authorization': `Bearer ${idToken}`
+                              }
+                              });
                               if (!response.ok) {
-                              throw new Error('Error al obtener administradores');
+                              const errorPayload = await response.json().catch(() => ({}));
+                              throw new Error(errorPayload.error || 'Error al obtener administradores');
                               }
 
                               const data = await response.json();
@@ -9276,7 +9353,7 @@ const diffMins = Math.floor(diffMs / 60000);
                               throw new Error(data.error);
                               }
                               } catch (error) {
-                              console.error('[ERROR] Error obteniendo administradores:', error);
+                              console.warn('[WARN] No fue posible obtener lista de administradores:', error);
                               ADMIN_EMAILS = OWNER_EMAIL ? [OWNER_EMAIL] : [];
                               return ADMIN_EMAILS;
                               }

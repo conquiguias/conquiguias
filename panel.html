@@ -6276,9 +6276,104 @@ const uploadBtn = document.getElementById('uploadBtn');
 const countdownTimer = document.getElementById('countdownTimer');
 const feed = document.getElementById('feed');
 
+const IMGUR_URL_REGEX = /^https?:\/\/i\.imgur\.com\//i;
+const IMGUR_IMAGE_PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+const IMGUR_MAX_CONCURRENT_LOADS = 2;
+const IMGUR_RETRY_DELAYS_MS = [1500, 4000, 9000];
+const imgurImageLoadQueue = [];
+let imgurActiveLoads = 0;
+
 // isAdmin y userData son globales
 let lastPostTime = null;
 let countdownInterval = null;
+
+function isImgurUrl(url) {
+  return typeof url === 'string' && IMGUR_URL_REGEX.test(url);
+}
+
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function loadImageWithElement(imgElement, url) {
+  return new Promise((resolve, reject) => {
+    const onLoad = () => {
+      cleanup();
+      resolve();
+    };
+
+    const onError = () => {
+      cleanup();
+      reject(new Error('Error cargando imagen'));
+    };
+
+    const cleanup = () => {
+      imgElement.removeEventListener('load', onLoad);
+      imgElement.removeEventListener('error', onError);
+    };
+
+    imgElement.addEventListener('load', onLoad, { once: true });
+    imgElement.addEventListener('error', onError, { once: true });
+    imgElement.src = url;
+  });
+}
+
+function enqueueImgurImage(imgElement) {
+  if (!(imgElement instanceof HTMLImageElement)) return;
+  if (imgElement.dataset.loadState === 'queued' || imgElement.dataset.loadState === 'loading' || imgElement.dataset.loadState === 'loaded') return;
+
+  imgElement.dataset.loadState = 'queued';
+  imgElement.src = IMGUR_IMAGE_PLACEHOLDER;
+  imgurImageLoadQueue.push(imgElement);
+  processImgurImageQueue();
+}
+
+async function resolveImgurImage(imgElement, mediaUrl) {
+  for (let attempt = 0; attempt <= IMGUR_RETRY_DELAYS_MS.length; attempt++) {
+    if (!imgElement.isConnected) return;
+
+    try {
+      imgElement.dataset.loadState = 'loading';
+      await loadImageWithElement(imgElement, mediaUrl);
+      imgElement.dataset.loadState = 'loaded';
+      return;
+    } catch (error) {
+      const hasMoreRetries = attempt < IMGUR_RETRY_DELAYS_MS.length;
+      if (!hasMoreRetries) {
+        imgElement.dataset.loadState = 'failed';
+        imgElement.src = 'https://dummyimage.com/900x600/1f2937/ffffff&text=Imagen+temporalmente+no+disponible';
+        imgElement.alt = 'Imagen no disponible temporalmente';
+        return;
+      }
+
+      const delay = IMGUR_RETRY_DELAYS_MS[attempt] + Math.floor(Math.random() * 500);
+      await wait(delay);
+    }
+  }
+}
+
+function processImgurImageQueue() {
+  while (imgurActiveLoads < IMGUR_MAX_CONCURRENT_LOADS && imgurImageLoadQueue.length > 0) {
+    const imgElement = imgurImageLoadQueue.shift();
+    if (!imgElement || !imgElement.isConnected) continue;
+
+    const mediaUrl = imgElement.dataset.mediaUrl;
+    if (!mediaUrl || !isImgurUrl(mediaUrl)) continue;
+
+    imgurActiveLoads++;
+    resolveImgurImage(imgElement, mediaUrl)
+      .finally(() => {
+        imgurActiveLoads = Math.max(0, imgurActiveLoads - 1);
+        processImgurImageQueue();
+      });
+  }
+}
+
+function queuePostImgurImages(containerElement) {
+  if (!(containerElement instanceof HTMLElement)) return;
+  const queuedImages = containerElement.querySelectorAll('img[data-media-url]');
+  queuedImages.forEach(enqueueImgurImage);
+}
 
 // 🔹 RED SOCIAL - Funciones principales
 
@@ -7126,7 +7221,9 @@ const diffMins = Math.floor(diffMs / 60000);
               <div class="post-main-column">
                 <div class="post-content">
                   ${post.mediaType && post.mediaType.startsWith('image/')
-                  ? `<img src="${post.mediaUrl}" alt="Publicación" loading="lazy" onerror="this.style.display='none'">`
+                  ? (isImgurUrl(post.mediaUrl)
+                    ? `<img src="${IMGUR_IMAGE_PLACEHOLDER}" data-media-url="${escapeHtml(post.mediaUrl)}" alt="Publicación" loading="lazy">`
+                    : `<img src="${post.mediaUrl}" alt="Publicación" loading="lazy" onerror="this.style.display='none'">`)
                   : post.mediaType && (post.mediaType === 'video/url' || post.mediaType.startsWith('video/'))
                   ? `<div id="clappr-player-${renderPostId}" class="clappr-container" data-src="${post.mediaUrl}"></div>`
                   : `<div style="padding: 20px; text-align: center; color: #666;">Tipo de archivo no compatible</div>`
@@ -7192,6 +7289,7 @@ const diffMins = Math.floor(diffMs / 60000);
             `;
 
             feedDestino.appendChild(postElement);
+            queuePostImgurImages(postElement);
 
             // Inicializar Clappr para cualquier publicación con video
             if (post.mediaType && (post.mediaType === 'video/url' || post.mediaType.startsWith('video/'))) {
@@ -8302,8 +8400,11 @@ const diffMins = Math.floor(diffMs / 60000);
 
                               <div class="post-content">
                                 ${post.mediaType.startsWith('image/')
-                                ? `<img src="${post.mediaUrl}" alt="Publicación pendiente" loading="lazy"
+                                ? (isImgurUrl(post.mediaUrl)
+                                  ? `<img src="${IMGUR_IMAGE_PLACEHOLDER}" data-media-url="${escapeHtml(post.mediaUrl)}" alt="Publicación pendiente" loading="lazy"
                                   style="max-width: 100%; border-radius: 8px;">`
+                                  : `<img src="${post.mediaUrl}" alt="Publicación pendiente" loading="lazy"
+                                  style="max-width: 100%; border-radius: 8px;">`)
                                 : `<video src="${post.mediaUrl}" controls
                                   style="max-width: 100%; border-radius: 8px;"></video>`
                                 }
@@ -8335,6 +8436,7 @@ const diffMins = Math.floor(diffMs / 60000);
                               `;
 
                               document.getElementById('adminPostsContainer').appendChild(postElement);
+                              queuePostImgurImages(postElement);
                               }
 
                               // Aprobar publicación

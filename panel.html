@@ -4487,6 +4487,7 @@
         const allowedIds = (window.allowedInstructorSpecialties || []).map(item => item.id);
         return allowedIds.includes(formId);
       }
+      window.isSpecialtyAllowedForCurrentInstructor = isSpecialtyAllowedForCurrentInstructor;
 
       function applyRoleBasedNavigation() {
         const menuAdminBtn = document.getElementById('menuAdmin');
@@ -4518,6 +4519,7 @@
           sectionAlmacenamiento.classList.add('hidden');
         }
       }
+      window.applyRoleBasedNavigation = applyRoleBasedNavigation;
 
 
       // 🔹 Detectar usuario logueado
@@ -12287,7 +12289,9 @@ const diffMins = Math.floor(diffMs / 60000);
             }
         }
 
-          applyRoleBasedNavigation();
+          if (typeof window.applyRoleBasedNavigation === 'function') {
+            window.applyRoleBasedNavigation();
+          }
     };
 
 
@@ -12300,7 +12304,7 @@ const diffMins = Math.floor(diffMs / 60000);
 
   // Función restaurada para ver entregas
   window.verEntregasEspecialidad = function(formId, titulo) {
-      if (!window.isOwner && !isSpecialtyAllowedForCurrentInstructor(formId)) {
+      if (!window.isOwner && typeof window.isSpecialtyAllowedForCurrentInstructor === 'function' && !window.isSpecialtyAllowedForCurrentInstructor(formId)) {
         alert('❌ No tienes permiso para evaluar esta especialidad.');
         return;
       }
@@ -12409,7 +12413,7 @@ const diffMins = Math.floor(diffMs / 60000);
    // Se eliminaron variables y funciones redundantes.
 
   window.verEntregasEspecialidad = async function(formId, titulo) {
-      if (!window.isOwner && !isSpecialtyAllowedForCurrentInstructor(formId)) {
+      if (!window.isOwner && typeof window.isSpecialtyAllowedForCurrentInstructor === 'function' && !window.isSpecialtyAllowedForCurrentInstructor(formId)) {
         alert('❌ No tienes permiso para evaluar esta especialidad.');
         return;
       }

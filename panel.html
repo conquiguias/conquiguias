@@ -4384,6 +4384,9 @@
 
       let especialidadSeleccionada = "";
       // currentUserId, isAdmin, userData ahora son globales (window.*)
+      let currentUserId = window.currentUserId || null;
+      let userData = window.userData || null;
+      let isAdmin = window.isAdmin || false;
       let currentPhotoURL = "";
       const placeholderURL = "https://dummyimage.com/120x120/ccc/fff";
       let OWNER_EMAIL = "";
@@ -4581,6 +4584,7 @@
 
           window.isOwner = email === OWNER_EMAIL;
           window.isAdmin = adminsNormalizados.includes(email);
+          isAdmin = window.isAdmin;
 
           await loadInstructorAssignmentsConfig();
           const instructorAssignment = getInstructorAssignmentForUser(user.uid, user.email);
@@ -4606,6 +4610,7 @@
         }
 
         window.currentUserId = user.uid;
+        currentUserId = user.uid;
         const hasPasswordProvider = (user.providerData || []).some(
           provider => provider.providerId === "password",
         );
@@ -4617,41 +4622,70 @@
           ? "Si completas estos campos, reemplazaremos tu contraseña actual."
           : "Aún no tienes contraseña. Configúrala para iniciar sesión también con correo y contraseña.";
 
-        const docRef = doc(db, "usuarios", currentUserId);
-        const docSnap = await getDoc(docRef);
+        try {
+          const docRef = doc(db, "usuarios", currentUserId);
+          const docSnap = await getDoc(docRef);
 
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          currentPhotoURL = data.fotoURL || placeholderURL;
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            currentPhotoURL = data.fotoURL || user.photoURL || placeholderURL;
 
-          // Actualizar header del usuario
+            headerUserPhoto.src = currentPhotoURL;
+            headerUserName.textContent = `${data.nombre || ''} ${data.apellido || ''}`.trim() || (user.displayName || 'Usuario');
+
+            nombreInput.value = data.nombre || '';
+            apellidoInput.value = data.apellido || '';
+            edadInput.value = data.edad || '';
+            sexoInput.value = data.sexo || '';
+            paisInput.value = data.pais || '';
+            preview.src = currentPhotoURL;
+            correoInput.value = user.email || '';
+
+            window.userData = {
+              ...data,
+              fotoURL: currentPhotoURL,
+              email: user.email
+            };
+            userData = window.userData;
+            lastPostTime = data.lastPostTime || null;
+          } else {
+            currentPhotoURL = user.photoURL || placeholderURL;
+            headerUserPhoto.src = currentPhotoURL;
+            headerUserName.textContent = user.displayName || 'Usuario';
+            preview.src = currentPhotoURL;
+            correoInput.value = user.email || '';
+
+            window.userData = {
+              nombre: user.displayName || 'Usuario',
+              apellido: '',
+              fotoURL: currentPhotoURL,
+              email: user.email || ''
+            };
+            userData = window.userData;
+            lastPostTime = null;
+          }
+        } catch (profileError) {
+          console.warn('[WARN] No se pudo cargar perfil completo:', profileError);
+          currentPhotoURL = user.photoURL || placeholderURL;
           headerUserPhoto.src = currentPhotoURL;
-          headerUserName.textContent = `${data.nombre || ''} ${data.apellido || ''}`;
-
-          // Actualizar los campos del perfil
-          nombreInput.value = data.nombre || '';
-          apellidoInput.value = data.apellido || '';
-          edadInput.value = data.edad || '';
-          sexoInput.value = data.sexo || '';
-          paisInput.value = data.pais || '';
+          headerUserName.textContent = user.displayName || 'Usuario';
           preview.src = currentPhotoURL;
-
-          // Establecer el correo (solo lectura)
           correoInput.value = user.email || '';
 
-          // 🔹 INICIALIZAR DATOS DE RED SOCIAL - CORREGIDO
           window.userData = {
-            ...data,
-            email: user.email // 🔥 Asegurar que userData tenga el email
+            nombre: user.displayName || 'Usuario',
+            apellido: '',
+            fotoURL: currentPhotoURL,
+            email: user.email || ''
           };
-          lastPostTime = data.lastPostTime || null;
+          userData = window.userData;
+          lastPostTime = null;
+        }
 
-          // 🔹 INICIALIZAR RED SOCIAL INMEDIATAMENTE SI ESTAMOS EN INICIO
-          if (!inicioSection.classList.contains('hidden')) {
-            setTimeout(() => {
-              initializeSocialNetwork();
-            }, 500);
-          }
+        if (!inicioSection.classList.contains('hidden')) {
+          setTimeout(() => {
+            initializeSocialNetwork();
+          }, 500);
         }
 
         cargarEspecialidadesFijas();
@@ -8571,6 +8605,9 @@ const diffMins = Math.floor(diffMs / 60000);
                               let adminInstructorUsers = [];
                               let adminPendingSpecialties = [];
                               let adminSelectedInstructor = null;
+                              let adminInstructorUsersLoadedAt = 0;
+                              let adminPendingSpecialtiesLoadedAt = 0;
+                              const ADMIN_INSTRUCTORES_CACHE_MS = 2 * 60 * 1000;
 
                               function activarTabAdmin(tabName) {
                                 const tabPublicaciones = document.getElementById('adminTabPublicaciones');
@@ -8698,8 +8735,8 @@ const diffMins = Math.floor(diffMs / 60000);
                                 })();
 
                                 container.innerHTML = adminPendingSpecialties.map(item => `
-                                  <label style="display:flex; gap:8px; align-items:flex-start; margin-bottom:8px; cursor:pointer;">
-                                    <input type="checkbox" class="admin-esp-checkbox" value="${item.id}" ${assigned.includes(item.id) ? 'checked' : ''}>
+                                  <label style="display:flex; gap:10px; align-items:center; margin-bottom:8px; cursor:pointer;">
+                                    <input type="checkbox" class="admin-esp-checkbox" value="${item.id}" ${assigned.includes(item.id) ? 'checked' : ''} style="width:16px; height:16px; flex:0 0 auto; margin:0;">
                                     <span>
                                       <strong>${escapeHtml(item.titulo || item.id)}</strong><br>
                                       <small style="color:var(--text-secondary);">Pendientes: ${item.pendientes ?? 0}</small>
@@ -8820,11 +8857,31 @@ const diffMins = Math.floor(diffMs / 60000);
 
                               async function inicializarAdminInstructores() {
                                 try {
+                                  const now = Date.now();
+                                  const shouldReloadUsers = !adminInstructorUsers.length || (now - adminInstructorUsersLoadedAt) > ADMIN_INSTRUCTORES_CACHE_MS;
+                                  const shouldReloadSpecialties = !adminPendingSpecialties.length || (now - adminPendingSpecialtiesLoadedAt) > ADMIN_INSTRUCTORES_CACHE_MS;
+
                                   await loadInstructorAssignmentsConfig();
-                                  await Promise.all([
-                                    cargarUsuariosParaAdminInstructores(),
-                                    cargarEspecialidadesPendientesParaAsignacion()
-                                  ]);
+
+                                  const pendingLoads = [];
+                                  if (shouldReloadUsers) {
+                                    pendingLoads.push(
+                                      cargarUsuariosParaAdminInstructores().then(() => {
+                                        adminInstructorUsersLoadedAt = Date.now();
+                                      })
+                                    );
+                                  }
+                                  if (shouldReloadSpecialties) {
+                                    pendingLoads.push(
+                                      cargarEspecialidadesPendientesParaAsignacion().then(() => {
+                                        adminPendingSpecialtiesLoadedAt = Date.now();
+                                      })
+                                    );
+                                  }
+
+                                  if (pendingLoads.length) {
+                                    await Promise.all(pendingLoads);
+                                  }
 
                                   const searchInput = document.getElementById('adminInstructorSearch');
                                   renderAdminInstructorUsers(searchInput?.value || '');

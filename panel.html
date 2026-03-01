@@ -4535,7 +4535,11 @@
         const sectionAlmacenamiento = document.getElementById('sectionAlmacenamientoPDFs');
 
         if (menuAdminBtn) menuAdminBtn.classList.toggle('hidden', !window.canAccessAdminPanel);
-        if (menuInstructorBtn) menuInstructorBtn.classList.toggle('hidden', !window.canAccessInstructorPanel);
+        if (menuInstructorBtn) {
+          menuInstructorBtn.classList.toggle('hidden', !window.canAccessInstructorPanel);
+          menuInstructorBtn.disabled = !window.canAccessInstructorPanel;
+          menuInstructorBtn.setAttribute('aria-hidden', String(!window.canAccessInstructorPanel));
+        }
 
         if (!window.isOwner) {
           if (tabCrearBtn) tabCrearBtn.classList.add('hidden');
@@ -4734,7 +4738,6 @@
       if(menuInstructor) {
           menuInstructor.addEventListener("click", () => {
             if (!window.canAccessInstructorPanel) {
-              mostrarMensaje('error', 'Acceso restringido', 'No tienes permisos para entrar al panel de instructor.');
               return;
             }
               mostrarSeccion(instructorSection, menuInstructor);

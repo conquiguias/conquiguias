@@ -7,6 +7,7 @@ const ADMIN_EMAILS = [
   OWNER_EMAIL,
   "pruebaja@gmail.com",
   "lunabecky026@gmail.com",
+  "ayurelihrdz@gmail.com",
   // Agrega más correos de administradores aquí
 ];
 

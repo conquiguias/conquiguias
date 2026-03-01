@@ -3722,6 +3722,7 @@
           <div style="margin-bottom: 10px;">
             <label style="display:block; margin-bottom:6px; font-weight:600;">Seleccionar usuario</label>
             <input id="adminInstructorSearch" type="text" placeholder="Buscar por nombre o correo..." style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--border-color); background:var(--bg-primary); color:var(--text-primary);">
+            <div id="adminInstructorUsersCount" style="margin-top:6px; font-size:12px; color:var(--text-secondary);">Total usuarios: 0</div>
           </div>
 
           <div id="adminInstructorUsersList" class="custom-select" style="max-height: 220px; overflow-y: auto; margin-bottom: 10px;">
@@ -8707,6 +8708,7 @@ const diffMins = Math.floor(diffMs / 60000);
 
                               function renderAdminInstructorUsers(searchTerm = '') {
                                 const list = document.getElementById('adminInstructorUsersList');
+                                const countLabel = document.getElementById('adminInstructorUsersCount');
                                 if (!list) return;
 
                                 const needle = (searchTerm || '').trim().toLowerCase();
@@ -8715,6 +8717,14 @@ const diffMins = Math.floor(diffMs / 60000);
                                   const email = normalizeEmail(user.email);
                                   return !needle || name.includes(needle) || email.includes(needle);
                                 });
+
+                                const total = adminInstructorUsers.length;
+                                const visible = filtered.length;
+                                if (countLabel) {
+                                  countLabel.textContent = needle
+                                    ? `Mostrando ${visible} de ${total} usuarios`
+                                    : `Total usuarios: ${total}`;
+                                }
 
                                 if (!filtered.length) {
                                   list.innerHTML = '<div style="padding: 12px; text-align:center; color: var(--text-secondary);">No se encontraron usuarios.</div>';

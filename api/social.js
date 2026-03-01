@@ -8,7 +8,6 @@ const ADMIN_EMAILS = [
   "pruebaja@gmail.com",
   "lunabecky026@gmail.com",
   "ayurelihrdz@gmail.com",
-  // Agrega más correos de administradores aquí
 ];
 
 if (!admin.apps.length) {

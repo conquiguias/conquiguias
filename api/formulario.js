@@ -1,4 +1,5 @@
 const { createClient } = require("@supabase/supabase-js");
+const admin = require("firebase-admin");
 
 // Configuración Supabase
 const SUPABASE_URL =
@@ -7,6 +8,64 @@ const SUPABASE_KEY =
   process.env.SUPABASE_KEY ||
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtqcm5oZ2d3cWluZWdlbnZydG5yIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTY2MDQ0NCwiZXhwIjoyMDg1MjM2NDQ0fQ.bmJvB2NpiBonpKpgPh85fFIadOnEh9fG7hlzJZFQNGs";
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const OWNER_EMAIL = "kendall.torres.17@gmail.com";
+const ADMIN_EMAILS = [
+  OWNER_EMAIL,
+  // Agrega más correos de administradores aquí
+];
+
+if (!admin.apps.length) {
+  const serviceAccount = {
+    type: "service_account",
+    project_id: process.env.FIREBASE_PROJECT_ID,
+    private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+    private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+    client_email: process.env.FIREBASE_CLIENT_EMAIL,
+    client_id: process.env.FIREBASE_CLIENT_ID,
+    auth_uri: "https://accounts.google.com/o/oauth2/auth",
+    token_uri: "https://oauth2.googleapis.com/token",
+    auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+    client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL,
+  };
+
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
+}
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function getAdminEmails() {
+  return Array.from(
+    new Set(ADMIN_EMAILS.map((email) => normalizeEmail(email)).filter(Boolean))
+  );
+}
+
+async function verifyAuthenticatedUserFromBody(body = {}) {
+  const token = String(body?.idToken || "").trim();
+  if (!token) {
+    const error = new Error("Token de autenticación requerido");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  let decodedToken;
+  try {
+    decodedToken = await admin.auth().verifyIdToken(token);
+  } catch (_error) {
+    const error = new Error("Token de autenticación inválido");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  return {
+    uid: String(decodedToken?.uid || "").trim(),
+    email: normalizeEmail(decodedToken?.email || ""),
+  };
+}
 
 // Cache en memoria simple para Serverless (persiste mientras la instancia esté caliente)
 const memoryCache = new Map();
@@ -503,12 +562,42 @@ async function handleActualizarEstadoAsistencia(req, res) {
 }
 
 async function handleCalificarTareas(req, res) {
-  const { id, tareas } = req.body;
-  // Actualizamos solo la columna contenido_tareas, manteniendo lo demas
-  await supabase
-    .from("evaluaciones")
-    .upsert({ especialidad_id: id, contenido_tareas: tareas });
-  res.status(200).json({ ok: true });
+  try {
+    const { id, tareas, targetVisitanteId } = req.body || {};
+    const requester = await verifyAuthenticatedUserFromBody(req.body || {});
+    const requesterEmail = normalizeEmail(requester.email);
+    const isOwner = requesterEmail === normalizeEmail(OWNER_EMAIL);
+
+    if (!id || !tareas || typeof tareas !== "object") {
+      return res.status(400).json({ error: "Payload inválido para calificar tareas" });
+    }
+
+    const targetId = String(targetVisitanteId || "").trim();
+    const targetData = targetId && tareas[targetId] && typeof tareas[targetId] === "object"
+      ? tareas[targetId]
+      : null;
+    const targetEmail = normalizeEmail(targetData?.email || "");
+    const adminEmails = getAdminEmails();
+    const isTargetAdmin = !!targetEmail && adminEmails.includes(targetEmail);
+    const isTargetSelf = !!targetEmail && !!requesterEmail && targetEmail === requesterEmail;
+
+    if (!isOwner && (isTargetAdmin || isTargetSelf)) {
+      return res.status(403).json({
+        error: "Solo el propietario puede calificar a administradores o evaluarse a sí mismo",
+      });
+    }
+
+    await supabase
+      .from("evaluaciones")
+      .upsert({ especialidad_id: id, contenido_tareas: tareas });
+
+    res.status(200).json({ ok: true });
+  } catch (error) {
+    console.error("Error en calificarTareas:", error);
+    res.status(error.statusCode || 500).json({
+      error: error.message || "Error interno al calificar tareas",
+    });
+  }
 }
 
 async function handleEliminarFormulario(req, res) {

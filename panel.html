@@ -11909,13 +11909,31 @@ const diffMins = Math.floor(diffMs / 60000);
       return restrictedEmails.includes(normalizedTargetEmail) || normalizedTargetEmail === normalizedCurrentUserEmail;
   }
 
+    function resolveTargetEmail(targetId, targetData) {
+      const fromData = String(targetData?.email || '').trim().toLowerCase();
+      if (fromData) return fromData;
+      const fromId = String(targetId || '').trim().toLowerCase();
+      return fromId.includes('@') ? fromId : '';
+    }
+
+    function isSelfEvaluationTarget(targetId, targetEmail) {
+      const currentUserEmail = String((window.userData?.email || (typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.email : '') || '')).trim().toLowerCase();
+      const normalizedTargetEmail = String(targetEmail || '').trim().toLowerCase();
+      if (normalizedTargetEmail && currentUserEmail && normalizedTargetEmail === currentUserEmail) return true;
+
+      const currentUid = String(window.currentUserId || '').trim();
+      const normalizedTargetId = String(targetId || '').trim();
+      return !!currentUid && !!normalizedTargetId && currentUid === normalizedTargetId;
+    }
+
   window.abrirEvaluador = function(vid, data) {
       console.log("Opening evaluator for:", vid);
       const targetData = data || (typeof currentEntregasData !== 'undefined' ? currentEntregasData?.[vid] : null) || window.datosEntregasGlobal?.[vid] || null;
-      const targetEmail = String(targetData?.email || '').trim().toLowerCase();
+      const targetEmail = resolveTargetEmail(vid, targetData);
       const currentUserEmail = String((window.userData?.email || (typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.email : '') || '')).trim().toLowerCase();
       const isRestrictedTarget = isRestrictedEvaluationTarget(targetEmail, currentUserEmail);
-      if (!window.isOwner && isRestrictedTarget) {
+      const isSelfTarget = isSelfEvaluationTarget(vid, targetEmail);
+        if ((!window.isOwner && isSelfTarget) || (!window.isOwner && isRestrictedTarget)) {
           alert('❌ Solo el propietario puede evaluar a admins o evaluarse a sí mismo.');
           return;
       }
@@ -12747,10 +12765,11 @@ const diffMins = Math.floor(diffMs / 60000);
       
       entregas.forEach(([uid, datos]) => {
           const colorEstado = datos.estado === 'calificado' ? '#10B981' : '#F59E0B';
-          const targetEmail = String(datos.email || '').trim().toLowerCase();
+          const targetEmail = resolveTargetEmail(uid, datos);
           const currentUserEmail = String((window.userData?.email || (typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.email : '') || '')).trim().toLowerCase();
           const isRestrictedTarget = isRestrictedEvaluationTarget(targetEmail, currentUserEmail);
-          const canEvaluateTarget = !!window.isOwner || !isRestrictedTarget;
+          const isSelfTarget = isSelfEvaluationTarget(uid, targetEmail);
+          const canEvaluateTarget = !!window.isOwner || (!isSelfTarget && !isRestrictedTarget);
           const evalButtonStyle = canEvaluateTarget
             ? 'background:var(--accent-color); color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;'
             : 'background:#475569; color:#cbd5e1; border:none; padding:5px 10px; border-radius:4px; cursor:not-allowed; opacity:0.7;';

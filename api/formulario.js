@@ -12,7 +12,9 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const OWNER_EMAIL = "kendall.torres.17@gmail.com";
 const ADMIN_EMAILS = [
   OWNER_EMAIL,
-  // Agrega más correos de administradores aquí
+  "pruebaja@gmail.com",
+  "lunabecky026@gmail.com",
+  "ayurelihrdz@gmail.com",
 ];
 
 if (!admin.apps.length) {
@@ -576,14 +578,24 @@ async function handleCalificarTareas(req, res) {
     const targetData = targetId && tareas[targetId] && typeof tareas[targetId] === "object"
       ? tareas[targetId]
       : null;
-    const targetEmail = normalizeEmail(targetData?.email || "");
+    const targetEmail = normalizeEmail(
+      targetData?.email || (targetId.includes("@") ? targetId : "")
+    );
     const adminEmails = getAdminEmails();
     const isTargetAdmin = !!targetEmail && adminEmails.includes(targetEmail);
-    const isTargetSelf = !!targetEmail && !!requesterEmail && targetEmail === requesterEmail;
+    const isTargetSelfByEmail = !!targetEmail && !!requesterEmail && targetEmail === requesterEmail;
+    const isTargetSelfByUid = !!targetId && !!requester.uid && targetId === requester.uid;
+    const isTargetSelf = isTargetSelfByEmail || isTargetSelfByUid;
 
-    if (!isOwner && (isTargetAdmin || isTargetSelf)) {
+    if (!isOwner && isTargetSelf) {
       return res.status(403).json({
-        error: "Solo el propietario puede calificar a administradores o evaluarse a sí mismo",
+        error: "Solo el propietario puede evaluarse a sí mismo",
+      });
+    }
+
+    if (!isOwner && isTargetAdmin) {
+      return res.status(403).json({
+        error: "Solo el propietario puede calificar a administradores",
       });
     }
 

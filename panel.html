@@ -12832,42 +12832,6 @@ const diffMins = Math.floor(diffMs / 60000);
 
   // abrirEvaluador y cerrarCalificador ya están definidos y unificados arriba.
 
-    async function waitForAuthUser(timeoutMs = 3000) {
-      const current = (typeof auth !== 'undefined' && auth.currentUser) ? auth.currentUser : null;
-      if (current) return current;
-
-      return new Promise((resolve) => {
-        let settled = false;
-        const timer = setTimeout(() => {
-          if (settled) return;
-          settled = true;
-          try { unsubscribe(); } catch (_e) {}
-          resolve(null);
-        }, timeoutMs);
-
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timer);
-          unsubscribe();
-          resolve(user || null);
-        });
-      });
-    }
-
-    async function getFreshIdTokenOrThrow(forceRefresh = false) {
-      const user = await waitForAuthUser(3000);
-      if (!user) {
-        throw new Error('No se encontró sesión activa.');
-      }
-
-      const token = await user.getIdToken(!!forceRefresh);
-      if (!token) {
-        throw new Error('No se pudo obtener token de sesión.');
-      }
-      return token;
-    }
-
   window.guardarNotaIndividualYSalir = async function() {
       const nota = document.getElementById('inputNotaIndividual').value;
       if(!nota || nota < 0 || nota > 10) { alert("Nota inválida (0-10)"); return; }
@@ -12893,38 +12857,16 @@ const diffMins = Math.floor(diffMs / 60000);
       // Ojo: calificarTareas requiere recibir TODO el JSON de tareas.
       
       try {
-          let idToken = await getFreshIdTokenOrThrow(false);
-
-          let resp = await fetch('/api/formulario?action=calificarTareas', {
-            method: 'POST',
-            headers: {
-            'Content-Type':'application/json',
-            'Authorization': `Bearer ${idToken}`
-            },
-            body: JSON.stringify({
-              id: currentEvaluandoFormId,
-              tareas: currentEntregasData,
-              targetVisitanteId: window.currentEvaluandoId,
-              idToken
-            })
-          });
-
-          if (resp.status === 401) {
-            idToken = await getFreshIdTokenOrThrow(true);
-            resp = await fetch('/api/formulario?action=calificarTareas', {
+          const resp = await fetch('/api/formulario?action=calificarTareas', {
               method: 'POST',
-              headers: {
-              'Content-Type':'application/json',
-              'Authorization': `Bearer ${idToken}`
-              },
+              headers: {'Content-Type':'application/json'},
               body: JSON.stringify({
-                id: currentEvaluandoFormId,
-                tareas: currentEntregasData,
-                targetVisitanteId: window.currentEvaluandoId,
-                idToken
+                  id: currentEvaluandoFormId,
+                  tareas: currentEntregasData,
+                  targetVisitanteId: window.currentEvaluandoId,
+                  requesterEmail: String((window.userData?.email || (typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.email : '') || '')).trim().toLowerCase()
               })
-            });
-          }
+          });
           
           if(resp.ok) {
               alert("✅ Calificación guardada.");
@@ -12943,12 +12885,7 @@ const diffMins = Math.floor(diffMs / 60000);
                   alert("❌ Error al guardar: " + (errPayload.error || resp.statusText || 'No autorizado'));
           }
       } catch(e) {
-                const reason = String(e?.message || 'desconocido');
-                if (reason.includes('sesión activa') || reason.includes('token')) {
-                  alert('⚠️ Tu sesión expiró. Vuelve a iniciar sesión para guardar la calificación.');
-                } else {
-                  alert("Error de conexión: " + reason);
-                }
+                alert("Error de conexión: " + (e?.message || 'desconocido'));
       }
   };
 

@@ -581,8 +581,7 @@ async function handleActualizarEstadoAsistencia(req, res) {
 async function handleCalificarTareas(req, res) {
   try {
     const { id, tareas, targetVisitanteId } = req.body || {};
-    const requester = await verifyAuthenticatedUser(req);
-    const requesterEmail = normalizeEmail(requester.email);
+    const requesterEmail = normalizeEmail(req.body?.requesterEmail || req.body?.adminEmail || "");
     const isOwner = requesterEmail === normalizeEmail(OWNER_EMAIL);
 
     if (!id || !tareas || typeof tareas !== "object") {
@@ -599,7 +598,7 @@ async function handleCalificarTareas(req, res) {
     const adminEmails = getAdminEmails();
     const isTargetAdmin = !!targetEmail && adminEmails.includes(targetEmail);
     const isTargetSelfByEmail = !!targetEmail && !!requesterEmail && targetEmail === requesterEmail;
-    const isTargetSelfByUid = !!targetId && !!requester.uid && targetId === requester.uid;
+    const isTargetSelfByUid = false;
     const isTargetSelf = isTargetSelfByEmail || isTargetSelfByUid;
 
     if (!isOwner && isTargetSelf) {

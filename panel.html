@@ -12832,6 +12832,18 @@ const diffMins = Math.floor(diffMs / 60000);
 
   // abrirEvaluador y cerrarCalificador ya están definidos y unificados arriba.
 
+    async function getFreshIdTokenOrThrow() {
+      const user = (typeof auth !== 'undefined' && auth.currentUser) ? auth.currentUser : null;
+      if (!user) {
+        throw new Error('Sesión no disponible. Inicia sesión nuevamente.');
+      }
+      const token = await user.getIdToken(true);
+      if (!token) {
+        throw new Error('No se pudo obtener token de sesión.');
+      }
+      return token;
+    }
+
   window.guardarNotaIndividualYSalir = async function() {
       const nota = document.getElementById('inputNotaIndividual').value;
       if(!nota || nota < 0 || nota > 10) { alert("Nota inválida (0-10)"); return; }
@@ -12857,18 +12869,38 @@ const diffMins = Math.floor(diffMs / 60000);
       // Ojo: calificarTareas requiere recibir TODO el JSON de tareas.
       
       try {
-          const idToken = (typeof auth !== 'undefined' && auth.currentUser) ? await auth.currentUser.getIdToken(true) : '';
+          let idToken = await getFreshIdTokenOrThrow();
 
-          const resp = await fetch('/api/formulario?action=calificarTareas', {
-              method: 'POST',
-              headers: {'Content-Type':'application/json'},
-              body: JSON.stringify({
-                  id: currentEvaluandoFormId,
+          let resp = await fetch('/api/formulario?action=calificarTareas', {
+            method: 'POST',
+            headers: {
+            'Content-Type':'application/json',
+            'Authorization': `Bearer ${idToken}`
+            },
+            body: JSON.stringify({
+              id: currentEvaluandoFormId,
               tareas: currentEntregasData,
               targetVisitanteId: window.currentEvaluandoId,
               idToken
-              })
+            })
           });
+
+          if (resp.status === 401) {
+            idToken = await getFreshIdTokenOrThrow();
+            resp = await fetch('/api/formulario?action=calificarTareas', {
+              method: 'POST',
+              headers: {
+              'Content-Type':'application/json',
+              'Authorization': `Bearer ${idToken}`
+              },
+              body: JSON.stringify({
+                id: currentEvaluandoFormId,
+                tareas: currentEntregasData,
+                targetVisitanteId: window.currentEvaluandoId,
+                idToken
+              })
+            });
+          }
           
           if(resp.ok) {
               alert("✅ Calificación guardada.");
@@ -12883,10 +12915,11 @@ const diffMins = Math.floor(diffMs / 60000);
                   cargarTablaEspecialidadesParaEvaluar();
               }
           } else {
-              alert("❌ Error al guardar.");
+                  const errPayload = await resp.json().catch(() => ({}));
+                  alert("❌ Error al guardar: " + (errPayload.error || resp.statusText || 'No autorizado'));
           }
       } catch(e) {
-          alert("Error de conexión.");
+                alert("Error de conexión: " + (e?.message || 'desconocido'));
       }
   };
 

@@ -46,8 +46,15 @@ function getAdminEmails() {
   );
 }
 
+function getBearerToken(req) {
+  const authHeader = req.headers?.authorization || req.headers?.Authorization || "";
+  if (typeof authHeader !== "string") return "";
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : "";
+}
+
 async function verifyAuthenticatedUserFromBody(body = {}) {
-  const token = String(body?.idToken || "").trim();
+  const token = getBearerToken({ headers: body?.__headers || {} }) || String(body?.idToken || "").trim();
   if (!token) {
     const error = new Error("Token de autenticación requerido");
     error.statusCode = 401;
@@ -67,6 +74,14 @@ async function verifyAuthenticatedUserFromBody(body = {}) {
     uid: String(decodedToken?.uid || "").trim(),
     email: normalizeEmail(decodedToken?.email || ""),
   };
+}
+
+async function verifyAuthenticatedUser(req) {
+  const body = req?.body || {};
+  return verifyAuthenticatedUserFromBody({
+    ...body,
+    __headers: req?.headers || {},
+  });
 }
 
 // Cache en memoria simple para Serverless (persiste mientras la instancia esté caliente)
@@ -566,7 +581,7 @@ async function handleActualizarEstadoAsistencia(req, res) {
 async function handleCalificarTareas(req, res) {
   try {
     const { id, tareas, targetVisitanteId } = req.body || {};
-    const requester = await verifyAuthenticatedUserFromBody(req.body || {});
+    const requester = await verifyAuthenticatedUser(req);
     const requesterEmail = normalizeEmail(requester.email);
     const isOwner = requesterEmail === normalizeEmail(OWNER_EMAIL);
 

@@ -4463,7 +4463,7 @@
       let isAdmin = window.isAdmin || false;
       let currentPhotoURL = "";
       const placeholderURL = "https://dummyimage.com/120x120/ccc/fff";
-      let OWNER_EMAIL = "";
+      let OWNER_EMAIL = "kendall.torres.17@gmail.com";
       let puedeEntrarEspecialidades = false;
       let isSocialNetworkInitialized = false;
       let postsLoading = false;
@@ -4545,6 +4545,15 @@
 
           const payload = await response.json();
           OWNER_EMAIL = normalizeEmail(payload?.ownerEmail || OWNER_EMAIL || '');
+          const assignmentAdmins = Array.isArray(payload?.admins)
+            ? payload.admins.map(normalizeEmail).filter(Boolean)
+            : [];
+          window.ADMIN_EMAILS = Array.from(new Set([
+            ...(Array.isArray(window.ADMIN_EMAILS) ? window.ADMIN_EMAILS.map(normalizeEmail).filter(Boolean) : []),
+            ...assignmentAdmins,
+            OWNER_EMAIL,
+            'kendall.torres.17@gmail.com'
+          ]));
 
           if (payload?.assignment && payload?.assignmentKey) {
             const assignment = payload.assignment;
@@ -11882,15 +11891,30 @@ const diffMins = Math.floor(diffMs / 60000);
   // Variable global para rastrear el alumno actual en evaluación
   window.currentEvaluandoId = null;
 
+  function getRestrictedEvaluationEmails() {
+      const ownerCandidates = [OWNER_EMAIL, 'kendall.torres.17@gmail.com']
+        .map(email => String(email || '').trim().toLowerCase())
+        .filter(Boolean);
+      const adminCandidates = Array.isArray(window.ADMIN_EMAILS)
+        ? window.ADMIN_EMAILS.map(email => String(email || '').trim().toLowerCase()).filter(Boolean)
+        : [];
+      return Array.from(new Set([...ownerCandidates, ...adminCandidates]));
+  }
+
+  function isRestrictedEvaluationTarget(targetEmail, currentUserEmail) {
+      const normalizedTargetEmail = String(targetEmail || '').trim().toLowerCase();
+      const normalizedCurrentUserEmail = String(currentUserEmail || '').trim().toLowerCase();
+      if (!normalizedTargetEmail) return false;
+      const restrictedEmails = getRestrictedEvaluationEmails();
+      return restrictedEmails.includes(normalizedTargetEmail) || normalizedTargetEmail === normalizedCurrentUserEmail;
+  }
+
   window.abrirEvaluador = function(vid, data) {
       console.log("Opening evaluator for:", vid);
       const targetData = data || (typeof currentEntregasData !== 'undefined' ? currentEntregasData?.[vid] : null) || window.datosEntregasGlobal?.[vid] || null;
       const targetEmail = String(targetData?.email || '').trim().toLowerCase();
       const currentUserEmail = String((window.userData?.email || (typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.email : '') || '')).trim().toLowerCase();
-      const adminEmails = Array.isArray(window.ADMIN_EMAILS)
-        ? window.ADMIN_EMAILS.map(e => String(e || '').trim().toLowerCase()).filter(Boolean)
-        : [];
-      const isRestrictedTarget = !!targetEmail && (adminEmails.includes(targetEmail) || targetEmail === currentUserEmail);
+      const isRestrictedTarget = isRestrictedEvaluationTarget(targetEmail, currentUserEmail);
       if (!window.isOwner && isRestrictedTarget) {
           alert('❌ Solo el propietario puede evaluar a admins o evaluarse a sí mismo.');
           return;
@@ -12725,10 +12749,7 @@ const diffMins = Math.floor(diffMs / 60000);
           const colorEstado = datos.estado === 'calificado' ? '#10B981' : '#F59E0B';
           const targetEmail = String(datos.email || '').trim().toLowerCase();
           const currentUserEmail = String((window.userData?.email || (typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.email : '') || '')).trim().toLowerCase();
-          const adminEmails = Array.isArray(window.ADMIN_EMAILS)
-            ? window.ADMIN_EMAILS.map(e => String(e || '').trim().toLowerCase()).filter(Boolean)
-            : [];
-          const isRestrictedTarget = !!targetEmail && (adminEmails.includes(targetEmail) || targetEmail === currentUserEmail);
+          const isRestrictedTarget = isRestrictedEvaluationTarget(targetEmail, currentUserEmail);
           const canEvaluateTarget = !!window.isOwner || !isRestrictedTarget;
           const evalButtonStyle = canEvaluateTarget
             ? 'background:var(--accent-color); color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;'

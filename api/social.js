@@ -367,6 +367,7 @@ async function handleGetMyInstructorAssignment(req, res) {
     res.status(200).json({
       success: true,
       ownerEmail: data.ownerEmail || OWNER_EMAIL,
+      admins: getAdminEmails(),
       assignmentKey,
       assignment: assignment || null,
     });

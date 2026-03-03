@@ -4501,6 +4501,24 @@
         return !!currentUid && !!normalizedTargetId && currentUid === normalizedTargetId;
       };
 
+      window.getRestrictedEvaluationEmails = function() {
+        const ownerCandidates = [OWNER_EMAIL, 'kendall.torres.17@gmail.com']
+          .map(email => String(email || '').trim().toLowerCase())
+          .filter(Boolean);
+        const adminCandidates = Array.isArray(window.ADMIN_EMAILS)
+          ? window.ADMIN_EMAILS.map(email => String(email || '').trim().toLowerCase()).filter(Boolean)
+          : [];
+        return Array.from(new Set([...ownerCandidates, ...adminCandidates]));
+      };
+
+      window.isRestrictedEvaluationTarget = function(targetEmail, currentUserEmail) {
+        const normalizedTargetEmail = String(targetEmail || '').trim().toLowerCase();
+        const normalizedCurrentUserEmail = String(currentUserEmail || '').trim().toLowerCase();
+        if (!normalizedTargetEmail) return false;
+        const restrictedEmails = window.getRestrictedEvaluationEmails();
+        return restrictedEmails.includes(normalizedTargetEmail) || normalizedTargetEmail === normalizedCurrentUserEmail;
+      };
+
       function getInstructorAssignmentForUser(uid, email) {
         const emailKey = normalizeEmail(email);
         if (uid && instructorAssignmentsConfig[uid]) return instructorAssignmentsConfig[uid];
@@ -11948,7 +11966,7 @@ const diffMins = Math.floor(diffMs / 60000);
       const targetData = data || (typeof currentEntregasData !== 'undefined' ? currentEntregasData?.[vid] : null) || window.datosEntregasGlobal?.[vid] || null;
       const targetEmail = window.resolveTargetEmail(vid, targetData);
       const currentUserEmail = String((window.userData?.email || (typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.email : '') || '')).trim().toLowerCase();
-      const isRestrictedTarget = isRestrictedEvaluationTarget(targetEmail, currentUserEmail);
+      const isRestrictedTarget = window.isRestrictedEvaluationTarget(targetEmail, currentUserEmail);
       const isSelfTarget = window.isSelfEvaluationTarget(vid, targetEmail);
         if ((!window.isOwner && isSelfTarget) || (!window.isOwner && isRestrictedTarget)) {
           alert('❌ Solo el propietario puede evaluar a admins o evaluarse a sí mismo.');
@@ -12784,7 +12802,7 @@ const diffMins = Math.floor(diffMs / 60000);
           const colorEstado = datos.estado === 'calificado' ? '#10B981' : '#F59E0B';
           const targetEmail = window.resolveTargetEmail(uid, datos);
           const currentUserEmail = String((window.userData?.email || (typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.email : '') || '')).trim().toLowerCase();
-          const isRestrictedTarget = isRestrictedEvaluationTarget(targetEmail, currentUserEmail);
+          const isRestrictedTarget = window.isRestrictedEvaluationTarget(targetEmail, currentUserEmail);
           const isSelfTarget = window.isSelfEvaluationTarget(uid, targetEmail);
           const canEvaluateTarget = !!window.isOwner || (!isSelfTarget && !isRestrictedTarget);
           const evalButtonStyle = canEvaluateTarget

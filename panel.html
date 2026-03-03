@@ -3345,6 +3345,11 @@
                 </strong>
                 <img src="images/formato.png" alt="Formato de la especialidad"
                      style="width: 100%; border-radius: 8px; border: 1px solid var(--border-color);">
+                <div style="text-align:center; margin-top: 12px;">
+                  <button type="button" id="btnMachoteFormato" style="background: var(--accent-color); color: white; border: none; padding: 9px 14px; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                    <i class="fas fa-file-word" style="margin-right: 6px;"></i> Machote del formato
+                  </button>
+                </div>
             </div>
 
             <input type="file" id="inputTareaPDF" accept="application/pdf" style="margin-bottom: 20px;">
@@ -3368,6 +3373,18 @@
             </div>
             <div id="msgSubidaTarea" style="margin-top: 10px;"></div>
         </div>
+    </div>
+
+    <div id="machoteFormatoModal" class="hiddenX" style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 6000; display: flex; align-items: center; justify-content: center;">
+      <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; width: 92%; max-width: 430px; text-align: center;">
+        <h3 style="margin: 0 0 8px 0; color: var(--accent-color);">Machote del formato</h3>
+        <p style="margin: 0 0 18px 0; color: var(--text-primary);">¿Quieres descargar el archivo para editarlo en escritorio o verlo en línea?</p>
+        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+          <button type="button" id="btnMachoteDescargar" style="background: var(--success-color); color: white; border: none; padding: 9px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; min-width: 120px;">Descargar</button>
+          <button type="button" id="btnMachoteOnline" style="background: var(--accent-color); color: white; border: none; padding: 9px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; min-width: 120px;">Ver en línea</button>
+          <button type="button" id="btnMachoteCancelar" style="background: var(--danger-color); color: white; border: none; padding: 9px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; min-width: 120px;">Cancelar</button>
+        </div>
+      </div>
     </div>
 
     <!-- 🔹 SECCIÓN INSTRUCTOR (Antiguo admin.html) -->
@@ -5098,10 +5115,71 @@
       const pdfViewerModal = document.getElementById("pdfViewerModal");
       const pdfFrame = document.getElementById("pdfFrame");
       const cerrarPDF = document.getElementById("cerrarPDF");
+      const MACHOTE_FORMATO_PATH = "machote-especialidades.docx";
+
+      function getMachoteFormatoUrl() {
+        return new URL(MACHOTE_FORMATO_PATH, window.location.href).href;
+      }
+
+      function abrirMachoteModal() {
+        const modal = document.getElementById("machoteFormatoModal");
+        if (modal) modal.classList.remove("hiddenX");
+      }
+
+      function cerrarMachoteModal() {
+        const modal = document.getElementById("machoteFormatoModal");
+        if (modal) modal.classList.add("hiddenX");
+      }
+
+      function descargarMachoteFormato() {
+        const url = getMachoteFormatoUrl();
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "machote-especialidades.docx";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+
+      function verMachoteOnline() {
+        const src = encodeURIComponent(getMachoteFormatoUrl());
+        const officeViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${src}`;
+        abrirVisorPDF(officeViewerUrl);
+      }
 
       function abrirVisorPDF(url) {
         pdfFrame.src = url;
         pdfViewerModal.style.display = "flex";
+      }
+
+      const btnMachoteFormato = document.getElementById("btnMachoteFormato");
+      const btnMachoteDescargar = document.getElementById("btnMachoteDescargar");
+      const btnMachoteOnline = document.getElementById("btnMachoteOnline");
+      const btnMachoteCancelar = document.getElementById("btnMachoteCancelar");
+      const machoteFormatoModal = document.getElementById("machoteFormatoModal");
+
+      if (btnMachoteFormato) {
+        btnMachoteFormato.addEventListener("click", abrirMachoteModal);
+      }
+      if (btnMachoteDescargar) {
+        btnMachoteDescargar.addEventListener("click", () => {
+          descargarMachoteFormato();
+          cerrarMachoteModal();
+        });
+      }
+      if (btnMachoteOnline) {
+        btnMachoteOnline.addEventListener("click", () => {
+          cerrarMachoteModal();
+          verMachoteOnline();
+        });
+      }
+      if (btnMachoteCancelar) {
+        btnMachoteCancelar.addEventListener("click", cerrarMachoteModal);
+      }
+      if (machoteFormatoModal) {
+        machoteFormatoModal.addEventListener("click", (e) => {
+          if (e.target === machoteFormatoModal) cerrarMachoteModal();
+        });
       }
 
       // 🔹 MODIFICAR EL CIERRE DEL MODAL PARA LIMPIAR EL CONTENIDO

@@ -5829,9 +5829,41 @@
       let especialidadesCache = {}; // Cache para no recargar
       let currentArea = null;
       let areasLoaded = false;
-      const ESPECIALIDADES_BASE_URL = 'https://raw.githubusercontent.com/conquiguias/conquiguias-data/main/especialidades';
+      const ESPECIALIDADES_BASE_URL = 'https://conquiguias.github.io/conquiguias-data/especialidades';
       const ESPECIALIDADES_GITHUB_API_BASE = 'https://api.github.com/repos/conquiguias/conquiguias-data/contents/especialidades';
       const especialidadFilesCache = {};
+      const USE_GITHUB_API = false; // Deshabilitado, usamos GitHub Pages directo
+
+      function generateAlternativeNames(espId) {
+        const alternatives = [];
+        // Variantes con espacios/guiones
+        const withSpaces = espId.replace(/-/g, ' ');
+        const withUnderscores = espId.replace(/-/g, '_');
+        
+        // Nombres abreviados comunes
+        const abbreviations = {
+          'agricultura-de-subsistencia': 'susbsis',
+          'apicultura': 'abejas',
+          'colombofilia': 'colombo',
+          'cría-de-caballos': 'caballos',
+          'cría-de-cabras': 'goat-husbandry-honor',
+          'pesca-isleña': 'fishing',
+          'jardinería': 'jardiner-a_2',
+          'hidroponía-y-acuaponía': 'aquaponics-and-hydroponics',
+          'hidroponía-y-acuaponía-avanzado': 'aquaponics-and-hydroponics-advanced'
+        };
+        
+        if (abbreviations[espId]) {
+          alternatives.push(
+            `${abbreviations[espId]}_orig.png`,
+            `${abbreviations[espId]}.png`,
+            `${abbreviations[espId]}_orig.gif`,
+            `${abbreviations[espId]}.gif`
+          );
+        }
+        
+        return alternatives;
+      }
 
       function splitPathSegments(path) {
         return String(path || '')
@@ -6126,8 +6158,12 @@
           const imageAttempts = [
             `${espId}.png`,
             `${espId}_orig.png`,
+            `${espId}.gif`,
+            `${espId}_orig.gif`,
             `${espId}.jpg`,
-            `${espId}_orig.jpg`
+            `${espId}_orig.jpg`,
+            // Variantes con nombres alternativos comunes
+            ...generateAlternativeNames(espId)
           ];
           
           let attemptIndex = 0;
@@ -6139,9 +6175,9 @@
               img.src = imagePath;
               attemptIndex++;
             } else {
-              // Si todos los intentos fallaron, consultar API
-              console.log('[INFO] All direct attempts failed, querying API for:', relativeFolder);
-              tryResolveEspecialidadImage(img, imageContainer);
+              // Si todos los intentos fallaron
+              console.warn('[WARN] No image found after all attempts for:', relativeFolder);
+              setEspecialidadPlaceholder(imageContainer);
             }
           };
           
@@ -6169,8 +6205,13 @@
                 await tryResolveEspecialidadImage(img, imageContainer);
               }
             } else {
-              // Último recurso: consultar API
-              await tryResolveEspecialidadImage(img, imageContainer);
+              // Último recurso: consultar API (deshabilitado por rate limit)
+              if (USE_GITHUB_API) {
+                await tryResolveEspecialidadImage(img, imageContainer);
+              } else {
+                console.warn('[WARN] No image found after all attempts for:', relativeFolder);
+                setEspecialidadPlaceholder(imageContainer);
+              }
             }
           };
 
@@ -6204,11 +6245,8 @@
           const relativeFolder = getEspecialidadRelativeFolder(currentArea.id, espId, especialidad);
           
           const getBrowserFriendlyPdfUrl = (url) => {
-            const value = String(url || '').trim();
-            const rawPrefix = `${ESPECIALIDADES_BASE_URL}/`;
-            if (!value.startsWith(rawPrefix)) return value;
-            const relativePath = value.slice(rawPrefix.length);
-            return `https://cdn.jsdelivr.net/gh/conquiguias/conquiguias-data@main/especialidades/${relativePath}`;
+            // GitHub Pages ya sirve PDFs correctamente en el navegador
+            return url;
           };
           
           // Intentar múltiples nombres comunes de PDF

@@ -6157,6 +6157,22 @@
           const espId = especialidad.id || especialidad;
           const relativeFolder = getEspecialidadRelativeFolder(currentArea.id, espId, especialidad);
           const defaultPdfPath = buildRawEspecialidadUrl(relativeFolder, `${espId}.pdf`);
+
+          const getBrowserFriendlyPdfUrl = (url) => {
+            const value = String(url || '').trim();
+            const rawPrefix = `${ESPECIALIDADES_BASE_URL}/`;
+            if (!value.startsWith(rawPrefix)) return value;
+
+            const relativePath = value.slice(rawPrefix.length);
+            const decodedPath = relativePath
+              .split('/')
+              .map(segment => {
+                try { return decodeURIComponent(segment); } catch { return segment; }
+              })
+              .join('/');
+
+            return `https://cdn.jsdelivr.net/gh/conquiguias/conquiguias-data@main/especialidades/${decodedPath}`;
+          };
           
           let pdfPath = defaultPdfPath;
           const defaultResponse = await fetch(defaultPdfPath, { method: 'HEAD' });
@@ -6170,7 +6186,7 @@
           }
 
           // Abrir en el visor PDF existente
-          abrirVisorPDF(pdfPath);
+          abrirVisorPDF(getBrowserFriendlyPdfUrl(pdfPath));
         } catch (error) {
           console.error('Error abriendo PDF:', error);
           alert('No se pudo abrir el PDF de esta especialidad');

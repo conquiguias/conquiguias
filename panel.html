@@ -3555,7 +3555,7 @@
             </div>
             <!-- Buscador de especialidades -->
             <div class="especialidades-searcher">
-              <input type="text" id="especialidadesSearchInput" class="search-input" placeholder="Buscar especialidades (mín. 5 caracteres)" autocomplete="off">
+              <input type="text" id="especialidadesSearchInput" class="search-input" placeholder="Buscar especialidades (mín. 3 caracteres)" autocomplete="off">
               <div id="searchResultsInfo" class="search-results-info" style="display: none;"></div>
             </div>
           </div>
@@ -6179,8 +6179,8 @@
           const query = e.target.value.trim().toLowerCase();
           const grid = document.getElementById('especialidadesGrid');
           
-          if (query.length < 5) {
-            // Mostrar todas las especialidades si la búsqueda tiene menos de 5 caracteres
+          if (query.length < 3) {
+            // Mostrar todas las especialidades si la búsqueda tiene menos de 3 caracteres
             const items = grid.querySelectorAll('.especialidad-item');
             items.forEach(item => item.style.display = 'flex');
             searchResultsInfo.style.display = 'none';
@@ -6193,10 +6193,23 @@
           
           items.forEach(item => {
             const nameLabel = item.querySelector('.especialidad-name');
-            const name = nameLabel ? nameLabel.textContent.toLowerCase() : '';
-            const espId = item.querySelector('img').dataset.especialidadId.toLowerCase();
+            const img = item.querySelector('img');
             
-            if (name.includes(query) || espId.includes(query)) {
+            // Obtener nombres de múltiples fuentes
+            const displayName = nameLabel ? nameLabel.textContent.toLowerCase() : '';
+            const espId = img && img.dataset.especialidadId ? img.dataset.especialidadId.toLowerCase() : '';
+            
+            // Crear versión con espacios para búsqueda (reemplazar guiones con espacios)
+            const displayNameWithSpaces = displayName.replace(/-/g, ' ');
+            const espIdWithSpaces = espId.replace(/-/g, ' ');
+            
+            // Buscar en múltiples campos
+            const matches = displayName.includes(query) || 
+                           espId.includes(query) ||
+                           displayNameWithSpaces.includes(query) ||
+                           espIdWithSpaces.includes(query);
+            
+            if (matches) {
               item.style.display = 'flex';
               visibleCount++;
             } else {
@@ -6208,6 +6221,7 @@
           if (visibleCount === 0) {
             searchResultsInfo.textContent = `No se encontraron especialidades que coincidan con "${e.target.value}"`;
             searchResultsInfo.style.display = 'block';
+            console.log('[SEARCH] Query:', query, 'Items total:', items.length);
           } else {
             searchResultsInfo.textContent = `${visibleCount} ${visibleCount === 1 ? 'especialidad' : 'especialidades'} encontrada${visibleCount === 1 ? '' : 's'}`;
             searchResultsInfo.style.display = 'block';

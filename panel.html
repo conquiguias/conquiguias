@@ -5850,15 +5850,24 @@
           'pesca-isleña': 'fishing',
           'jardinería': 'jardiner-a_2',
           'hidroponía-y-acuaponía': 'aquaponics-and-hydroponics',
-          'hidroponía-y-acuaponía-avanzado': 'aquaponics-and-hydroponics-advanced'
+          'hidroponía-y-acuaponía-avanzado': 'aquaponics-and-hydroponics-advanced',
+          'frutas-pequeñas': '7993884',
+          'ganadería': '3888047',
+          'fruticultura': '6749296',
+          'floricultura': '8727850',
+          'cría-de-ovejas': '8727850',
+          'lechería': '4303976'
         };
         
         if (abbreviations[espId]) {
+          const abbr = abbreviations[espId];
           alternatives.push(
-            `${abbreviations[espId]}_orig.png`,
-            `${abbreviations[espId]}.png`,
-            `${abbreviations[espId]}_orig.gif`,
-            `${abbreviations[espId]}.gif`
+            `${abbr}.png`,
+            `${abbr}_orig.png`,
+            `${abbr}.gif`,
+            `${abbr}_orig.gif`,
+            `${abbr}.jpg`,
+            `${abbr}_orig.jpg`
           );
         }
         

@@ -610,6 +610,42 @@
       color: var(--text-secondary);
     }
 
+    /* Buscador de especialidades */
+    .especialidades-searcher {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 10px 15px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .search-input::placeholder {
+      color: var(--text-secondary);
+    }
+
+    .search-results-info {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      padding: 5px 10px;
+      background: rgba(59, 130, 246, 0.05);
+      border-radius: 6px;
+    }
+
     /* Navegador de áreas */
     .areas-navigator {
       display: flex;
@@ -3517,6 +3553,11 @@
               <h2 id="areaName">Selecciona un área</h2>
               <p id="areaCount" class="area-count">0 especialidades</p>
             </div>
+            <!-- Buscador de especialidades -->
+            <div class="especialidades-searcher">
+              <input type="text" id="especialidadesSearchInput" class="search-input" placeholder="Buscar especialidades (mín. 5 caracteres)" autocomplete="off">
+              <div id="searchResultsInfo" class="search-results-info" style="display: none;"></div>
+            </div>
           </div>
 
           <!-- Navegador de áreas -->
@@ -5829,6 +5870,7 @@
       let especialidadesCache = {}; // Cache para no recargar
       let currentArea = null;
       let areasLoaded = false;
+      let searchListenerAttached = false;
       const ESPECIALIDADES_BASE_URL = 'https://conquiguias.github.io/conquiguias-data/especialidades';
 
       function splitPathSegments(path) {
@@ -5940,6 +5982,9 @@
       // Cargar especialidades de un área
       async function loadEspecialidades(areaId, areaName) {
         currentArea = { id: areaId, nombre: areaName };
+        
+        // Limpiar búsqueda anterior
+        clearEspecialidadSearch();
 
         // Actualizar header
         document.getElementById('areaName').textContent = areaName;
@@ -5958,6 +6003,7 @@
         if (especialidadesCache[areaId]) {
           document.getElementById('areaCount').textContent = `${especialidadesCache[areaId].length} especialidades`;
           renderEspecialidades(especialidadesCache[areaId], especialidadesGrid, loadingIndicator);
+          initializeEspecialidadSearch();
           return;
         }
 
@@ -5970,6 +6016,7 @@
           especialidadesCache[areaId] = especialidades;
           document.getElementById('areaCount').textContent = `${especialidades.length} especialidades`;
           renderEspecialidades(especialidades, especialidadesGrid, loadingIndicator);
+          initializeEspecialidadSearch();
         } catch (error) {
           console.error('Error cargando especialidades:', error);
           // Intentar método fallback
@@ -5978,6 +6025,7 @@
             especialidadesCache[areaId] = especialidades;
             document.getElementById('areaCount').textContent = `${especialidades.length} especialidades`;
             renderEspecialidades(especialidades, especialidadesGrid, loadingIndicator);
+            initializeEspecialidadSearch();
           } catch (fallbackError) {
             especialidadesGrid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--text-secondary);">Error al cargar especialidades</div>';
             loadingIndicator.classList.add('hidden');
@@ -6116,6 +6164,72 @@
           console.error('Error abriendo PDF:', error);
           alert('No se pudo abrir el PDF de esta especialidad');
         }
+      }
+
+      // Búsqueda de especialidades
+      function initializeEspecialidadSearch() {
+        const searchInput = document.getElementById('especialidadesSearchInput');
+        const searchResultsInfo = document.getElementById('searchResultsInfo');
+        
+        if (!searchInput || searchListenerAttached) return;
+        
+        searchListenerAttached = true;
+        
+        searchInput.addEventListener('input', (e) => {
+          const query = e.target.value.trim().toLowerCase();
+          const grid = document.getElementById('especialidadesGrid');
+          
+          if (query.length < 5) {
+            // Mostrar todas las especialidades si la búsqueda tiene menos de 5 caracteres
+            const items = grid.querySelectorAll('.especialidad-item');
+            items.forEach(item => item.style.display = 'flex');
+            searchResultsInfo.style.display = 'none';
+            return;
+          }
+          
+          // Buscar especialidades que coincidan
+          const items = grid.querySelectorAll('.especialidad-item');
+          let visibleCount = 0;
+          
+          items.forEach(item => {
+            const nameLabel = item.querySelector('.especialidad-name');
+            const name = nameLabel ? nameLabel.textContent.toLowerCase() : '';
+            const espId = item.querySelector('img').dataset.especialidadId.toLowerCase();
+            
+            if (name.includes(query) || espId.includes(query)) {
+              item.style.display = 'flex';
+              visibleCount++;
+            } else {
+              item.style.display = 'none';
+            }
+          });
+          
+          // Mostrar información de resultados
+          if (visibleCount === 0) {
+            searchResultsInfo.textContent = `No se encontraron especialidades que coincidan con "${e.target.value}"`;
+            searchResultsInfo.style.display = 'block';
+          } else {
+            searchResultsInfo.textContent = `${visibleCount} ${visibleCount === 1 ? 'especialidad' : 'especialidades'} encontrada${visibleCount === 1 ? '' : 's'}`;
+            searchResultsInfo.style.display = 'block';
+          }
+        });
+      }
+
+      // Limpiar el buscador cuando se cambia de área
+      function clearEspecialidadSearch() {
+        const searchInput = document.getElementById('especialidadesSearchInput');
+        const searchResultsInfo = document.getElementById('searchResultsInfo');
+        
+        if (searchInput) {
+          searchInput.value = '';
+        }
+        
+        if (searchResultsInfo) {
+          searchResultsInfo.style.display = 'none';
+        }
+        
+        // Resetear bandera para permitir agregar listener nuevamente
+        searchListenerAttached = false;
       }
 
       //////////////////////////////////////////////////////

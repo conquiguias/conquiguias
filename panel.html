@@ -6052,6 +6052,11 @@
           const imageName = esp.image || `${espId}.png`;
           const imagePath = buildRawEspecialidadUrl(relativeFolder, imageName);
           
+          // Debug: ver qué datos tiene la especialidad
+          if (!esp.image) {
+            console.log('[DEBUG] Especialidad sin campo image en JSON:', espId, esp);
+          }
+          
           // Lazy load: primeros 20 sin lazy load
           if (index < 20) {
             img.src = imagePath;

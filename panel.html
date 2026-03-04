@@ -5582,19 +5582,8 @@
         abrirVisorPDF(officeViewerUrl);
       }
 
-      function isPdfResource(url) {
-        return /\.pdf(?:$|[?#])/i.test(String(url || '').trim());
-      }
-
-      function getInternalPdfViewerUrl(pdfUrl) {
-        const viewerUrl = new URL('visorPDFMozilla/web/viewer.html', window.location.href);
-        viewerUrl.searchParams.set('file', String(pdfUrl || '').trim());
-        return viewerUrl.toString();
-      }
-
       function abrirVisorPDF(url) {
-        const src = isPdfResource(url) ? getInternalPdfViewerUrl(url) : url;
-        pdfFrame.src = src;
+        pdfFrame.src = url;
         pdfViewerModal.style.display = "flex";
       }
 

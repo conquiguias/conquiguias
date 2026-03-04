@@ -651,8 +651,8 @@
 
     .area-item {
       flex-shrink: 0;
-      width: 96px;
-      height: 96px;
+      width: 120px;
+      height: 120px;
       border-radius: 10px;
       overflow: hidden;
       cursor: pointer;
@@ -5855,15 +5855,16 @@
       }
 
       function buildRawEspecialidadUrl(relativeFolder, fileName) {
-        const encodedSegments = [...splitPathSegments(relativeFolder), String(fileName || '').trim()]
-          .filter(Boolean)
-          .map(segment => encodeURIComponent(segment));
-        return `${ESPECIALIDADES_BASE_URL}/${encodedSegments.join('/')}`;
+        const segments = [...splitPathSegments(relativeFolder), String(fileName || '').trim()]
+          .filter(Boolean);
+        const path = segments.join('/');
+        return `${ESPECIALIDADES_BASE_URL}/${path}`;
       }
 
       function buildEspecialidadApiUrl(relativeFolder) {
-        const encodedSegments = splitPathSegments(relativeFolder).map(segment => encodeURIComponent(segment));
-        return `${ESPECIALIDADES_GITHUB_API_BASE}/${encodedSegments.join('/')}?ref=main`;
+        const segments = splitPathSegments(relativeFolder);
+        const path = segments.join('/');
+        return `${ESPECIALIDADES_GITHUB_API_BASE}/${path}?ref=main`;
       }
 
       async function getEspecialidadFiles(relativeFolder) {
@@ -5913,6 +5914,7 @@
       async function tryResolveEspecialidadImage(img, imageContainer) {
         const relativeFolder = String(img?.dataset?.relativeFolder || '').trim();
         if (!relativeFolder) {
+          console.warn('[WARN] No relative folder for image resolution');
           setEspecialidadPlaceholder(imageContainer);
           return;
         }
@@ -5923,12 +5925,16 @@
         }
 
         img.dataset.imageResolved = '1';
+        console.log('[INFO] Resolving image for folder:', relativeFolder);
         const { imageFile } = await getEspecialidadFiles(relativeFolder);
         if (imageFile) {
-          img.src = buildRawEspecialidadUrl(relativeFolder, imageFile);
+          const newUrl = buildRawEspecialidadUrl(relativeFolder, imageFile);
+          console.log('[INFO] Resolved image:', newUrl);
+          img.src = newUrl;
           return;
         }
 
+        console.warn('[WARN] No image file found for:', relativeFolder);
         setEspecialidadPlaceholder(imageContainer);
       }
 
@@ -6116,16 +6122,56 @@
           img.dataset.especialidadId = espId;
           img.dataset.relativeFolder = relativeFolder;
           
+          // Intentar múltiples nombres de archivo comunes
+          const imageAttempts = [
+            `${espId}.png`,
+            `${espId}_orig.png`,
+            `${espId}.jpg`,
+            `${espId}_orig.jpg`
+          ];
+          
+          let attemptIndex = 0;
+          const tryNextImage = () => {
+            if (attemptIndex < imageAttempts.length) {
+              const imageName = imageAttempts[attemptIndex];
+              const imagePath = buildRawEspecialidadUrl(relativeFolder, imageName);
+              console.log(`[INFO] Attempting to load image (${attemptIndex + 1}/${imageAttempts.length}):`, imagePath);
+              img.src = imagePath;
+              attemptIndex++;
+            } else {
+              // Si todos los intentos fallaron, consultar API
+              console.log('[INFO] All direct attempts failed, querying API for:', relativeFolder);
+              tryResolveEspecialidadImage(img, imageContainer);
+            }
+          };
+          
           // Lazy load: primeros 20 sin lazy load
-          const imagePath = buildRawEspecialidadUrl(relativeFolder, `${espId}.png`);
           if (index < 20) {
-            img.src = imagePath;
+            tryNextImage();
           } else {
-            img.dataset.src = imagePath;
+            img.dataset.src = buildRawEspecialidadUrl(relativeFolder, imageAttempts[0]);
+            img.dataset.attempts = JSON.stringify(imageAttempts);
+            img.dataset.attemptIndex = '0';
           }
 
           img.onerror = async () => {
-            await tryResolveEspecialidadImage(img, imageContainer);
+            if (attemptIndex > 0 && attemptIndex < imageAttempts.length) {
+              // Intentar siguiente variante
+              tryNextImage();
+            } else if (img.dataset.src && !img.src) {
+              // Caso lazy load: cargar primera variante
+              const attempts = JSON.parse(img.dataset.attempts || '[]');
+              const idx = parseInt(img.dataset.attemptIndex || '0');
+              if (idx < attempts.length) {
+                img.src = buildRawEspecialidadUrl(relativeFolder, attempts[idx]);
+                img.dataset.attemptIndex = String(idx + 1);
+              } else {
+                await tryResolveEspecialidadImage(img, imageContainer);
+              }
+            } else {
+              // Último recurso: consultar API
+              await tryResolveEspecialidadImage(img, imageContainer);
+            }
           };
 
           img.style.cursor = 'pointer';
@@ -6156,37 +6202,58 @@
         try {
           const espId = especialidad.id || especialidad;
           const relativeFolder = getEspecialidadRelativeFolder(currentArea.id, espId, especialidad);
-          const defaultPdfPath = buildRawEspecialidadUrl(relativeFolder, `${espId}.pdf`);
-
+          
           const getBrowserFriendlyPdfUrl = (url) => {
             const value = String(url || '').trim();
             const rawPrefix = `${ESPECIALIDADES_BASE_URL}/`;
             if (!value.startsWith(rawPrefix)) return value;
-
             const relativePath = value.slice(rawPrefix.length);
-            const decodedPath = relativePath
-              .split('/')
-              .map(segment => {
-                try { return decodeURIComponent(segment); } catch { return segment; }
-              })
-              .join('/');
-
-            return `https://cdn.jsdelivr.net/gh/conquiguias/conquiguias-data@main/especialidades/${decodedPath}`;
+            return `https://cdn.jsdelivr.net/gh/conquiguias/conquiguias-data@main/especialidades/${relativePath}`;
           };
           
-          let pdfPath = defaultPdfPath;
-          const defaultResponse = await fetch(defaultPdfPath, { method: 'HEAD' });
-          if (!defaultResponse.ok) {
+          // Intentar múltiples nombres comunes de PDF
+          const pdfAttempts = [
+            `${espId}.pdf`,
+            `${espId.replace(/-/g, '_')}.pdf`,
+            `${espId.replace(/-/g, ' ')}.pdf`
+          ];
+          
+          let pdfPath = null;
+          console.log('[INFO] Searching PDF for:', espId, 'in folder:', relativeFolder);
+          
+          // Intentar cada variante
+          for (const pdfName of pdfAttempts) {
+            const testPath = buildRawEspecialidadUrl(relativeFolder, pdfName);
+            console.log('[INFO] Trying PDF:', testPath);
+            try {
+              const response = await fetch(testPath, { method: 'HEAD' });
+              if (response.ok) {
+                pdfPath = testPath;
+                console.log('[SUCCESS] PDF found:', testPath);
+                break;
+              }
+            } catch (e) {
+              console.warn('[WARN] Failed to check PDF:', testPath, e);
+            }
+          }
+          
+          // Si no encontró ninguno, consultar API
+          if (!pdfPath) {
+            console.log('[INFO] Direct PDF attempts failed, querying API...');
             const { pdfFile } = await getEspecialidadFiles(relativeFolder);
             if (!pdfFile) {
+              console.error('[ERROR] No PDF file found for:', relativeFolder);
               alert('No se encontró el PDF para esta especialidad');
               return;
             }
             pdfPath = buildRawEspecialidadUrl(relativeFolder, pdfFile);
+            console.log('[INFO] API returned PDF:', pdfPath);
           }
 
           // Abrir en el visor PDF existente
-          abrirVisorPDF(getBrowserFriendlyPdfUrl(pdfPath));
+          const finalUrl = getBrowserFriendlyPdfUrl(pdfPath);
+          console.log('[INFO] Opening PDF in viewer:', finalUrl);
+          abrirVisorPDF(finalUrl);
         } catch (error) {
           console.error('Error abriendo PDF:', error);
           alert('No se pudo abrir el PDF de esta especialidad');

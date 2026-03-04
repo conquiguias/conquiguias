@@ -391,15 +391,12 @@ async function handleSaveInstructorAssignments(req, res) {
     const instructoresSanitizados = sanitizeAssignments(body.instructores);
 
     const configRef = admin.firestore().collection("configuracion").doc("rolesPermisos");
-    await configRef.set(
-      {
-        ownerEmail: OWNER_EMAIL,
-        instructores: instructoresSanitizados,
-        updatedAt: new Date().toISOString(),
-        updatedBy: requesterEmail,
-      },
-      { merge: true }
-    );
+    await configRef.set({
+      ownerEmail: OWNER_EMAIL,
+      instructores: instructoresSanitizados,
+      updatedAt: new Date().toISOString(),
+      updatedBy: requesterEmail,
+    });
 
     res.status(200).json({
       success: true,

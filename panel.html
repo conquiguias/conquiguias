@@ -4541,6 +4541,7 @@
 
           const response = await fetch('/api/social?action=get-instructor-assignments', {
             method: 'GET',
+            cache: 'no-store',
             headers: {
               'Authorization': `Bearer ${idToken}`
             }
@@ -4568,6 +4569,7 @@
 
           const response = await fetch('/api/social?action=get-my-instructor-assignment', {
             method: 'GET',
+            cache: 'no-store',
             headers: {
               'Authorization': `Bearer ${idToken}`
             }

@@ -5830,49 +5830,6 @@
       let currentArea = null;
       let areasLoaded = false;
       const ESPECIALIDADES_BASE_URL = 'https://conquiguias.github.io/conquiguias-data/especialidades';
-      const ESPECIALIDADES_GITHUB_API_BASE = 'https://api.github.com/repos/conquiguias/conquiguias-data/contents/especialidades';
-      const especialidadFilesCache = {};
-      const USE_GITHUB_API = false; // Deshabilitado, usamos GitHub Pages directo
-
-      function generateAlternativeNames(espId) {
-        const alternatives = [];
-        // Variantes con espacios/guiones
-        const withSpaces = espId.replace(/-/g, ' ');
-        const withUnderscores = espId.replace(/-/g, '_');
-        
-        // Nombres abreviados comunes
-        const abbreviations = {
-          'agricultura-de-subsistencia': 'susbsis',
-          'apicultura': 'abejas',
-          'colombofilia': 'colombo',
-          'cría-de-caballos': 'caballos',
-          'cría-de-cabras': 'goat-husbandry-honor',
-          'pesca-isleña': 'fishing',
-          'jardinería': 'jardiner-a_2',
-          'hidroponía-y-acuaponía': 'aquaponics-and-hydroponics',
-          'hidroponía-y-acuaponía-avanzado': 'aquaponics-and-hydroponics-advanced',
-          'frutas-pequeñas': '7993884',
-          'ganadería': '3888047',
-          'fruticultura': '6749296',
-          'floricultura': '8727850',
-          'cría-de-ovejas': '8727850',
-          'lechería': '4303976'
-        };
-        
-        if (abbreviations[espId]) {
-          const abbr = abbreviations[espId];
-          alternatives.push(
-            `${abbr}.png`,
-            `${abbr}_orig.png`,
-            `${abbr}.gif`,
-            `${abbr}_orig.gif`,
-            `${abbr}.jpg`,
-            `${abbr}_orig.jpg`
-          );
-        }
-        
-        return alternatives;
-      }
 
       function splitPathSegments(path) {
         return String(path || '')
@@ -5902,81 +5859,9 @@
         return `${ESPECIALIDADES_BASE_URL}/${path}`;
       }
 
-      function buildEspecialidadApiUrl(relativeFolder) {
-        const segments = splitPathSegments(relativeFolder);
-        const path = segments.join('/');
-        return `${ESPECIALIDADES_GITHUB_API_BASE}/${path}?ref=main`;
-      }
-
-      async function getEspecialidadFiles(relativeFolder) {
-        const cacheKey = String(relativeFolder || '').trim();
-        if (!cacheKey) return { imageFile: null, pdfFile: null };
-
-        if (especialidadFilesCache[cacheKey]) {
-          return especialidadFilesCache[cacheKey];
-        }
-
-        try {
-          const response = await fetch(buildEspecialidadApiUrl(cacheKey), { cache: 'force-cache' });
-          if (!response.ok) {
-            throw new Error(`No se pudo listar carpeta (${response.status})`);
-          }
-
-          const files = await response.json();
-          const list = Array.isArray(files) ? files : [];
-          const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.svg'];
-          const isImage = (name) => imageExtensions.some(ext => name.toLowerCase().endsWith(ext));
-
-          const imageCandidates = list
-            .filter(file => file?.type === 'file' && isImage(String(file.name || '')))
-            .map(file => String(file.name || ''));
-          const pdfCandidates = list
-            .filter(file => file?.type === 'file' && String(file.name || '').toLowerCase().endsWith('.pdf'))
-            .map(file => String(file.name || ''));
-
-          const imageFile = imageCandidates.find(name => /_orig\./i.test(name)) || imageCandidates[0] || null;
-          const pdfFile = pdfCandidates[0] || null;
-
-          especialidadFilesCache[cacheKey] = { imageFile, pdfFile };
-          return especialidadFilesCache[cacheKey];
-        } catch (error) {
-          console.warn('[WARN] No se pudo resolver archivos de especialidad:', cacheKey, error);
-          const fallback = { imageFile: null, pdfFile: null };
-          especialidadFilesCache[cacheKey] = fallback;
-          return fallback;
-        }
-      }
-
       function setEspecialidadPlaceholder(container) {
         if (!container) return;
         container.innerHTML = '<div class="especialidad-placeholder">Sin imagen</div>';
-      }
-
-      async function tryResolveEspecialidadImage(img, imageContainer) {
-        const relativeFolder = String(img?.dataset?.relativeFolder || '').trim();
-        if (!relativeFolder) {
-          console.warn('[WARN] No relative folder for image resolution');
-          setEspecialidadPlaceholder(imageContainer);
-          return;
-        }
-
-        if (img.dataset.imageResolved === '1') {
-          setEspecialidadPlaceholder(imageContainer);
-          return;
-        }
-
-        img.dataset.imageResolved = '1';
-        console.log('[INFO] Resolving image for folder:', relativeFolder);
-        const { imageFile } = await getEspecialidadFiles(relativeFolder);
-        if (imageFile) {
-          const newUrl = buildRawEspecialidadUrl(relativeFolder, imageFile);
-          console.log('[INFO] Resolved image:', newUrl);
-          img.src = newUrl;
-          return;
-        }
-
-        console.warn('[WARN] No image file found for:', relativeFolder);
-        setEspecialidadPlaceholder(imageContainer);
       }
 
       // Inicializar pestañas
@@ -6163,64 +6048,25 @@
           img.dataset.especialidadId = espId;
           img.dataset.relativeFolder = relativeFolder;
           
-          // Intentar múltiples nombres de archivo comunes
-          const imageAttempts = [
-            `${espId}.png`,
-            `${espId}_orig.png`,
-            `${espId}.gif`,
-            `${espId}_orig.gif`,
-            `${espId}.jpg`,
-            `${espId}_orig.jpg`,
-            // Variantes con nombres alternativos comunes
-            ...generateAlternativeNames(espId)
-          ];
-          
-          let attemptIndex = 0;
-          const tryNextImage = () => {
-            if (attemptIndex < imageAttempts.length) {
-              const imageName = imageAttempts[attemptIndex];
-              const imagePath = buildRawEspecialidadUrl(relativeFolder, imageName);
-              console.log(`[INFO] Attempting to load image (${attemptIndex + 1}/${imageAttempts.length}):`, imagePath);
-              img.src = imagePath;
-              attemptIndex++;
-            } else {
-              // Si todos los intentos fallaron
-              console.warn('[WARN] No image found after all attempts for:', relativeFolder);
-              setEspecialidadPlaceholder(imageContainer);
-            }
-          };
+          // Usar nombre de imagen del JSON si existe, sino fallback a nombre de ID
+          const imageName = esp.image || `${espId}.png`;
+          const imagePath = buildRawEspecialidadUrl(relativeFolder, imageName);
           
           // Lazy load: primeros 20 sin lazy load
           if (index < 20) {
-            tryNextImage();
+            img.src = imagePath;
           } else {
-            img.dataset.src = buildRawEspecialidadUrl(relativeFolder, imageAttempts[0]);
-            img.dataset.attempts = JSON.stringify(imageAttempts);
-            img.dataset.attemptIndex = '0';
+            img.dataset.src = imagePath;
           }
 
-          img.onerror = async () => {
-            if (attemptIndex > 0 && attemptIndex < imageAttempts.length) {
-              // Intentar siguiente variante
-              tryNextImage();
-            } else if (img.dataset.src && !img.src) {
-              // Caso lazy load: cargar primera variante
-              const attempts = JSON.parse(img.dataset.attempts || '[]');
-              const idx = parseInt(img.dataset.attemptIndex || '0');
-              if (idx < attempts.length) {
-                img.src = buildRawEspecialidadUrl(relativeFolder, attempts[idx]);
-                img.dataset.attemptIndex = String(idx + 1);
-              } else {
-                await tryResolveEspecialidadImage(img, imageContainer);
-              }
+          img.onerror = () => {
+            if (img.dataset.src && !img.src) {
+              // Caso lazy load: intentar cargar
+              img.src = img.dataset.src;
             } else {
-              // Último recurso: consultar API (deshabilitado por rate limit)
-              if (USE_GITHUB_API) {
-                await tryResolveEspecialidadImage(img, imageContainer);
-              } else {
-                console.warn('[WARN] No image found after all attempts for:', relativeFolder);
-                setEspecialidadPlaceholder(imageContainer);
-              }
+              // Si falla, mostrar placeholder
+              console.warn('[WARN] No image found for:', relativeFolder, imageName);
+              setEspecialidadPlaceholder(imageContainer);
             }
           };
 
@@ -6245,7 +6091,7 @@
         });
       }
 
-      // Abrir especialidad - buscar PDF y abrir visor
+      // Abrir especialidad - usar nombre de PDF del JSON
       async function abrirEspecialidad(especialidad) {
         if (!especialidad) return;
         
@@ -6253,54 +6099,14 @@
           const espId = especialidad.id || especialidad;
           const relativeFolder = getEspecialidadRelativeFolder(currentArea.id, espId, especialidad);
           
-          const getBrowserFriendlyPdfUrl = (url) => {
-            // GitHub Pages ya sirve PDFs correctamente en el navegador
-            return url;
-          };
+          // Usar nombre de PDF del JSON si existe
+          const pdfName = especialidad.pdf || `${espId}.pdf`;
+          const pdfPath = buildRawEspecialidadUrl(relativeFolder, pdfName);
           
-          // Intentar múltiples nombres comunes de PDF
-          const pdfAttempts = [
-            `${espId}.pdf`,
-            `${espId.replace(/-/g, '_')}.pdf`,
-            `${espId.replace(/-/g, ' ')}.pdf`
-          ];
+          console.log('[INFO] Opening PDF:', pdfPath);
           
-          let pdfPath = null;
-          console.log('[INFO] Searching PDF for:', espId, 'in folder:', relativeFolder);
-          
-          // Intentar cada variante
-          for (const pdfName of pdfAttempts) {
-            const testPath = buildRawEspecialidadUrl(relativeFolder, pdfName);
-            console.log('[INFO] Trying PDF:', testPath);
-            try {
-              const response = await fetch(testPath, { method: 'HEAD' });
-              if (response.ok) {
-                pdfPath = testPath;
-                console.log('[SUCCESS] PDF found:', testPath);
-                break;
-              }
-            } catch (e) {
-              console.warn('[WARN] Failed to check PDF:', testPath, e);
-            }
-          }
-          
-          // Si no encontró ninguno, consultar API
-          if (!pdfPath) {
-            console.log('[INFO] Direct PDF attempts failed, querying API...');
-            const { pdfFile } = await getEspecialidadFiles(relativeFolder);
-            if (!pdfFile) {
-              console.error('[ERROR] No PDF file found for:', relativeFolder);
-              alert('No se encontró el PDF para esta especialidad');
-              return;
-            }
-            pdfPath = buildRawEspecialidadUrl(relativeFolder, pdfFile);
-            console.log('[INFO] API returned PDF:', pdfPath);
-          }
-
-          // Abrir en el visor PDF existente
-          const finalUrl = getBrowserFriendlyPdfUrl(pdfPath);
-          console.log('[INFO] Opening PDF in viewer:', finalUrl);
-          abrirVisorPDF(finalUrl);
+          // Abrir en el visor PDF existente (GitHub Pages sirve PDFs correctamente)
+          abrirVisorPDF(pdfPath);
         } catch (error) {
           console.error('Error abriendo PDF:', error);
           alert('No se pudo abrir el PDF de esta especialidad');

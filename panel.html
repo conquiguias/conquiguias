@@ -5798,6 +5798,7 @@
       let especialidadesCache = {}; // Cache para no recargar
       let currentArea = null;
       let areasLoaded = false;
+      const ESPECIALIDADES_BASE_URL = 'https://cdn.jsdelivr.net/gh/conquiguias/conquiguias-data@main/especialidades';
 
       // Inicializar pestañas
       const tabButtons = document.querySelectorAll('.tab-button');
@@ -5836,7 +5837,7 @@
           areaItem.dataset.areaId = area.id;
 
           const img = document.createElement('img');
-          img.src = `/conquiguias-data/especialidades/${area.id}/area-badge.png`;
+          img.src = `${ESPECIALIDADES_BASE_URL}/${area.id}/area-badge.png`;
           img.alt = area.nombre;
           img.loading = 'lazy';
           img.onerror = () => {
@@ -5870,7 +5871,7 @@
         // Actualizar header
         document.getElementById('areaName').textContent = areaName;
         const areaBadge = document.getElementById('areaBadge');
-        areaBadge.src = `/conquiguias-data/especialidades/${areaId}/area-badge.png`;
+        areaBadge.src = `${ESPECIALIDADES_BASE_URL}/${areaId}/area-badge.png`;
 
         const especialidadesGrid = document.getElementById('especialidadesGrid');
         const loadingIndicator = document.getElementById('loadingIndicator');
@@ -5887,19 +5888,7 @@
         especialidadesGrid.innerHTML = '';
 
         try {
-          // Usar API para obtener lista de carpetas
-          const response = await fetch(`/api/especialidades?area=${areaId}`);
-          
-          let especialidades = [];
-
-          if (response.ok) {
-            // Si la API funciona, usar sus datos
-            especialidades = await response.json();
-          } else {
-            // Si no, hacer una lista manual basada en la estructura conocida
-            // Esto es un fallback si el API no está disponible
-            especialidades = await getEspecialidadesLocal(areaId);
-          }
+          const especialidades = await getEspecialidadesLocal(areaId);
 
           especialidadesCache[areaId] = especialidades;
           document.getElementById('areaCount').textContent = `${especialidades.length} especialidades`;
@@ -5922,10 +5911,10 @@
       // Obtener especialidades localmente (fallback)
       async function getEspecialidadesLocal(areaId) {
         try {
-          // Intentar cargar desde archivo JSON
-          const response = await fetch(`/conquiguias-data/especialidades/${areaId}/especialidades.json`);
+          const response = await fetch(`${ESPECIALIDADES_BASE_URL}/${areaId}/especialidades.json`, { cache: 'no-store' });
           if (response.ok) {
-            return await response.json();
+            const items = await response.json();
+            return Array.isArray(items) ? items : [];
           }
         } catch (e) {
           console.error('Error cargando JSON:', e);
@@ -5972,10 +5961,11 @@
           const img = document.createElement('img');
           const espName = esp.nombre || esp.id || esp;
           const espId = esp.id || esp;
+          const areaId = currentArea?.id;
           
           img.alt = espName;
           img.dataset.especialidadId = espId;
-          img.dataset.especialidadPath = esp.path || `/conquiguias-data/especialidades/${currentArea.id}/${espId}/`;
+          img.dataset.especialidadPath = `${ESPECIALIDADES_BASE_URL}/${areaId}/${espId}/`;
           
           // Lazy load: primeros 20 sin lazy load
           const imagePath = `${img.dataset.especialidadPath}${espId}.png`;
@@ -6010,7 +6000,7 @@
         
         try {
           const espId = especialidad.id || especialidad;
-          const pdfPath = `/conquiguias-data/especialidades/${currentArea.id}/${espId}/${espId}.pdf`;
+          const pdfPath = `${ESPECIALIDADES_BASE_URL}/${currentArea.id}/${espId}/${espId}.pdf`;
           
           // Intentar verificar que el PDF existe
           const response = await fetch(pdfPath, { method: 'HEAD' });
@@ -6025,7 +6015,7 @@
           console.error('Error abriendo PDF:', error);
           // Intentar abrir a pesar del error
           const espId = especialidad.id || especialidad;
-          const pdfPath = `/conquiguias-data/especialidades/${currentArea.id}/${espId}/${espId}.pdf`;
+          const pdfPath = `${ESPECIALIDADES_BASE_URL}/${currentArea.id}/${espId}/${espId}.pdf`;
           abrirVisorPDF(pdfPath);
         }
       }

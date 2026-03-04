@@ -5868,6 +5868,7 @@
       ];
 
       let especialidadesCache = {}; // Cache para no recargar
+      let globalEspecialidadIndex = []; // Índice global de todas las especialidades
       let currentArea = null;
       let areasLoaded = false;
       let searchListenerAttached = false;
@@ -6014,6 +6015,19 @@
           const especialidades = await getEspecialidadesLocal(areaId);
 
           especialidadesCache[areaId] = especialidades;
+          
+          // Agregar al índice global
+          especialidades.forEach(esp => {
+            const existing = globalEspecialidadIndex.find(e => e.id === esp.id && e.areaId === areaId);
+            if (!existing) {
+              globalEspecialidadIndex.push({
+                ...esp,
+                areaId: areaId,
+                areaNombre: areaName
+              });
+            }
+          });
+          
           document.getElementById('areaCount').textContent = `${especialidades.length} especialidades`;
           renderEspecialidades(especialidades, especialidadesGrid, loadingIndicator);
           initializeEspecialidadSearch();
@@ -6023,6 +6037,19 @@
           try {
             const especialidades = await getEspecialidadesLocal(areaId);
             especialidadesCache[areaId] = especialidades;
+            
+            // Agregar al índice global
+            especialidades.forEach(esp => {
+              const existing = globalEspecialidadIndex.find(e => e.id === esp.id && e.areaId === areaId);
+              if (!existing) {
+                globalEspecialidadIndex.push({
+                  ...esp,
+                  areaId: areaId,
+                  areaNombre: areaName
+                });
+              }
+            });
+            
             document.getElementById('areaCount').textContent = `${especialidades.length} especialidades`;
             renderEspecialidades(especialidades, especialidadesGrid, loadingIndicator);
             initializeEspecialidadSearch();
@@ -6166,7 +6193,7 @@
         }
       }
 
-      // Búsqueda de especialidades
+      // Búsqueda global de especialidades
       function initializeEspecialidadSearch() {
         const searchInput = document.getElementById('especialidadesSearchInput');
         const searchResultsInfo = document.getElementById('searchResultsInfo');
@@ -6180,7 +6207,7 @@
           const grid = document.getElementById('especialidadesGrid');
           
           if (query.length < 3) {
-            // Mostrar todas las especialidades si la búsqueda tiene menos de 3 caracteres
+            // Mostrar todas las especialidades del área actual
             const items = grid.querySelectorAll('.especialidad-item');
             items.forEach(item => {
               item.style.display = '';
@@ -6191,51 +6218,55 @@
             return;
           }
           
-          // Buscar especialidades que coincidan
-          const items = grid.querySelectorAll('.especialidad-item');
-          let visibleCount = 0;
-          
-          items.forEach(item => {
-            const nameLabel = item.querySelector('.especialidad-name');
-            const img = item.querySelector('img');
-            
-            // Obtener nombres de múltiples fuentes
-            const displayName = nameLabel ? nameLabel.textContent.toLowerCase() : '';
-            const espId = img && img.dataset.especialidadId ? img.dataset.especialidadId.toLowerCase() : '';
-            
-            // Crear versión con espacios para búsqueda (reemplazar guiones con espacios)
+          // Buscar en el índice global de especialidades
+          let results = [];
+          globalEspecialidadIndex.forEach(esp => {
+            const displayName = (esp.nombre || '').toLowerCase();
+            const espId = (esp.id || '').toLowerCase();
             const displayNameWithSpaces = displayName.replace(/-/g, ' ');
             const espIdWithSpaces = espId.replace(/-/g, ' ');
             
-            // Buscar en múltiples campos
             const matches = displayName.includes(query) || 
                            espId.includes(query) ||
                            displayNameWithSpaces.includes(query) ||
                            espIdWithSpaces.includes(query);
             
             if (matches) {
-              item.style.display = '';
-              item.style.visibility = 'visible';
-              item.style.opacity = '1';
-              visibleCount++;
-              console.log('[SEARCH] Encontrado:', displayName || espId);
-            } else {
-              item.style.display = 'none';
-              item.style.visibility = 'hidden';
-              item.style.opacity = '0';
+              results.push(esp);
             }
           });
           
-          // Mostrar información de resultados
-          if (visibleCount === 0) {
+          if (results.length === 0) {
             searchResultsInfo.textContent = `No se encontraron especialidades que coincidan con "${e.target.value}"`;
             searchResultsInfo.style.display = 'block';
-            console.log('[SEARCH] No encontrado nada para:', query);
-          } else {
-            searchResultsInfo.textContent = `${visibleCount} ${visibleCount === 1 ? 'especialidad' : 'especialidades'} encontrada${visibleCount === 1 ? '' : 's'}`;
-            searchResultsInfo.style.display = 'block';
-            console.log('[SEARCH] Encontradas:', visibleCount, 'especialidades');
+            grid.innerHTML = '';
+            console.log('[SEARCH] No encontrado:', query);
+            return;
           }
+          
+          // Si encontró en el área actual, mostrar solo esos
+          const currentAreaResults = results.filter(r => r.areaId === currentArea?.id);
+          
+          if (currentAreaResults.length > 0) {
+            // Mostrar resultados del área actual
+            const items = grid.querySelectorAll('.especialidad-item');
+            items.forEach(item => {
+              const img = item.querySelector('img');
+              const espId = img.dataset.especialidadId;
+              const matches = currentAreaResults.some(r => r.id === espId);
+              item.style.display = matches ? '' : 'none';
+              item.style.visibility = matches ? 'visible' : 'hidden';
+            });
+            
+            searchResultsInfo.textContent = `${currentAreaResults.length} resultado${currentAreaResults.length === 1 ? '' : 's'} encontrado${currentAreaResults.length === 1 ? '' : 's'}`;
+          } else {
+            // No hay resultados en el área actual, mostrar mensaje
+            searchResultsInfo.textContent = `${results.length} resultado${results.length === 1 ? '' : 's'} encontrado${results.length === 1 ? '' : 's'} en otras áreas. Cambia de área para verlos.`;
+            grid.innerHTML = '';
+          }
+          
+          searchResultsInfo.style.display = 'block';
+          console.log('[SEARCH] Encontradas:', results.length, 'especialidades globales');
         });
       }
 

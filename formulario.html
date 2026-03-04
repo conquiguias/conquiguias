@@ -815,7 +815,7 @@
         btn.disabled = true;
 
         try {
-          if (email !== "kendall.torres.17@gmail.com") {
+          if (!email) {
             alert("❌ Correo no autorizado");
             return;
           }
@@ -825,7 +825,7 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               action: "verifyAdminPassword",
-              data: { password },
+              data: { email, password },
             }),
           });
 
@@ -872,7 +872,6 @@
                 id: currentIdFormulario,
                 asistencia: num,
                 activo: nuevoEstado,
-                adminEmail: "kendall.torres.17@gmail.com",
               }),
             },
           );

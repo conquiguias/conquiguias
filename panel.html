@@ -494,6 +494,314 @@
       transform: scale(1.2);
     }
 
+    /* ============================================
+    ESTILOS PARA ESPECIALIDADES CONQUIGUIAS
+    ============================================ */
+
+    /* Contenedor de pestañas */
+    .tabs-menu-container {
+      border-bottom: 2px solid var(--border-color);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+    }
+
+    .tabs-menu {
+      display: flex;
+      gap: 0;
+      width: 100%;
+    }
+
+    .tab-button {
+      flex: 1;
+      padding: 14px 16px;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .tab-button:hover {
+      color: var(--text-primary);
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    .tab-button.active {
+      color: var(--accent-color);
+      border-bottom-color: var(--accent-color);
+    }
+
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(5px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Contenedor de especialidades */
+    .especialidades-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Header del área */
+    .area-header {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 20px;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05));
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+    }
+
+    .area-badge-container {
+      flex-shrink: 0;
+    }
+
+    .area-badge {
+      width: 100px;
+      height: 100px;
+      border-radius: 12px;
+      object-fit: cover;
+      box-shadow: 0 4px 12px var(--shadow-color);
+      border: 2px solid var(--border-color);
+    }
+
+    .area-info {
+      flex: 1;
+    }
+
+    .area-info h2 {
+      margin: 0 0 8px 0;
+      font-size: 24px;
+      color: var(--text-primary);
+    }
+
+    .area-count {
+      margin: 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* Navegador de áreas */
+    .areas-navigator {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .areas-scroll-container {
+      display: flex;
+      overflow-x: auto;
+      gap: 10px;
+      padding-bottom: 10px;
+      scroll-behavior: smooth;
+    }
+
+    .areas-scroll-container::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .areas-scroll-container::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+      border-radius: 3px;
+    }
+
+    .areas-scroll-container::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 3px;
+    }
+
+    .areas-scroll-container::-webkit-scrollbar-thumb:hover {
+      background: var(--accent-color);
+    }
+
+    .areas-grid {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .area-item {
+      flex-shrink: 0;
+      width: 80px;
+      height: 80px;
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.3s ease;
+      background: var(--bg-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .area-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+
+    .area-item:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px var(--shadow-color);
+    }
+
+    .area-item.active {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+    }
+
+    /* Grid de especialidades */
+    .especialidades-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .especialidades-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 12px;
+      max-height: 600px;
+      overflow-y: auto;
+      padding: 10px;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      scroll-behavior: smooth;
+    }
+
+    .especialidades-grid::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .especialidades-grid::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+      border-radius: 3px;
+    }
+
+    .especialidades-grid::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 3px;
+    }
+
+    .especialidades-grid::-webkit-scrollbar-thumb:hover {
+      background: var(--accent-color);
+    }
+
+    .especialidad-item {
+      aspect-ratio: 1;
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+      border: 2px solid var(--border-color);
+      transition: all 0.3s ease;
+      background: var(--bg-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      min-height: 120px;
+    }
+
+    .especialidad-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+    }
+
+    .especialidad-item:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px var(--shadow-color);
+      border-color: var(--accent-color);
+    }
+
+    .especialidad-item.loading {
+      background: linear-gradient(90deg, var(--bg-secondary) 0%, var(--bg-primary) 50%, var(--bg-secondary) 100%);
+      background-size: 200% 100%;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        background-position: 200% 0;
+      }
+      100% {
+        background-position: -200% 0;
+      }
+    }
+
+    .especialidad-placeholder {
+      width: 100%;
+      height: 100%;
+      background: var(--bg-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    .loading-indicator {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .loading-indicator.hidden {
+      display: none;
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--border-color);
+      border-top-color: var(--accent-color);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
     /* 🔹 Fondo del visor */
     #pdfViewerModal {
       position: fixed;
@@ -3152,18 +3460,69 @@
 
     <!-- Sección Clubes -->
     <div id="clubesSection" class="card hidden">
-      <h2>Clubes</h2>
-
-      <!-- Botones de clubes -->
-      <div id="clubesContainer" style="display:flex; gap:10px; margin-bottom:15px;">
-        <button class="clubBtn" data-club="aventureros">Club de Aventureros</button>
-        <button class="clubBtn" data-club="conquistadores">Club de Conquistadores</button>
-        <button class="clubBtn" data-club="guias">Club de Guías Mayores</button>
+      <!-- Menú de pestañas -->
+      <div class="tabs-menu-container">
+        <div class="tabs-menu">
+          <button class="tab-button active" data-tab="especialidades-conquiguias">
+            <i class="fas fa-book"></i>
+            <span>Especialidades Conquiguias</span>
+          </button>
+          <button class="tab-button" data-tab="otros-clubes">
+            <i class="fas fa-users"></i>
+            <span>Otros Clubes</span>
+          </button>
+        </div>
       </div>
 
-      <!-- Panel de contenido de clubes -->
-      <div id="clubesPanel">
-        <!-- Aquí se irán agregando las carpetas y secciones dinámicamente -->
+      <!-- TAB 1: Especialidades Conquiguias -->
+      <div id="tab-especialidades-conquiguias" class="tab-content active">
+        <div class="especialidades-container">
+          <!-- Header con imagen del área y nombre -->
+          <div class="area-header">
+            <div class="area-badge-container">
+              <img id="areaBadge" class="area-badge" src="" alt="Área">
+            </div>
+            <div class="area-info">
+              <h2 id="areaName">Selecciona un área</h2>
+              <p id="areaCount" class="area-count">0 especialidades</p>
+            </div>
+          </div>
+
+          <!-- Navegador de áreas -->
+          <div class="areas-navigator">
+            <div class="areas-scroll-container">
+              <div id="areasGrid" class="areas-grid">
+                <!-- Se llena dinámicamente -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Grid de especialidades con lazy loading -->
+          <div class="especialidades-section">
+            <div id="especialidadesGrid" class="especialidades-grid">
+              <!-- Se llena dinámicamente con lazy loading -->
+            </div>
+            <div id="loadingIndicator" class="loading-indicator hidden">
+              <div class="spinner"></div>
+              <p>Cargando especialidades...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: Otros Clubes -->
+      <div id="tab-otros-clubes" class="tab-content">
+        <!-- Botones de clubes -->
+        <div id="clubesContainer" style="display:flex; gap:10px; margin-bottom:15px;">
+          <button class="clubBtn" data-club="aventureros">Club de Aventureros</button>
+          <button class="clubBtn" data-club="conquistadores">Club de Conquistadores</button>
+          <button class="clubBtn" data-club="guias">Club de Guías Mayores</button>
+        </div>
+
+        <!-- Panel de contenido de clubes -->
+        <div id="clubesPanel">
+          <!-- Aquí se irán agregando las carpetas y secciones dinámicamente -->
+        </div>
       </div>
     </div>
 
@@ -5415,6 +5774,261 @@
           clubesPanel.appendChild(clubContainer);
         });
       });
+
+      //////////////////////////////////////////////////////
+      // ESPECIALIDADES CONQUIGUIAS - Sistema Profesional
+      //////////////////////////////////////////////////////
+
+      // Configuración de áreas
+      const areasData = [
+        { id: 'actividades-agropecuarias', nombre: 'Actividades Agropecuarias' },
+        { id: 'actividades-recreacionales', nombre: 'Actividades Recreacionales' },
+        { id: 'actividades-vocacionales', nombre: 'Actividades Vocacionales' },
+        { id: 'adra', nombre: 'ADRA' },
+        { id: 'artes-domesticas', nombre: 'Artes Domésticas' },
+        { id: 'artes-y-actividades-manuales', nombre: 'Artes y Actividades Manuales' },
+        { id: 'asociacion-de-florida', nombre: 'Asociación de Florida' },
+        { id: 'crecimiento-espiritual-actividades-misioneras-y-herencia', nombre: 'Crecimiento Espiritual' },
+        { id: 'doctrinales', nombre: 'Doctrinales' },
+        { id: 'estudio-de-la-naturaleza', nombre: 'Estudio de la Naturaleza' },
+        { id: 'salud-y-ciencia', nombre: 'Salud y Ciencia' },
+        { id: 'servicios-comunitarios-adventistas', nombre: 'Servicios Comunitarios' }
+      ];
+
+      let especialidadesCache = {}; // Cache para no recargar
+      let currentArea = null;
+      let areasLoaded = false;
+
+      // Inicializar pestañas
+      const tabButtons = document.querySelectorAll('.tab-button');
+      const tabContents = document.querySelectorAll('.tab-content');
+
+      tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tabId = btn.dataset.tab;
+          
+          // Remover clase active de todos
+          tabButtons.forEach(b => b.classList.remove('active'));
+          tabContents.forEach(tc => tc.classList.remove('active'));
+          
+          // Agregar clase active al botón y contenido
+          btn.classList.add('active');
+          document.getElementById(`tab-${tabId}`).classList.add('active');
+
+          // Cargar áreas si es la primera vez
+          if (tabId === 'especialidades-conquiguias' && !areasLoaded) {
+            loadAreas();
+            areasLoaded = true;
+          }
+        });
+      });
+
+      // Cargar áreas en el navegador
+      function loadAreas() {
+        const areasGrid = document.getElementById('areasGrid');
+        if (!areasGrid) return;
+        
+        areasGrid.innerHTML = '';
+
+        areasData.forEach((area, index) => {
+          const areaItem = document.createElement('div');
+          areaItem.className = 'area-item';
+          areaItem.dataset.areaId = area.id;
+
+          const img = document.createElement('img');
+          img.src = `/conquiguias-data/especialidades/${area.id}/area-badge.png`;
+          img.alt = area.nombre;
+          img.loading = 'lazy';
+          img.onerror = () => {
+            img.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect fill="%23334155" width="80" height="80"/><text x="50%25" y="50%25" font-size="11" fill="%2394a3b8" text-anchor="middle" dominant-baseline="middle" font-weight="bold">Error</text></svg>';
+          };
+
+          areaItem.appendChild(img);
+
+          areaItem.addEventListener('click', () => {
+            // Remover active de todos
+            document.querySelectorAll('.area-item').forEach(a => a.classList.remove('active'));
+            // Agregar active al seleccionado
+            areaItem.classList.add('active');
+            // Cargar especialidades
+            loadEspecialidades(area.id, area.nombre);
+          });
+
+          areasGrid.appendChild(areaItem);
+        });
+
+        // Auto-select first area
+        if (areasGrid.children.length > 0) {
+          areasGrid.children[0].click();
+        }
+      }
+
+      // Cargar especialidades de un área
+      async function loadEspecialidades(areaId, areaName) {
+        currentArea = { id: areaId, nombre: areaName };
+
+        // Actualizar header
+        document.getElementById('areaName').textContent = areaName;
+        const areaBadge = document.getElementById('areaBadge');
+        areaBadge.src = `/conquiguias-data/especialidades/${areaId}/area-badge.png`;
+
+        const especialidadesGrid = document.getElementById('especialidadesGrid');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        if (!especialidadesGrid || !loadingIndicator) return;
+
+        // Si ya está en cache, usar cache
+        if (especialidadesCache[areaId]) {
+          renderEspecialidades(especialidadesCache[areaId], especialidadesGrid, loadingIndicator);
+          return;
+        }
+
+        loadingIndicator.classList.remove('hidden');
+        especialidadesGrid.innerHTML = '';
+
+        try {
+          // Usar API para obtener lista de carpetas
+          const response = await fetch(`/api/especialidades?area=${areaId}`);
+          
+          let especialidades = [];
+
+          if (response.ok) {
+            // Si la API funciona, usar sus datos
+            especialidades = await response.json();
+          } else {
+            // Si no, hacer una lista manual basada en la estructura conocida
+            // Esto es un fallback si el API no está disponible
+            especialidades = await getEspecialidadesLocal(areaId);
+          }
+
+          especialidadesCache[areaId] = especialidades;
+          document.getElementById('areaCount').textContent = `${especialidades.length} especialidades`;
+          renderEspecialidades(especialidades, especialidadesGrid, loadingIndicator);
+        } catch (error) {
+          console.error('Error cargando especialidades:', error);
+          // Intentar método fallback
+          try {
+            const especialidades = await getEspecialidadesLocal(areaId);
+            especialidadesCache[areaId] = especialidades;
+            document.getElementById('areaCount').textContent = `${especialidades.length} especialidades`;
+            renderEspecialidades(especialidades, especialidadesGrid, loadingIndicator);
+          } catch (fallbackError) {
+            especialidadesGrid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--text-secondary);">Error al cargar especialidades</div>';
+            loadingIndicator.classList.add('hidden');
+          }
+        }
+      }
+
+      // Obtener especialidades localmente (fallback)
+      async function getEspecialidadesLocal(areaId) {
+        try {
+          // Intentar cargar desde archivo JSON
+          const response = await fetch(`/conquiguias-data/especialidades/${areaId}/especialidades.json`);
+          if (response.ok) {
+            return await response.json();
+          }
+        } catch (e) {
+          console.error('Error cargando JSON:', e);
+        }
+
+        // Fallback: array vacío
+        return [];
+      }
+
+      // Renderizar especialidades con lazy loading
+      function renderEspecialidades(especialidades, grid, loading) {
+        if (!grid) return;
+        
+        grid.innerHTML = '';
+        loading.classList.add('hidden');
+
+        if (especialidades.length === 0) {
+          grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--text-secondary);">Cargando especialidades...</div>';
+          return;
+        }
+
+        // Crear observer para lazy loading
+        const observer = new IntersectionObserver((entries, obs) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const item = entry.target;
+              const img = item.querySelector('img');
+              
+              if (img && img.dataset.src && !img.src) {
+                img.src = img.dataset.src;
+                item.classList.remove('loading');
+              }
+
+              obs.unobserve(item);
+            }
+          });
+        }, { rootMargin: '50px' });
+
+        especialidades.forEach((esp, index) => {
+          const item = document.createElement('div');
+          item.className = 'especialidad-item';
+          item.title = (esp.nombre || esp.id || esp); // Tooltip con nombre completo
+          
+          const img = document.createElement('img');
+          const espName = esp.nombre || esp.id || esp;
+          const espId = esp.id || esp;
+          
+          img.alt = espName;
+          img.dataset.especialidadId = espId;
+          img.dataset.especialidadPath = esp.path || `/conquiguias-data/especialidades/${currentArea.id}/${espId}/`;
+          
+          // Lazy load: primeros 20 sin lazy load
+          const imagePath = `${img.dataset.especialidadPath}${espId}.png`;
+          if (index < 20) {
+            img.src = imagePath;
+          } else {
+            img.dataset.src = imagePath;
+          }
+
+          img.onerror = () => {
+            item.innerHTML = '<div class="especialidad-placeholder">Sin imagen</div>';
+          };
+
+          img.style.cursor = 'pointer';
+          img.addEventListener('click', () => {
+            abrirEspecialidad(esp || { id: espId, nombre: espName });
+          });
+
+          item.appendChild(img);
+          grid.appendChild(item);
+
+          // Observe for lazy loading
+          if (index >= 20) {
+            observer.observe(item);
+          }
+        });
+      }
+
+      // Abrir especialidad - buscar PDF y abrir visor
+      async function abrirEspecialidad(especialidad) {
+        if (!especialidad) return;
+        
+        try {
+          const espId = especialidad.id || especialidad;
+          const pdfPath = `/conquiguias-data/especialidades/${currentArea.id}/${espId}/${espId}.pdf`;
+          
+          // Intentar verificar que el PDF existe
+          const response = await fetch(pdfPath, { method: 'HEAD' });
+          if (!response.ok) {
+            alert('No se encontró el PDF para esta especialidad');
+            return;
+          }
+
+          // Abrir en el visor PDF existente
+          abrirVisorPDF(pdfPath);
+        } catch (error) {
+          console.error('Error abriendo PDF:', error);
+          // Intentar abrir a pesar del error
+          const espId = especialidad.id || especialidad;
+          const pdfPath = `/conquiguias-data/especialidades/${currentArea.id}/${espId}/${espId}.pdf`;
+          abrirVisorPDF(pdfPath);
+        }
+      }
 
       //////////////////////////////////////////////////////
       // Función para cargar las certificaciones del usuario (OPTIMIZADA Y CONSTRUIDA DINAMICAMENTE)

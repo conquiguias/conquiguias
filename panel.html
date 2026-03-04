@@ -584,8 +584,8 @@
     }
 
     .area-badge {
-      width: 100px;
-      height: 100px;
+      width: 120px;
+      height: 120px;
       border-radius: 12px;
       object-fit: contain;
       box-shadow: 0 4px 12px var(--shadow-color);
@@ -651,8 +651,8 @@
 
     .area-item {
       flex-shrink: 0;
-      width: 80px;
-      height: 80px;
+      width: 96px;
+      height: 96px;
       border-radius: 10px;
       overflow: hidden;
       cursor: pointer;
@@ -693,8 +693,8 @@
 
     .especialidades-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 14px;
       max-height: 600px;
       overflow-y: auto;
       padding: 10px;
@@ -722,18 +722,29 @@
     }
 
     .especialidad-item {
-      aspect-ratio: 1;
       border-radius: 8px;
-      overflow: hidden;
       cursor: pointer;
       border: 2px solid var(--border-color);
       transition: all 0.3s ease;
       background: var(--bg-primary);
       display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
+      min-height: 200px;
+      padding: 8px;
+      gap: 8px;
+    }
+
+    .especialidad-image-wrap {
+      width: 100%;
+      height: 145px;
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--bg-secondary);
+      display: flex;
       align-items: center;
       justify-content: center;
-      position: relative;
-      min-height: 120px;
     }
 
     .especialidad-item img {
@@ -743,6 +754,22 @@
       background: var(--bg-secondary);
       opacity: 1;
       transition: opacity 0.3s ease;
+    }
+
+    .especialidad-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      text-align: center;
+      line-height: 1.25;
+      min-height: 34px;
+      display: -webkit-box;
+      line-clamp: 2;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      word-break: break-word;
+      text-transform: none;
     }
 
     .especialidad-item:hover {
@@ -5555,8 +5582,19 @@
         abrirVisorPDF(officeViewerUrl);
       }
 
+      function isPdfResource(url) {
+        return /\.pdf(?:$|[?#])/i.test(String(url || '').trim());
+      }
+
+      function getInternalPdfViewerUrl(pdfUrl) {
+        const viewerUrl = new URL('visorPDFMozilla/web/viewer.html', window.location.href);
+        viewerUrl.searchParams.set('file', String(pdfUrl || '').trim());
+        return viewerUrl.toString();
+      }
+
       function abrirVisorPDF(url) {
-        pdfFrame.src = url;
+        const src = isPdfResource(url) ? getInternalPdfViewerUrl(url) : url;
+        pdfFrame.src = src;
         pdfViewerModal.style.display = "flex";
       }
 
@@ -5803,6 +5841,107 @@
       let currentArea = null;
       let areasLoaded = false;
       const ESPECIALIDADES_BASE_URL = 'https://raw.githubusercontent.com/conquiguias/conquiguias-data/main/especialidades';
+      const ESPECIALIDADES_GITHUB_API_BASE = 'https://api.github.com/repos/conquiguias/conquiguias-data/contents/especialidades';
+      const especialidadFilesCache = {};
+
+      function splitPathSegments(path) {
+        return String(path || '')
+          .split('/')
+          .map(segment => segment.trim())
+          .filter(Boolean);
+      }
+
+      function getEspecialidadRelativeFolder(areaId, espId, especialidadData = null) {
+        const rawPath = String(especialidadData?.path || '').trim();
+        if (rawPath) {
+          const marker = '/especialidades/';
+          const index = rawPath.toLowerCase().indexOf(marker);
+          if (index !== -1) {
+            const relative = rawPath.slice(index + marker.length).replace(/^\/+|\/+$/g, '');
+            if (relative) return relative;
+          }
+        }
+
+        return [areaId, espId].map(value => String(value || '').trim()).filter(Boolean).join('/');
+      }
+
+      function buildRawEspecialidadUrl(relativeFolder, fileName) {
+        const encodedSegments = [...splitPathSegments(relativeFolder), String(fileName || '').trim()]
+          .filter(Boolean)
+          .map(segment => encodeURIComponent(segment));
+        return `${ESPECIALIDADES_BASE_URL}/${encodedSegments.join('/')}`;
+      }
+
+      function buildEspecialidadApiUrl(relativeFolder) {
+        const encodedSegments = splitPathSegments(relativeFolder).map(segment => encodeURIComponent(segment));
+        return `${ESPECIALIDADES_GITHUB_API_BASE}/${encodedSegments.join('/')}?ref=main`;
+      }
+
+      async function getEspecialidadFiles(relativeFolder) {
+        const cacheKey = String(relativeFolder || '').trim();
+        if (!cacheKey) return { imageFile: null, pdfFile: null };
+
+        if (especialidadFilesCache[cacheKey]) {
+          return especialidadFilesCache[cacheKey];
+        }
+
+        try {
+          const response = await fetch(buildEspecialidadApiUrl(cacheKey), { cache: 'force-cache' });
+          if (!response.ok) {
+            throw new Error(`No se pudo listar carpeta (${response.status})`);
+          }
+
+          const files = await response.json();
+          const list = Array.isArray(files) ? files : [];
+          const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.svg'];
+          const isImage = (name) => imageExtensions.some(ext => name.toLowerCase().endsWith(ext));
+
+          const imageCandidates = list
+            .filter(file => file?.type === 'file' && isImage(String(file.name || '')))
+            .map(file => String(file.name || ''));
+          const pdfCandidates = list
+            .filter(file => file?.type === 'file' && String(file.name || '').toLowerCase().endsWith('.pdf'))
+            .map(file => String(file.name || ''));
+
+          const imageFile = imageCandidates.find(name => /_orig\./i.test(name)) || imageCandidates[0] || null;
+          const pdfFile = pdfCandidates[0] || null;
+
+          especialidadFilesCache[cacheKey] = { imageFile, pdfFile };
+          return especialidadFilesCache[cacheKey];
+        } catch (error) {
+          console.warn('[WARN] No se pudo resolver archivos de especialidad:', cacheKey, error);
+          const fallback = { imageFile: null, pdfFile: null };
+          especialidadFilesCache[cacheKey] = fallback;
+          return fallback;
+        }
+      }
+
+      function setEspecialidadPlaceholder(container) {
+        if (!container) return;
+        container.innerHTML = '<div class="especialidad-placeholder">Sin imagen</div>';
+      }
+
+      async function tryResolveEspecialidadImage(img, imageContainer) {
+        const relativeFolder = String(img?.dataset?.relativeFolder || '').trim();
+        if (!relativeFolder) {
+          setEspecialidadPlaceholder(imageContainer);
+          return;
+        }
+
+        if (img.dataset.imageResolved === '1') {
+          setEspecialidadPlaceholder(imageContainer);
+          return;
+        }
+
+        img.dataset.imageResolved = '1';
+        const { imageFile } = await getEspecialidadFiles(relativeFolder);
+        if (imageFile) {
+          img.src = buildRawEspecialidadUrl(relativeFolder, imageFile);
+          return;
+        }
+
+        setEspecialidadPlaceholder(imageContainer);
+      }
 
       // Inicializar pestañas
       const tabButtons = document.querySelectorAll('.tab-button');
@@ -5975,25 +6114,29 @@
           item.className = 'especialidad-item';
           item.title = (esp.nombre || esp.id || esp); // Tooltip con nombre completo
           
+          const imageContainer = document.createElement('div');
+          imageContainer.className = 'especialidad-image-wrap';
+
           const img = document.createElement('img');
           const espName = esp.nombre || esp.id || esp;
           const espId = esp.id || esp;
           const areaId = currentArea?.id;
+          const relativeFolder = getEspecialidadRelativeFolder(areaId, espId, esp);
           
           img.alt = espName;
           img.dataset.especialidadId = espId;
-          img.dataset.especialidadPath = `${ESPECIALIDADES_BASE_URL}/${areaId}/${espId}/`;
+          img.dataset.relativeFolder = relativeFolder;
           
           // Lazy load: primeros 20 sin lazy load
-          const imagePath = `${img.dataset.especialidadPath}${espId}.png`;
+          const imagePath = buildRawEspecialidadUrl(relativeFolder, `${espId}.png`);
           if (index < 20) {
             img.src = imagePath;
           } else {
             img.dataset.src = imagePath;
           }
 
-          img.onerror = () => {
-            item.innerHTML = '<div class="especialidad-placeholder">Sin imagen</div>';
+          img.onerror = async () => {
+            await tryResolveEspecialidadImage(img, imageContainer);
           };
 
           img.style.cursor = 'pointer';
@@ -6001,7 +6144,13 @@
             abrirEspecialidad(esp || { id: espId, nombre: espName });
           });
 
-          item.appendChild(img);
+          imageContainer.appendChild(img);
+          const nameLabel = document.createElement('div');
+          nameLabel.className = 'especialidad-name';
+          nameLabel.textContent = espName;
+
+          item.appendChild(imageContainer);
+          item.appendChild(nameLabel);
           grid.appendChild(item);
 
           // Observe for lazy loading
@@ -6017,23 +6166,25 @@
         
         try {
           const espId = especialidad.id || especialidad;
-          const pdfPath = `${ESPECIALIDADES_BASE_URL}/${currentArea.id}/${espId}/${espId}.pdf`;
+          const relativeFolder = getEspecialidadRelativeFolder(currentArea.id, espId, especialidad);
+          const defaultPdfPath = buildRawEspecialidadUrl(relativeFolder, `${espId}.pdf`);
           
-          // Intentar verificar que el PDF existe
-          const response = await fetch(pdfPath, { method: 'HEAD' });
-          if (!response.ok) {
-            alert('No se encontró el PDF para esta especialidad');
-            return;
+          let pdfPath = defaultPdfPath;
+          const defaultResponse = await fetch(defaultPdfPath, { method: 'HEAD' });
+          if (!defaultResponse.ok) {
+            const { pdfFile } = await getEspecialidadFiles(relativeFolder);
+            if (!pdfFile) {
+              alert('No se encontró el PDF para esta especialidad');
+              return;
+            }
+            pdfPath = buildRawEspecialidadUrl(relativeFolder, pdfFile);
           }
 
           // Abrir en el visor PDF existente
           abrirVisorPDF(pdfPath);
         } catch (error) {
           console.error('Error abriendo PDF:', error);
-          // Intentar abrir a pesar del error
-          const espId = especialidad.id || especialidad;
-          const pdfPath = `${ESPECIALIDADES_BASE_URL}/${currentArea.id}/${espId}/${espId}.pdf`;
-          abrirVisorPDF(pdfPath);
+          alert('No se pudo abrir el PDF de esta especialidad');
         }
       }
 

@@ -557,8 +557,12 @@ async function handleGuardarResultadoExamen(req, res) {
 
 async function handleActualizarEstadoAsistencia(req, res) {
   const { id, asistencia, activo, adminEmail } = req.body;
-  if (adminEmail !== "kendall.torres.17@gmail.com")
+  const adminEmails = getAdminEmails();
+  const isAdmin = !!adminEmail && adminEmails.includes(normalizeEmail(adminEmail));
+  
+  if (!isAdmin) {
     return res.status(403).json({ error: "No autorizado" });
+  }
 
   const { data: fData } = await supabase
     .from("formularios")

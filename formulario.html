@@ -700,6 +700,7 @@
 
       let currentIdFormulario = new URLSearchParams(location.search).get("id");
       let isAdmin = false;
+      let adminEmail = ""; // Email del admin autenticado
       let pollInterval = null;
       let estadoAsistencias = { 1: false, 2: false };
       let misAsistencias = []; // [1, 2]
@@ -831,6 +832,7 @@
 
           if (res.ok) {
             isAdmin = true;
+            adminEmail = email; // Guardar email del admin autenticado
             document.getElementById("modalLoginAdmin").style.display = "none";
             document.getElementById("panelAdmin").style.display = "block";
             document.getElementById("admin-float-btn").style.display = "none";
@@ -851,6 +853,7 @@
 
       function cerrarSesionAdmin() {
         isAdmin = false;
+        adminEmail = ""; // Limpiar email al cerrar sesión
         document.getElementById("panelAdmin").style.display = "none";
         document.getElementById("admin-float-btn").style.display = "flex";
       }
@@ -872,6 +875,7 @@
                 id: currentIdFormulario,
                 asistencia: num,
                 activo: nuevoEstado,
+                adminEmail: adminEmail, // Enviar email del admin autenticado
               }),
             },
           );

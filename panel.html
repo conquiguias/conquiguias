@@ -5061,6 +5061,19 @@
       }
       window.isSpecialtyAllowedForCurrentInstructor = isSpecialtyAllowedForCurrentInstructor;
 
+      function isMobileInstructorAccessBlocked() {
+        const userAgent = String(navigator.userAgent || navigator.vendor || window.opera || '').toLowerCase();
+        const isMobileUA = /android|webos|iphone|ipod|blackberry|iemobile|opera mini|mobile/i.test(userAgent);
+        const isTabletUA = /ipad|tablet|kindle|silk|playbook/i.test(userAgent);
+        const isSmallScreen = window.matchMedia('(max-width: 1023px)').matches;
+        return isSmallScreen && (isMobileUA || isTabletUA || navigator.maxTouchPoints > 1);
+      }
+      window.isMobileInstructorAccessBlocked = isMobileInstructorAccessBlocked;
+
+      function notifyInstructorDesktopOnly() {
+        alert('❌ La opción de Instructor solo está disponible desde computadora.');
+      }
+
       function applyRoleBasedNavigation() {
         const menuAdminBtn = document.getElementById('menuAdmin');
         const menuInstructorBtn = document.getElementById('menuInstructor');
@@ -5069,12 +5082,17 @@
         const viewCrearForm = document.getElementById('viewCrearFormulario');
         const viewEvaluarTareas = document.getElementById('viewEvaluarTareas');
         const sectionAlmacenamiento = document.getElementById('sectionAlmacenamientoPDFs');
+        const instructorBlockedOnMobile = isMobileInstructorAccessBlocked();
 
         if (menuAdminBtn) menuAdminBtn.classList.toggle('hidden', !window.canAccessAdminPanel);
         if (menuInstructorBtn) {
-          menuInstructorBtn.classList.toggle('hidden', !window.canAccessInstructorPanel);
-          menuInstructorBtn.disabled = !window.canAccessInstructorPanel;
-          menuInstructorBtn.setAttribute('aria-hidden', String(!window.canAccessInstructorPanel));
+          const canShowInstructor = window.canAccessInstructorPanel;
+          menuInstructorBtn.classList.toggle('hidden', !canShowInstructor);
+          menuInstructorBtn.disabled = !canShowInstructor;
+          menuInstructorBtn.setAttribute('aria-hidden', String(!canShowInstructor));
+          menuInstructorBtn.title = instructorBlockedOnMobile
+            ? 'Disponible solo desde computadora'
+            : '';
         }
 
         if (!window.isOwner) {
@@ -5273,6 +5291,10 @@
       const instructorSection = document.getElementById("instructorSection");
       if(menuInstructor) {
           menuInstructor.addEventListener("click", () => {
+            if (window.isMobileInstructorAccessBlocked && window.isMobileInstructorAccessBlocked()) {
+              notifyInstructorDesktopOnly();
+              return;
+            }
             if (!window.canAccessInstructorPanel) {
               return;
             }
@@ -5560,6 +5582,11 @@
         pausarTodosLosVideos();
         const instructorSection = document.getElementById("instructorSection");
         const menuInstructor = document.getElementById("menuInstructor");
+
+        if (seccion === instructorSection && window.isMobileInstructorAccessBlocked && window.isMobileInstructorAccessBlocked()) {
+          notifyInstructorDesktopOnly();
+          return;
+        }
         
         // Incluir tareasExamenesSection y menuTareasExamenes en las listas para limpiar
         [inicioSection, perfilSection, especialidadesSection, clubesSection, certificacionesSection, adminSection, instructorSection, tareasExamenesSection, grabacionesSection].forEach(sec => {
@@ -5572,6 +5599,12 @@
         seccion.classList.remove("hidden");
         botonActivo.classList.add("active");
       }
+
+      window.addEventListener('resize', () => {
+        if (typeof window.applyRoleBasedNavigation === 'function') {
+          window.applyRoleBasedNavigation();
+        }
+      });
 
       ////////////////////////////////////////////
       // 🔹 VISOR PDF

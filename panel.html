@@ -3749,7 +3749,7 @@
               <th style="padding: 12px; text-align: left; border: 1px solid var(--border-color);">Especialidad</th>
               <th style="padding: 12px; text-align: left; border: 1px solid var(--border-color);">Fecha Participación</th>
               <th style="padding: 12px; text-align: left; border: 1px solid var(--border-color);">Fecha Cierre</th>
-              <th style="padding: 12px; text-align: left; border: 1px solid var(--border-color);">Asistencias</th>
+              <th style="padding: 12px; text-align: center; border: 1px solid var(--border-color);">Asistencias</th>
               <th style="padding: 12px; text-align: center; border: 1px solid var(--border-color);">Tarea</th>
               <th style="padding: 12px; text-align: center; border: 1px solid var(--border-color);">Rúbrica</th>
               <th style="padding: 12px; text-align: center; border: 1px solid var(--border-color);">Examen</th>
@@ -3839,20 +3839,7 @@
 
         <input type="hidden" id="fechaCierre">
 
-        <!-- Configuración de asistencia -->
-        <div style="background: var(--bg-secondary); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid var(--accent-color);">
-          <label style="display: flex; align-items: center; cursor: pointer; font-size: 16px;">
-            <input type="checkbox" id="tomaAsistencia" checked style="margin-right: 10px; width: 20px; height: 20px; cursor: pointer;">
-            <span>
-              <strong>¿Este formulario requiere tomar asistencia?</strong>
-              <br>
-              <small style="color: var(--text-secondary); margin-left: 30px;">
-                Si está marcado: Se requerirán 2 asistencias para poder hacer el examen.<br>
-                Si está desmarcado: Con solo registrar la primera asistencia, ya podrán hacer el examen.
-              </small>
-            </span>
-          </label>
-        </div>
+        <input type="checkbox" id="tomaAsistencia" checked style="display: none;">
 
         <!-- Selector de Imágenes -->
         <div class="image-selector">
@@ -12141,7 +12128,7 @@ const diffMins = Math.floor(diffMs / 60000);
         const minutos = Math.floor((abs % 3600000) / 60000);
         const segundos = Math.floor((abs % 60000) / 1000);
         const base = `${dias > 0 ? dias + 'd ' : ''}${pad2(horas)}:${pad2(minutos)}:${pad2(segundos)}`;
-        return diff >= 0 ? `Faltan ${base}` : `Vencido ${base}`;
+        return diff >= 0 ? `Faltan ${base}` : `Vencido ${dias}d`;
       }
 
       function actualizarCountdownTablaTareas() {
@@ -12299,7 +12286,7 @@ const diffMins = Math.floor(diffMs / 60000);
                     <div style="font-size:12px; color:${isClosed && !tareaOk ? '#EF4444' : '#FFF'}">${fechaCierreStr}</div>
                     ${fechaValida ? `<div class="countdown-tarea" data-deadline-ms="${fechaObj.getTime()}" style="font-size:11px; margin-top:3px; color:${isClosed ? '#EF4444' : '#94A3B8'};">${countdownStr}</div>` : ''}
                   </td>
-                  <td>${item.asistencias.length}</td>
+                  <td style="text-align:center;">${item.asistencias.length}</td>
                   <td style="text-align:center;">
                       ${estadoTareaHtml}
                       <div style="margin-top:5px;">${botonTarea}</div>

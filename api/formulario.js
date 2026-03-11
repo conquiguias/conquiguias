@@ -212,9 +212,10 @@ async function handleObtenerFormulario(req, res) {
     return res.status(404).json({ error: "Formulario no encontrado" });
 
   const form = data.data;
-  const fechaCierre = new Date(form.fechaCierre);
-  const ahora = new Date();
-  const estado = ahora > fechaCierre ? "cerrado" : "abierto";
+  const fechaCierreValor = form?.tarea?.fechaFin || form?.fechaCierre || null;
+  const fechaCierre = fechaCierreValor ? new Date(fechaCierreValor) : null;
+  const fechaValida = fechaCierre && !Number.isNaN(fechaCierre.getTime());
+  const estado = fechaValida && new Date() > fechaCierre ? "cerrado" : "abierto";
 
   // Devolvemos el JSON exacto que espera el frontend
   res.status(200).json({
@@ -338,8 +339,6 @@ async function handleGuardarFormulario(req, res) {
   // Logica original de construcción de objeto
   const nuevoForm = {
     titulo,
-    fechaCierre:
-      fechaCierre || new Date(Date.now() + 70 * 60 * 1000).toISOString(),
     creado: new Date().toISOString(),
     tieneEvaluacion: !!(evaluation && evaluation.length > 0),
     tomaAsistencia: tomaAsistencia !== undefined ? tomaAsistencia : true,
@@ -350,6 +349,10 @@ async function handleGuardarFormulario(req, res) {
     imagenFirma2: imagenFirma2 || null,
     imagenFirma3: imagenFirma3 || null,
   };
+
+  if (fechaCierre) {
+    nuevoForm.fechaCierre = fechaCierre;
+  }
 
   // Guardar en 'formularios' (sobrescribir ID si existe, lógica upsert)
   const { error } = await supabase.from("formularios").upsert({
@@ -954,7 +957,8 @@ async function handleObtenerEstadoUsuario(req, res) {
       miTarea: miTarea,
       configExamen: form.tieneEvaluacion,
       miExamen: bestExam,
-      fechaCierre: form.fechaCierre,
+      fechaLimiteTarea: form?.tarea?.fechaFin || form?.fechaCierre || null,
+      fechaCierre: form.fechaCierre || null,
     });
   });
 

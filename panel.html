@@ -6375,9 +6375,11 @@
                 let notaTareaTexto = "-";
                 let califExamen = "-";
 
-                // Validar Fecha Cierre
-                const fechaObj = item.fechaCierre ? new Date(item.fechaCierre) : null;
-                const isClosed = fechaObj && new Date() > fechaObj;
+                // Validar Fecha límite (prioridad tarea.fechaFin)
+                const fechaLimiteRaw = item.fechaLimiteTarea || (item.configTarea && item.configTarea.fechaFin) || item.fechaCierre || null;
+                const fechaObj = fechaLimiteRaw ? new Date(fechaLimiteRaw) : null;
+                const fechaValida = fechaObj && !Number.isNaN(fechaObj.getTime());
+                const isClosed = fechaValida && new Date() > fechaObj;
                 
                 // Info Tarea
                 const tieneTarea = item.configTarea && item.configTarea.activa;
@@ -11654,16 +11656,7 @@ const diffMins = Math.floor(diffMs / 60000);
               instructorPrefix = rawName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "");
           }
 
-          let id = instructorPrefix + "-" + generarIdAlfanumerico();
-          let fechaCierre;
-          
-          if (document.getElementById("activarTarea").checked) {
-              // Si hay tarea, la fecha de cierre del formulario es la fecha fin de la tarea
-              fechaCierre = new Date(document.getElementById("fechaFinTarea").value).toISOString();
-          } else {
-              // Si no hay tarea, por defecto 70 minutos (clase normal)
-              fechaCierre = new Date(Date.now() + 70 * 60 * 1000).toISOString();
-          }
+            let id = instructorPrefix + "-" + generarIdAlfanumerico();
 
           try {
             const response = await fetch("/api/formulario?action=guardarFormulario", {
@@ -11672,7 +11665,6 @@ const diffMins = Math.floor(diffMs / 60000);
               body: JSON.stringify({
                 id,
                 titulo,
-                fechaCierre: fechaCierre,
                 evaluation: questions.length > 0 ? questions : null,
                 tomaAsistencia: document.getElementById("tomaAsistencia").checked,
                 tarea: document.getElementById("activarTarea").checked ? {
@@ -11773,7 +11765,7 @@ const diffMins = Math.floor(diffMs / 60000);
               <td>${i + 1}</td>
               <td>${id}</td>
               <td>${f.titulo}</td>
-              <td>${new Date(f.fechaCierre).toLocaleString()}</td>
+              <td>${(f.tarea && f.tarea.fechaFin) ? new Date(f.tarea.fechaFin).toLocaleString() : (f.fechaCierre ? new Date(f.fechaCierre).toLocaleString() : 'Sin límite')}</td>
               <td>${f.creado ? new Date(f.creado).toLocaleString() : '―'}</td>
               <td style="white-space: nowrap;">
                 <a href="formulario.html?id=${id}" target="_blank" style="text-decoration: none;">
@@ -12119,6 +12111,48 @@ const diffMins = Math.floor(diffMs / 60000);
       const tbody = document.getElementById('cuerpoTablaTareasExamenes');
       if(!tbody) return;
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">Cargando...</td></tr>';
+
+      function pad2(num) {
+        return String(num).padStart(2, '0');
+      }
+
+      function obtenerFechaLimite(item) {
+        return item.fechaLimiteTarea || (item.configTarea && item.configTarea.fechaFin) || item.fechaCierre || null;
+      }
+
+      function formatearFechaHoraConSegundos(dateObj) {
+        const dd = pad2(dateObj.getDate());
+        const mm = pad2(dateObj.getMonth() + 1);
+        const yyyy = dateObj.getFullYear();
+        let hh = dateObj.getHours();
+        const mins = pad2(dateObj.getMinutes());
+        const secs = pad2(dateObj.getSeconds());
+        const ampm = hh >= 12 ? 'pm' : 'am';
+        hh = hh % 12;
+        if (hh === 0) hh = 12;
+        return `${dd}/${mm}/${yyyy} | ${hh}:${mins}:${secs}${ampm}`;
+      }
+
+      function renderCountdown(deadlineMs) {
+        const diff = deadlineMs - Date.now();
+        const abs = Math.abs(diff);
+        const dias = Math.floor(abs / 86400000);
+        const horas = Math.floor((abs % 86400000) / 3600000);
+        const minutos = Math.floor((abs % 3600000) / 60000);
+        const segundos = Math.floor((abs % 60000) / 1000);
+        const base = `${dias > 0 ? dias + 'd ' : ''}${pad2(horas)}:${pad2(minutos)}:${pad2(segundos)}`;
+        return diff >= 0 ? `Faltan ${base}` : `Vencido ${base}`;
+      }
+
+      function actualizarCountdownTablaTareas() {
+        const nodos = document.querySelectorAll('.countdown-tarea[data-deadline-ms]');
+        nodos.forEach((nodo) => {
+          const deadlineMs = Number(nodo.dataset.deadlineMs || 0);
+          if (!deadlineMs) return;
+          nodo.textContent = renderCountdown(deadlineMs);
+          nodo.style.color = Date.now() > deadlineMs ? '#EF4444' : '#94A3B8';
+        });
+      }
       
       const userId = currentUserId || localStorage.getItem('visitanteId');
     
@@ -12175,10 +12209,13 @@ const diffMins = Math.floor(diffMs / 60000);
               let estadoExamenHtml = '<span style="color:#888; font-size:12px;">Sin examen</span>';
               let botonExamen = '';
               
-              // Lógica Fecha Cierre
-              const fechaObj = item.fechaCierre ? new Date(item.fechaCierre) : null;
-              const fechaCierreStr = fechaObj ? fechaObj.toLocaleDateString() : 'Sin Límite';
-              const isClosed = fechaObj && new Date() > fechaObj;
+              // Lógica Fecha Límite de Tarea (prioridad: tarea.fechaFin)
+              const fechaLimiteRaw = obtenerFechaLimite(item);
+              const fechaObj = fechaLimiteRaw ? new Date(fechaLimiteRaw) : null;
+              const fechaValida = fechaObj && !Number.isNaN(fechaObj.getTime());
+              const fechaCierreStr = fechaValida ? formatearFechaHoraConSegundos(fechaObj) : 'Sin Límite';
+              const countdownStr = fechaValida ? renderCountdown(fechaObj.getTime()) : '';
+              const isClosed = fechaValida && new Date() > fechaObj;
 
               // Lógica Asistencias (Calculada antes para usar en Tarea y Examen)
               const asistenciasRequeridas = (item.tomaAsistencia !== false) ? 2 : 1;
@@ -12258,7 +12295,10 @@ const diffMins = Math.floor(diffMs / 60000);
                   <td>${index + 1}</td>
                   <td>${item.titulo}</td>
                   <td>${new Date(item.creado).toLocaleDateString()}</td>
-                  <td><span style="font-size:12px; color:${isClosed && !tareaOk ? '#EF4444' : '#FFF'}">${fechaCierreStr}</span></td>
+                  <td>
+                    <div style="font-size:12px; color:${isClosed && !tareaOk ? '#EF4444' : '#FFF'}">${fechaCierreStr}</div>
+                    ${fechaValida ? `<div class="countdown-tarea" data-deadline-ms="${fechaObj.getTime()}" style="font-size:11px; margin-top:3px; color:${isClosed ? '#EF4444' : '#94A3B8'};">${countdownStr}</div>` : ''}
+                  </td>
                   <td>${item.asistencias.length}</td>
                   <td style="text-align:center;">
                       ${estadoTareaHtml}
@@ -12278,6 +12318,10 @@ const diffMins = Math.floor(diffMs / 60000);
               </tr>`;
               tbody.insertAdjacentHTML('beforeend', row);
           });
+
+              actualizarCountdownTablaTareas();
+              if (window.__countdownTareasInterval) clearInterval(window.__countdownTareasInterval);
+              window.__countdownTareasInterval = setInterval(actualizarCountdownTablaTareas, 1000);
       } catch(e) {
           console.error(e);
           tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:red;">Error al cargar datos. Intenta recargar.</td></tr>';
@@ -13282,9 +13326,11 @@ const diffMins = Math.floor(diffMs / 60000);
                   esAprobado = false;
               }
               
-              // Validar Fecha Cierre (Solo afecta estado textual, no lógica interna de notas)
-              const fechaObj = item.fechaCierre ? new Date(item.fechaCierre) : null;
-              const isClosed = fechaObj && new Date() > fechaObj;
+              // Validar Fecha límite (Solo afecta estado textual, no lógica interna de notas)
+              const fechaLimiteRaw = item.fechaLimiteTarea || (item.configTarea && item.configTarea.fechaFin) || item.fechaCierre || null;
+              const fechaObj = fechaLimiteRaw ? new Date(fechaLimiteRaw) : null;
+              const fechaValida = fechaObj && !Number.isNaN(fechaObj.getTime());
+              const isClosed = fechaValida && new Date() > fechaObj;
               
               if (!esAprobado) {
                  // Prioridad de estados negativos

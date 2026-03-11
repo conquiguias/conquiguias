@@ -12790,7 +12790,9 @@ const diffMins = Math.floor(diffMs / 60000);
   function renderTablaEntregas() {
       const container = document.getElementById('listaEntregasContainer');
       // Filtramos solo entregados o calificados
-      const entregas = Object.entries(entregasCurrentForm).filter(([k,v]) => v.estado === 'entregado' || v.estado === 'calificado');
+      const entregas = Object.entries(entregasCurrentForm)
+        .filter(([k,v]) => v.estado === 'entregado' || v.estado === 'calificado')
+        .sort(([, a], [, b]) => new Date(b?.fecha || 0).getTime() - new Date(a?.fecha || 0).getTime());
       
       if(entregas.length === 0) {
           container.innerHTML = '<div style="background:var(--bg-card); padding:30px; border-radius:12px; text-align:center;"><h3>No hay entregas aún.</h3></div>';
@@ -13706,7 +13708,8 @@ const diffMins = Math.floor(diffMs / 60000);
       const container = document.getElementById('listaEntregasContainer');
       if(!container) return;
       
-      const entregas = Object.entries(currentEntregasData || {});
+      const entregas = Object.entries(currentEntregasData || {})
+        .sort(([, a], [, b]) => new Date(b?.fecha || 0).getTime() - new Date(a?.fecha || 0).getTime());
       container.style.display = 'block'; 
       
       if(entregas.length === 0) {

@@ -1005,7 +1005,11 @@
         return;
       }
 
-      const configRes = await fetch('/api/auth?action=getFirebaseConfig');
+      const configRes = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get-config' })
+      });
       if (!configRes.ok) {
         showState('No se pudo cargar la configuración.');
         return;

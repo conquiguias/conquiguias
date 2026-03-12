@@ -1423,6 +1423,16 @@
       color: var(--accent-color);
     }
 
+    .post-action-link.disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+      color: var(--text-secondary);
+    }
+
+    .post-action-link.disabled:hover {
+      color: var(--text-secondary);
+    }
+
     .post-actions-separator {
       color: var(--text-secondary);
       opacity: 0.7;
@@ -5132,6 +5142,16 @@
       // 🔹 Detectar usuario logueado
       onAuthStateChanged(auth, async (user) => {
         if (!user) {
+          if (window.isSharedPostMode) {
+            window.currentUserId = null;
+            currentUserId = null;
+            window.userData = null;
+            userData = null;
+            window.isGuestSharedView = true;
+            applySharedPostLayout();
+            await loadSharedPostById(window.sharedPostIdFromUrl);
+            return;
+          }
           // Usuario NO autenticado - redirigir al login
           console.log("[WARNING] Acceso denegado: usuario no autenticado");
           window.location.href = "index.html";
@@ -5290,7 +5310,11 @@
           lastPostTime = null;
         }
 
-        if (!inicioSection.classList.contains('hidden')) {
+        if (window.isSharedPostMode) {
+          window.isGuestSharedView = false;
+          applySharedPostLayout();
+          await loadSharedPostById(window.sharedPostIdFromUrl);
+        } else if (!inicioSection.classList.contains('hidden')) {
           setTimeout(() => {
             initializeSocialNetwork();
           }, 500);
@@ -7640,6 +7664,12 @@ const progressText = document.getElementById('progressText');
 const uploadBtn = document.getElementById('uploadBtn');
 const countdownTimer = document.getElementById('countdownTimer');
 const feed = document.getElementById('feed');
+const queryParams = new URLSearchParams(window.location.search);
+const sharedPostIdFromUrl = String(queryParams.get('post') || '').trim();
+
+window.sharedPostIdFromUrl = sharedPostIdFromUrl;
+window.isSharedPostMode = sharedPostIdFromUrl.length > 0;
+window.isGuestSharedView = false;
 
 const IMGUR_URL_REGEX = /^https?:\/\/i\.imgur\.com\//i;
 const IMGUR_IMAGE_PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
@@ -7684,6 +7714,116 @@ function getVideoBlurBackgroundUrl(post) {
   }
 
   return '';
+}
+
+function getSharedPostLink(postId) {
+  const resolvedPostId = String(postId || '').trim();
+  if (!resolvedPostId) return window.location.href;
+  const shareUrl = new URL(window.location.href);
+  shareUrl.search = '';
+  shareUrl.hash = '';
+  shareUrl.searchParams.set('post', resolvedPostId);
+  return shareUrl.toString();
+}
+
+async function copyTextToClipboard(text) {
+  if (navigator?.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const helper = document.createElement('textarea');
+  helper.value = text;
+  helper.setAttribute('readonly', 'readonly');
+  helper.style.position = 'fixed';
+  helper.style.opacity = '0';
+  helper.style.pointerEvents = 'none';
+  document.body.appendChild(helper);
+  helper.select();
+  document.execCommand('copy');
+  document.body.removeChild(helper);
+}
+
+function applySharedPostLayout() {
+  const sidebar = document.getElementById('sidebar');
+  const userHeader = document.getElementById('userHeader');
+  const mainContent = document.getElementById('mainContent');
+  const floatingUploadBtn = document.getElementById('floatingUploadBtn');
+  const uploadModal = document.getElementById('uploadModal');
+  const sectionIds = [
+    'clubesSection',
+    'grabacionesSection',
+    'especialidadesSection',
+    'perfilSection',
+    'certificacionesSection',
+    'tareasExamenesSection',
+    'instructorSection',
+    'adminSection'
+  ];
+
+  if (sidebar) sidebar.style.display = 'none';
+  if (userHeader) userHeader.style.display = 'none';
+  if (floatingUploadBtn) floatingUploadBtn.style.display = 'none';
+  if (uploadModal) uploadModal.classList.add('hiddenX');
+
+  sectionIds.forEach((id) => {
+    const section = document.getElementById(id);
+    if (section) section.classList.add('hidden');
+  });
+
+  const inicio = document.getElementById('inicioSection');
+  if (inicio) inicio.classList.remove('hidden');
+
+  const loadingPosts = document.getElementById('loadingPosts');
+  const noMorePosts = document.getElementById('noMorePosts');
+  const scrollSentinel = document.getElementById('scrollSentinel');
+  if (loadingPosts) loadingPosts.classList.add('hidden');
+  if (noMorePosts) noMorePosts.classList.add('hidden');
+  if (scrollSentinel) scrollSentinel.style.display = 'none';
+
+  if (mainContent) {
+    mainContent.scrollTop = 0;
+  }
+}
+
+async function loadSharedPostById(postId) {
+  const resolvedPostId = String(postId || '').trim();
+  if (!resolvedPostId || !feed) return;
+
+  feed.innerHTML = '<div class="empty-feed"><h3>⏳ Cargando post...</h3></div>';
+
+  try {
+    const postRef = doc(db, 'posts', resolvedPostId);
+    const postSnap = await getDoc(postRef);
+
+    if (!postSnap.exists()) {
+      feed.innerHTML = '<div class="empty-feed"><h3>Post no encontrado</h3><p>Verifica el enlace compartido.</p></div>';
+      return;
+    }
+
+    const postData = postSnap.data() || {};
+    const isPostOwner = !!window.currentUserId && postData.userId === window.currentUserId;
+    const canViewNotApproved = !!window.isAdmin || !!window.isOwner || isPostOwner;
+
+    if (postData.status !== 'approved' && !canViewNotApproved) {
+      feed.innerHTML = '<div class="empty-feed"><h3>Post no disponible</h3><p>Este post no está público en este momento.</p></div>';
+      return;
+    }
+
+    if (window._clapprPlayers) {
+      Object.values(window._clapprPlayers).forEach(p => { try { p.destroy(); } catch(e) {} });
+      window._clapprPlayers = {};
+    }
+
+    feed.innerHTML = '';
+    displayPost({ ...postData, id: postSnap.id }, postSnap.id, feed);
+    setTimeout(() => {
+      inicializarSistemaVideos();
+    }, 100);
+  } catch (error) {
+    console.error('❌ Error cargando post compartido:', error);
+    feed.innerHTML = `<div class="empty-feed"><h3>Error al cargar</h3><p>${error.message || 'Intenta nuevamente más tarde.'}</p></div>`;
+  }
 }
 
 function wait(ms) {
@@ -7858,6 +7998,11 @@ console.log('🚀 Inicializando red social...');
 const firestoreReady = await initializeFirestore();
 if (!firestoreReady) {
 mostrarMensaje('error', 'Error de conexión', 'No se pudo conectar con la base de datos.');
+return;
+}
+
+if (window.isSharedPostMode) {
+await loadSharedPostById(window.sharedPostIdFromUrl);
 return;
 }
 
@@ -8472,6 +8617,10 @@ const diffMins = Math.floor(diffMs / 60000);
   // 🔹 CARGA INICIAL DE PUBLICACIONES (Modificada para scroll infinito)
   async function loadPosts() {
     agregarLogFirestore('loadPosts');
+    if (window.isSharedPostMode) {
+      await loadSharedPostById(window.sharedPostIdFromUrl);
+      return;
+    }
     // 🔒 Protección contra llamadas simultáneas
     if (postsLoading) {
       console.log('⏳ LoadPosts ya en ejecución, ignorando...');
@@ -8680,7 +8829,12 @@ const diffMins = Math.floor(diffMs / 60000);
             const userActiveReaction = Object.keys(userReactions).find(
             reaction => userReactions[reaction]
             );
+            const isGuestSharedView = !!window.isGuestSharedView;
             const isSevenEnabled = isSevenReactionEnabled();
+            const sevenDisabledForContext = isGuestSharedView || !isSevenEnabled;
+            const sevenDisabledTitle = isGuestSharedView
+              ? 'Inicia sesión para reaccionar'
+              : 'Se activa los días sábados.';
             const videoBlurBackgroundUrl = getVideoBlurBackgroundUrl(post);
 
             postElement.innerHTML = `
@@ -8736,24 +8890,24 @@ const diffMins = Math.floor(diffMs / 60000);
 
             <div class="post-actions">
               <div class="post-actions-left">
-                <button class="reaction-btn ${userReactions.like ? 'active' : ''}" data-reaction="like"
-                  data-postid="${firestorePostId}">
+                <button class="reaction-btn ${userReactions.like ? 'active' : ''} ${isGuestSharedView ? 'disabled' : ''}" data-reaction="like"
+                  data-postid="${firestorePostId}" ${isGuestSharedView ? 'aria-disabled="true" title="Inicia sesión para reaccionar"' : ''}>
                   <i class="fas fa-heart"></i> <span class="reaction-count">${formatReactionCount(reactions.like?.length || 0)}</span>
                 </button>
 
-                <button class="reaction-btn ${userReactions.laugh ? 'active' : ''}" data-reaction="laugh"
-                  data-postid="${firestorePostId}">
+                <button class="reaction-btn ${userReactions.laugh ? 'active' : ''} ${isGuestSharedView ? 'disabled' : ''}" data-reaction="laugh"
+                  data-postid="${firestorePostId}" ${isGuestSharedView ? 'aria-disabled="true" title="Inicia sesión para reaccionar"' : ''}>
                   <i class="fas fa-grin-squint-tears"></i> <span class="reaction-count">${formatReactionCount(reactions.laugh?.length || 0)}</span>
                 </button>
 
-                <button class="reaction-btn ${userReactions.seven ? 'active' : ''} ${isSevenEnabled ? '' : 'disabled'}" data-reaction="seven"
-                  data-postid="${firestorePostId}" ${isSevenEnabled ? '' : 'aria-disabled="true"'} title="${isSevenEnabled ? 'Reacción 7 disponible' : 'Se activa los días sábados.'}">
+                <button class="reaction-btn ${userReactions.seven ? 'active' : ''} ${sevenDisabledForContext ? 'disabled' : ''}" data-reaction="seven"
+                  data-postid="${firestorePostId}" ${sevenDisabledForContext ? 'aria-disabled="true"' : ''} title="${sevenDisabledForContext ? sevenDisabledTitle : 'Reacción 7 disponible'}">
                   <span style="font-weight: bold; font-size: 16px;">7</span> <span class="reaction-count">${formatReactionCount(reactions.seven?.length || 0)}</span>
                 </button>
               </div>
 
               <div class="post-actions-right">
-                <button class="post-action-link comments-btn" type="button" data-postid="${firestorePostId}" data-renderid="${renderPostId}">
+                <button class="post-action-link comments-btn ${isGuestSharedView ? 'disabled' : ''}" type="button" data-postid="${firestorePostId}" data-renderid="${renderPostId}" ${isGuestSharedView ? 'aria-disabled="true" title="Inicia sesión para comentar"' : ''}>
                   <i class="fas fa-comment"></i> <span class="comments-label">Comentarios</span>
                   <span class="comments-count">${formatReactionCount((post.comments || []).length)}</span>
                 </button>
@@ -9040,6 +9194,7 @@ const diffMins = Math.floor(diffMs / 60000);
 
                               function getCommentsPanelMarkup(postId, comments = []) {
                                 const normalized = Array.isArray(comments) ? comments : [];
+                                const isGuestSharedView = !!window.isGuestSharedView;
 
                                 const commentsHTML = normalized.length
                                   ? normalized
@@ -9073,10 +9228,12 @@ const diffMins = Math.floor(diffMs / 60000);
                                       <span>${formatReactionCount(normalized.length)}</span>
                                     </div>
                                     <div class="comments-list">${commentsHTML}</div>
-                                    <form class="comment-form" data-postid="${postId}">
+                                    ${isGuestSharedView
+                                      ? '<div class="comment-empty">Inicia sesión para comentar en este post.</div>'
+                                      : `<form class="comment-form" data-postid="${postId}">
                                       <input class="comment-input" type="text" maxlength="300" placeholder="Escribe un comentario..." required>
                                       <button class="comment-submit-btn" type="submit">Enviar</button>
-                                    </form>
+                                    </form>`}
                                   </div>
                                 `;
                               }
@@ -9321,6 +9478,11 @@ const diffMins = Math.floor(diffMs / 60000);
                                 const form = event.target.closest('.comment-form');
                                 if (!form) return;
 
+                                if (window.isGuestSharedView) {
+                                  event.preventDefault();
+                                  return;
+                                }
+
                                 event.preventDefault();
                                 const postId = form.getAttribute('data-postid');
                                 const input = form.querySelector('.comment-input');
@@ -9445,6 +9607,11 @@ const diffMins = Math.floor(diffMs / 60000);
                               if (e.target.classList.contains('reaction-btn') || e.target.closest('.reaction-btn')) {
                               const btn = e.target.classList.contains('reaction-btn') ? e.target :
                               e.target.closest('.reaction-btn');
+
+                              if (!btn || btn.classList.contains('disabled') || btn.getAttribute('aria-disabled') === 'true') {
+                              return;
+                              }
+
                               const reaction = btn.getAttribute('data-reaction');
                               const postId = btn.getAttribute('data-postid');
 
@@ -9458,6 +9625,11 @@ const diffMins = Math.floor(diffMs / 60000);
                               if (e.target.classList.contains('comments-btn') || e.target.closest('.comments-btn')) {
                               const btn = e.target.classList.contains('comments-btn') ? e.target :
                               e.target.closest('.comments-btn');
+
+                              if (!btn || btn.classList.contains('disabled') || btn.getAttribute('aria-disabled') === 'true') {
+                              return;
+                              }
+
                               const postId = btn.getAttribute('data-postid');
                               const renderId = btn.getAttribute('data-renderid') || postId;
                               const commentsSide = document.getElementById(`post-comments-side-${renderId}`);
@@ -9496,7 +9668,18 @@ const diffMins = Math.floor(diffMs / 60000);
                               }
 
                               if (e.target.classList.contains('share-btn') || e.target.closest('.share-btn')) {
-                              mostrarMensaje('info', 'Compartir', 'Próximamente estará disponible compartir publicaciones.');
+                              const btn = e.target.classList.contains('share-btn') ? e.target :
+                              e.target.closest('.share-btn');
+                              const postId = btn ? btn.getAttribute('data-postid') : '';
+                              const enlace = getSharedPostLink(postId);
+
+                              try {
+                              await copyTextToClipboard(enlace);
+                              mostrarMensaje('success', 'Enlace copiado', 'Comparte este enlace único del post.');
+                              } catch (shareError) {
+                              console.error('Error copiando enlace:', shareError);
+                              mostrarMensaje('info', 'Enlace del post', `<a href="${enlace}" target="_blank" rel="noopener noreferrer">${enlace}</a>`);
+                              }
                               }
 
                               // Manejar eliminación de posts

@@ -5132,6 +5132,9 @@
       function applyGuestNavigationState(isGuest) {
         const allowedMenuIds = new Set(['menuInicio', 'menuClubes', 'menuGrabaciones']);
         const guestLockTitle = 'Disponible solo con sesión iniciada';
+        const headerUserPhotoEl = document.getElementById('headerUserPhoto');
+        const headerUserNameEl = document.getElementById('headerUserName');
+        const floatingUploadBtnEl = document.getElementById('floatingUploadBtn');
 
         const sidebarButtons = sidebar
           ? Array.from(sidebar.querySelectorAll('button'))
@@ -5160,6 +5163,16 @@
           logoutBtn.innerHTML = isGuest
             ? '<i class="fas fa-sign-in-alt" style="margin-right: 8px;"></i> Ir a iniciar sesión'
             : '<i class="fas fa-sign-out-alt" style="margin-right: 8px;"></i> Cerrar sesión';
+        }
+
+        if (headerUserPhotoEl) headerUserPhotoEl.style.display = isGuest ? 'none' : '';
+        if (headerUserNameEl) headerUserNameEl.style.display = isGuest ? 'none' : '';
+        if (floatingUploadBtnEl) {
+          if (isGuest) {
+            floatingUploadBtnEl.style.display = 'none';
+          } else if (!inicioSection.classList.contains('hidden')) {
+            floatingUploadBtnEl.style.display = 'flex';
+          }
         }
 
         if (!isGuest) return;
@@ -7994,7 +8007,7 @@ await loadPosts(); // Esto ahora carga solo el primer lote
 inicializarSistemaVideos();
 console.log('✅ Red social inicializada correctamente');
 // Inicializar el botón flotante
-if (!inicioSection.classList.contains('hidden')) {
+if (!isGuestSession && !inicioSection.classList.contains('hidden')) {
 floatingUploadBtn.style.display = 'flex';
 }
 }
@@ -8772,6 +8785,7 @@ const diffMins = Math.floor(diffMs / 60000);
             const isPostOwner = (!!currentUserId && post.userId === currentUserId) ||
               (!!currentUserEmail && !!postUserEmail && postUserEmail === currentUserEmail);
             const isLocalPost = post.source === 'local';
+            const isGuestUser = !!isGuestSession;
 
             // Preparar reacciones (con valores por defecto si no existen)
             const reactions = post.reactions || {
@@ -8862,24 +8876,24 @@ const diffMins = Math.floor(diffMs / 60000);
 
             <div class="post-actions">
               <div class="post-actions-left">
-                <button class="reaction-btn ${userReactions.like ? 'active' : ''}" data-reaction="like"
-                  data-postid="${firestorePostId}">
+                <button class="reaction-btn ${userReactions.like ? 'active' : ''} ${isGuestUser ? 'disabled' : ''}" data-reaction="like"
+                  data-postid="${firestorePostId}" ${isGuestUser ? 'aria-disabled="true" title="Inicia sesión para reaccionar"' : ''}>
                   <i class="fas fa-heart"></i> <span class="reaction-count">${formatReactionCount(reactions.like?.length || 0)}</span>
                 </button>
 
-                <button class="reaction-btn ${userReactions.laugh ? 'active' : ''}" data-reaction="laugh"
-                  data-postid="${firestorePostId}">
+                <button class="reaction-btn ${userReactions.laugh ? 'active' : ''} ${isGuestUser ? 'disabled' : ''}" data-reaction="laugh"
+                  data-postid="${firestorePostId}" ${isGuestUser ? 'aria-disabled="true" title="Inicia sesión para reaccionar"' : ''}>
                   <i class="fas fa-grin-squint-tears"></i> <span class="reaction-count">${formatReactionCount(reactions.laugh?.length || 0)}</span>
                 </button>
 
-                <button class="reaction-btn ${userReactions.seven ? 'active' : ''} ${isSevenEnabled ? '' : 'disabled'}" data-reaction="seven"
-                  data-postid="${firestorePostId}" ${isSevenEnabled ? '' : 'aria-disabled="true"'} title="${isSevenEnabled ? 'Reacción 7 disponible' : 'Se activa los días sábados.'}">
+                <button class="reaction-btn ${userReactions.seven ? 'active' : ''} ${(isSevenEnabled && !isGuestUser) ? '' : 'disabled'}" data-reaction="seven"
+                  data-postid="${firestorePostId}" ${(isSevenEnabled && !isGuestUser) ? '' : 'aria-disabled="true"'} title="${isGuestUser ? 'Inicia sesión para reaccionar' : (isSevenEnabled ? 'Reacción 7 disponible' : 'Se activa los días sábados.')}">
                   <span style="font-weight: bold; font-size: 16px;">7</span> <span class="reaction-count">${formatReactionCount(reactions.seven?.length || 0)}</span>
                 </button>
               </div>
 
               <div class="post-actions-right">
-                <button class="post-action-link comments-btn" type="button" data-postid="${firestorePostId}" data-renderid="${renderPostId}">
+                <button class="post-action-link comments-btn ${isGuestUser ? 'disabled' : ''}" type="button" data-postid="${firestorePostId}" data-renderid="${renderPostId}" ${isGuestUser ? 'aria-disabled="true" title="Inicia sesión para comentar"' : ''}>
                   <i class="fas fa-comment"></i> <span class="comments-label">Comentarios</span>
                   <span class="comments-count">${formatReactionCount((post.comments || []).length)}</span>
                 </button>
@@ -9199,10 +9213,12 @@ const diffMins = Math.floor(diffMs / 60000);
                                       <span>${formatReactionCount(normalized.length)}</span>
                                     </div>
                                     <div class="comments-list">${commentsHTML}</div>
-                                    <form class="comment-form" data-postid="${postId}">
-                                      <input class="comment-input" type="text" maxlength="300" placeholder="Escribe un comentario..." required>
-                                      <button class="comment-submit-btn" type="submit">Enviar</button>
-                                    </form>
+                                    ${isGuestSession
+                                      ? '<div class="guest-note">Inicia sesión para comentar en este post.</div>'
+                                      : `<form class="comment-form" data-postid="${postId}">
+                                          <input class="comment-input" type="text" maxlength="300" placeholder="Escribe un comentario..." required>
+                                          <button class="comment-submit-btn" type="submit">Enviar</button>
+                                        </form>`}
                                   </div>
                                 `;
                               }
@@ -9236,7 +9252,7 @@ const diffMins = Math.floor(diffMs / 60000);
                               }
 
                               async function submitComment(postId, text) {
-                                if (!currentUserId) {
+                                if (isGuestSession || !currentUserId) {
                                   mostrarMensaje('info', 'Inicia sesión', 'Debes iniciar sesión para comentar.');
                                   return;
                                 }
@@ -9695,7 +9711,7 @@ const diffMins = Math.floor(diffMs / 60000);
                               async function addReaction(postId, newReaction) {
                               try {
                               // Validar que el usuario esté autenticado
-                              if (!currentUserId) {
+                              if (isGuestSession || !currentUserId) {
                               console.error('❌ Usuario no autenticado');
                               mostrarMensaje('info', 'Inicia sesión', 'Debes iniciar sesión para reaccionar.');
                               return;
@@ -11204,7 +11220,7 @@ const diffMins = Math.floor(diffMs / 60000);
                                 }
 
                                 // Mostrar u ocultar botón flotante según la sección
-                                if (seccion === inicioSection) {
+                                if (!isGuestSession && seccion === inicioSection) {
                                 floatingUploadBtn.style.display = 'flex';
                                 } else {
                                 floatingUploadBtn.style.display = 'none';

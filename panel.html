@@ -1392,6 +1392,19 @@
       font-weight: bold;
     }
 
+    .reaction-btn.disabled,
+    .reaction-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .reaction-btn.disabled:hover,
+    .reaction-btn:disabled:hover {
+      background-color: transparent;
+      border-color: transparent;
+      box-shadow: none;
+    }
+
     .post-action-link,
     .share-btn {
       background: none;
@@ -8600,6 +8613,23 @@ const diffMins = Math.floor(diffMs / 60000);
             });
             }
 
+            function isSevenReactionEnabled(now = new Date()) {
+            const day = now.getDay();
+            const hour = now.getHours();
+            const minute = now.getMinutes();
+            const totalMinutes = (hour * 60) + minute;
+
+            if (day === 5) {
+            return totalMinutes >= (17 * 60);
+            }
+
+            if (day === 6) {
+            return totalMinutes <= (18 * 60);
+            }
+
+            return false;
+            }
+
             // 🔹 Mostrar publicación en el feed - VERSIÓN MEJORADA
             // 🔹 Mostrar publicación en el feed - VERSIÓN CON REACCIONES EXCLUSIVAS
             function displayPost(post, postId, targetFeed) {
@@ -8650,6 +8680,7 @@ const diffMins = Math.floor(diffMs / 60000);
             const userActiveReaction = Object.keys(userReactions).find(
             reaction => userReactions[reaction]
             );
+            const isSevenEnabled = isSevenReactionEnabled();
             const videoBlurBackgroundUrl = getVideoBlurBackgroundUrl(post);
 
             postElement.innerHTML = `
@@ -8715,8 +8746,8 @@ const diffMins = Math.floor(diffMs / 60000);
                   <i class="fas fa-grin-squint-tears"></i> <span class="reaction-count">${formatReactionCount(reactions.laugh?.length || 0)}</span>
                 </button>
 
-                <button class="reaction-btn ${userReactions.seven ? 'active' : ''}" data-reaction="seven"
-                  data-postid="${firestorePostId}">
+                <button class="reaction-btn ${userReactions.seven ? 'active' : ''} ${isSevenEnabled ? '' : 'disabled'}" data-reaction="seven"
+                  data-postid="${firestorePostId}" ${isSevenEnabled ? '' : 'aria-disabled="true"'} title="${isSevenEnabled ? 'Reacción 7 disponible' : 'Se activa los días sábados.'}">
                   <span style="font-weight: bold; font-size: 16px;">7</span> <span class="reaction-count">${formatReactionCount(reactions.seven?.length || 0)}</span>
                 </button>
               </div>
@@ -9417,6 +9448,10 @@ const diffMins = Math.floor(diffMs / 60000);
                               const reaction = btn.getAttribute('data-reaction');
                               const postId = btn.getAttribute('data-postid');
 
+                              if (reaction === 'seven' && !isSevenReactionEnabled()) {
+                              return;
+                              }
+
                               await addReaction(postId, reaction);
                               }
 
@@ -9521,6 +9556,10 @@ const diffMins = Math.floor(diffMs / 60000);
 
                               console.log(`🎯 Usuario ${currentUserId} quiere reaccionar con ${newReaction} al post
                               ${postId}`);
+
+                              if (newReaction === 'seven' && !isSevenReactionEnabled()) {
+                              return;
+                              }
 
                               const postRef = doc(db, "posts", postId);
                               const postDoc = await getDoc(postRef);

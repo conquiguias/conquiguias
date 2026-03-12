@@ -4108,11 +4108,12 @@
                            <th style="padding:12px; text-align:center; color:var(--text-primary);">Pendientes</th>
                            <th style="padding:12px; text-align:center; color:var(--text-primary);">Calificadas</th>
                            <th style="padding:12px; text-align:center; color:var(--text-primary);">Total</th>
+                         <th style="padding:12px; text-align:center; color:var(--text-primary);">Asignación</th>
                            <th style="padding:12px; text-align:center; color:var(--text-primary);">Acción</th>
                        </tr>
                    </thead>
                    <tbody id="cuerpoTablaEspecialidadesTareas">
-                       <tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-secondary);">Cargando datos...</td></tr>
+                       <tr><td colspan="6" style="text-align:center; padding:30px; color:var(--text-secondary);">Cargando datos...</td></tr>
                    </tbody>
                </table>
             </div>
@@ -12889,12 +12890,37 @@ const diffMins = Math.floor(diffMs / 60000);
           return;
       }
 
+      const getInstructorAssignmentBySpecialtyId = (specialtyId) => {
+        const normalizedSpecialtyId = String(specialtyId || '').trim();
+        if (!normalizedSpecialtyId) return null;
+
+        const match = Object.values(instructorAssignmentsConfig || {}).find((assignment) => {
+          const specialties = Array.isArray(assignment?.especialidades) ? assignment.especialidades : [];
+          return specialties.some((specialty) => String(specialty?.id || '').trim() === normalizedSpecialtyId);
+        });
+
+        if (!match) return null;
+
+        return {
+          name: String(match?.name || '').trim(),
+          email: String(match?.email || '').trim(),
+        };
+      };
+
       if (!window.isOwner && !window.isInstructorRole) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--error-color);">No tienes permisos para evaluar tareas.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--error-color);">No tienes permisos para evaluar tareas.</td></tr>';
         return;
       }
 
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Cargando tareas pendientes...</td></tr>';
+      if (window.canAccessAdminPanel && (!instructorAssignmentsConfig || Object.keys(instructorAssignmentsConfig).length === 0)) {
+        try {
+          await loadInstructorAssignmentsConfig();
+        } catch (error) {
+          console.warn('[WARN] No se pudo refrescar asignaciones para dashboard:', error);
+        }
+      }
+
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Cargando tareas pendientes...</td></tr>';
 
       try {
           // 1. Cargar Formularios Pendientes
@@ -12909,13 +12935,22 @@ const diffMins = Math.floor(diffMs / 60000);
           tbody.innerHTML = '';
           
           if(pendientes.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--success-color); font-weight:bold;"><i class="fas fa-check-circle" style="font-size:24px; margin-bottom:10px;"></i><br>¡Todo al día! No hay tareas pendientes por calificar.</td></tr>';
+              tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--success-color); font-weight:bold;"><i class="fas fa-check-circle" style="font-size:24px; margin-bottom:10px;"></i><br>¡Todo al día! No hay tareas pendientes por calificar.</td></tr>';
           } else {
               pendientes.forEach(item => {
                   const tr = document.createElement('tr');
                   tr.style.borderBottom = '1px solid var(--border-color)';
                   tr.onmouseover = () => tr.style.background = 'rgba(59,130,246,0.05)';
                   tr.onmouseout = () => tr.style.background = 'transparent';
+                const assignment = getInstructorAssignmentBySpecialtyId(item.id);
+                const assignmentName = assignment?.name || '';
+                const assignmentEmail = assignment?.email || '';
+                const assignmentMarkup = assignmentEmail
+                  ? `<div style="line-height:1.35;">
+                        ${assignmentName ? `<div style="font-weight:600; color:var(--text-primary);">${escapeHtml(assignmentName)}</div>` : ''}
+                        <div style="font-size:12px; color:var(--text-secondary);">${escapeHtml(assignmentEmail)}</div>
+                     </div>`
+                  : '<span style="color:var(--text-secondary);">No asignado</span>';
                   
                   tr.innerHTML = `
                     <td style="padding:15px; font-weight:600;">${item.titulo}</td>
@@ -12930,6 +12965,7 @@ const diffMins = Math.floor(diffMs / 60000);
                         </span>
                     </td>
                     <td style="padding:15px; text-align:center; font-weight:bold; color:var(--text-secondary);">${item.total || 0}</td>
+                      <td style="padding:15px; text-align:center; color:var(--text-secondary); font-weight:500;">${assignmentMarkup}</td>
                     <td style="padding:15px; text-align:center;">
                         <button onclick="verEntregasEspecialidad('${item.id}', '${item.titulo}')" 
                                 style="background:var(--accent-color); color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; font-weight:600; box-shadow:0 2px 4px rgba(0,0,0,0.2);">
@@ -12947,7 +12983,7 @@ const diffMins = Math.floor(diffMs / 60000);
           }
           
       } catch(e) {
-          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red;">Error: ${e.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red;">Error: ${e.message}</td></tr>`;
           console.error("Error cargando tabla dashboard: ", e);
       }
   };

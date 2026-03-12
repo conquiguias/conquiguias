@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Post | Conquiguias World</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: #1e293b;
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --accent-color: #3b82f6;
+      --border-color: #334155;
+      --success-color: #10b981;
+      --warning-color: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+    }
+
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .topbar a {
+      color: var(--accent-color);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .state-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 18px;
+      text-align: center;
+      color: var(--text-secondary);
+    }
+
+    .post-card {
+      border-radius: 14px;
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+      background: var(--bg-card);
+    }
+
+    .post-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px;
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(59,130,246,0.08);
+    }
+
+    .post-user-img {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--accent-color);
+    }
+
+    .post-user-name {
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-admin {
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #facc15;
+      color: #1f2937;
+      font-weight: 700;
+    }
+
+    .post-time {
+      color: var(--text-secondary);
+      font-size: 13px;
+      margin-top: 3px;
+    }
+
+    .post-content {
+      background: #111827;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      max-height: 520px;
+      overflow: hidden;
+    }
+
+    .post-content img,
+    .post-content video {
+      width: 100%;
+      max-height: 520px;
+      object-fit: contain;
+      display: block;
+    }
+
+    .post-description {
+      padding: 12px 14px;
+      white-space: pre-wrap;
+      line-height: 1.45;
+    }
+
+    .post-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      border-top: 1px solid var(--border-color);
+      gap: 10px;
+    }
+
+    .post-actions-left,
+    .post-actions-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .reaction-btn,
+    .post-action-link,
+    .share-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 6px 8px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+    }
+
+    .reaction-btn:hover,
+    .post-action-link:hover,
+    .share-btn:hover {
+      color: var(--accent-color);
+      background: rgba(255,255,255,0.05);
+    }
+
+    .reaction-btn.active {
+      color: var(--accent-color);
+      background: rgba(59,130,246,0.2);
+    }
+
+    .reaction-btn.disabled,
+    .post-action-link.disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .comments-box {
+      border-top: 1px solid var(--border-color);
+      padding: 12px;
+      background: #172036;
+    }
+
+    .comments-head {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-secondary);
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    .comments-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 10px;
+      max-height: 240px;
+      overflow: auto;
+    }
+
+    .comment-item {
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.03);
+    }
+
+    .comment-meta {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-secondary);
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .comment-text {
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 14px;
+    }
+
+    .comment-form {
+      display: flex;
+      gap: 8px;
+    }
+
+    .comment-input {
+      flex: 1;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      padding: 8px 10px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    .comment-submit-btn {
+      border: none;
+      border-radius: 8px;
+      background: var(--accent-color);
+      color: white;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .guest-note {
+      color: var(--warning-color);
+      font-size: 13px;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="topbar">
+      <div id="sessionState">Cargando sesión...</div>
+      <a href="/panel.html">Ir al panel</a>
+    </div>
+
+    <div id="state" class="state-box">Cargando post...</div>
+    <div id="postRoot" style="display:none;"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+
+    const stateEl = document.getElementById('state');
+    const postRoot = document.getElementById('postRoot');
+    const sessionState = document.getElementById('sessionState');
+    const query = new URLSearchParams(window.location.search);
+    const postId = String(query.get('id') || '').trim();
+
+    let db;
+    let auth;
+    let currentUser = null;
+    let currentUserProfile = null;
+    let currentPost = null;
+    let isGuest = true;
+
+    function showState(msg) {
+      stateEl.style.display = 'block';
+      stateEl.textContent = msg;
+      postRoot.style.display = 'none';
+    }
+
+    function escapeHtml(value) {
+      const div = document.createElement('div');
+      div.textContent = value == null ? '' : String(value);
+      return div.innerHTML;
+    }
+
+    function getTimeAgo(dateValue) {
+      const date = new Date(dateValue);
+      if (Number.isNaN(date.getTime())) return 'Fecha desconocida';
+      const diffMs = Date.now() - date.getTime();
+      const min = Math.floor(diffMs / 60000);
+      if (min < 1) return 'Hace unos segundos';
+      if (min < 60) return `Hace ${min} min`;
+      const hr = Math.floor(min / 60);
+      if (hr < 24) return `Hace ${hr} h`;
+      const d = Math.floor(hr / 24);
+      return `Hace ${d} día${d === 1 ? '' : 's'}`;
+    }
+
+    function isSevenReactionEnabled(now = new Date()) {
+      const day = now.getDay();
+      const total = (now.getHours() * 60) + now.getMinutes();
+      if (day === 5) return total >= (17 * 60);
+      if (day === 6) return total <= (18 * 60);
+      return false;
+    }
+
+    function getSharedPostLink(id) {
+      const url = new URL('/post', window.location.origin);
+      url.searchParams.set('id', id);
+      return url.toString();
+    }
+
+    async function copyText(text) {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      const helper = document.createElement('textarea');
+      helper.value = text;
+      helper.setAttribute('readonly', 'readonly');
+      helper.style.position = 'fixed';
+      helper.style.opacity = '0';
+      document.body.appendChild(helper);
+      helper.select();
+      document.execCommand('copy');
+      document.body.removeChild(helper);
+    }
+
+    function normalizeReactions(reactions = {}) {
+      return {
+        like: Array.isArray(reactions.like) ? reactions.like : [],
+        laugh: Array.isArray(reactions.laugh) ? reactions.laugh : [],
+        seven: Array.isArray(reactions.seven) ? reactions.seven : []
+      };
+    }
+
+    function renderPost(post) {
+      const reactions = normalizeReactions(post.reactions || {});
+      const userId = currentUser?.uid || '';
+      const sevenEnabled = isSevenReactionEnabled();
+      const sevenBlocked = !sevenEnabled || isGuest;
+      const userLike = reactions.like.includes(userId);
+      const userLaugh = reactions.laugh.includes(userId);
+      const userSeven = reactions.seven.includes(userId);
+      const comments = Array.isArray(post.comments) ? post.comments : [];
+
+      const mediaHtml = (post.mediaType || '').startsWith('image/')
+        ? `<img src="${escapeHtml(post.mediaUrl || '')}" alt="Post" onerror="this.closest('.post-content').innerHTML='<div style=\"padding:20px;color:#94a3b8;\">Imagen no disponible</div>'">`
+        : ((post.mediaType === 'video/url' || String(post.mediaType || '').startsWith('video/'))
+          ? `<video src="${escapeHtml(post.mediaUrl || '')}" controls preload="metadata"></video>`
+          : `<div style="padding:20px;color:#94a3b8;">Contenido no compatible</div>`);
+
+      const commentsHtml = comments.length
+        ? comments
+            .slice()
+            .sort((a, b) => new Date(a?.createdAt || 0) - new Date(b?.createdAt || 0))
+            .map((c) => `
+              <div class="comment-item">
+                <div class="comment-meta">
+                  <span>${escapeHtml(c?.userName || 'Usuario')}</span>
+                  <span>${getTimeAgo(c?.createdAt)}</span>
+                </div>
+                <div class="comment-text">${escapeHtml(c?.text || '')}</div>
+              </div>
+            `)
+            .join('')
+        : '<div class="comment-item"><div class="comment-text">Aún no hay comentarios.</div></div>';
+
+      postRoot.innerHTML = `
+        <article class="post-card" data-postid="${post.id}">
+          <header class="post-header">
+            <img src="${escapeHtml(post.userPhoto || 'https://dummyimage.com/40x40/ccc/fff')}" class="post-user-img" alt="Autor" onerror="this.src='https://dummyimage.com/40x40/ccc/fff'">
+            <div>
+              <div class="post-user-name">
+                ${escapeHtml(post.userName || 'Usuario')}
+                ${String(post.userEmail || '').toLowerCase() === 'proyectoja1122@gmail.com' ? '<span class="status-admin">Admin</span>' : ''}
+              </div>
+              <div class="post-time">${getTimeAgo(post.timestamp)}</div>
+            </div>
+          </header>
+
+          <div class="post-content">${mediaHtml}</div>
+          <div class="post-description">${escapeHtml(post.description || '')}</div>
+
+          <div class="post-actions">
+            <div class="post-actions-left">
+              <button class="reaction-btn ${userLike ? 'active' : ''} ${isGuest ? 'disabled' : ''}" data-reaction="like" title="${isGuest ? 'Inicia sesión para reaccionar' : 'Me gusta'}">
+                <i class="fas fa-heart"></i> <span>${reactions.like.length}</span>
+              </button>
+              <button class="reaction-btn ${userLaugh ? 'active' : ''} ${isGuest ? 'disabled' : ''}" data-reaction="laugh" title="${isGuest ? 'Inicia sesión para reaccionar' : 'Me divierte'}">
+                <i class="fas fa-grin-squint-tears"></i> <span>${reactions.laugh.length}</span>
+              </button>
+              <button class="reaction-btn ${userSeven ? 'active' : ''} ${sevenBlocked ? 'disabled' : ''}" data-reaction="seven" title="${isGuest ? 'Inicia sesión para reaccionar' : (sevenEnabled ? 'Reacción 7 disponible' : 'Se activa los días sábados.')}">
+                <strong>7</strong> <span>${reactions.seven.length}</span>
+              </button>
+            </div>
+
+            <div class="post-actions-right">
+              <button class="post-action-link ${isGuest ? 'disabled' : ''}" id="commentsBtn" title="${isGuest ? 'Inicia sesión para comentar' : 'Comentarios'}">
+                <i class="fas fa-comment"></i> Comentarios ${comments.length}
+              </button>
+              <button class="share-btn" id="shareBtn" title="Compartir">
+                <i class="fas fa-share-alt"></i>
+              </button>
+            </div>
+          </div>
+
+          <section class="comments-box" id="commentsBox" style="display:none;">
+            <div class="comments-head">
+              <span>Comentarios</span>
+              <span>${comments.length}</span>
+            </div>
+            <div class="comments-list">${commentsHtml}</div>
+            ${isGuest
+              ? '<div class="guest-note">Inicia sesión para comentar en este post.</div>'
+              : `<form class="comment-form" id="commentForm">
+                  <input class="comment-input" id="commentInput" type="text" maxlength="300" placeholder="Escribe un comentario..." required>
+                  <button class="comment-submit-btn" type="submit">Enviar</button>
+                </form>`}
+          </section>
+        </article>
+      `;
+
+      postRoot.style.display = 'block';
+      stateEl.style.display = 'none';
+
+      document.getElementById('shareBtn')?.addEventListener('click', async () => {
+        const link = getSharedPostLink(post.id);
+        await copyText(link);
+        alert('✅ Enlace copiado');
+      });
+
+      document.getElementById('commentsBtn')?.addEventListener('click', () => {
+        if (isGuest) return;
+        const commentsBox = document.getElementById('commentsBox');
+        commentsBox.style.display = commentsBox.style.display === 'none' ? 'block' : 'none';
+      });
+
+      postRoot.querySelectorAll('.reaction-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          if (btn.classList.contains('disabled')) return;
+          const reaction = btn.getAttribute('data-reaction');
+          await toggleReaction(reaction);
+        });
+      });
+
+      document.getElementById('commentForm')?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const input = document.getElementById('commentInput');
+        const text = String(input?.value || '').trim();
+        if (!text) return;
+        await addComment(text);
+        input.value = '';
+      });
+    }
+
+    async function toggleReaction(newReaction) {
+      if (!currentUser || !currentPost) return;
+      if (newReaction === 'seven' && !isSevenReactionEnabled()) return;
+
+      const postRef = doc(db, 'posts', currentPost.id);
+      const snap = await getDoc(postRef);
+      if (!snap.exists()) return;
+
+      const data = snap.data();
+      const reactions = normalizeReactions(data.reactions || {});
+      const allTypes = ['like', 'laugh', 'seven'];
+      const uid = currentUser.uid;
+
+      const hadSame = reactions[newReaction].includes(uid);
+      if (hadSame) {
+        reactions[newReaction] = reactions[newReaction].filter((id) => id !== uid);
+      } else {
+        allTypes.forEach((type) => {
+          reactions[type] = reactions[type].filter((id) => id !== uid);
+        });
+        reactions[newReaction].push(uid);
+      }
+
+      await updateDoc(postRef, { reactions });
+      currentPost = { ...data, id: snap.id, reactions };
+      renderPost(currentPost);
+    }
+
+    async function addComment(text) {
+      if (!currentUser || !currentPost) return;
+
+      const postRef = doc(db, 'posts', currentPost.id);
+      const snap = await getDoc(postRef);
+      if (!snap.exists()) return;
+      const data = snap.data() || {};
+      const comments = Array.isArray(data.comments) ? data.comments : [];
+
+      comments.push({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        userId: currentUser.uid,
+        userName: `${currentUserProfile?.nombre || ''} ${currentUserProfile?.apellido || ''}`.trim() || currentUser.displayName || 'Usuario',
+        text,
+        createdAt: new Date().toISOString()
+      });
+
+      await updateDoc(postRef, { comments });
+      currentPost = { ...data, id: snap.id, comments };
+      renderPost(currentPost);
+      const commentsBox = document.getElementById('commentsBox');
+      if (commentsBox) commentsBox.style.display = 'block';
+    }
+
+    async function loadPostById(id) {
+      const ref = doc(db, 'posts', id);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) {
+        showState('Post no encontrado.');
+        return;
+      }
+
+      const data = snap.data() || {};
+      const isOwner = !!currentUser && data.userId === currentUser.uid;
+      if (data.status !== 'approved' && !isOwner) {
+        showState('Este post no está disponible públicamente.');
+        return;
+      }
+
+      currentPost = { ...data, id: snap.id };
+      renderPost(currentPost);
+    }
+
+    async function initialize() {
+      if (!postId) {
+        showState('Falta el parámetro id del post.');
+        return;
+      }
+
+      const configRes = await fetch('/api/auth?action=getFirebaseConfig');
+      if (!configRes.ok) {
+        showState('No se pudo cargar la configuración.');
+        return;
+      }
+
+      const firebaseConfig = await configRes.json();
+      const app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+      auth = getAuth(app);
+
+      onAuthStateChanged(auth, async (user) => {
+        currentUser = user;
+        isGuest = !user;
+
+        if (isGuest) {
+          sessionState.textContent = 'Modo invitado';
+          currentUserProfile = null;
+        } else {
+          sessionState.textContent = `Sesión: ${user.email || 'usuario autenticado'}`;
+          try {
+            const profileSnap = await getDoc(doc(db, 'usuarios', user.uid));
+            currentUserProfile = profileSnap.exists() ? (profileSnap.data() || {}) : null;
+          } catch {
+            currentUserProfile = null;
+          }
+        }
+
+        await loadPostById(postId);
+      });
+    }
+
+    initialize().catch((error) => {
+      console.error(error);
+      showState('Error al inicializar la página del post.');
+    });
+  </script>
+</body>
+</html>

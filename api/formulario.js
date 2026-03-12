@@ -279,6 +279,32 @@ async function handleListarFormulariosPendientes(req, res) {
     .select("especialidad_id, contenido_tareas");
   if (error) throw error;
 
+  const { data: respuestasData, error: respuestasError } = await supabase
+    .from("respuestas")
+    .select("especialidad_id, contenido_respuestas");
+  if (respuestasError) throw respuestasError;
+
+  const asistieronPrimeraPorEspecialidad = {};
+  if (respuestasData) {
+    respuestasData.forEach((item) => {
+      const registros = Array.isArray(item?.contenido_respuestas)
+        ? item.contenido_respuestas
+        : [];
+      const asistentesUnicos = new Set();
+
+      registros.forEach((registro) => {
+        if (Number(registro?.asistenciaNumero) !== 1) return;
+        const correo = normalizeEmail(registro?.correo || "");
+        const visitanteId = String(registro?.visitanteId || "").trim();
+        const uniqueKey = correo || visitanteId;
+        if (!uniqueKey) return;
+        asistentesUnicos.add(uniqueKey);
+      });
+
+      asistieronPrimeraPorEspecialidad[item?.especialidad_id] = asistentesUnicos.size;
+    });
+  }
+
   // Necesitamos el título desde formularios
   const { data: formData } = await supabase
     .from("formularios")
@@ -310,6 +336,7 @@ async function handleListarFormulariosPendientes(req, res) {
         pendientes.push({
           id: item.especialidad_id,
           titulo: titulos[item.especialidad_id] || item.especialidad_id,
+          asistieron: asistieronPrimeraPorEspecialidad[item.especialidad_id] || 0,
           pendientes: count,
           calificadas: calificadas,
           total: total

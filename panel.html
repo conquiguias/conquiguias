@@ -4105,6 +4105,7 @@
                    <thead style="background:rgba(59,130,246,0.1);">
                        <tr>
                            <th style="padding:12px; text-align:left; color:var(--text-primary);">Especialidad</th>
+                         <th style="padding:12px; text-align:center; color:var(--text-primary);">Asistieron</th>
                            <th style="padding:12px; text-align:center; color:var(--text-primary);">Pendientes</th>
                            <th style="padding:12px; text-align:center; color:var(--text-primary);">Calificadas</th>
                            <th style="padding:12px; text-align:center; color:var(--text-primary);">Total</th>
@@ -4113,7 +4114,7 @@
                        </tr>
                    </thead>
                    <tbody id="cuerpoTablaEspecialidadesTareas">
-                       <tr><td colspan="6" style="text-align:center; padding:30px; color:var(--text-secondary);">Cargando datos...</td></tr>
+                       <tr><td colspan="7" style="text-align:center; padding:30px; color:var(--text-secondary);">Cargando datos...</td></tr>
                    </tbody>
                </table>
             </div>
@@ -12908,7 +12909,7 @@ const diffMins = Math.floor(diffMs / 60000);
       };
 
       if (!window.isOwner && !window.isInstructorRole) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--error-color);">No tienes permisos para evaluar tareas.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--error-color);">No tienes permisos para evaluar tareas.</td></tr>';
         return;
       }
 
@@ -12920,7 +12921,7 @@ const diffMins = Math.floor(diffMs / 60000);
         }
       }
 
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Cargando tareas pendientes...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--text-secondary);"><i class="fas fa-spinner fa-spin"></i> Cargando tareas pendientes...</td></tr>';
 
       try {
           // 1. Cargar Formularios Pendientes
@@ -12935,7 +12936,7 @@ const diffMins = Math.floor(diffMs / 60000);
           tbody.innerHTML = '';
           
           if(pendientes.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--success-color); font-weight:bold;"><i class="fas fa-check-circle" style="font-size:24px; margin-bottom:10px;"></i><br>¡Todo al día! No hay tareas pendientes por calificar.</td></tr>';
+              tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--success-color); font-weight:bold;"><i class="fas fa-check-circle" style="font-size:24px; margin-bottom:10px;"></i><br>¡Todo al día! No hay tareas pendientes por calificar.</td></tr>';
           } else {
               pendientes.forEach(item => {
                   const tr = document.createElement('tr');
@@ -12945,6 +12946,7 @@ const diffMins = Math.floor(diffMs / 60000);
                 const assignment = getInstructorAssignmentBySpecialtyId(item.id);
                 const assignmentName = assignment?.name || '';
                 const assignmentEmail = assignment?.email || '';
+                const asistieron = Number(item.asistieron ?? ((Number(item.pendientes) || 0) + (Number(item.calificadas) || 0)));
                 const assignmentMarkup = assignmentEmail
                   ? `<div style="line-height:1.35;">
                         ${assignmentName ? `<div style="font-weight:600; color:var(--text-primary);">${escapeHtml(assignmentName)}</div>` : ''}
@@ -12954,6 +12956,7 @@ const diffMins = Math.floor(diffMs / 60000);
                   
                   tr.innerHTML = `
                     <td style="padding:15px; font-weight:600;">${item.titulo}</td>
+                    <td style="padding:15px; text-align:center; font-weight:bold; color:var(--text-primary);">${asistieron}</td>
                     <td style="padding:15px; text-align:center;">
                         <span style="background:#F59E0B; color:white; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:bold;">
                             ${item.pendientes}
@@ -12983,7 +12986,7 @@ const diffMins = Math.floor(diffMs / 60000);
           }
           
       } catch(e) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red;">Error: ${e.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">Error: ${e.message}</td></tr>`;
           console.error("Error cargando tabla dashboard: ", e);
       }
   };

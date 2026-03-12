@@ -1213,14 +1213,14 @@
       onAuthStateChanged(auth, async (user) => {
         if (!user) {
           // Sign in anonymously so Firestore rules (require auth) allow reads
-          try { await signInAnonymously(auth); } catch (_) {
-            // Couldn't sign in anonymously — proceed as unauthenticated guest
-            currentUser = null;
-            isGuest = true;
-            currentUserProfile = null;
-            try { await loadPostById(postId); } catch (err) { showState('No se pudo cargar el post.'); }
+          try {
+            await signInAnonymously(auth);
+            // onAuthStateChanged will fire again with the anonymous user
+          } catch (anonErr) {
+            console.error('signInAnonymously falló:', anonErr);
+            showState('⚠️ La autenticación anónima no está habilitada. Actívala en Firebase Console → Authentication → Sign-in method → Anonymous → Habilitar.');
           }
-          return; // onAuthStateChanged will fire again with the anonymous user
+          return;
         }
 
         const isAnon = user.isAnonymous;

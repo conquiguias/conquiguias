@@ -4736,7 +4736,7 @@
 
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-      import { getAuth, onAuthStateChanged, signOut, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+      import { getAuth, onAuthStateChanged, signOut, sendEmailVerification, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
       import {
         getFirestore,
         doc,
@@ -4899,6 +4899,7 @@
       let isSocialNetworkInitialized = false;
       let postsLoading = false;
       let lastLoadTime = 0;
+      let isGuestSession = false;
       let certificacionesCache = null;
       let certificacionesCacheTime = 0;
       const CACHE_DURATION = 5 * 60 * 1000;
@@ -5128,17 +5129,90 @@
       }
       window.applyRoleBasedNavigation = applyRoleBasedNavigation;
 
+      function applyGuestNavigationState(isGuest) {
+        const allowedMenuIds = new Set(['menuInicio', 'menuClubes', 'menuGrabaciones']);
+        const guestLockTitle = 'Disponible solo con sesión iniciada';
+
+        const sidebarButtons = sidebar
+          ? Array.from(sidebar.querySelectorAll('button'))
+          : [];
+
+        sidebarButtons.forEach((button) => {
+          if (!button || !button.id || button.id === 'mobileMenuToggle' || button.id === 'logoutBtn') return;
+
+          const isAllowed = allowedMenuIds.has(button.id);
+          if (isGuest && !isAllowed) {
+            button.disabled = true;
+            button.style.opacity = '0.55';
+            button.style.cursor = 'not-allowed';
+            button.title = guestLockTitle;
+          } else {
+            button.disabled = false;
+            button.style.opacity = '';
+            button.style.cursor = '';
+            if (button.title === guestLockTitle) {
+              button.title = '';
+            }
+          }
+        });
+
+        if (logoutBtn) {
+          logoutBtn.innerHTML = isGuest
+            ? '<i class="fas fa-sign-in-alt" style="margin-right: 8px;"></i> Ir a iniciar sesión'
+            : '<i class="fas fa-sign-out-alt" style="margin-right: 8px;"></i> Cerrar sesión';
+        }
+
+        if (!isGuest) return;
+
+        const adminSectionEl = document.getElementById('adminSection');
+        const instructorSectionEl = document.getElementById('instructorSection');
+        const tareasExamenesSectionEl = document.getElementById('tareasExamenesSection');
+        const menuInstructorBtn = document.getElementById('menuInstructor');
+        const menuAdminBtn = document.getElementById('menuAdmin');
+
+        [perfilSection, especialidadesSection, certificacionesSection, adminSectionEl, instructorSectionEl, tareasExamenesSectionEl].forEach((section) => {
+          if (section) section.classList.add('hidden');
+        });
+
+        [menuPerfil, menuEspecialidades, menuCertificaciones, menuInstructorBtn, menuAdminBtn].forEach((button) => {
+          if (button) button.classList.remove('active');
+        });
+
+        mostrarSeccion(inicioSection, menuInicio);
+      }
+
 
       // 🔹 Detectar usuario logueado
       onAuthStateChanged(auth, async (user) => {
         if (!user) {
-          // Usuario NO autenticado - redirigir al login
-          console.log("[WARNING] Acceso denegado: usuario no autenticado");
-          window.location.href = "index.html";
+          try {
+            await signInAnonymously(auth);
+          } catch (anonError) {
+            console.warn('[WARN] No se pudo iniciar sesión anónima en panel:', anonError);
+            window.location.href = "index.html";
+          }
           return;
         }
+        isGuestSession = !!user.isAnonymous;
+
+        if (isGuestSession) {
+          window.isOwner = false;
+          window.isAdmin = false;
+          window.isInstructorRole = false;
+          window.canAccessInstructorPanel = false;
+          window.canAccessAdminPanel = false;
+          window.canAccessEspecialidadesStorage = false;
+          window.allowedInstructorSpecialties = [];
+          isAdmin = false;
+          puedeEntrarEspecialidades = false;
+          applyRoleBasedNavigation();
+          applyGuestNavigationState(true);
+        } else {
+          applyGuestNavigationState(false);
+        }
+
         // 🔒 VERIFICACIÓN DE CORREO ELECTRÓNICO
-        if (user && !user.emailVerified) {
+        if (user && !isGuestSession && !user.emailVerified) {
           console.log("[WARNING] Acceso denegado: correo no verificado");
 
           mostrarMensaje("confirm", "<i class='fas fa-envelope'></i> Verificación requerida",
@@ -5182,7 +5256,7 @@
         const correoInput = document.getElementById("correo");
 
         // Dentro del onAuthStateChanged (después de obtener el usuario)
-        if (user) {
+        if (user && !isGuestSession) {
           // Obtener lista de admins desde el backend
           const adminEmails = await getAdminEmails();
           const email = normalizeEmail(user.email);
@@ -5219,44 +5293,79 @@
 
         window.currentUserId = user.uid;
         currentUserId = user.uid;
-        const hasPasswordProvider = (user.providerData || []).some(
-          provider => provider.providerId === "password",
-        );
+        if (isGuestSession) {
+          passwordSectionTitle.textContent = "Modo invitado";
+          passwordSectionHelp.textContent = "Inicia sesión para editar perfil y acceder a las demás opciones.";
+          currentPhotoURL = placeholderURL;
+          headerUserPhoto.src = currentPhotoURL;
+          headerUserName.textContent = 'Invitado';
+          preview.src = currentPhotoURL;
+          correoInput.value = '';
 
-        passwordSectionTitle.textContent = hasPasswordProvider
-          ? "Cambiar contraseña:"
-          : "Crear contraseña de acceso:";
-        passwordSectionHelp.textContent = hasPasswordProvider
-          ? "Si completas estos campos, reemplazaremos tu contraseña actual."
-          : "Aún no tienes contraseña. Configúrala para iniciar sesión también con correo y contraseña.";
+          window.userData = {
+            nombre: 'Invitado',
+            apellido: '',
+            fotoURL: currentPhotoURL,
+            email: ''
+          };
+          userData = window.userData;
+          lastPostTime = null;
+        } else {
+          const hasPasswordProvider = (user.providerData || []).some(
+            provider => provider.providerId === "password",
+          );
 
-        try {
-          const docRef = doc(db, "usuarios", currentUserId);
-          const docSnap = await getDoc(docRef);
+          passwordSectionTitle.textContent = hasPasswordProvider
+            ? "Cambiar contraseña:"
+            : "Crear contraseña de acceso:";
+          passwordSectionHelp.textContent = hasPasswordProvider
+            ? "Si completas estos campos, reemplazaremos tu contraseña actual."
+            : "Aún no tienes contraseña. Configúrala para iniciar sesión también con correo y contraseña.";
 
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            currentPhotoURL = data.fotoURL || user.photoURL || placeholderURL;
+          try {
+            const docRef = doc(db, "usuarios", currentUserId);
+            const docSnap = await getDoc(docRef);
 
-            headerUserPhoto.src = currentPhotoURL;
-            headerUserName.textContent = `${data.nombre || ''} ${data.apellido || ''}`.trim() || (user.displayName || 'Usuario');
+            if (docSnap.exists()) {
+              const data = docSnap.data();
+              currentPhotoURL = data.fotoURL || user.photoURL || placeholderURL;
 
-            nombreInput.value = data.nombre || '';
-            apellidoInput.value = data.apellido || '';
-            edadInput.value = data.edad || '';
-            sexoInput.value = data.sexo || '';
-            paisInput.value = data.pais || '';
-            preview.src = currentPhotoURL;
-            correoInput.value = user.email || '';
+              headerUserPhoto.src = currentPhotoURL;
+              headerUserName.textContent = `${data.nombre || ''} ${data.apellido || ''}`.trim() || (user.displayName || 'Usuario');
 
-            window.userData = {
-              ...data,
-              fotoURL: currentPhotoURL,
-              email: user.email
-            };
-            userData = window.userData;
-            lastPostTime = data.lastPostTime || null;
-          } else {
+              nombreInput.value = data.nombre || '';
+              apellidoInput.value = data.apellido || '';
+              edadInput.value = data.edad || '';
+              sexoInput.value = data.sexo || '';
+              paisInput.value = data.pais || '';
+              preview.src = currentPhotoURL;
+              correoInput.value = user.email || '';
+
+              window.userData = {
+                ...data,
+                fotoURL: currentPhotoURL,
+                email: user.email
+              };
+              userData = window.userData;
+              lastPostTime = data.lastPostTime || null;
+            } else {
+              currentPhotoURL = user.photoURL || placeholderURL;
+              headerUserPhoto.src = currentPhotoURL;
+              headerUserName.textContent = user.displayName || 'Usuario';
+              preview.src = currentPhotoURL;
+              correoInput.value = user.email || '';
+
+              window.userData = {
+                nombre: user.displayName || 'Usuario',
+                apellido: '',
+                fotoURL: currentPhotoURL,
+                email: user.email || ''
+              };
+              userData = window.userData;
+              lastPostTime = null;
+            }
+          } catch (profileError) {
+            console.warn('[WARN] No se pudo cargar perfil completo:', profileError);
             currentPhotoURL = user.photoURL || placeholderURL;
             headerUserPhoto.src = currentPhotoURL;
             headerUserName.textContent = user.displayName || 'Usuario';
@@ -5272,22 +5381,6 @@
             userData = window.userData;
             lastPostTime = null;
           }
-        } catch (profileError) {
-          console.warn('[WARN] No se pudo cargar perfil completo:', profileError);
-          currentPhotoURL = user.photoURL || placeholderURL;
-          headerUserPhoto.src = currentPhotoURL;
-          headerUserName.textContent = user.displayName || 'Usuario';
-          preview.src = currentPhotoURL;
-          correoInput.value = user.email || '';
-
-          window.userData = {
-            nombre: user.displayName || 'Usuario',
-            apellido: '',
-            fotoURL: currentPhotoURL,
-            email: user.email || ''
-          };
-          userData = window.userData;
-          lastPostTime = null;
         }
 
         if (!inicioSection.classList.contains('hidden')) {
@@ -5439,6 +5532,13 @@
       });
 
       logoutBtn.addEventListener("click", async () => {
+        if (isGuestSession) {
+          try {
+            await signOut(auth);
+          } catch (_) {}
+          window.location.href = "index.html";
+          return;
+        }
         await signOut(auth);
         window.location.href = "index.html";
       });
@@ -5739,7 +5839,7 @@
         const btnAceptar = document.getElementById("mensajeAceptar");
         const btnCancelar = document.getElementById("mensajeCancelar");
 
-        tituloEl.textContent = titulo;
+        tituloEl.innerHTML = titulo;
         textoEl.innerHTML = mensaje;
         modal.classList.remove("hiddenX");
 

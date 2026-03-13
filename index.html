@@ -191,6 +191,30 @@
         let app;
         let auth;
 
+        async function configureAuthPersistence(authInstance, setPersistence, persistenceOptions) {
+          const [localPersistence, sessionPersistence, memoryPersistence] = persistenceOptions;
+
+          try {
+            await setPersistence(authInstance, localPersistence);
+            return;
+          } catch (localError) {
+            console.warn("[WARN] No se pudo activar persistencia local:", localError);
+          }
+
+          try {
+            await setPersistence(authInstance, sessionPersistence);
+            return;
+          } catch (sessionError) {
+            console.warn("[WARN] No se pudo activar persistencia de sesión:", sessionError);
+          }
+
+          try {
+            await setPersistence(authInstance, memoryPersistence);
+          } catch (memoryError) {
+            console.warn("[WARN] No se pudo activar persistencia en memoria:", memoryError);
+          }
+        }
+
         async function ensureFirebaseAuth() {
           if (auth) return auth;
 
@@ -202,11 +226,22 @@
 
           const { initializeApp } =
             await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js");
-          const { getAuth } =
+          const {
+            getAuth,
+            setPersistence,
+            browserLocalPersistence,
+            browserSessionPersistence,
+            inMemoryPersistence,
+          } =
             await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
 
           app = app || initializeApp(firebaseConfig);
           auth = getAuth(app);
+          await configureAuthPersistence(auth, setPersistence, [
+            browserLocalPersistence,
+            browserSessionPersistence,
+            inMemoryPersistence,
+          ]);
           return auth;
         }
 

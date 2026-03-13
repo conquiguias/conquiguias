@@ -4738,7 +4738,17 @@
 
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-      import { getAuth, onAuthStateChanged, signOut, sendEmailVerification, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+      import {
+        getAuth,
+        onAuthStateChanged,
+        signOut,
+        sendEmailVerification,
+        signInAnonymously,
+        setPersistence,
+        browserLocalPersistence,
+        browserSessionPersistence,
+        inMemoryPersistence
+      } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
       import {
         getFirestore,
         doc,
@@ -4777,6 +4787,30 @@
       const auth = getAuth(app);
       const db = getFirestore(app);
       const storage = getStorage(app);
+
+      async function configureAuthPersistence(authInstance) {
+        try {
+          await setPersistence(authInstance, browserLocalPersistence);
+          return;
+        } catch (localError) {
+          console.warn('[WARN] No se pudo activar persistencia local en panel:', localError);
+        }
+
+        try {
+          await setPersistence(authInstance, browserSessionPersistence);
+          return;
+        } catch (sessionError) {
+          console.warn('[WARN] No se pudo activar persistencia de sesión en panel:', sessionError);
+        }
+
+        try {
+          await setPersistence(authInstance, inMemoryPersistence);
+        } catch (memoryError) {
+          console.warn('[WARN] No se pudo activar persistencia en memoria en panel:', memoryError);
+        }
+      }
+
+      await configureAuthPersistence(auth);
 
       async function callAuthAPI(action, data) {
         const response = await fetch('/api/auth.js', {
@@ -5200,6 +5234,19 @@
       // 🔹 Detectar usuario logueado
       onAuthStateChanged(auth, async (user) => {
         if (!user) {
+          try {
+            if (typeof auth.authStateReady === 'function') {
+              await auth.authStateReady();
+            }
+          } catch (stateReadyError) {
+            console.warn('[WARN] authStateReady falló en panel:', stateReadyError);
+          }
+
+          const recoveredUser = auth.currentUser;
+          if (recoveredUser && !recoveredUser.isAnonymous) {
+            return;
+          }
+
           try {
             await signInAnonymously(auth);
           } catch (anonError) {

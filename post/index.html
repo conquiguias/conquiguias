@@ -236,6 +236,141 @@
       padding: 12px 14px;
     }
 
+    /* Share modal */
+    .share-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      z-index: 6000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+    .share-modal-box {
+      width: min(100%, 560px);
+      max-height: 90vh;
+      overflow: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      background: var(--bg-card);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+      display: flex;
+      flex-direction: column;
+    }
+    .share-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-color);
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .share-modal-close {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 2px 6px;
+    }
+    .share-modal-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .share-modal-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .share-modal-link-row {
+      display: flex;
+      gap: 8px;
+    }
+    .share-modal-link-row input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 13px;
+    }
+    .share-modal-copy-btn {
+      padding: 10px 14px;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent-color);
+      color: white;
+      cursor: pointer;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .share-modal-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .share-modal-action-btn {
+      padding: 9px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .share-modal-embed {
+      width: 100%;
+      min-height: 72px;
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-size: 12px;
+      resize: none;
+      box-sizing: border-box;
+    }
+    .share-modal-networks {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .share-modal-network-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      color: var(--text-primary);
+      text-decoration: none;
+      background: var(--bg-secondary);
+      font-size: 13px;
+    }
+    .share-modal-status {
+      font-size: 12px;
+      color: var(--text-secondary);
+      min-height: 18px;
+    }
+    .share-modal-footer {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border-color);
+      text-align: right;
+    }
+    .share-modal-accept-btn {
+      padding: 9px 22px;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent-color);
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
     .post-content {
       width: 100%;
       position: relative;
@@ -852,6 +987,120 @@
       return url.toString();
     }
 
+    function getShareEmbedCode(postUrl) {
+      return `<iframe src="${postUrl}" width="100%" height="640" style="border:0; border-radius:12px;" loading="lazy"></iframe>`;
+    }
+
+    function buildShareTargets(postUrl) {
+      const encodedUrl = encodeURIComponent(postUrl);
+      const encodedText = encodeURIComponent('Mira esta publicaci\u00f3n en Conquiguias World');
+      return [
+        { key: 'whatsapp', label: 'WhatsApp', icon: 'fab fa-whatsapp', href: `https://wa.me/?text=${encodedText}%20${encodedUrl}`, color: '#25D366' },
+        { key: 'facebook', label: 'Facebook', icon: 'fab fa-facebook', href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, color: '#1877F2' },
+        { key: 'x', label: 'X', icon: 'fab fa-x-twitter', href: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedText}`, color: '#111827' },
+        { key: 'telegram', label: 'Telegram', icon: 'fab fa-telegram-plane', href: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`, color: '#229ED9' },
+        { key: 'email', label: 'Correo', icon: 'fas fa-envelope', href: `mailto:?subject=${encodeURIComponent('Te comparto esta publicaci\u00f3n')}&body=${encodedText}%0A${encodedUrl}`, color: '#ea4335' }
+      ];
+    }
+
+    async function incrementPostShareCount(postId) {
+      if (!postId) return;
+      try {
+        const postRef = doc(db, 'posts', postId);
+        await updateDoc(postRef, { shareCount: increment(1) });
+        document.querySelectorAll(`.share-btn[data-postid="${postId}"] .share-count`).forEach(el => {
+          const raw = parseInt(el.dataset.sharecount || '0', 10);
+          const updated = raw + 1;
+          el.dataset.sharecount = String(updated);
+          el.textContent = formatReactionCount(updated);
+        });
+      } catch (e) {
+        console.warn('[ShareCount] Error:', e);
+      }
+    }
+
+    function openShareModal(postId, shareCount) {
+      const enlace = getSharedPostLink(postId);
+      const embedCode = getShareEmbedCode(enlace);
+      const uid = String(postId || '').replace(/[^a-zA-Z0-9_-]/g, '');
+      const shareTargets = buildShareTargets(enlace);
+
+      // Remove any previous instance
+      const prev = document.getElementById('shareModalOverlay');
+      if (prev) prev.remove();
+
+      const overlay = document.createElement('div');
+      overlay.id = 'shareModalOverlay';
+      overlay.className = 'share-modal-overlay';
+      overlay.innerHTML = `
+        <div class="share-modal-box" role="dialog" aria-modal="true" aria-label="Compartir">
+          <div class="share-modal-header">
+            <span><i class="fas fa-share-alt" style="color:var(--accent-color);margin-right:6px;"></i> Compartir publicación</span>
+            <button class="share-modal-close" id="shareModalCloseBtn" title="Cerrar">&times;</button>
+          </div>
+          <div class="share-modal-body">
+            <div class="share-modal-label">Enlace del post</div>
+            <div class="share-modal-link-row">
+              <input id="shareLinkInput_${uid}" type="text" readonly value="${enlace}">
+              <button id="shareCopyBtn_${uid}" class="share-modal-copy-btn" type="button"><i class="fas fa-copy"></i> Copiar</button>
+            </div>
+            <div class="share-modal-actions">
+              <button id="shareOpenBtn_${uid}" class="share-modal-action-btn" type="button"><i class="fas fa-globe"></i> Página web</button>
+              <button id="shareEmbedBtn_${uid}" class="share-modal-action-btn" type="button"><i class="fas fa-code"></i> Copiar incrustar</button>
+            </div>
+            <textarea id="shareEmbedCode_${uid}" class="share-modal-embed" readonly>${embedCode}</textarea>
+            <div class="share-modal-label">Compartir en redes</div>
+            <div class="share-modal-networks">
+              ${shareTargets.map(t => `<a href="${t.href}" target="_blank" rel="noopener noreferrer" data-share-network="${t.key}" class="share-modal-network-btn"><i class="${t.icon}" style="color:${t.color};font-size:16px;"></i> ${t.label}</a>`).join('')}
+            </div>
+            <div id="shareStatus_${uid}" class="share-modal-status"></div>
+          </div>
+          <div class="share-modal-footer">
+            <button id="shareModalAcceptBtn" class="share-modal-accept-btn" type="button">Aceptar</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      overlay.style.display = 'flex';
+
+      const close = () => { overlay.remove(); };
+      document.getElementById('shareModalCloseBtn').addEventListener('click', close);
+      document.getElementById('shareModalAcceptBtn').addEventListener('click', close);
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+      const statusEl = document.getElementById(`shareStatus_${uid}`);
+      const setStatus = (text, color = 'var(--text-secondary)') => {
+        if (!statusEl) return;
+        statusEl.innerHTML = `<span style="color:${color};">${text}</span>`;
+      };
+
+      document.getElementById(`shareLinkInput_${uid}`)?.addEventListener('focus', (e) => e.target.select());
+      document.getElementById(`shareEmbedCode_${uid}`)?.addEventListener('focus', (e) => e.target.select());
+
+      document.getElementById(`shareCopyBtn_${uid}`)?.addEventListener('click', async () => {
+        try { await copyText(enlace); await incrementPostShareCount(postId); setStatus('\u2705 Enlace copiado al portapapeles.', 'var(--success-color)'); }
+        catch (err) { setStatus('\u274c No se pudo copiar el enlace.', '#ef4444'); }
+      });
+
+      document.getElementById(`shareOpenBtn_${uid}`)?.addEventListener('click', async () => {
+        window.open(enlace, '_blank', 'noopener,noreferrer');
+        await incrementPostShareCount(postId);
+        setStatus('\ud83c\udf10 Publicación abierta en nueva pestaña.', 'var(--accent-color)');
+      });
+
+      document.getElementById(`shareEmbedBtn_${uid}`)?.addEventListener('click', async () => {
+        try { await copyText(embedCode); await incrementPostShareCount(postId); setStatus('\u2705 Código de incrustación copiado.', 'var(--success-color)'); }
+        catch (err) { setStatus('\u274c No se pudo copiar el código.', '#ef4444'); }
+      });
+
+      overlay.querySelectorAll('[data-share-network]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          await incrementPostShareCount(postId);
+          setStatus('\ud83d\ude80 Compartido correctamente.', 'var(--success-color)');
+        });
+      });
+    }
+
     async function copyText(text) {
       if (navigator?.clipboard?.writeText) {
         await navigator.clipboard.writeText(text);
@@ -1101,6 +1350,7 @@
                 <span class="post-actions-separator">|</span>
                 <button class="share-btn" id="shareBtn" type="button" data-postid="${post.id}" title="Compartir">
                   <i class="fas fa-share-alt"></i>
+                  <span class="share-count" data-sharecount="${post.shareCount || 0}">${formatReactionCount(post.shareCount || 0)}</span>
                 </button>
                 <a href="/panel.html" class="post-options-toggle" title="Ir a Conquiguias">
                   <i class="fas fa-cog"></i>
@@ -1143,10 +1393,8 @@
         }
       }
 
-      document.getElementById('shareBtn')?.addEventListener('click', async () => {
-        const link = getSharedPostLink(post.id);
-        await copyText(link);
-        alert('✅ Enlace copiado');
+      document.getElementById('shareBtn')?.addEventListener('click', () => {
+        openShareModal(post.id, post.shareCount || 0);
       });
 
       document.getElementById('commentsBtn')?.addEventListener('click', () => {

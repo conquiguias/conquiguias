@@ -8002,7 +8002,7 @@ function openShareModal(postId) {
         </button>
       </div>
 
-      <textarea id="shareEmbedCode_${uid}" readonly style="width:100%; min-height:72px; padding:10px; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-secondary); color:var(--text-secondary); font-size:12px;">${embedCode}</textarea>
+      <textarea id="shareEmbedCode_${uid}" readonly style="width:100%; min-height:72px; padding:10px; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-secondary); color:var(--text-secondary); font-size:12px; box-sizing:border-box; resize:none;">${embedCode}</textarea>
 
       <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">Compartir en redes</div>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">${socialButtons}</div>
@@ -9099,6 +9099,7 @@ const diffMins = Math.floor(diffMs / 60000);
             const videoBlurBackgroundUrl = getVideoBlurBackgroundUrl(post);
             const shareCount = getPostShareCount(post);
             const viewCount = getPostViewCount(post);
+            const esVideo = !!(post.mediaType && (post.mediaType === 'video/url' || post.mediaType.startsWith('video/')));
 
             postElement.innerHTML = `
             <div class="post-header">

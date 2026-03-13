@@ -817,6 +817,7 @@
     let currentPost = null;
     let isGuest = true;
     let hasAuthenticatedSessionInThisView = false;
+    let ADMIN_EMAILS = [];
 
     function showState(msg) {
       stateEl.style.display = 'block';
@@ -870,6 +871,32 @@
         } catch (_) {}
       }
       return false;
+    }
+
+    async function loadAdminEmails() {
+      try {
+        const idToken = auth.currentUser ? await auth.currentUser.getIdToken(true) : '';
+        if (!idToken) return;
+        const res = await fetch('/api/social?action=get-admins', {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${idToken}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.success) {
+          const normalize = e => String(e || '').trim().toLowerCase();
+          ADMIN_EMAILS = Array.from(new Set([
+            ...(data.admins || []).map(normalize).filter(Boolean),
+            normalize(data.ownerEmail || '')
+          ].filter(Boolean)));
+        }
+      } catch (e) {
+        console.warn('[post] No se pudo cargar lista de admins:', e);
+      }
+    }
+
+    function isAdminEmail(email) {
+      return ADMIN_EMAILS.includes(String(email || '').trim().toLowerCase());
     }
 
     function escapeHtml(value) {
@@ -1307,7 +1334,7 @@
               <div style="min-width:0;">
                 <div class="post-contenedor">
                   <div class="post-user-name">${escapeHtml(post.userName || 'Usuario')}</div>
-                  ${String(post.userEmail || '').toLowerCase() === 'proyectoja1122@gmail.com' ? '<span class="status-admin">Admin</span>' : ''}
+                  ${isAdminEmail(post.userEmail) ? '<span class="status-admin">Admin</span>' : ''}
                 </div>
                 <div class="post-time">${postDateLabel}</div>
                 ${(post.mediaType === 'video/url' || String(post.mediaType || '').startsWith('video/')) ? `<div class="post-video-views"><i class="fas fa-play-circle views-icon"></i> <span class="view-count-display" data-postid="${post.id}" data-viewcount="${post.viewCount || 0}">${formatReactionCount(post.viewCount || 0)}</span> vistas</div>` : ''}
@@ -1615,6 +1642,7 @@
         }
 
         try {
+          await loadAdminEmails();
           await loadPostById(postId);
         } catch (err) {
           console.error(err);

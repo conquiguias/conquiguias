@@ -13921,16 +13921,7 @@ const diffMins = Math.floor(diffMs / 60000);
                 totalBytes += f.tamano;
                 const tr = document.createElement('tr');
                 tr.style.borderBottom = '1px solid var(--border-color)';
-                  // Extraer ID de especialidad desde la ruta: tareas_files/ESPECIALIDADID/archivo.pdf
-                  let especialidad = '';
-                  const partes = f.ruta.split('/');
-                  if (partes.length >= 2) {
-                    especialidad = partes[1]; // ID de especialidad
-                    // Buscar nombre real si existe en window.listaEspecialidadesPorId
-                    if (window.listaEspecialidadesPorId && window.listaEspecialidadesPorId[especialidad]) {
-                      especialidad = window.listaEspecialidadesPorId[especialidad];
-                    }
-                  }
+                    const especialidad = f.especialidadNombre || f.especialidadId || 'Sin especialidad';
                   tr.innerHTML = `
                     <td style="padding:10px;">${especialidad}</td>
                   <td style="padding:10px;">${f.nombre}</td>
@@ -13955,7 +13946,7 @@ const diffMins = Math.floor(diffMs / 60000);
               btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
               btn.disabled = true;
               try {
-                const resp = await fetch('/api/formulario?action=eliminarTareaPDF', {
+                  const resp = await fetch('/api/formulario?action=eliminarTareasPDF', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ ruta })

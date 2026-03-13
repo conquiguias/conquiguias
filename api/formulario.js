@@ -772,16 +772,28 @@ async function handleListarArchivosPDF(req, res, repo) {
     `https://api.github.com/repos/${repo}/git/trees/main?recursive=1`,
     { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
   ).then((x) => x.json());
+  const { data: formData } = await supabase.from("formularios").select("id, titulo");
+  const titulos = {};
+  (formData || []).forEach((f) => {
+    titulos[f.id] = f.titulo || f.id;
+  });
+
   const pdfs = (r.tree || [])
     .filter(
       (n) => n.path.startsWith("tareas_files/") && n.path.endsWith(".pdf"),
     )
-    .map((n) => ({
-      nombre: n.path.split("/").pop(),
-      ruta: n.path,
-      url: `https://raw.githubusercontent.com/${repo}/main/${n.path}`,
-      tamano: n.size || 0,
-    }));
+    .map((n) => {
+      const partes = n.path.split("/");
+      const especialidadId = partes[1] || "";
+      return {
+        nombre: n.path.split("/").pop(),
+        ruta: n.path,
+        url: `https://raw.githubusercontent.com/${repo}/main/${n.path}`,
+        tamano: n.size || 0,
+        especialidadId,
+        especialidadNombre: titulos[especialidadId] || especialidadId,
+      };
+    });
   res.status(200).json(pdfs);
 }
 
@@ -873,13 +885,17 @@ async function handleEliminarTodasTareasPDF(req, res, repo) {
 }
 
 async function handleEliminarTareasPDF(req, res, repo) {
-  // Eliminar uno o varios archivos PDF específicos
   const { ruta } = req.body;
   if (!ruta || typeof ruta !== 'string') {
     res.status(400).json({ error: 'Ruta de archivo requerida' });
     return;
   }
   try {
+    const partes = ruta.split("/");
+    const especialidadId = partes[1];
+    const archivo = partes[2] || "";
+    const ident = archivo.replace(/\.pdf$/i, "");
+
     // Obtener SHA del archivo
     const r = await fetch(
       `https://api.github.com/repos/${repo}/contents/${ruta}`,
@@ -905,6 +921,21 @@ async function handleEliminarTareasPDF(req, res, repo) {
       }
     );
     if (delResp.ok) {
+      if (especialidadId && ident) {
+        const { data: evData } = await supabase
+          .from("evaluaciones")
+          .select("contenido_tareas")
+          .eq("especialidad_id", especialidadId)
+          .single();
+
+        const tareas = evData?.contenido_tareas || {};
+        if (tareas[ident]) {
+          delete tareas[ident];
+          await supabase
+            .from("evaluaciones")
+            .upsert({ especialidad_id: especialidadId, contenido_tareas: tareas });
+        }
+      }
       res.status(200).json({ ok: true });
     } else {
       const err = await delResp.json();

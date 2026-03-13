@@ -4756,6 +4756,7 @@
         doc,
         getDoc,
         updateDoc,
+        increment,
         addDoc,
         collection,
         getDocs,
@@ -7909,6 +7910,159 @@ function getSharedPostLink(postId) {
   return shareUrl.toString();
 }
 
+function getShareEmbedCode(postUrl) {
+  return `<iframe src="${postUrl}" width="100%" height="640" style="border:0; border-radius:12px;" loading="lazy"></iframe>`;
+}
+
+function buildShareTargets(postUrl) {
+  const encodedUrl = encodeURIComponent(postUrl);
+  const encodedText = encodeURIComponent('Mira esta publicación en Conquiguias World');
+
+  return [
+    {
+      key: 'whatsapp',
+      label: 'WhatsApp',
+      icon: 'fab fa-whatsapp',
+      href: `https://wa.me/?text=${encodedText}%20${encodedUrl}`,
+      color: '#25D366'
+    },
+    {
+      key: 'facebook',
+      label: 'Facebook',
+      icon: 'fab fa-facebook',
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+      color: '#1877F2'
+    },
+    {
+      key: 'x',
+      label: 'X',
+      icon: 'fab fa-x-twitter',
+      href: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedText}`,
+      color: '#111827'
+    },
+    {
+      key: 'telegram',
+      label: 'Telegram',
+      icon: 'fab fa-telegram-plane',
+      href: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`,
+      color: '#229ED9'
+    },
+    {
+      key: 'email',
+      label: 'Correo',
+      icon: 'fas fa-envelope',
+      href: `mailto:?subject=${encodeURIComponent('Te comparto esta publicación')}&body=${encodedText}%0A${encodedUrl}`,
+      color: '#ea4335'
+    }
+  ];
+}
+
+function openShareModal(postId) {
+  const enlace = getSharedPostLink(postId);
+  const embedCode = getShareEmbedCode(enlace);
+  const uid = String(postId || '').replace(/[^a-zA-Z0-9_-]/g, '');
+  const shareTargets = buildShareTargets(enlace);
+
+  const socialButtons = shareTargets.map((target) => `
+    <a href="${target.href}" target="_blank" rel="noopener noreferrer" data-share-network="${target.key}" style="display:inline-flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--border-color); border-radius:10px; color:var(--text-primary); text-decoration:none; background:var(--bg-secondary);">
+      <i class="${target.icon}" style="color:${target.color}; font-size:16px;"></i>
+      <span style="font-size:13px;">${target.label}</span>
+    </a>
+  `).join('');
+
+  const contenido = `
+    <div style="display:flex; flex-direction:column; gap:10px; text-align:left; max-width:560px;">
+      <label style="font-size:12px; color:var(--text-secondary);">Enlace del post</label>
+      <div style="display:flex; gap:8px;">
+        <input id="shareLinkInput_${uid}" type="text" readonly value="${enlace}" style="flex:1; padding:10px; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-secondary); color:var(--text-primary);">
+        <button id="shareCopyBtn_${uid}" type="button" style="padding:10px 12px; border:none; border-radius:8px; background:var(--accent-color); color:white; cursor:pointer;">
+          <i class="fas fa-copy"></i> Copiar
+        </button>
+      </div>
+
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button id="shareOpenBtn_${uid}" type="button" style="padding:9px 12px; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-secondary); color:var(--text-primary); cursor:pointer;">
+          <i class="fas fa-globe"></i> Página web
+        </button>
+        <button id="shareEmbedBtn_${uid}" type="button" style="padding:9px 12px; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-secondary); color:var(--text-primary); cursor:pointer;">
+          <i class="fas fa-code"></i> Copiar incrustar
+        </button>
+      </div>
+
+      <textarea id="shareEmbedCode_${uid}" readonly style="width:100%; min-height:72px; padding:10px; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-secondary); color:var(--text-secondary); font-size:12px;">${embedCode}</textarea>
+
+      <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">Compartir en redes</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">${socialButtons}</div>
+
+      <div id="shareStatus_${uid}" style="font-size:12px; color:var(--text-secondary); min-height:18px;"></div>
+    </div>
+  `;
+
+  mostrarMensaje('info', '<i class="fas fa-share-alt"></i> Compartir publicación', contenido);
+
+  const statusEl = document.getElementById(`shareStatus_${uid}`);
+  const setStatus = (text, color = 'var(--text-secondary)') => {
+    if (!statusEl) return;
+    statusEl.textContent = text;
+    statusEl.style.color = color;
+  };
+
+  const copyBtn = document.getElementById(`shareCopyBtn_${uid}`);
+  const openBtn = document.getElementById(`shareOpenBtn_${uid}`);
+  const embedBtn = document.getElementById(`shareEmbedBtn_${uid}`);
+  const linkInput = document.getElementById(`shareLinkInput_${uid}`);
+  const embedInput = document.getElementById(`shareEmbedCode_${uid}`);
+
+  if (copyBtn) {
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await copyTextToClipboard(enlace);
+        await incrementPostShareCount(postId);
+        setStatus('✅ Enlace copiado al portapapeles.', 'var(--success-color)');
+      } catch (error) {
+        console.error('Error copiando enlace del post:', error);
+        setStatus('❌ No se pudo copiar el enlace.', 'var(--error-color)');
+      }
+    });
+  }
+
+  if (openBtn) {
+    openBtn.addEventListener('click', async () => {
+      window.open(enlace, '_blank', 'noopener,noreferrer');
+      await incrementPostShareCount(postId);
+      setStatus('🌐 Publicación abierta en nueva pestaña.', 'var(--accent-color)');
+    });
+  }
+
+  if (embedBtn) {
+    embedBtn.addEventListener('click', async () => {
+      try {
+        await copyTextToClipboard(embedCode);
+        await incrementPostShareCount(postId);
+        setStatus('✅ Código de incrustación copiado.', 'var(--success-color)');
+      } catch (error) {
+        console.error('Error copiando código embed:', error);
+        setStatus('❌ No se pudo copiar el código de incrustación.', 'var(--error-color)');
+      }
+    });
+  }
+
+  if (linkInput) {
+    linkInput.addEventListener('focus', () => linkInput.select());
+  }
+
+  if (embedInput) {
+    embedInput.addEventListener('focus', () => embedInput.select());
+  }
+
+  document.querySelectorAll('[data-share-network]').forEach((networkBtn) => {
+    networkBtn.addEventListener('click', async () => {
+      await incrementPostShareCount(postId);
+      setStatus('🚀 Compartido correctamente.', 'var(--success-color)');
+    });
+  });
+}
+
 async function copyTextToClipboard(text) {
   if (navigator?.clipboard?.writeText) {
     await navigator.clipboard.writeText(text);
@@ -8314,6 +8468,7 @@ const diffMins = Math.floor(diffMs / 60000);
       reactions: {
       like: [], laugh: [], seven: []
       },
+      shareCount: 0,
       comments: []
       };
 
@@ -8384,6 +8539,7 @@ const diffMins = Math.floor(diffMs / 60000);
             timestamp: new Date().toISOString(),
             imgurData: { id: null, deletehash: null },
             reactions: { like: [], laugh: [], seven: [] },
+            shareCount: 0,
             comments: [],
             status: 'approved'
           };
@@ -8472,6 +8628,7 @@ const diffMins = Math.floor(diffMs / 60000);
       timestamp: new Date().toISOString(),
       imgurData: mediaData,
       reactions: { like: [], laugh: [], seven: [] },
+      shareCount: 0,
       comments: [],
       status: window.isAdmin ? 'approved' : 'pending'
       };
@@ -8924,6 +9081,7 @@ const diffMins = Math.floor(diffMs / 60000);
             );
             const isSevenEnabled = isSevenReactionEnabled();
             const videoBlurBackgroundUrl = getVideoBlurBackgroundUrl(post);
+            const shareCount = getPostShareCount(post);
 
             postElement.innerHTML = `
             <div class="post-header">
@@ -9002,6 +9160,7 @@ const diffMins = Math.floor(diffMs / 60000);
                 <span class="post-actions-separator">|</span>
                 <button class="share-btn" type="button" data-postid="${firestorePostId}" title="Compartir">
                   <i class="fas fa-share-alt"></i>
+                  <span class="share-count" data-sharecount="${shareCount}">${formatReactionCount(shareCount)}</span>
                 </button>
                 ${(window.isAdmin || isPostOwner) ? `
                 <div class="post-options-wrap">
@@ -9254,6 +9413,16 @@ const diffMins = Math.floor(diffMs / 60000);
                                 }
 
                                 return numericCount.toString();
+                              }
+
+                              function getPostShareCount(post) {
+                                if (!post || typeof post !== 'object') return 0;
+                                if (typeof post.shareCount === 'number' && Number.isFinite(post.shareCount)) {
+                                  return Math.max(0, post.shareCount);
+                                }
+                                if (Array.isArray(post.sharedBy)) return post.sharedBy.length;
+                                if (Array.isArray(post.shares)) return post.shares.length;
+                                return 0;
                               }
 
                               function escapeCommentHtml(value) {
@@ -9753,14 +9922,8 @@ const diffMins = Math.floor(diffMs / 60000);
                               const btn = e.target.classList.contains('share-btn') ? e.target :
                               e.target.closest('.share-btn');
                               const postId = btn ? btn.getAttribute('data-postid') : '';
-                              const enlace = getSharedPostLink(postId);
-
-                              try {
-                              await copyTextToClipboard(enlace);
-                              mostrarMensaje('success', 'Enlace copiado', 'Comparte este enlace único del post.');
-                              } catch (shareError) {
-                              console.error('Error copiando enlace:', shareError);
-                              mostrarMensaje('info', 'Enlace del post', `<a href="${enlace}" target="_blank" rel="noopener noreferrer">${enlace}</a>`);
+                              if (postId) {
+                                openShareModal(postId);
                               }
                               }
 
@@ -9919,6 +10082,25 @@ const diffMins = Math.floor(diffMs / 60000);
                               button.classList.remove('active');
                               }
                               });
+                              }
+
+                              async function incrementPostShareCount(postId) {
+                              try {
+                              const postRef = doc(db, "posts", postId);
+                              await updateDoc(postRef, {
+                              shareCount: increment(1)
+                              });
+
+                              const shareCountEls = document.querySelectorAll(`.share-btn[data-postid="${postId}"] .share-count`);
+                              shareCountEls.forEach((el) => {
+                              const currentRaw = Number(el.dataset.sharecount || 0);
+                              const updatedRaw = currentRaw + 1;
+                              el.dataset.sharecount = String(updatedRaw);
+                              el.textContent = formatReactionCount(updatedRaw);
+                              });
+                              } catch (shareErr) {
+                              console.warn('No se pudo incrementar shareCount:', shareErr);
+                              }
                               }
 
 

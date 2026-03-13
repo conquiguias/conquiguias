@@ -668,6 +668,7 @@
     let currentUserProfile = null;
     let currentPost = null;
     let isGuest = true;
+    let hasAuthenticatedSessionInThisView = false;
 
     function showState(msg) {
       stateEl.style.display = 'block';
@@ -695,6 +696,32 @@
       } catch (memoryError) {
         console.warn('[WARN] No se pudo activar persistencia en memoria en posts:', memoryError);
       }
+    }
+
+    function hasPersistedAuthenticatedSessionHint() {
+      const stores = [window.localStorage, window.sessionStorage].filter(Boolean);
+      for (const store of stores) {
+        try {
+          for (let i = 0; i < store.length; i++) {
+            const key = store.key(i);
+            if (!key || !key.startsWith('firebase:authUser:')) continue;
+            const raw = store.getItem(key);
+            if (!raw) continue;
+
+            try {
+              const parsed = JSON.parse(raw);
+              const hasEmail = !!String(parsed?.email || '').trim();
+              const isAnonymous = !!parsed?.isAnonymous;
+              if (hasEmail && !isAnonymous) return true;
+            } catch (_) {
+              if (raw.includes('"isAnonymous":false') && raw.includes('"email"')) {
+                return true;
+              }
+            }
+          }
+        } catch (_) {}
+      }
+      return false;
     }
 
     function escapeHtml(value) {
@@ -1256,6 +1283,12 @@
             return;
           }
 
+          const hasPersistentRealSession = hasPersistedAuthenticatedSessionHint();
+          if (hasAuthenticatedSessionInThisView || hasPersistentRealSession) {
+            showState('Restaurando sesión...');
+            return;
+          }
+
           // Sign in anonymously so Firestore rules (require auth) allow reads
           try {
             await signInAnonymously(auth);
@@ -1270,6 +1303,9 @@
         const isAnon = user.isAnonymous;
         currentUser = isAnon ? null : user;
         isGuest = isAnon;
+        if (!isAnon) {
+          hasAuthenticatedSessionInThisView = true;
+        }
 
         if (!isGuest) {
           try {

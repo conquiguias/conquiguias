@@ -512,10 +512,15 @@ async function handleCheckStream(req, res) {
 
     if (streamRes.ok) {
       const playlist = await streamRes.text();
-      const hasSegments = /#EXTINF\s*:/i.test(playlist);
-      const hasMediaEntries = /\n[^#\n][^\n]*\.ts(\?|$)|\n[^#\n][^\n]*\.m4s(\?|$)/i.test(playlist);
-      const looksOffline = /offline|not found|forbidden|error/i.test(playlist);
-      live = (hasSegments || hasMediaEntries) && !looksOffline;
+      // Media playlist: has #EXTINF entries (actual segments)
+      const hasSegments = /#EXTINF/i.test(playlist);
+      // Master playlist: has #EXT-X-STREAM-INF (variant stream info) — Picarto uses this
+      const hasVariantInfo = /#EXT-X-STREAM-INF/i.test(playlist);
+      // Either playlist: non-comment lines referencing .ts/.m4s/.m3u8 files
+      const hasMediaOrVariantUrls = /^[^#\n\r][^\n\r]*\.(ts|m4s|m3u8)(\?[^\n\r]*)?\s*$/im.test(playlist);
+      // Sanity: not an error page, not trivially empty
+      const looksOffline = /\boffline\b|\bnot.?found\b|\bforbidden\b|\berror\b/i.test(playlist.slice(0, 500));
+      live = (hasSegments || hasVariantInfo || hasMediaOrVariantUrls) && !looksOffline && playlist.trim().length > 30;
     }
   } catch (_) {
     live = false;

@@ -873,8 +873,46 @@ async function handleEliminarTodasTareasPDF(req, res, repo) {
 }
 
 async function handleEliminarTareasPDF(req, res, repo) {
-  // Stub seguro
-  res.status(200).json({ ok: true });
+  // Eliminar uno o varios archivos PDF específicos
+  const { ruta } = req.body;
+  if (!ruta || typeof ruta !== 'string') {
+    res.status(400).json({ error: 'Ruta de archivo requerida' });
+    return;
+  }
+  try {
+    // Obtener SHA del archivo
+    const r = await fetch(
+      `https://api.github.com/repos/${repo}/contents/${ruta}`,
+      { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } }
+    );
+    if (!r.ok) throw new Error('No se pudo obtener SHA del archivo');
+    const fileData = await r.json();
+    const sha = fileData.sha;
+    // Eliminar archivo
+    const delResp = await fetch(
+      `https://api.github.com/repos/${repo}/contents/${ruta}`,
+      {
+        method: 'DELETE',
+        headers: {
+          Authorization: `token ${process.env.GITHUB_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: 'Eliminar PDF individual',
+          sha,
+          branch: 'main',
+        }),
+      }
+    );
+    if (delResp.ok) {
+      res.status(200).json({ ok: true });
+    } else {
+      const err = await delResp.json();
+      res.status(500).json({ error: err.message || 'Error al eliminar en GitHub' });
+    }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 }
 
 async function handleObtenerEstadoUsuario(req, res) {

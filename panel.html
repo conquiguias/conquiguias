@@ -13921,14 +13921,18 @@ const diffMins = Math.floor(diffMs / 60000);
                 totalBytes += f.tamano;
                 const tr = document.createElement('tr');
                 tr.style.borderBottom = '1px solid var(--border-color)';
-                // Extraer especialidad desde la ruta, ejemplo: tareas_files/ESPECIALIDAD/archivo.pdf
-                let especialidad = '';
-                const partes = f.ruta.split('/');
-                if (partes.length >= 2) {
-                  especialidad = partes[1].replace(/-.*/, '').replace(/_/g, ' ');
-                }
-                tr.innerHTML = `
-                  <td style="padding:10px;">${especialidad}</td>
+                  // Extraer ID de especialidad desde la ruta: tareas_files/ESPECIALIDADID/archivo.pdf
+                  let especialidad = '';
+                  const partes = f.ruta.split('/');
+                  if (partes.length >= 2) {
+                    especialidad = partes[1]; // ID de especialidad
+                    // Buscar nombre real si existe en window.listaEspecialidadesPorId
+                    if (window.listaEspecialidadesPorId && window.listaEspecialidadesPorId[especialidad]) {
+                      especialidad = window.listaEspecialidadesPorId[especialidad];
+                    }
+                  }
+                  tr.innerHTML = `
+                    <td style="padding:10px;">${especialidad}</td>
                   <td style="padding:10px;">${f.nombre}</td>
                   <td style="padding:10px; font-size:12px; color:#aaa;">${f.ruta}</td>
                   <td style="padding:10px; text-align:center;">${(f.tamano / 1024 / 1024).toFixed(2)} MB</td>

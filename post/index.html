@@ -147,6 +147,33 @@
       font-size: 11px;
     }
 
+    @keyframes live-pulse {
+      0%, 100% { box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.55); }
+      50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.15); }
+    }
+
+    .post-user-img.live-border {
+      border-color: #ef4444 !important;
+      animation: live-pulse 1.6s ease-in-out infinite;
+    }
+
+    .badge-en-vivo {
+      background: #ef4444;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .post-card.live-post {
+      border-color: rgba(239, 68, 68, 0.45);
+      box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2), 0 4px 14px rgba(239, 68, 68, 0.1);
+    }
+
     .post-options-toggle {
       margin-left: auto;
       border: 1px solid var(--border-color);
@@ -818,6 +845,8 @@
     let isGuest = true;
     let hasAuthenticatedSessionInThisView = false;
     let ADMIN_EMAILS = [];
+    const LIVE_POST_ID = '__live_stream__';
+    const LIVE_STREAM_URL = 'https://edge1-us-losangeles.picarto.tv/stream/hls/golive%2bXSTUDIOCODE/1_0/index.m3u8';
 
     function showState(msg) {
       stateEl.style.display = 'block';
@@ -897,6 +926,36 @@
 
     function isAdminEmail(email) {
       return ADMIN_EMAILS.includes(String(email || '').trim().toLowerCase());
+    }
+
+    async function checkLiveStream() {
+      try {
+        const res = await fetch('/api/social?action=check-stream');
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.live ? data : null;
+      } catch (e) {
+        console.warn('[post] No se pudo verificar stream en vivo:', e);
+        return null;
+      }
+    }
+
+    function buildLivePostFromApi(liveData) {
+      return {
+        id: LIVE_POST_ID,
+        isLive: true,
+        userEmail: String(liveData?.ownerProfile?.email || '').trim().toLowerCase(),
+        userName: liveData?.ownerProfile?.name || 'Admin',
+        userPhoto: liveData?.ownerProfile?.photo || 'https://dummyimage.com/40x40/ccc/fff',
+        mediaType: 'video/url',
+        mediaUrl: LIVE_STREAM_URL,
+        description: '🔴 Transmisión en vivo',
+        timestamp: new Date().toISOString(),
+        reactions: { like: [], laugh: [], seven: [] },
+        comments: [],
+        shareCount: 0,
+        viewCount: 0
+      };
     }
 
     function escapeHtml(value) {
@@ -1328,12 +1387,13 @@
 
       postRoot.innerHTML = `
         <div class="single-post-shell">
-          <article class="post-card" data-postid="${post.id}">
+          <article class="post-card${post.isLive ? ' live-post' : ''}" data-postid="${post.id}">
             <header class="post-header">
-              <img src="${escapeHtml(post.userPhoto || 'https://dummyimage.com/40x40/ccc/fff')}" class="post-user-img" alt="Foto de perfil" onerror="this.src='https://dummyimage.com/40x40/ccc/fff'">
+              <img src="${escapeHtml(post.userPhoto || 'https://dummyimage.com/40x40/ccc/fff')}" class="post-user-img${post.isLive ? ' live-border' : ''}" alt="Foto de perfil" onerror="this.src='https://dummyimage.com/40x40/ccc/fff'">
               <div style="min-width:0;">
                 <div class="post-contenedor">
                   <div class="post-user-name">${escapeHtml(post.userName || 'Usuario')}</div>
+                  ${post.isLive ? '<span class="badge-en-vivo"><i class="fas fa-circle" style="font-size:7px;"></i> En Vivo</span>' : ''}
                   ${isAdminEmail(post.userEmail) ? '<span class="status-admin">Admin</span>' : ''}
                 </div>
                 <div class="post-time">${postDateLabel}</div>
@@ -1551,6 +1611,18 @@
     }
 
     async function loadPostById(id) {
+      if (id === LIVE_POST_ID) {
+        const liveData = await checkLiveStream();
+        if (!liveData?.live) {
+          showState('La transmisión en vivo no está disponible en este momento.');
+          return;
+        }
+
+        currentPost = buildLivePostFromApi(liveData);
+        renderPost(currentPost);
+        return;
+      }
+
       const ref = doc(db, 'posts', id);
       const snap = await getDoc(ref);
       if (!snap.exists()) {

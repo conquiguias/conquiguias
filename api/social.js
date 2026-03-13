@@ -78,7 +78,10 @@ export default async function handler(req, res) {
       case "get-assignable-users":
         await handleGetAssignableUsers(req, res);
         break;
-      default:
+        case "check-stream":
+          await handleCheckStream(req, res);
+          break;
+        default:
         res.status(400).json({ error: "Acción no válida" });
     }
   } catch (error) {
@@ -480,4 +483,51 @@ async function handleGetAssignableUsers(req, res) {
       error: error.message || "Error al obtener usuarios asignables",
     });
   }
+}
+
+const LIVE_STREAM_URL =
+  "https://edge1-us-losangeles.picarto.tv/stream/hls/golive%2bXSTUDIOCODE/1_0/index.m3u8";
+
+async function handleCheckStream(req, res) {
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
+  let live = false;
+  let ownerProfile = { email: OWNER_EMAIL, name: "Admin", photo: "", uid: "" };
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 6000);
+    const streamRes = await fetch(LIVE_STREAM_URL, {
+      method: "HEAD",
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    live = streamRes.ok;
+  } catch (_) {
+    live = false;
+  }
+
+  if (live) {
+    try {
+      const userRecord = await admin.auth().getUserByEmail(OWNER_EMAIL);
+      ownerProfile.uid = userRecord.uid || "";
+      ownerProfile.name = userRecord.displayName || "Admin";
+      ownerProfile.photo = userRecord.photoURL || "";
+
+      const db = admin.firestore();
+      const userDoc = await db.collection("usuarios").doc(userRecord.uid).get();
+      if (userDoc.exists) {
+        const d = userDoc.data() || {};
+        const fullName = `${d.nombre || ""} ${d.apellido || ""}`.trim();
+        if (fullName) ownerProfile.name = fullName;
+        if (d.photoURL) ownerProfile.photo = d.photoURL;
+      }
+    } catch (_) {
+      // silently keep defaults
+    }
+  }
+
+  return res.status(200).json({ live, ownerProfile });
 }

@@ -1161,6 +1161,31 @@
       font-size: 11px;
     }
 
+      /* ===== LIVE STREAM ===== */
+      @keyframes live-pulse {
+        0%, 100% { box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.55); }
+        50%       { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.15); }
+      }
+      .post-user-img.live-border {
+        border-color: #ef4444 !important;
+        animation: live-pulse 1.6s ease-in-out infinite;
+      }
+      .badge-en-vivo {
+        background: #ef4444;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 9px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .post-card.live-post {
+        border-color: rgba(239, 68, 68, 0.45);
+        box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2), 0 4px 14px rgba(239, 68, 68, 0.1);
+      }
+
     .post-options-wrap {
       margin-left: auto;
       position: relative;
@@ -8884,6 +8909,22 @@ const diffMins = Math.floor(diffMs / 60000);
   };
 
   // 🔹 CARGA INICIAL DE PUBLICACIONES (Modificada para scroll infinito)
+  // 🔴 LIVE STREAM CHECK
+  const LIVE_STREAM_URL = 'https://edge1-us-losangeles.picarto.tv/stream/hls/golive%2bXSTUDIOCODE/1_0/index.m3u8';
+
+  async function checkLiveStream() {
+    try {
+      const res = await fetch('/api/social?action=check-stream');
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.live ? data : null;
+    } catch (e) {
+      console.warn('[Live] No se pudo verificar stream:', e);
+      return null;
+    }
+  }
+
+  // 🔹 CARGA INICIAL DE PUBLICACIONES (Modificada para scroll infinito)
   async function loadPosts() {
     agregarLogFirestore('loadPosts');
     // 🔒 Protección contra llamadas simultáneas
@@ -8922,13 +8963,40 @@ const diffMins = Math.floor(diffMs / 60000);
       }
       feed.innerHTML = '';
       
-      if (querySnapshot.empty) {
-        feed.innerHTML = `
-          <div class="empty-feed">
-            <h3>📷 No hay publicaciones aún</h3>
-            <p>¡Sé el primero en compartir algo!</p>
-          </div>
-        `;
+        // 🔴 Inyectar post de transmisión en vivo si hay stream activo
+        try {
+          const liveData = await checkLiveStream();
+          if (liveData?.live) {
+            const livePost = {
+              id: '__live_stream__',
+              isLive: true,
+              userEmail: OWNER_EMAIL,
+              userName: liveData.ownerProfile?.name || 'Admin',
+              userPhoto: liveData.ownerProfile?.photo || 'https://dummyimage.com/40x40/ccc/fff',
+              mediaType: 'video/url',
+              mediaUrl: LIVE_STREAM_URL,
+              description: '🔴 Transmisión en vivo',
+              timestamp: new Date().toISOString(),
+              reactions: { like: [], laugh: [], seven: [] },
+              comments: [],
+              shareCount: 0,
+              viewCount: 0
+            };
+            displayPost(livePost, '__live_stream__', feed);
+          }
+        } catch (liveErr) {
+          console.warn('[Live] Error inyectando post en vivo:', liveErr);
+        }
+
+        if (querySnapshot.empty) {
+        if (!feed.querySelector('.live-post')) {
+          feed.innerHTML = `
+            <div class="empty-feed">
+              <h3>📷 No hay publicaciones aún</h3>
+              <p>¡Sé el primero en compartir algo!</p>
+            </div>
+          `;
+        }
         hasMorePosts = false;
         return;
       }
@@ -9051,6 +9119,7 @@ const diffMins = Math.floor(diffMs / 60000);
             const { currentUserId, isAdmin } = window;
             const postElement = document.createElement('div');
             postElement.className = 'post-card';
+            if (post.isLive) postElement.classList.add('live-post');
             const renderPostId = postId;
             const firestorePostId = post.id || postId;
 
@@ -9103,11 +9172,12 @@ const diffMins = Math.floor(diffMs / 60000);
 
             postElement.innerHTML = `
             <div class="post-header">
-              <img src="${post.userPhoto}" alt="Foto de perfil" class="post-user-img"
+              <img src="${post.userPhoto}" alt="Foto de perfil" class="post-user-img${post.isLive ? ' live-border' : ''}"
                 onerror="this.src='https://dummyimage.com/40x40/ccc/fff'">
               <div>
                 <div class="post-contenedor">
                   <div class="post-user-name">${nombreCompleto}</div>
+                  ${post.isLive ? '<span class="badge-en-vivo"><i class="fas fa-circle" style="font-size:7px;"></i> En Vivo</span>' : ''}
                   ${ADMIN_EMAILS.includes(post.userEmail) ? '<span class="status-admin post-status-indicator">Admin</span>' : ''}
                 </div>
                 <div class="post-time">

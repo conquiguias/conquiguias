@@ -8969,7 +8969,46 @@ const diffMins = Math.floor(diffMs / 60000);
       }
       feed.innerHTML = '';
 
-      if (querySnapshot.empty) {
+      // 🔴 LIVE: Si hay transmisión activa, inyectar el post en vivo directamente por ID
+      // (no depender de la query paginada por posibles delays de propagación)
+      let livePostRendered = false;
+      if (isLiveActive) {
+        try {
+          const liveDocRef = doc(db, "posts", LIVE_POST_ID);
+          const liveDocSnap = await getDoc(liveDocRef);
+          if (liveDocSnap.exists()) {
+            const livePost = { ...liveDocSnap.data(), id: LIVE_POST_ID, isLive: true };
+            displayPost(livePost, LIVE_POST_ID);
+            livePostRendered = true;
+          } else {
+            // Doc aún no existe, construir desde datos del API
+            const op = liveData.ownerProfile || {};
+            displayPost({
+              id: LIVE_POST_ID,
+              userId: op.uid || '',
+              userEmail: op.email || '',
+              userName: op.name || 'Admin',
+              userPhoto: op.photo || '',
+              mediaType: 'video/url',
+              mediaUrl: LIVE_STREAM_URL,
+              description: '🔴 Transmisión en vivo',
+              timestamp: new Date().toISOString(),
+              reactions: { like: [], laugh: [], seven: [] },
+              comments: [],
+              shareCount: 0,
+              viewCount: 0,
+              status: 'approved',
+              isLive: true,
+              isSpecialLive: true,
+            }, LIVE_POST_ID);
+            livePostRendered = true;
+          }
+        } catch (e) {
+          console.warn('[Live] Error cargando post en vivo directo:', e);
+        }
+      }
+
+      if (querySnapshot.empty && !livePostRendered) {
         feed.innerHTML = `
           <div class="empty-feed">
             <h3>📷 No hay publicaciones aún</h3>
@@ -8981,14 +9020,15 @@ const diffMins = Math.floor(diffMs / 60000);
       }
 
       // Actualizar el último documento visible
-      lastVisiblePost = querySnapshot.docs[querySnapshot.docs.length - 1];
+      if (!querySnapshot.empty) {
+        lastVisiblePost = querySnapshot.docs[querySnapshot.docs.length - 1];
+      }
 
-      // Mostrar las publicaciones
-      let renderedPostsCount = 0;
+      // Mostrar las publicaciones (siempre saltar LIVE_POST_ID, ya fue renderizado arriba)
+      let renderedPostsCount = livePostRendered ? 1 : 0;
       querySnapshot.forEach((doc) => {
         const post = { ...doc.data(), id: doc.id };
-        if (doc.id === LIVE_POST_ID && !isLiveActive) return;
-        if (doc.id === LIVE_POST_ID) post.isLive = true;
+        if (doc.id === LIVE_POST_ID) return; // ya renderizado arriba
         displayPost(post, doc.id);
         renderedPostsCount++;
       });

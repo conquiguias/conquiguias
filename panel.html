@@ -5230,6 +5230,15 @@
         mostrarSeccion(inicioSection, menuInicio);
       }
 
+      function isAnonymousGuestUser(user) {
+        if (!user) return false;
+        const hasNonAnonymousProvider = Array.isArray(user.providerData)
+          ? user.providerData.some((provider) => provider?.providerId && provider.providerId !== 'anonymous')
+          : false;
+        const hasRegisteredIdentity = !!(user.email || user.phoneNumber);
+        return !!user.isAnonymous && !hasNonAnonymousProvider && !hasRegisteredIdentity;
+      }
+
 
       // 🔹 Detectar usuario logueado
       onAuthStateChanged(auth, async (user) => {
@@ -5243,7 +5252,7 @@
           }
 
           const recoveredUser = auth.currentUser;
-          if (recoveredUser && !recoveredUser.isAnonymous) {
+          if (recoveredUser) {
             return;
           }
 
@@ -5255,7 +5264,7 @@
           }
           return;
         }
-        isGuestSession = !!user.isAnonymous;
+        isGuestSession = isAnonymousGuestUser(user);
 
         if (isGuestSession) {
           window.isOwner = false;

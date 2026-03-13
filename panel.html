@@ -1141,6 +1141,12 @@
       font-weight: bold;
       color: var(--text-primary);
       flex: 1;
+      min-width: 0;
+    }
+
+    .post-header-meta {
+      flex: 1;
+      min-width: 0;
     }
 
     .post-time {
@@ -1932,18 +1938,21 @@
 
     /* Indicador de estado en publicaciones normales */
     .post-status-indicator {
-      font-size: 12px;
-      padding: 2px 8px;
-      border-radius: 12px;
-      margin-left: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 999px;
+      margin-left: 0;
+      flex-shrink: 0;
     }
 
     .post-contenedor {
       display: flex;
-      position: relative;
-      flex-direction: row;
-      flex-wrap: nowrap;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
       width: 100%;
+      min-width: 0;
     }
 
     .status-pending {
@@ -1957,10 +1966,10 @@
     }
 
     .status-admin {
-      background: linear-gradient(135deg, #fbbf24, #f59e0b);
-      color: #7c2d12 !important;
-      border: 1px solid #fbbf24;
-      font-weight: bold;
+      background: #facc15;
+      color: #1f2937 !important;
+      border: none;
+      font-weight: 700;
     }
 
     /* Estilos para comentarios */
@@ -2783,10 +2792,21 @@
 
     /* Estados en publicaciones normales */
     .post-status-indicator {
-      font-size: 12px;
-      padding: 2px 8px;
-      border-radius: 12px;
-      margin-left: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 999px;
+      margin-left: 0;
+      flex-shrink: 0;
+    }
+
+    .post-contenedor {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      width: 100%;
+      min-width: 0;
     }
 
     .status-pending {
@@ -2804,10 +2824,10 @@
     }
 
     .status-admin {
-      background: linear-gradient(135deg, #ffd700, #ffed4e);
-      color: #8b6914 !important;
-      border: 1px solid #ffd700;
-      font-weight: bold;
+      background: #facc15;
+      color: #1f2937 !important;
+      border: none;
+      font-weight: 700;
     }
 
     /* Sección de comentarios en modo oscuro */
@@ -9211,7 +9231,7 @@ const diffMins = Math.floor(diffMs / 60000);
             <div class="post-header">
               <img src="${post.userPhoto}" alt="Foto de perfil" class="post-user-img${post.isLive ? ' live-border' : ''}"
                 onerror="this.src='https://dummyimage.com/40x40/ccc/fff'">
-              <div>
+              <div class="post-header-meta">
                 <div class="post-contenedor">
                   <div class="post-user-name">${nombreCompleto}</div>
                   ${post.isLive ? '<span class="badge-en-vivo"><i class="fas fa-circle" style="font-size:7px;"></i> En Vivo</span>' : ''}
@@ -10881,7 +10901,7 @@ const diffMins = Math.floor(diffMs / 60000);
                               <div class="post-header">
                                 <img src="${post.userPhoto}" alt="Foto de perfil" class="post-user-img"
                                   onerror="this.src='https://dummyimage.com/40x40/ccc/fff'">
-                                <div style="flex: 1;">
+                                <div class="post-header-meta">
                                   <div class="post-user-name">${post.userName}</div>
                                   <div class="post-time">${postDateLabel}</div>
                                   <div style="font-size: 12px; color: #ff9800; margin-top: 5px;">

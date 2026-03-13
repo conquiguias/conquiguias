@@ -646,7 +646,15 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signInAnonymously,
+      setPersistence,
+      browserLocalPersistence,
+      browserSessionPersistence,
+      inMemoryPersistence
+    } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
     import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
     const stateEl = document.getElementById('state');
@@ -665,6 +673,28 @@
       stateEl.style.display = 'block';
       stateEl.textContent = msg;
       postRoot.style.display = 'none';
+    }
+
+    async function configureAuthPersistence(authInstance) {
+      try {
+        await setPersistence(authInstance, browserLocalPersistence);
+        return;
+      } catch (localError) {
+        console.warn('[WARN] No se pudo activar persistencia local en posts:', localError);
+      }
+
+      try {
+        await setPersistence(authInstance, browserSessionPersistence);
+        return;
+      } catch (sessionError) {
+        console.warn('[WARN] No se pudo activar persistencia de sesión en posts:', sessionError);
+      }
+
+      try {
+        await setPersistence(authInstance, inMemoryPersistence);
+      } catch (memoryError) {
+        console.warn('[WARN] No se pudo activar persistencia en memoria en posts:', memoryError);
+      }
     }
 
     function escapeHtml(value) {
@@ -1209,9 +1239,23 @@
       const app = initializeApp(firebaseConfig);
       db = getFirestore(app);
       auth = getAuth(app);
+      await configureAuthPersistence(auth);
 
       onAuthStateChanged(auth, async (user) => {
         if (!user) {
+          try {
+            if (typeof auth.authStateReady === 'function') {
+              await auth.authStateReady();
+            }
+          } catch (stateReadyError) {
+            console.warn('[WARN] authStateReady falló en posts:', stateReadyError);
+          }
+
+          const recoveredUser = auth.currentUser;
+          if (recoveredUser && !recoveredUser.isAnonymous) {
+            return;
+          }
+
           // Sign in anonymously so Firestore rules (require auth) allow reads
           try {
             await signInAnonymously(auth);

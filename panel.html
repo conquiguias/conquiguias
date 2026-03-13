@@ -5250,6 +5250,31 @@
         }
       }
 
+      function hasPersistedAuthenticatedSessionHint() {
+        const storages = [window.localStorage, window.sessionStorage].filter(Boolean);
+        for (const store of storages) {
+          try {
+            for (let i = 0; i < store.length; i++) {
+              const key = store.key(i);
+              if (!key || !key.startsWith('firebase:authUser:')) continue;
+              const rawValue = store.getItem(key);
+              if (!rawValue) continue;
+              try {
+                const parsed = JSON.parse(rawValue);
+                const hasEmail = !!String(parsed?.email || '').trim();
+                const isAnonymous = !!parsed?.isAnonymous;
+                if (hasEmail && !isAnonymous) return true;
+              } catch (_) {
+                if (rawValue.includes('"isAnonymous":false') && rawValue.includes('"email"')) {
+                  return true;
+                }
+              }
+            }
+          } catch (_) {}
+        }
+        return false;
+      }
+
 
       // 🔹 Detectar usuario logueado
       onAuthStateChanged(auth, async (user) => {
@@ -5267,15 +5292,19 @@
             return;
           }
 
-          if (shouldAllowExplicitGuestMode()) {
+          const hasRealSessionHint = hasPersistedAuthenticatedSessionHint();
+          if (hasRealSessionHint && !shouldAllowExplicitGuestMode()) {
+            window.location.href = "index.html";
+            return;
+          }
+
+          if (shouldAllowExplicitGuestMode() || !hasRealSessionHint) {
             try {
               await signInAnonymously(auth);
             } catch (anonError) {
               console.warn('[WARN] No se pudo iniciar sesión anónima en panel:', anonError);
               window.location.href = "index.html";
             }
-          } else {
-            window.location.href = "index.html";
           }
           return;
         }

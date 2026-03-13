@@ -487,6 +487,7 @@ async function handleGetAssignableUsers(req, res) {
 
 const LIVE_STREAM_URL =
   "https://edge1-us-losangeles.picarto.tv/stream/hls/golive%2bXSTUDIOCODE/1_0/index.m3u8";
+const LIVE_POST_ID = "__live_stream__";
 
 async function handleCheckStream(req, res) {
   if (req.method !== "GET") {
@@ -500,34 +501,70 @@ async function handleCheckStream(req, res) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 6000);
     const streamRes = await fetch(LIVE_STREAM_URL, {
-      method: "HEAD",
+      method: "GET",
       signal: controller.signal,
+      headers: {
+        Accept: "application/vnd.apple.mpegurl, application/x-mpegURL, text/plain;q=0.9, */*;q=0.8",
+        "Cache-Control": "no-cache",
+      },
     });
     clearTimeout(timer);
-    live = streamRes.ok;
+
+    if (streamRes.ok) {
+      const playlist = await streamRes.text();
+      const hasSegments = /#EXTINF\s*:/i.test(playlist);
+      const hasMediaEntries = /\n[^#\n][^\n]*\.ts(\?|$)|\n[^#\n][^\n]*\.m4s(\?|$)/i.test(playlist);
+      const looksOffline = /offline|not found|forbidden|error/i.test(playlist);
+      live = (hasSegments || hasMediaEntries) && !looksOffline;
+    }
   } catch (_) {
     live = false;
   }
 
-  if (live) {
-    try {
-      const userRecord = await admin.auth().getUserByEmail(OWNER_EMAIL);
-      ownerProfile.uid = userRecord.uid || "";
-      ownerProfile.name = userRecord.displayName || "Admin";
-      ownerProfile.photo = userRecord.photoURL || "";
+  try {
+    const userRecord = await admin.auth().getUserByEmail(OWNER_EMAIL);
+    ownerProfile.uid = userRecord.uid || "";
+    ownerProfile.name = userRecord.displayName || "Admin";
+    ownerProfile.photo = userRecord.photoURL || "";
 
-      const db = admin.firestore();
-      const userDoc = await db.collection("usuarios").doc(userRecord.uid).get();
-      if (userDoc.exists) {
-        const d = userDoc.data() || {};
-        const fullName = `${d.nombre || ""} ${d.apellido || ""}`.trim();
-        if (fullName) ownerProfile.name = fullName;
-        if (d.photoURL) ownerProfile.photo = d.photoURL;
-      }
-    } catch (_) {
-      // silently keep defaults
+    const db = admin.firestore();
+    const userDoc = await db.collection("usuarios").doc(userRecord.uid).get();
+    if (userDoc.exists) {
+      const d = userDoc.data() || {};
+      const fullName = `${d.nombre || ""} ${d.apellido || ""}`.trim();
+      if (fullName) ownerProfile.name = fullName;
+      if (d.photoURL) ownerProfile.photo = d.photoURL;
     }
+
+    if (live) {
+      const liveRef = db.collection("posts").doc(LIVE_POST_ID);
+      const liveSnap = await liveRef.get();
+      const existing = liveSnap.exists ? liveSnap.data() || {} : {};
+
+      await liveRef.set(
+        {
+          userId: ownerProfile.uid || existing.userId || "",
+          userEmail: OWNER_EMAIL,
+          userName: ownerProfile.name || existing.userName || "Admin",
+          userPhoto: ownerProfile.photo || existing.userPhoto || "https://dummyimage.com/40x40/ccc/fff",
+          mediaType: "video/url",
+          mediaUrl: LIVE_STREAM_URL,
+          description: existing.description || "🔴 Transmisión en vivo",
+          timestamp: new Date().toISOString(),
+          reactions: existing.reactions || { like: [], laugh: [], seven: [] },
+          comments: existing.comments || [],
+          shareCount: Number.isFinite(existing.shareCount) ? existing.shareCount : 0,
+          viewCount: Number.isFinite(existing.viewCount) ? existing.viewCount : 0,
+          status: "approved",
+          isLive: true,
+          isSpecialLive: true,
+        },
+        { merge: true }
+      );
+    }
+  } catch (_) {
+    // silently keep defaults
   }
 
-  return res.status(200).json({ live, ownerProfile });
+  return res.status(200).json({ live, ownerProfile, livePostId: LIVE_POST_ID });
 }

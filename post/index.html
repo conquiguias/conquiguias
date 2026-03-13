@@ -930,13 +930,13 @@
 
     async function checkLiveStream() {
       try {
-        const res = await fetch('/api/social?action=check-stream');
-        if (!res.ok) return null;
+        const res = await fetch('/api/social?action=check-stream', { cache: 'no-store' });
+        if (!res.ok) return { live: false };
         const data = await res.json();
-        return data.live ? data : null;
+        return data || { live: false };
       } catch (e) {
         console.warn('[post] No se pudo verificar stream en vivo:', e);
-        return null;
+        return { live: false };
       }
     }
 
@@ -1617,10 +1617,6 @@
           showState('La transmisión en vivo no está disponible en este momento.');
           return;
         }
-
-        currentPost = buildLivePostFromApi(liveData);
-        renderPost(currentPost);
-        return;
       }
 
       const ref = doc(db, 'posts', id);

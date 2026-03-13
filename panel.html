@@ -8823,6 +8823,8 @@ const diffMins = Math.floor(diffMs / 60000);
       }
 
       const querySnapshot = await getDocs(q);
+      const liveData = await checkLiveStream();
+      const isLiveActive = !!liveData?.live;
 
       if (querySnapshot.empty) {
       console.log('📭 No hay más publicaciones');
@@ -8839,6 +8841,8 @@ const diffMins = Math.floor(diffMs / 60000);
       // Mostrar las nuevas publicaciones
       querySnapshot.forEach((doc) => {
       const post = { ...doc.data(), id: doc.id };
+      if (doc.id === LIVE_POST_ID && !isLiveActive) return;
+      if (doc.id === LIVE_POST_ID) post.isLive = true;
       displayPost(post, doc.id);
       });
 
@@ -8908,19 +8912,19 @@ const diffMins = Math.floor(diffMs / 60000);
     }
   };
 
-  // 🔹 CARGA INICIAL DE PUBLICACIONES (Modificada para scroll infinito)
-  // 🔴 LIVE STREAM CHECK
+  // � LIVE STREAM CHECK
   const LIVE_STREAM_URL = 'https://edge1-us-losangeles.picarto.tv/stream/hls/golive%2bXSTUDIOCODE/1_0/index.m3u8';
+  const LIVE_POST_ID = '__live_stream__';
 
   async function checkLiveStream() {
     try {
-      const res = await fetch('/api/social?action=check-stream');
-      if (!res.ok) return null;
+      const res = await fetch('/api/social?action=check-stream', { cache: 'no-store' });
+      if (!res.ok) return { live: false };
       const data = await res.json();
-      return data.live ? data : null;
+      return data || { live: false };
     } catch (e) {
       console.warn('[Live] No se pudo verificar stream:', e);
-      return null;
+      return { live: false };
     }
   }
 
@@ -8946,6 +8950,8 @@ const diffMins = Math.floor(diffMs / 60000);
       // Reiniciar variables de paginación
       lastVisiblePost = null;
       hasMorePosts = true;
+      const liveData = await checkLiveStream();
+      const isLiveActive = !!liveData?.live;
       const q = query(
         collection(db, "posts"),
         where("status", "==", "approved"),
@@ -8962,53 +8968,41 @@ const diffMins = Math.floor(diffMs / 60000);
         window._clapprPlayers = {};
       }
       feed.innerHTML = '';
-      
-        // 🔴 Inyectar post de transmisión en vivo si hay stream activo
-        try {
-          const liveData = await checkLiveStream();
-          if (liveData?.live) {
-            const livePost = {
-              id: '__live_stream__',
-              isLive: true,
-              userEmail: OWNER_EMAIL,
-              userName: liveData.ownerProfile?.name || 'Admin',
-              userPhoto: liveData.ownerProfile?.photo || 'https://dummyimage.com/40x40/ccc/fff',
-              mediaType: 'video/url',
-              mediaUrl: LIVE_STREAM_URL,
-              description: '🔴 Transmisión en vivo',
-              timestamp: new Date().toISOString(),
-              reactions: { like: [], laugh: [], seven: [] },
-              comments: [],
-              shareCount: 0,
-              viewCount: 0
-            };
-            displayPost(livePost, '__live_stream__', feed);
-          }
-        } catch (liveErr) {
-          console.warn('[Live] Error inyectando post en vivo:', liveErr);
-        }
 
-        if (querySnapshot.empty) {
-        if (!feed.querySelector('.live-post')) {
-          feed.innerHTML = `
-            <div class="empty-feed">
-              <h3>📷 No hay publicaciones aún</h3>
-              <p>¡Sé el primero en compartir algo!</p>
-            </div>
-          `;
-        }
+      if (querySnapshot.empty) {
+        feed.innerHTML = `
+          <div class="empty-feed">
+            <h3>📷 No hay publicaciones aún</h3>
+            <p>¡Sé el primero en compartir algo!</p>
+          </div>
+        `;
         hasMorePosts = false;
         return;
       }
 
-        // Actualizar el último documento visible
-        lastVisiblePost = querySnapshot.docs[querySnapshot.docs.length - 1];
+      // Actualizar el último documento visible
+      lastVisiblePost = querySnapshot.docs[querySnapshot.docs.length - 1];
 
-        // Mostrar las publicaciones
-        querySnapshot.forEach((doc) => {
+      // Mostrar las publicaciones
+      let renderedPostsCount = 0;
+      querySnapshot.forEach((doc) => {
         const post = { ...doc.data(), id: doc.id };
+        if (doc.id === LIVE_POST_ID && !isLiveActive) return;
+        if (doc.id === LIVE_POST_ID) post.isLive = true;
         displayPost(post, doc.id);
-        });
+        renderedPostsCount++;
+      });
+
+      if (renderedPostsCount === 0) {
+        feed.innerHTML = `
+          <div class="empty-feed">
+            <h3>📷 No hay publicaciones aún</h3>
+            <p>¡Sé el primero en compartir algo!</p>
+          </div>
+        `;
+        hasMorePosts = false;
+        return;
+      }
 
         setTimeout(() => {
         inicializarSistemaVideos();
@@ -9034,6 +9028,8 @@ const diffMins = Math.floor(diffMs / 60000);
           // Fallback: intentar cargar sin filtro
           try {
           console.log('[DEBUG] Intentando carga sin filtro...');
+          const liveData = await checkLiveStream();
+          const isLiveActive = !!liveData?.live;
           const q = query(
           collection(db, "posts"),
           orderBy("timestamp", "desc"),
@@ -9058,8 +9054,9 @@ const diffMins = Math.floor(diffMs / 60000);
           let approvedCount = 0;
           querySnapshot.forEach((doc) => {
           const post = doc.data();
+          if (doc.id === LIVE_POST_ID && !isLiveActive) return;
           if (post.status === 'approved') {
-          displayPost({ ...post, id: doc.id }, doc.id);
+          displayPost({ ...post, id: doc.id, isLive: doc.id === LIVE_POST_ID }, doc.id);
           approvedCount++;
           lastVisiblePost = doc;
           }

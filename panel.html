@@ -1955,6 +1955,12 @@
       min-width: 0;
     }
 
+    .post-contenedor > .badge-en-vivo,
+    .post-contenedor > .post-status-indicator {
+      line-height: 1.2;
+      align-self: center;
+    }
+
     .status-pending {
       background: rgba(245, 158, 11, 0.2);
       color: var(--warning-color);
@@ -5011,6 +5017,15 @@
 
       function normalizeEmail(email) {
         return (email || '').trim().toLowerCase();
+      }
+
+      function isAdminEmail(email) {
+        const normalizedEmail = normalizeEmail(email);
+        if (!normalizedEmail) return false;
+        const adminList = Array.isArray(window.ADMIN_EMAILS)
+          ? window.ADMIN_EMAILS.map(normalizeEmail).filter(Boolean)
+          : [];
+        return adminList.includes(normalizedEmail);
       }
 
       window.resolveTargetEmail = function(targetId, targetData) {
@@ -9235,7 +9250,7 @@ const diffMins = Math.floor(diffMs / 60000);
                 <div class="post-contenedor">
                   <div class="post-user-name">${nombreCompleto}</div>
                   ${post.isLive ? '<span class="badge-en-vivo"><i class="fas fa-circle" style="font-size:7px;"></i> En Vivo</span>' : ''}
-                  ${ADMIN_EMAILS.includes(post.userEmail) ? '<span class="status-admin post-status-indicator">Admin</span>' : ''}
+                  ${isAdminEmail(post.userEmail) ? '<span class="status-admin post-status-indicator">Admin</span>' : ''}
                 </div>
                 <div class="post-time">
                   ${postDateLabel}

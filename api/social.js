@@ -487,7 +487,7 @@ async function handleGetAssignableUsers(req, res) {
 
 const LIVE_STREAM_URL =
   "https://edge1-us-losangeles.picarto.tv/stream/hls/golive%2bXSTUDIOCODE/1_0/index.m3u8";
-const LIVE_POST_ID = "__live_stream__";
+const LIVE_POST_ID = "live_stream";
 
 async function handleCheckStream(req, res) {
   if (req.method !== "GET") {

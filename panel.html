@@ -4138,12 +4138,14 @@
                   <div style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 4px; margin-bottom: 10px;">
                       <table style="width:100%; border-collapse: collapse; font-size:13px;">
                           <thead style="background:rgba(255,255,255,0.05); position:sticky; top:0;">
-                              <tr>
+                                <tr>
+                                  <th style="padding:8px; text-align:left;">Especialidad</th>
                                   <th style="padding:8px; text-align:left;">Archivo</th>
                                   <th style="padding:8px; text-align:left;">Ruta</th>
                                   <th style="padding:8px; text-align:center;">Tamaño</th>
                                   <th style="padding:8px; text-align:center;">Acción</th>
-                              </tr>
+                                  <th style="padding:8px; text-align:center;">Borrar</th>
+                                </tr>
                           </thead>
                           <tbody id="cuerpoTablaLimpiezaPDFs">
                               <tr><td colspan="4" style="text-align:center; padding:20px;">Cargando...</td></tr>
@@ -13916,18 +13918,60 @@ const diffMins = Math.floor(diffMs / 60000);
           let totalBytes = 0;
           
           archivos.forEach(f => {
-              totalBytes += f.tamano;
-              const tr = document.createElement('tr');
-              tr.style.borderBottom = '1px solid var(--border-color)';
-              tr.innerHTML = `
+                totalBytes += f.tamano;
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid var(--border-color)';
+                // Extraer especialidad desde la ruta, ejemplo: tareas_files/ESPECIALIDAD/archivo.pdf
+                let especialidad = '';
+                const partes = f.ruta.split('/');
+                if (partes.length >= 2) {
+                  especialidad = partes[1].replace(/-.*/, '').replace(/_/g, ' ');
+                }
+                tr.innerHTML = `
+                  <td style="padding:10px;">${especialidad}</td>
                   <td style="padding:10px;">${f.nombre}</td>
                   <td style="padding:10px; font-size:12px; color:#aaa;">${f.ruta}</td>
                   <td style="padding:10px; text-align:center;">${(f.tamano / 1024 / 1024).toFixed(2)} MB</td>
                   <td style="padding:10px; text-align:center;">
-                      <a href="${f.url}" target="_blank" style="color:var(--accent-color);"><i class="fas fa-download"></i></a>
+                    <a href="${f.url}" target="_blank" style="color:var(--accent-color);"><i class="fas fa-download"></i></a>
                   </td>
-              `;
-              tbody.appendChild(tr);
+                  <td style="padding:10px; text-align:center;">
+                    <button onclick="eliminarPDFEspecifico('${f.ruta.replace(/'/g, '\'')}', this)" title="Eliminar PDF" style="background:none; border:none; color:var(--danger-color); cursor:pointer; font-size:16px;"><i class="fas fa-trash"></i></button>
+                  </td>
+                `;
+                tbody.appendChild(tr);
+            // Eliminar PDF específico
+            window.eliminarPDFEspecifico = async function(ruta, btn) {
+              if (!window.isOwner) {
+                alert('❌ Solo el propietario puede eliminar archivos PDF.');
+                return;
+              }
+              if(!confirm('¿Seguro que deseas eliminar este PDF? Esta acción no se puede deshacer.')) return;
+              const original = btn.innerHTML;
+              btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+              btn.disabled = true;
+              try {
+                const resp = await fetch('/api/formulario?action=eliminarTareaPDF', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ ruta })
+                });
+                const res = await resp.json();
+                if(resp.ok) {
+                  btn.closest('tr').remove();
+                  // Actualizar el total
+                  cargarTablaLimpiezaPDFs();
+                } else {
+                  alert('Error al eliminar: ' + (res.error || 'Desconocido'));
+                  btn.innerHTML = original;
+                  btn.disabled = false;
+                }
+              } catch(e) {
+                alert('Error de red: ' + e.message);
+                btn.innerHTML = original;
+                btn.disabled = false;
+              }
+            };
           });
           
           document.getElementById('infoTotalSize').textContent = (totalBytes / 1024 / 1024).toFixed(2) + ' MB';

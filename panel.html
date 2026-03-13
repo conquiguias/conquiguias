@@ -1148,6 +1148,19 @@
       color: var(--text-secondary);
     }
 
+    .post-video-views {
+      font-size: 11px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 2px;
+    }
+    .post-video-views .views-icon {
+      color: #e53e3e;
+      font-size: 11px;
+    }
+
     .post-options-wrap {
       margin-left: auto;
       position: relative;
@@ -8469,6 +8482,7 @@ const diffMins = Math.floor(diffMs / 60000);
       like: [], laugh: [], seven: []
       },
       shareCount: 0,
+      viewCount: 0,
       comments: []
       };
 
@@ -8540,6 +8554,7 @@ const diffMins = Math.floor(diffMs / 60000);
             imgurData: { id: null, deletehash: null },
             reactions: { like: [], laugh: [], seven: [] },
             shareCount: 0,
+            viewCount: 0,
             comments: [],
             status: 'approved'
           };
@@ -8629,6 +8644,7 @@ const diffMins = Math.floor(diffMs / 60000);
       imgurData: mediaData,
       reactions: { like: [], laugh: [], seven: [] },
       shareCount: 0,
+      viewCount: 0,
       comments: [],
       status: window.isAdmin ? 'approved' : 'pending'
       };
@@ -9082,6 +9098,7 @@ const diffMins = Math.floor(diffMs / 60000);
             const isSevenEnabled = isSevenReactionEnabled();
             const videoBlurBackgroundUrl = getVideoBlurBackgroundUrl(post);
             const shareCount = getPostShareCount(post);
+            const viewCount = getPostViewCount(post);
 
             postElement.innerHTML = `
             <div class="post-header">
@@ -9096,6 +9113,7 @@ const diffMins = Math.floor(diffMs / 60000);
                   ${postDateLabel}
                   ${isLocalPost ? ' (Guardado localmente)' : ''}
                 </div>
+                ${esVideo ? `<div class="post-video-views"><i class="fas fa-play-circle views-icon"></i> <span class="view-count-display" data-postid="${firestorePostId}" data-viewcount="${viewCount}">${formatReactionCount(viewCount)}</span> vistas</div>` : ''}
               </div>
             </div>
 
@@ -9207,6 +9225,7 @@ const diffMins = Math.floor(diffMs / 60000);
                       otherPlayer.pause();
                     }
                   });
+                  incrementPostViewCount(firestorePostId);
                 });
               }, 300);
             }
@@ -9422,6 +9441,14 @@ const diffMins = Math.floor(diffMs / 60000);
                                 }
                                 if (Array.isArray(post.sharedBy)) return post.sharedBy.length;
                                 if (Array.isArray(post.shares)) return post.shares.length;
+                                return 0;
+                              }
+
+                              function getPostViewCount(post) {
+                                if (!post || typeof post !== 'object') return 0;
+                                if (typeof post.viewCount === 'number' && Number.isFinite(post.viewCount)) {
+                                  return Math.max(0, post.viewCount);
+                                }
                                 return 0;
                               }
 
@@ -10100,6 +10127,37 @@ const diffMins = Math.floor(diffMs / 60000);
                               });
                               } catch (shareErr) {
                               console.warn('No se pudo incrementar shareCount:', shareErr);
+                              }
+                              }
+
+                              async function incrementPostViewCount(postId) {
+                              if (!postId) return;
+                              const uid = window.currentUserId;
+                              let viewerKey = uid || null;
+                              if (!viewerKey) {
+                                let anonId = localStorage.getItem('_cx_anon_id');
+                                if (!anonId) { anonId = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('_cx_anon_id', anonId); }
+                                viewerKey = 'anon_' + anonId;
+                              }
+                              const storageKey = `vv_${postId}_${viewerKey}`;
+                              const ONE_HOUR = 60 * 60 * 1000;
+                              const lastViewStr = localStorage.getItem(storageKey);
+                              if (lastViewStr) {
+                                const lastViewTime = parseInt(lastViewStr, 10);
+                                if (!isNaN(lastViewTime) && Date.now() - lastViewTime < ONE_HOUR) return;
+                              }
+                              localStorage.setItem(storageKey, Date.now().toString());
+                              try {
+                                const postRef = doc(db, 'posts', postId);
+                                await updateDoc(postRef, { viewCount: increment(1) });
+                                document.querySelectorAll(`.view-count-display[data-postid="${postId}"]`).forEach(el => {
+                                  const raw = parseInt(el.dataset.viewcount || '0', 10);
+                                  const updated = raw + 1;
+                                  el.dataset.viewcount = String(updated);
+                                  el.textContent = formatReactionCount(updated);
+                                });
+                              } catch (e) {
+                                console.warn('[ViewCount] Error:', e);
                               }
                               }
 

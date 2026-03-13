@@ -134,6 +134,19 @@
       color: var(--text-secondary);
     }
 
+    .post-video-views {
+      font-size: 11px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 2px;
+    }
+    .post-video-views .views-icon {
+      color: #e53e3e;
+      font-size: 11px;
+    }
+
     .post-options-toggle {
       margin-left: auto;
       border: 1px solid var(--border-color);
@@ -655,7 +668,7 @@
       browserSessionPersistence,
       inMemoryPersistence
     } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
     const stateEl = document.getElementById('state');
     const postRoot = document.getElementById('postRoot');
@@ -800,6 +813,37 @@
         return `${formatted} mil`;
       }
       return numericCount.toString();
+    }
+
+    async function incrementPostViewCount(postId) {
+      if (!postId) return;
+      const uid = currentUser?.uid || null;
+      let viewerKey = uid || null;
+      if (!viewerKey) {
+        let anonId = localStorage.getItem('_cx_anon_id');
+        if (!anonId) { anonId = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('_cx_anon_id', anonId); }
+        viewerKey = 'anon_' + anonId;
+      }
+      const storageKey = `vv_${postId}_${viewerKey}`;
+      const ONE_HOUR = 60 * 60 * 1000;
+      const lastViewStr = localStorage.getItem(storageKey);
+      if (lastViewStr) {
+        const lastViewTime = parseInt(lastViewStr, 10);
+        if (!isNaN(lastViewTime) && Date.now() - lastViewTime < ONE_HOUR) return;
+      }
+      localStorage.setItem(storageKey, Date.now().toString());
+      try {
+        const postRef = doc(db, 'posts', postId);
+        await updateDoc(postRef, { viewCount: increment(1) });
+        document.querySelectorAll(`.view-count-display[data-postid="${postId}"]`).forEach(el => {
+          const raw = parseInt(el.dataset.viewcount || '0', 10);
+          const updated = raw + 1;
+          el.dataset.viewcount = String(updated);
+          el.textContent = formatReactionCount(updated);
+        });
+      } catch (e) {
+        console.warn('[ViewCount] Error:', e);
+      }
     }
 
     function getSharedPostLink(id) {
@@ -1017,6 +1061,7 @@
                   ${String(post.userEmail || '').toLowerCase() === 'proyectoja1122@gmail.com' ? '<span class="status-admin">Admin</span>' : ''}
                 </div>
                 <div class="post-time">${postDateLabel}</div>
+                ${(post.mediaType === 'video/url' || String(post.mediaType || '').startsWith('video/')) ? `<div class="post-video-views"><i class="fas fa-play-circle views-icon"></i> <span class="view-count-display" data-postid="${post.id}" data-viewcount="${post.viewCount || 0}">${formatReactionCount(post.viewCount || 0)}</span> vistas</div>` : ''}
               </div>
             </header>
 
@@ -1080,6 +1125,9 @@
               parentId: '#clappr-post-player',
               width: '100%',
               height: '100%'
+            });
+            window._postClapprPlayer.on(Clappr.Events.PLAYER_PLAY, () => {
+              incrementPostViewCount(post.id);
             });
           }
         }, 300);

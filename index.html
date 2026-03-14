@@ -724,6 +724,23 @@
         display: inline-block;
       }
 
+      .guest-access-note {
+        margin-top: 12px;
+        text-align: center;
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
+      .guest-access-note a {
+        color: var(--accent-color);
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      .guest-access-note a:hover {
+        text-decoration: underline;
+      }
+
       .toggle:hover, .forgot-password:hover, .back-link:hover {
         text-decoration: underline;
       }
@@ -906,6 +923,9 @@
           <button type="button" id="googleLoginBtn" style="font-size: 18px">
             <i class="fab fa-google" style="margin-right: 8px"></i>Continuar con Google
           </button>
+          <div class="guest-access-note">
+            También puedes <a href="panel.html?guest=1">ingresar como invitado</a>.
+          </div>
         </form>
         <div class="forgot-password" onclick="showResetPassword()">
           ¿Olvidaste tu contraseña?

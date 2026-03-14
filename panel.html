@@ -13,6 +13,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@clappr/player@latest/dist/clappr.plainhtml5.min.js"></script>
 
   <title>Conquiguias World</title>
+  <meta name="google-adsense-account" content="ca-pub-6829228334766526">
   <script>
     // Globals initialized before modules
     window.isAdmin = false;
@@ -3475,6 +3476,94 @@
     .post-description {
       transition: all 0.3s ease;
     }
+
+    .about-tabs-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 18px 0;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .about-tab-btn {
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: transparent;
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .about-tab-btn:hover {
+      border-color: var(--accent-color);
+      color: white;
+      background: rgba(59, 130, 246, 0.15);
+      transform: translateY(-1px);
+    }
+
+    .about-tab-btn.active {
+      background: var(--accent-color);
+      color: white;
+      border-color: var(--accent-color);
+    }
+
+    .about-tab-content {
+      display: none;
+      animation: fadeIn 0.25s ease;
+    }
+
+    .about-tab-content.active {
+      display: block;
+    }
+
+    .about-panel {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 18px;
+      line-height: 1.7;
+      color: var(--text-primary);
+    }
+
+    .about-panel h3 {
+      margin-bottom: 10px;
+      color: var(--accent-color);
+      font-size: 20px;
+    }
+
+    .about-panel p,
+    .about-panel li {
+      color: var(--text-primary);
+      opacity: 0.95;
+    }
+
+    .about-panel ul {
+      margin: 10px 0 0 18px;
+    }
+
+    .about-contact-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .about-contact-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    .about-contact-item strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--accent-color);
+    }
   </style>
 </head>
 
@@ -3496,6 +3585,7 @@
     <button id="menuPerfil"><i class="fas fa-user" style="margin-right: 8px;"></i> Perfil</button>
     <button id="menuInstructor" class="hidden"><i class="fas fa-chalkboard-teacher" style="margin-right: 8px;"></i> Instructor</button>
     <button id="menuAdmin" class="hidden"><i class="fas fa-user-shield" style="margin-right: 8px;"></i> Admin</button>
+    <button id="menuAcerca"><i class="fas fa-circle-info" style="margin-right: 8px;"></i> Acerca de</button>
     <button id="logoutBtn"><i class="fas fa-sign-out-alt" style="margin-right: 8px;"></i> Cerrar sesión</button>
   </div>
 
@@ -4336,6 +4426,86 @@
       </div>
     </div>
 
+    <div id="acercaSection" class="card hidden">
+      <h2><i class="fas fa-circle-info" style="margin-right: 8px; color: var(--accent-color);"></i> Acerca de Conquiguias World</h2>
+      <p style="margin-top: 8px; color: var(--text-secondary);">Información institucional, contacto y documentos legales de la plataforma.</p>
+
+      <div class="about-tabs-nav">
+        <button class="about-tab-btn active" data-about-tab="acerca">Acerca de</button>
+        <button class="about-tab-btn" data-about-tab="mision-vision-contacto">Misión, visión y contacto</button>
+        <button class="about-tab-btn" data-about-tab="privacidad">Política de privacidad</button>
+        <button class="about-tab-btn" data-about-tab="terminos">Términos y condiciones</button>
+      </div>
+
+      <div id="aboutTab-acerca" class="about-tab-content active">
+        <div class="about-panel">
+          <h3>Acerca de</h3>
+          <p><strong>Conquiguias World</strong> es una plataforma orientada a la formación, seguimiento y evaluación de especialidades para clubes y ministerios juveniles.</p>
+          <p>Su propósito es centralizar recursos, facilitar la comunicación entre instructores y participantes, y mantener un entorno digital ordenado para el aprendizaje.</p>
+          <p>Además de ser un red social que conectado con cada conquistadores, líder y personas de la comunidad mundial.</p>
+          <ul>
+            <li>Gestión de especialidades y materiales.</li>
+            <li>Publicaciones y grabaciones educativas.</li>
+            <li>Seguimiento de tareas, evaluaciones y certificaciones.</li>
+            <li>Conexión y colaboración entre miembros de la comunidad.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="aboutTab-mision-vision-contacto" class="about-tab-content">
+        <div class="about-panel">
+          <h3>Misión y visión</h3>
+          <p><strong>Misión:</strong> Impulsar una formación integral mediante herramientas digitales confiables, accesibles y enfocadas en el desarrollo de competencias y valores.</p>
+          <p><strong>Visión:</strong> Ser una plataforma de referencia para la administración moderna de especialidades, fortaleciendo la excelencia educativa y el trabajo colaborativo.</p>
+          <p><strong>Valores:</strong> Compromiso, respeto, colaboración y excelencia en el aprendizaje.</p>
+          <p><strong>Social:</strong> Fomentar la interacción y el intercambio de conocimientos entre los miembros de la comunidad.</p>
+
+          <div class="about-contact-grid">
+            <div class="about-contact-item">
+              <strong>Contacto general</strong>
+              <span>info@conquiguiasworld.xyz</span>
+            </div>
+            <div class="about-contact-item">
+              <strong>Soporte técnico</strong>
+              <span>soporte@conquiguiasworld.xyz</span>
+            </div>
+            <div class="about-contact-item">
+              <strong>Horario de atención</strong>
+              <span>Lunes a viernes, 9:00 a.m. - 5:00 p.m.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="aboutTab-privacidad" class="about-tab-content">
+        <div class="about-panel">
+          <h3>Política de privacidad</h3>
+          <p>Conquiguias World protege la información personal de sus usuarios y la utiliza únicamente para la operación de la plataforma, autenticación, gestión académica y comunicación de los directivos de cada club según corresponda.</p>
+          <ul>
+            <li>Se recopilan datos mínimos necesarios para prestar el servicio.</li>
+            <li>No se comercializa la información personal.</li>
+            <li>Se aplican medidas técnicas y organizativas para resguardar los datos.</li>
+            <li>El usuario puede solicitar actualización o corrección de su información.</li>
+          </ul>
+          <p>Al utilizar la plataforma, el usuario acepta esta política y su tratamiento responsable de datos.</p>
+        </div>
+      </div>
+
+      <div id="aboutTab-terminos" class="about-tab-content">
+        <div class="about-panel">
+          <h3>Términos y condiciones</h3>
+          <ul>
+            <li>El uso de la plataforma debe ser respetuoso, lícito y conforme a su propósito educativo.</li>
+            <li>Cada usuario es responsable de la veracidad de la información que registra y publica.</li>
+            <li>El acceso a módulos administrativos/instructor está sujeto a roles autorizados.</li>
+            <li>El contenido que infrinja normas internas podrá ser moderado o retirado.</li>
+            <li>La administración podrá actualizar estos términos para mejorar el servicio.</li>
+          </ul>
+          <p>El uso continuo de la plataforma implica la aceptación de estos términos y sus actualizaciones.</p>
+        </div>
+      </div>
+    </div>
+
     <!-- 🔹 Visor PDF modal -->
     <div id="pdfViewerModal" class="hidden" style="display: none;">
       <div class="pdf-viewer-content">
@@ -4907,7 +5077,9 @@
       const menuEspecialidades = document.getElementById("menuEspecialidades");
       const menuCertificaciones = document.getElementById("menuCertificaciones");
       const menuGrabaciones = document.getElementById("menuGrabaciones");
+      const menuAcerca = document.getElementById("menuAcerca");
       const grabacionesSection = document.getElementById("grabacionesSection");
+      const acercaSection = document.getElementById("acercaSection");
       const menuAdmin = document.getElementById("menuAdmin");
       const logoutBtn = document.getElementById("logoutBtn");
       const editForm = document.getElementById("editForm");
@@ -5242,7 +5414,7 @@
       window.applyRoleBasedNavigation = applyRoleBasedNavigation;
 
       function applyGuestNavigationState(isGuest) {
-        const allowedMenuIds = new Set(['menuInicio', 'menuClubes', 'menuGrabaciones']);
+        const allowedMenuIds = new Set(['menuInicio', 'menuClubes', 'menuGrabaciones', 'menuAcerca']);
         const guestLockTitle = 'Disponible solo con sesión iniciada';
         const headerUserPhotoEl = document.getElementById('headerUserPhoto');
         const headerUserNameEl = document.getElementById('headerUserName');
@@ -5299,7 +5471,7 @@
           if (section) section.classList.add('hidden');
         });
 
-        [menuPerfil, menuEspecialidades, menuCertificaciones, menuInstructorBtn, menuAdminBtn].forEach((button) => {
+        [menuPerfil, menuEspecialidades, menuCertificaciones, menuInstructorBtn, menuAdminBtn, menuAcerca].forEach((button) => {
           if (button) button.classList.remove('active');
         });
 
@@ -5608,6 +5780,9 @@
 
       menuInicio.addEventListener("click", () => mostrarSeccion(inicioSection, menuInicio));
       menuPerfil.addEventListener("click", () => mostrarSeccion(perfilSection, menuPerfil));
+      if (menuAcerca) {
+        menuAcerca.addEventListener("click", () => mostrarSeccion(acercaSection, menuAcerca));
+      }
 
       // 🔹 Grabaciones de Especialidades
       if (menuGrabaciones) {
@@ -5891,10 +6066,10 @@
         }
         
         // Incluir tareasExamenesSection y menuTareasExamenes en las listas para limpiar
-        [inicioSection, perfilSection, especialidadesSection, clubesSection, certificacionesSection, adminSection, instructorSection, tareasExamenesSection, grabacionesSection].forEach(sec => {
+        [inicioSection, perfilSection, especialidadesSection, clubesSection, certificacionesSection, adminSection, instructorSection, tareasExamenesSection, grabacionesSection, acercaSection].forEach(sec => {
           if (sec) sec.classList.add("hidden");
         });
-        [menuInicio, menuPerfil, menuEspecialidades, menuClubes, menuCertificaciones, menuAdmin, menuInstructor, menuTareasExamenes, menuGrabaciones].forEach(btn => {
+        [menuInicio, menuPerfil, menuEspecialidades, menuClubes, menuCertificaciones, menuAdmin, menuInstructor, menuTareasExamenes, menuGrabaciones, menuAcerca].forEach(btn => {
           if (btn) btn.classList.remove("active");
         });
 
@@ -6052,6 +6227,28 @@
       ////////////////////////////////////////////
       const menuClubes = document.getElementById("menuClubes");
       const clubesSection = document.getElementById("clubesSection");
+
+      function setupAboutTabs() {
+        const aboutButtons = document.querySelectorAll('.about-tab-btn');
+        const aboutPanels = document.querySelectorAll('.about-tab-content');
+        if (!aboutButtons.length || !aboutPanels.length) return;
+
+        aboutButtons.forEach((button) => {
+          button.addEventListener('click', () => {
+            const tabName = button.getAttribute('data-about-tab');
+            if (!tabName) return;
+
+            aboutButtons.forEach((btn) => btn.classList.remove('active'));
+            aboutPanels.forEach((panel) => panel.classList.remove('active'));
+
+            button.classList.add('active');
+            const targetPanel = document.getElementById(`aboutTab-${tabName}`);
+            if (targetPanel) targetPanel.classList.add('active');
+          });
+        });
+      }
+
+      setupAboutTabs();
 
       menuClubes.addEventListener("click", () => {
         mostrarSeccion(clubesSection, menuClubes);

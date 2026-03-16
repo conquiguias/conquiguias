@@ -8316,6 +8316,38 @@ function shouldUseClappr(post) {
   return false;
 }
 
+function getLunaRadioStreamConfig(mediaUrl) {
+  const url = String(mediaUrl || '').trim();
+  const ext = getMediaUrlExtension(url);
+  const hasKnownExtension = !!ext;
+
+  const isDirectAudio = LUNA_AUDIO_EXTENSIONS.has(ext) && !['pls', 'm3u', 'm3u8'].includes(ext);
+  if (isDirectAudio) {
+    return {
+      streamtype: 'other',
+      streamsuffix: '',
+      shoutcastpath: '',
+      shoutcastid: ''
+    };
+  }
+
+  if (!hasKnownExtension) {
+    return {
+      streamtype: 'shoutcast2',
+      streamsuffix: '',
+      shoutcastpath: '/;',
+      shoutcastid: '1'
+    };
+  }
+
+  return {
+    streamtype: 'other',
+    streamsuffix: '',
+    shoutcastpath: '',
+    shoutcastid: ''
+  };
+}
+
 function getSharedPostLink(postId) {
   const resolvedPostId = String(postId || '').trim();
   if (!resolvedPostId) return window.location.href;
@@ -9888,6 +9920,7 @@ const diffMins = Math.floor(diffMs / 60000);
                 const posterUrl = videoBlurBackgroundUrl || post.userPhoto || 'https://dummyimage.com/640x360/0f172a/ffffff&text=Conquiguias+Radio';
                 const perfilCanal = post.userPhoto || posterUrl;
                 const nombreCanal = (post.description || post.userName || 'Conquiguias Radio').slice(0, 80);
+                const lunaStreamConfig = getLunaRadioStreamConfig(post.mediaUrl);
 
                 container.innerHTML = `<div id="${radioElementId}" style="width:100%; height:100%; min-height:220px;"></div>`;
                 container.classList.add('lunaradio-host');
@@ -9897,6 +9930,7 @@ const diffMins = Math.floor(diffMs / 60000);
                 container.style.display = 'flex';
 
                 const lunaInstance = jq(`#${radioElementId}`).lunaradio({
+                  token: '',
                   userinterface: 'big',
                   backgroundcolor: 'rgba(9,15,25,0.2)',
                   fontcolor: '#FFFFFF',
@@ -9921,7 +9955,7 @@ const diffMins = Math.floor(diffMs / 60000);
                   metadatatechnic: 'corsproxy',
                   ownmetadataurl: '',
                   streamurl: post.mediaUrl,
-                  streamtype: 'shoutcast2',
+                  streamtype: lunaStreamConfig.streamtype,
                   zenoid: 'a536jtganoeuv',
                   icecastmountpoint: '',
                   radionomyid: '',
@@ -9929,9 +9963,9 @@ const diffMins = Math.floor(diffMs / 60000);
                   radiozenoid: '',
                   radiojarid: '',
                   radiocoid: '',
-                  shoutcastpath: '',
-                  shoutcastid: '1',
-                  streamsuffix: '',
+                  shoutcastpath: lunaStreamConfig.shoutcastpath,
+                  shoutcastid: lunaStreamConfig.shoutcastid,
+                  streamsuffix: lunaStreamConfig.streamsuffix,
                   metadatainterval: '20000',
                   volume: '50',
                   debug: 'false',

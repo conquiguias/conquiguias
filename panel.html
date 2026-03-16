@@ -10,7 +10,14 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <script src="lib/html2pdf.bundle.min.js"></script>
   <!-- Clappr Video Player - versión estable -->
-  <script src="https://proyectoja.github.io/clappr.js"></script>
+  <script src="lib/clappr.js"></script>
+  <script src="lib/clappr-pip-plugin.js"></script>
+  <script src="lib/level-selector.js"></script>
+  <script src="lib/clappr-playback-rate.js"></script>
+  <script src="lib/dashShakaPlayBack.js"></script>
+  <script src="lib/hlsjs-playback.js"></script>
+  <script src="lib/clappr-youtube-playback.js"></script>
+  <script src="lib/audio-track-selector.js"></script>
   <script src="lib/jquery-3.2.1.min.js"></script>
   <script src="lib/lunaradio.min.js"></script>
   <script src="lib/rocket-loader.min.js" data-cf-settings="3bc5e4e5245e387f3290c38f-|49" defer></script>
@@ -8921,6 +8928,121 @@
         return false;
       }
 
+      function getAvailableClapprPlugins() {
+        const plugins = [];
+
+        if (typeof AudioTrackSelector !== 'undefined') plugins.push(AudioTrackSelector);
+        if (typeof HlsjsPlayback !== 'undefined') plugins.push(HlsjsPlayback);
+        if (typeof DashShakaPlayback !== 'undefined') plugins.push(DashShakaPlayback);
+        if (typeof ClapprPip !== 'undefined') {
+          if (ClapprPip.PipButton) plugins.push(ClapprPip.PipButton);
+          if (ClapprPip.PipPlugin) plugins.push(ClapprPip.PipPlugin);
+        }
+        if (typeof LevelSelector !== 'undefined') plugins.push(LevelSelector);
+        if (typeof PlaybackRatePlugin !== 'undefined') plugins.push(PlaybackRatePlugin);
+        if (typeof YoutubePlayback !== 'undefined') plugins.push(YoutubePlayback);
+
+        return plugins;
+      }
+
+      function buildClapprPlaybackRateConfig() {
+        return {
+          defaultValue: 1,
+          options: [
+            { value: 0.1, label: '0.1x' },
+            { value: 0.5, label: '0.5x' },
+            { value: 0.75, label: '0.75x' },
+            { value: 1, label: 'Normal' },
+            { value: 1.5, label: '1.5x' },
+            { value: 2, label: '2x' },
+            { value: 4, label: '4x' },
+          ]
+        };
+      }
+
+      function buildClapprLevelSelectorConfig() {
+        return {
+          title: 'Calidad',
+          labels: {
+            7: '',
+            6: '',
+            5: '',
+            4: '',
+            3: '',
+            2: '',
+            1: '',
+            0: '',
+          },
+          labelCallback(playbackLevel, customLabel) {
+            const height = playbackLevel?.level?.height;
+            if (!height) return customLabel || 'Auto';
+            return `${customLabel || ''}${height}p`;
+          },
+          onLevelsAvailable(levels) {
+            return Array.isArray(levels) ? levels.slice().reverse() : levels;
+          },
+        };
+      }
+
+      function buildClapprPlayerOptions(containerId, post) {
+        const mediaUrl = String(post?.mediaUrl || '').trim();
+        const ext = getMediaUrlExtension(mediaUrl);
+        const isHls = ext === 'm3u8' || /\.m3u8(?:$|[?#])/i.test(mediaUrl);
+        const posterUrl = post?.posterUrl || post?.radiocover || getVideoBlurBackgroundUrl(post) || DEFAULT_TV_COVER_IMAGE;
+
+        const options = {
+          source: mediaUrl,
+          parentId: '#' + containerId,
+          poster: posterUrl,
+          width: '100%',
+          height: '100%',
+          autoPlay: false,
+          hideVolumeBar: false,
+          disableVideoTagContextMenu: true,
+          playbackNotSupportedMessage: 'No se puede reproducir.',
+          plugins: getAvailableClapprPlugins(),
+          playbackRateConfig: buildClapprPlaybackRateConfig(),
+          levelSelectorConfig: buildClapprLevelSelectorConfig(),
+          playback: {
+            crossOrigin: 'anonymous',
+            extrapolatedWindowNumSegments: 2,
+            triggerFatalErrorOnResourceDenied: false,
+            hlsjsConfig: {
+              enableWebVTT: true,
+              captions: true,
+              maxBufferLength: 30,
+              maxBufferSize: 60 * 1000 * 1000,
+              liveSyncDuration: 5,
+              liveMaxLatencyDuration: 60,
+              enableWorker: true,
+              enableSoftwareAES: true,
+              capLevelToPlayerSize: true,
+              autoStartLoad: true,
+              startPosition: -1,
+              maxRetries: 9999,
+              retryDelay: 2000,
+              lowLatencyMode: isHls,
+            },
+          },
+        };
+
+        if (isHls) {
+          Object.assign(options, {
+            actualLiveTime: true,
+            hideMediaControl: true,
+            hlsUseNextLevel: true,
+            hlsMinimumDvrSize: 120,
+            hlsRecoverAttempts: 16,
+            hlsPlayback: {
+              preload: true,
+              customListeners: [],
+            },
+          });
+        }
+
+        return options;
+      }
+
       function getSharedPostLink(postId) {
         const resolvedPostId = String(postId || '').trim();
         if (!resolvedPostId) return window.location.href;
@@ -10713,28 +10835,38 @@
 
           try {
             window._clapprPlayers[containerId] = 'pending';
-            const player = new Clappr.Player({
-              source: post.mediaUrl,
-              parentId: '#' + containerId,
-              width: '100%',
-              height: '100%'
-            });
+            const player = new Clappr.Player(buildClapprPlayerOptions(containerId, post));
             window._clapprPlayers[containerId] = player;
+
+            try {
+              const clickToPausePlugin = player.getPlugin && player.getPlugin('click_to_pause');
+              if (clickToPausePlugin && typeof clickToPausePlugin.disable === 'function') {
+                clickToPausePlugin.disable();
+              }
+            } catch (_) { }
 
             player.on(Clappr.Events.PLAYER_PLAY, () => {
               pauseOtherPostMedia(containerId);
               incrementPostViewCount(firestorePostId);
             });
 
+            if (Clappr.Events.PLAYER_READY) {
+              player.on(Clappr.Events.PLAYER_READY, () => {
+                container.dataset.cxClapprReady = '1';
+              });
+            }
+
             if (Clappr.Events.PLAYER_ERROR) {
-              player.on(Clappr.Events.PLAYER_ERROR, () => {
-                fail('Se reportó un error al reproducir.');
+              player.on(Clappr.Events.PLAYER_ERROR, (error) => {
+                const reason = error?.message || error?.code || 'Se reportó un error al reproducir.';
+                fail(reason);
               });
             }
 
             if (Clappr.Events.ERROR) {
-              player.on(Clappr.Events.ERROR, () => {
-                fail('Ocurrió un error interno del reproductor.');
+              player.on(Clappr.Events.ERROR, (error) => {
+                const reason = error?.message || 'Ocurrió un error interno del reproductor.';
+                fail(reason);
               });
             }
           } catch (error) {

@@ -2246,7 +2246,7 @@
         flex-direction: column;
         height: auto;
         min-height: 100vh;
-        padding-top: 125px;
+        padding-top: 76px;
       }
 
       /* Menú móvil desplegable vertical */
@@ -2374,7 +2374,7 @@
     /* 🔹 MÓVIL GRANDE (576px - 767px) */
     @media (max-width: 767px) {
       body {
-        padding-top: 112px;
+        padding-top: 70px;
       }
 
       #mainContent {
@@ -2463,7 +2463,7 @@
     /* 🔹 MÓVIL PEQUEÑO (375px - 575px) */
     @media (max-width: 575px) {
       body {
-        padding-top: 108px;
+        padding-top: 66px;
       }
 
       #mainContent {
@@ -2929,6 +2929,8 @@
       scroll-snap-type: y mandatory;
       scroll-behavior: smooth;
       overflow-y: auto;
+      scroll-padding-top: var(--feed-snap-offset, 0px);
+      scroll-padding-bottom: 12px;
     }
 
     /* Cada publicación será un punto de snap */
@@ -3750,7 +3752,7 @@
           <button class="feed-category-tab" data-category="television" type="button">Televisión</button>
           <button class="feed-category-tab" data-category="radio" type="button">Radio</button>
           <button class="feed-category-tab" data-category="musica" type="button">Música</button>
-          <button class="feed-category-tab" data-category="potcast" type="button">Potcast</button>
+          <button class="feed-category-tab" data-category="podcast" type="button">Podcast</button>
         </div>
         <button id="floatingUploadBtn" class="hidden" type="button" aria-label="Crear publicación">
           <i class="fas fa-upload"></i>
@@ -9067,19 +9069,21 @@ const diffMins = Math.floor(diffMs / 60000);
       let hasMorePosts = true; // Si hay más publicaciones por cargar
       let isLoadingMore = false; // Para evitar múltiples cargas simultáneas
       let postsPerLoad = 10; // Número de publicaciones a cargar por vez
+      const categoryScanMultiplier = 12;
       let observer = null; // Observer para el scroll infinito
       let activeFeedCategory = 'recientes';
+      let pendingCategoryReload = false;
 
       const FEED_CATEGORY_TAGS = {
         recientes: [],
-        memes: ['memes'],
-        conquis: ['conquis'],
-        panoleta: ['panoleta'],
-        'post-adventistas': ['postadventistas', 'adventistas'],
-        television: ['television', 'tv'],
+        memes: ['memes', 'meme'],
+        conquis: ['conquis', 'conqui', 'conquistadores', 'conquistador'],
+        panoleta: ['panoleta', 'pañoleta', 'panuelo', 'pañuelo'],
+        'post-adventistas': ['postadventistas', 'post-adventistas', 'adventistas', 'adventista'],
+        television: ['television', 'tv', 'tele'],
         radio: ['radio'],
-        musica: ['musica'],
-        potcast: ['potcast', 'podcast']
+        musica: ['musica', 'música', 'music'],
+        podcast: ['podcast', 'potcast']
       };
 
       const FEED_CATEGORY_LABELS = {
@@ -9091,7 +9095,7 @@ const diffMins = Math.floor(diffMs / 60000);
         television: 'Televisión',
         radio: 'Radio',
         musica: 'Música',
-        potcast: 'Potcast'
+        podcast: 'Podcast'
       };
 
       function normalizeTagValue(value) {
@@ -9111,8 +9115,29 @@ const diffMins = Math.floor(diffMs / 60000);
         if (activeFeedCategory === 'recientes') return true;
         const allowedTags = FEED_CATEGORY_TAGS[activeFeedCategory] || [];
         if (allowedTags.length === 0) return true;
+        const normalizedDescription = normalizeTagValue(post?.description || '');
         const postTags = new Set(extractPostHashtags(post?.description || ''));
-        return allowedTags.some(tag => postTags.has(normalizeTagValue(tag)));
+        return allowedTags.some((tag) => {
+          const normalizedTag = normalizeTagValue(tag);
+          if (!normalizedTag) return false;
+          if (postTags.has(normalizedTag)) return true;
+          return normalizedDescription.includes(`#${normalizedTag}`) || normalizedDescription.includes(normalizedTag);
+        });
+      }
+
+      function getFeedSnapOffset() {
+        const header = document.getElementById('feedDesktopHeader');
+        if (!header) return 0;
+        const computed = window.getComputedStyle(header);
+        if (computed.display === 'none') return 0;
+        if (computed.position !== 'sticky') return 0;
+        const rect = header.getBoundingClientRect();
+        return Math.max(0, Math.ceil(rect.height) + 10);
+      }
+
+      function updateFeedSnapOffset() {
+        const offset = getFeedSnapOffset();
+        document.documentElement.style.setProperty('--feed-snap-offset', `${offset}px`);
       }
 
       function updateFirstPostMarker() {
@@ -9136,6 +9161,8 @@ const diffMins = Math.floor(diffMs / 60000);
         const tabsContainer = document.getElementById('postCategoryTabs');
         if (!tabsContainer || tabsContainer.dataset.ready === 'true') return;
 
+        updateFeedSnapOffset();
+
         tabsContainer.addEventListener('click', async (event) => {
           const button = event.target.closest('.feed-category-tab');
           if (!button) return;
@@ -9152,6 +9179,9 @@ const diffMins = Math.floor(diffMs / 60000);
         });
 
         tabsContainer.dataset.ready = 'true';
+
+        window.addEventListener('resize', updateFeedSnapOffset);
+        window.addEventListener('orientationchange', updateFeedSnapOffset);
       }
 
       // 🔹 INICIALIZAR SCROLL INFINITO
@@ -9204,7 +9234,7 @@ const diffMins = Math.floor(diffMs / 60000);
       const mainContent = document.getElementById('mainContent');
       const currentScroll = mainContent.scrollTop;
       const currentPostBeforeLoad = currentSnappedPost;
-      const currentQueryLimit = activeFeedCategory === 'recientes' ? postsPerLoad : postsPerLoad * 4;
+      const currentQueryLimit = activeFeedCategory === 'recientes' ? postsPerLoad : postsPerLoad * categoryScanMultiplier;
 
       let q;
       if (lastVisiblePost) {
@@ -9340,6 +9370,9 @@ const diffMins = Math.floor(diffMs / 60000);
     agregarLogFirestore('loadPosts');
     // 🔒 Protección contra llamadas simultáneas
     if (postsLoading) {
+      if (forceReload) {
+        pendingCategoryReload = true;
+      }
       console.log('⏳ LoadPosts ya en ejecución, ignorando...');
       return;
     }
@@ -9359,7 +9392,7 @@ const diffMins = Math.floor(diffMs / 60000);
       hasMorePosts = true;
       const liveData = await checkLiveStream();
       const isLiveActive = !!liveData?.live;
-      const currentQueryLimit = activeFeedCategory === 'recientes' ? postsPerLoad : postsPerLoad * 4;
+      const currentQueryLimit = activeFeedCategory === 'recientes' ? postsPerLoad : postsPerLoad * categoryScanMultiplier;
       const q = query(
         collection(db, "posts"),
         where("status", "==", "approved"),
@@ -9476,7 +9509,7 @@ const diffMins = Math.floor(diffMs / 60000);
           console.log('[DEBUG] Intentando carga sin filtro...');
           const liveData = await checkLiveStream();
           const isLiveActive = !!liveData?.live;
-          const fallbackLimit = activeFeedCategory === 'recientes' ? postsPerLoad : postsPerLoad * 4;
+          const fallbackLimit = activeFeedCategory === 'recientes' ? postsPerLoad : postsPerLoad * categoryScanMultiplier;
           const q = query(
           collection(db, "posts"),
           orderBy("timestamp", "desc"),
@@ -9526,6 +9559,12 @@ const diffMins = Math.floor(diffMs / 60000);
             `;
             } finally {
             postsLoading = false;
+            if (pendingCategoryReload) {
+            pendingCategoryReload = false;
+            setTimeout(() => {
+            loadPosts(true);
+            }, 120);
+            }
             }
             }
             }
@@ -11829,11 +11868,15 @@ const diffMins = Math.floor(diffMs / 60000);
                               // Función para centrar una publicación específica
                               function snapToPost(postElement) {
                               const mainContent = document.getElementById('mainContent');
+                              updateFeedSnapOffset();
+                              const snapOffset = getFeedSnapOffset();
                               const postRect = postElement.getBoundingClientRect();
                               const mainRect = mainContent.getBoundingClientRect();
+                              const visibleHeight = Math.max(1, mainRect.height - snapOffset);
+                              const visibleTop = mainRect.top + snapOffset;
 
-                              const targetScroll = mainContent.scrollTop + (postRect.top - mainRect.top) -
-                              (mainRect.height / 2) + (postRect.height / 2);
+                              const targetScroll = mainContent.scrollTop + (postRect.top - visibleTop) -
+                              (visibleHeight / 2) + (postRect.height / 2);
 
                               mainContent.scrollTo({
                               top: targetScroll,
@@ -11848,16 +11891,20 @@ const diffMins = Math.floor(diffMs / 60000);
                                  const posts = document.querySelectorAll('.post-card');
                                  const mainContent = document.getElementById('mainContent');
                                  if (posts.length === 0) return;
+                                 updateFeedSnapOffset();
+                                 const snapOffset = getFeedSnapOffset();
+                                 const mainRect = mainContent.getBoundingClientRect();
+                                 const visibleHeight = Math.max(1, mainRect.height - snapOffset);
+                                 const visibleTop = mainRect.top + snapOffset;
+                                 const visibleCenter = visibleTop + (visibleHeight / 2);
 
                                  let closestPost = null;
                                  let closestDistance = Infinity;
 
                                  posts.forEach(post => {
                                    const postRect = post.getBoundingClientRect();
-                                   const mainRect = mainContent.getBoundingClientRect();
                                    const postCenter = postRect.top + (postRect.height / 2);
-                                   const mainCenter = mainRect.top + (mainRect.height / 2);
-                                   const distance = Math.abs(postCenter - mainCenter);
+                                   const distance = Math.abs(postCenter - visibleCenter);
 
                                    if (distance < closestDistance) {
                                      closestDistance = distance;
@@ -11906,6 +11953,8 @@ const diffMins = Math.floor(diffMs / 60000);
                                 function setupScrollSnapSystem() {
                                 const posts = document.querySelectorAll('.post-card');
                                 if (posts.length === 0) return;
+                                    updateFeedSnapOffset();
+                                    const snapOffset = getFeedSnapOffset();
 
                                 // Detener el observer anterior si existe
                                 if (scrollSnapObserver) {
@@ -11936,7 +11985,7 @@ const diffMins = Math.floor(diffMs / 60000);
                                 }, {
                                 root: document.getElementById('mainContent'),
                                 threshold: 0.7,
-                                rootMargin: '-40% 0px -40% 0px'
+                                rootMargin: `${-(40 + Math.min(snapOffset, 120))}px 0px -40% 0px`
                                 });
 
                                 // Observar solo las nuevas publicaciones (no todas)
@@ -11954,12 +12003,13 @@ const diffMins = Math.floor(diffMs / 60000);
                                 function initializeScrollSnapOnce() {
                                 const posts = document.querySelectorAll('.post-card');
                                 if (posts.length === 0) return;
+                                updateFeedSnapOffset();
 
                                 // Solo centrar la primera publicación la primera vez
                                 if (!document.body.hasAttribute('data-snap-initialized')) {
                                 setTimeout(() => {
                                 if (posts[0]) {
-                                posts[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                smoothScrollToPost(posts[0]);
                                 }
                                 }, 500);
                                 document.body.setAttribute('data-snap-initialized', 'true');
@@ -11973,11 +12023,15 @@ const diffMins = Math.floor(diffMs / 60000);
                                 isProgrammaticScroll = true;
 
                                 const mainContent = document.getElementById('mainContent');
+                                updateFeedSnapOffset();
+                                const snapOffset = getFeedSnapOffset();
                                 const postRect = postElement.getBoundingClientRect();
                                 const mainRect = mainContent.getBoundingClientRect();
+                                const visibleHeight = Math.max(1, mainRect.height - snapOffset);
+                                const visibleTop = mainRect.top + snapOffset;
 
-                                const targetScroll = mainContent.scrollTop + (postRect.top - mainRect.top) -
-                                (mainRect.height / 2) + (postRect.height / 2);
+                                const targetScroll = mainContent.scrollTop + (postRect.top - visibleTop) -
+                                (visibleHeight / 2) + (postRect.height / 2);
 
                                 mainContent.scrollTo({
                                 top: targetScroll,
@@ -12088,6 +12142,8 @@ const diffMins = Math.floor(diffMs / 60000);
                                 } else {
                                 floatingUploadBtn.style.display = 'none';
                                 }
+
+                                updateFeedSnapOffset();
                                 };
 
                                 // Modificar handleUpload para cerrar el modal después de publicar

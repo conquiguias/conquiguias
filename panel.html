@@ -9099,14 +9099,22 @@ const diffMins = Math.floor(diffMs / 60000);
         return matches.map(tag => normalizeTagValue(tag.replace(/^#/, ''))).filter(Boolean);
       }
 
+      function canonicalizeTag(value) {
+        return normalizeTagValue(value).replace(/[^a-z0-9]/g, '');
+      }
+
       function getPostTagSet(post) {
         const descriptionTags = extractPostHashtags(post?.description || '');
         const extraTags = [post?.tags, post?.hashtags, post?.etiquetas]
-          .flatMap(value => Array.isArray(value) ? value : [])
+          .flatMap((value) => {
+            if (Array.isArray(value)) return value;
+            if (typeof value === 'string') return value.split(/[\s,;|]+/);
+            return [];
+          })
           .map(value => normalizeTagValue(String(value || '').replace(/^#/, '')))
           .filter(Boolean);
 
-        return new Set([...descriptionTags, ...extraTags]);
+        return new Set([...descriptionTags, ...extraTags].map(canonicalizeTag).filter(Boolean));
       }
 
       function postMatchesActiveCategory(post) {
@@ -9114,12 +9122,15 @@ const diffMins = Math.floor(diffMs / 60000);
         const allowedTags = FEED_CATEGORY_TAGS[activeFeedCategory] || [];
         if (allowedTags.length === 0) return true;
         const normalizedDescription = normalizeTagValue(post?.description || '');
+        const compactDescription = normalizedDescription.replace(/[^a-z0-9#]/g, '');
         const postTags = getPostTagSet(post);
         return allowedTags.some((tag) => {
           const normalizedTag = normalizeTagValue(tag);
-          if (!normalizedTag) return false;
-          if (postTags.has(normalizedTag)) return true;
-          return normalizedDescription.includes(`#${normalizedTag}`) || normalizedDescription.includes(normalizedTag);
+          const canonicalTag = canonicalizeTag(tag);
+          if (!normalizedTag && !canonicalTag) return false;
+          if (canonicalTag && postTags.has(canonicalTag)) return true;
+          if (normalizedTag && (normalizedDescription.includes(`#${normalizedTag}`) || normalizedDescription.includes(normalizedTag))) return true;
+          return !!(canonicalTag && compactDescription.includes(canonicalTag));
         });
       }
 
@@ -9400,7 +9411,6 @@ const diffMins = Math.floor(diffMs / 60000);
       if (forceReload) {
         queuedCategoryReload = categoryAtRequest;
       }
-      console.log('⏳ LoadPosts ya en ejecución, ignorando...');
       return;
     }
     // 🔒 Protección contra llamadas muy frecuentes (mínimo 30 segundos)
@@ -9600,15 +9610,21 @@ const diffMins = Math.floor(diffMs / 60000);
             `;
             } finally {
             postsLoading = false;
-            if (queuedCategoryReload && queuedCategoryReload !== categoryAtRequest) {
+            if (queuedCategoryReload) {
             const nextCategory = queuedCategoryReload;
             queuedCategoryReload = null;
+            if (nextCategory !== activeFeedCategory) {
             activeFeedCategory = nextCategory;
+            const tabsContainer = document.getElementById('postCategoryTabs');
+            if (tabsContainer) {
+            tabsContainer.querySelectorAll('.feed-category-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.category === activeFeedCategory);
+            });
+            }
+            }
             setTimeout(() => {
             loadPosts(true);
             }, 80);
-            } else if (queuedCategoryReload === categoryAtRequest) {
-            queuedCategoryReload = null;
             }
             }
             }

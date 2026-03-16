@@ -2035,6 +2035,7 @@
       flex: 1;
       min-width: 0;
       padding-bottom: 2px;
+      padding-right: 6px;
     }
 
     .feed-categories::-webkit-scrollbar {
@@ -2069,6 +2070,10 @@
       color: #fff;
       border-color: transparent;
       box-shadow: 0 4px 12px var(--shadow-color);
+    }
+
+    #floatingUploadBtn {
+      flex-shrink: 0;
     }
 
     /* ============================================
@@ -2359,7 +2364,10 @@
       }
 
       #feedDesktopHeader {
+        position: static;
+        top: auto;
         justify-content: space-between;
+        margin-bottom: 12px;
       }
     }
 
@@ -3124,8 +3132,10 @@
     /* Responsive */
     @media (max-width: 767px) {
       #feedDesktopHeader {
-        top: 6px;
+        position: static;
+        top: auto;
         padding: 8px;
+        margin-bottom: 10px;
       }
 
       .feed-categories {

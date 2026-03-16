@@ -1342,6 +1342,25 @@
       position: relative;
     }
 
+    .post-card.text-only-post .post-body-layout {
+      min-height: 140px;
+    }
+
+    .post-card.text-only-post .post-main-column {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .post-card.text-only-post .post-content {
+      display: none;
+    }
+
+    .post-card.text-only-post .post-description {
+      flex: 1;
+      min-height: 110px;
+      padding: 12px;
+    }
+
     .post-main-column {
       width: 100%;
       min-width: 0;
@@ -10040,6 +10059,16 @@ const diffMins = Math.floor(diffMs / 60000);
             if (post.isLive) postElement.classList.add('live-post');
             const renderPostId = postId;
             const firestorePostId = post.id || postId;
+            const hasRenderableMedia = !!(post?.mediaUrl && post?.mediaType && (
+              post.mediaType.startsWith('image/') ||
+              post.mediaType.startsWith('video/') ||
+              post.mediaType.startsWith('audio/') ||
+              post.mediaType === 'video/url' ||
+              post.mediaType === 'audio/url'
+            ));
+            if (!hasRenderableMedia) {
+              postElement.classList.add('text-only-post');
+            }
 
             const postDateLabel = getPostDateLabel(new Date(post.timestamp));
             const currentUserEmail = (window.userData?.email || '').toLowerCase();

@@ -9060,7 +9060,7 @@ const diffMins = Math.floor(diffMs / 60000);
       const categoryScanMultiplier = 12;
       let observer = null; // Observer para el scroll infinito
       let activeFeedCategory = 'recientes';
-      let pendingCategoryReload = false;
+      let queuedCategoryReload = null;
 
       const FEED_CATEGORY_TAGS = {
         recientes: [],
@@ -9175,6 +9175,48 @@ const diffMins = Math.floor(diffMs / 60000);
 
         window.addEventListener('resize', updateFeedSnapOffset);
         window.addEventListener('orientationchange', updateFeedSnapOffset);
+      }
+
+      async function fetchPostsForActiveCategory() {
+        const matchedPosts = [];
+        const batchSize = 80;
+        const maxBatches = 10;
+        let cursor = null;
+
+        for (let batchIndex = 0; batchIndex < maxBatches; batchIndex++) {
+          let q = query(
+            collection(db, "posts"),
+            where("status", "==", "approved"),
+            orderBy("timestamp", "desc"),
+            limit(batchSize)
+          );
+
+          if (cursor) {
+            q = query(
+              collection(db, "posts"),
+              where("status", "==", "approved"),
+              orderBy("timestamp", "desc"),
+              startAfter(cursor),
+              limit(batchSize)
+            );
+          }
+
+          const snap = await getDocs(q);
+          if (snap.empty) break;
+
+          snap.forEach((docSnap) => {
+            const post = { ...docSnap.data(), id: docSnap.id };
+            if (postMatchesActiveCategory(post)) {
+              matchedPosts.push(post);
+            }
+          });
+
+          cursor = snap.docs[snap.docs.length - 1];
+          if (matchedPosts.length >= postsPerLoad) break;
+          if (snap.size < batchSize) break;
+        }
+
+        return matchedPosts;
       }
 
       // 🔹 INICIALIZAR SCROLL INFINITO
@@ -9352,11 +9394,11 @@ const diffMins = Math.floor(diffMs / 60000);
 
   // 🔹 CARGA INICIAL DE PUBLICACIONES (Modificada para scroll infinito)
   async function loadPosts(forceReload = false) {
-    agregarLogFirestore('loadPosts');
+    const categoryAtRequest = activeFeedCategory;
     // 🔒 Protección contra llamadas simultáneas
     if (postsLoading) {
       if (forceReload) {
-        pendingCategoryReload = true;
+        queuedCategoryReload = categoryAtRequest;
       }
       console.log('⏳ LoadPosts ya en ejecución, ignorando...');
       return;
@@ -9367,6 +9409,7 @@ const diffMins = Math.floor(diffMs / 60000);
       console.log('⏰ LoadPosts llamado muy pronto, ignorando...');
       return;
     }
+    agregarLogFirestore('loadPosts');
     postsLoading = true;
     lastLoadTime = now;
     try {
@@ -9378,15 +9421,23 @@ const diffMins = Math.floor(diffMs / 60000);
       const liveData = await checkLiveStream();
       const isLiveActive = !!liveData?.live;
       const isCategoryMode = activeFeedCategory !== 'recientes';
-      const currentQueryLimit = isCategoryMode ? Math.max(150, postsPerLoad * categoryScanMultiplier) : postsPerLoad;
-      const q = query(
-        collection(db, "posts"),
-        where("status", "==", "approved"),
-        orderBy("timestamp", "desc"),
-        limit(currentQueryLimit) // 🔥 Cargar solo el primer lote
-      );
-      const querySnapshot = await getDocs(q);
-      console.log(`📊 Se encontraron ${querySnapshot.size} publicaciones aprobadas`);
+      const currentQueryLimit = postsPerLoad;
+      let querySnapshot = null;
+      let categoryPosts = [];
+
+      if (isCategoryMode) {
+        categoryPosts = await fetchPostsForActiveCategory();
+        console.log(`📊 Se encontraron ${categoryPosts.length} publicaciones para categoría ${activeFeedCategory}`);
+      } else {
+        const q = query(
+          collection(db, "posts"),
+          where("status", "==", "approved"),
+          orderBy("timestamp", "desc"),
+          limit(currentQueryLimit)
+        );
+        querySnapshot = await getDocs(q);
+        console.log(`📊 Se encontraron ${querySnapshot.size} publicaciones aprobadas`);
+      }
       
       // Limpiar feed solo en carga inicial
       // Destruir players Clappr anteriores
@@ -9440,26 +9491,34 @@ const diffMins = Math.floor(diffMs / 60000);
         }
       }
 
-      if (querySnapshot.empty && !livePostRendered) {
+      if ((!querySnapshot || querySnapshot.empty) && !isCategoryMode && !livePostRendered) {
         renderEmptyFeedMessage();
         hasMorePosts = false;
         return;
       }
 
       // Actualizar el último documento visible
-      if (!querySnapshot.empty) {
+      if (!isCategoryMode && querySnapshot && !querySnapshot.empty) {
         lastVisiblePost = querySnapshot.docs[querySnapshot.docs.length - 1];
       }
 
       // Mostrar las publicaciones (siempre saltar LIVE_POST_ID, ya fue renderizado arriba)
       let renderedPostsCount = livePostRendered ? 1 : 0;
-      querySnapshot.forEach((doc) => {
-        const post = { ...doc.data(), id: doc.id };
-        if (doc.id === LIVE_POST_ID) return; // ya renderizado arriba
-        if (!postMatchesActiveCategory(post)) return;
-        displayPost(post, doc.id);
-        renderedPostsCount++;
-      });
+      if (isCategoryMode) {
+        categoryPosts.forEach((post) => {
+          if (post.id === LIVE_POST_ID) return;
+          displayPost(post, post.id);
+          renderedPostsCount++;
+        });
+      } else {
+        querySnapshot.forEach((doc) => {
+          const post = { ...doc.data(), id: doc.id };
+          if (doc.id === LIVE_POST_ID) return; // ya renderizado arriba
+          if (!postMatchesActiveCategory(post)) return;
+          displayPost(post, doc.id);
+          renderedPostsCount++;
+        });
+      }
 
       if (renderedPostsCount === 0) {
         renderEmptyFeedMessage();
@@ -9474,7 +9533,7 @@ const diffMins = Math.floor(diffMs / 60000);
         }, 100);
 
         // En categorías no usamos scroll infinito para evitar inconsistencias del filtro
-        if (isCategoryMode || querySnapshot.size < currentQueryLimit) { 
+        if (isCategoryMode || (querySnapshot && querySnapshot.size < currentQueryLimit)) { 
           hasMorePosts = false; 
         } 
         
@@ -9491,7 +9550,7 @@ const diffMins = Math.floor(diffMs / 60000);
           console.log('[DEBUG] Intentando carga sin filtro...');
           const liveData = await checkLiveStream();
           const isLiveActive = !!liveData?.live;
-          const fallbackLimit = isCategoryMode ? Math.max(150, postsPerLoad * categoryScanMultiplier) : postsPerLoad;
+          const fallbackLimit = isCategoryMode ? Math.max(200, postsPerLoad * categoryScanMultiplier) : postsPerLoad;
           const q = query(
           collection(db, "posts"),
           orderBy("timestamp", "desc"),
@@ -9541,11 +9600,15 @@ const diffMins = Math.floor(diffMs / 60000);
             `;
             } finally {
             postsLoading = false;
-            if (pendingCategoryReload) {
-            pendingCategoryReload = false;
+            if (queuedCategoryReload && queuedCategoryReload !== categoryAtRequest) {
+            const nextCategory = queuedCategoryReload;
+            queuedCategoryReload = null;
+            activeFeedCategory = nextCategory;
             setTimeout(() => {
             loadPosts(true);
-            }, 120);
+            }, 80);
+            } else if (queuedCategoryReload === categoryAtRequest) {
+            queuedCategoryReload = null;
             }
             }
             }

@@ -8262,7 +8262,7 @@ function getVideoBlurBackgroundUrl(post) {
 }
 
 const LUNA_AUDIO_EXTENSIONS = new Set([
-  'mp3', 'aac', 'acc', 'pls'
+  'mp3', 'aac', 'acc', 'pls', 'm3u', 'ogg', 'oga', 'm4a', 'opus', 'weba', 'flac', 'wav'
 ]);
 
 const CLAPPR_VIDEO_EXTENSIONS = new Set([
@@ -8297,19 +8297,21 @@ function inferUrlMediaType(mediaUrl) {
 }
 
 function shouldPreferLunaRadio(post) {
+  const mediaType = String(post?.mediaType || '').toLowerCase();
   const mediaUrl = String(post?.mediaUrl || '').toLowerCase();
   const ext = getMediaUrlExtension(mediaUrl);
+  if (mediaType === 'audio/url' || mediaType.startsWith('audio/')) return true;
   return LUNA_AUDIO_EXTENSIONS.has(ext);
 }
 
 function shouldUseClappr(post) {
-  const mediaType = String(post?.mediaType || '');
+  const mediaType = String(post?.mediaType || '').toLowerCase();
   const mediaUrl = String(post?.mediaUrl || '').toLowerCase();
   const ext = getMediaUrlExtension(mediaUrl);
 
   if (mediaType.startsWith('video/') && mediaType !== 'video/url') return true;
   if (mediaType === 'audio/url') return false;
-  if (mediaType === 'video/url') return CLAPPR_VIDEO_EXTENSIONS.has(ext);
+  if (mediaType === 'video/url') return !LUNA_AUDIO_EXTENSIONS.has(ext);
   if (CLAPPR_VIDEO_EXTENSIONS.has(ext)) return true;
   return false;
 }
@@ -9841,16 +9843,7 @@ const diffMins = Math.floor(diffMs / 60000);
                 });
                 window._clapprPlayers[containerId] = player;
 
-                let didStartPlayback = false;
-                const timeoutId = setTimeout(() => {
-                  if (!didStartPlayback) {
-                    fail('No fue posible iniciar la reproducción.');
-                  }
-                }, context.fromLuna ? 5500 : 8000);
-
                 player.on(Clappr.Events.PLAYER_PLAY, () => {
-                  didStartPlayback = true;
-                  clearTimeout(timeoutId);
                   Object.entries(window._clapprPlayers).forEach(([otherId, otherPlayer]) => {
                     if (otherId !== containerId && otherPlayer && typeof otherPlayer.pause === 'function') {
                       otherPlayer.pause();
@@ -9861,14 +9854,12 @@ const diffMins = Math.floor(diffMs / 60000);
 
                 if (Clappr.Events.PLAYER_ERROR) {
                   player.on(Clappr.Events.PLAYER_ERROR, () => {
-                    clearTimeout(timeoutId);
                     fail('Clappr reportó un error al reproducir.');
                   });
                 }
 
                 if (Clappr.Events.ERROR) {
                   player.on(Clappr.Events.ERROR, () => {
-                    clearTimeout(timeoutId);
                     fail('Ocurrió un error interno del reproductor.');
                   });
                 }

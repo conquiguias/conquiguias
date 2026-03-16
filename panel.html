@@ -9846,6 +9846,8 @@
       let observer = null; // Observer para el scroll infinito
       let activeFeedCategory = 'recientes';
       let queuedCategoryReload = null;
+      let liveStreamCache = { data: { live: false }, checkedAt: 0 };
+      const LIVE_STREAM_CACHE_MS = 45000;
 
       const FEED_CATEGORY_TAGS = {
         recientes: [],
@@ -10039,6 +10041,17 @@
         const sentinel = document.getElementById('scrollSentinel');
         const loadingIndicator = document.getElementById('loadingPosts');
         const noMoreIndicator = document.getElementById('noMorePosts');
+        const mainContent = document.getElementById('mainContent');
+
+        if (observer) {
+          observer.disconnect();
+          observer = null;
+        }
+
+        if (!sentinel || !loadingIndicator || !noMoreIndicator) return;
+
+        loadingIndicator.classList.add('hidden');
+        noMoreIndicator.classList.toggle('hidden', hasMorePosts);
 
         // Configurar Intersection Observer para detectar cuando el centinela es visible
         observer = new IntersectionObserver(async (entries) => {
@@ -10060,17 +10073,18 @@
           }
 
           // Mostrar indicador de fin de publicaciones
-          if (!hasMorePosts && !noMoreIndicator.classList.contains('hidden')) {
+          if (!hasMorePosts && noMoreIndicator.classList.contains('hidden')) {
             noMoreIndicator.classList.remove('hidden');
+          } else if (hasMorePosts && !noMoreIndicator.classList.contains('hidden')) {
+            noMoreIndicator.classList.add('hidden');
           }
         }, {
-          rootMargin: '1000px', // Cargar cuando el centinela esté a 100px de ser visible
-          threshold: 0.1
+          root: mainContent || null,
+          rootMargin: '600px 0px',
+          threshold: 0.01
         });
 
-        if (sentinel) {
-          observer.observe(sentinel);
-        }
+        observer.observe(sentinel);
       }
 
       // 🔹 CARGAR MÁS PUBLICACIONES (Paginación)
@@ -10195,14 +10209,33 @@
       const LIVE_STREAM_URL = 'https://edge1-us-losangeles.picarto.tv/stream/hls/golive%2bXSTUDIOCODE/1_0/index.m3u8';
       const LIVE_POST_ID = 'live_stream';
 
-      async function checkLiveStream() {
+      async function checkLiveStream(forceRefresh = false) {
+        const now = Date.now();
+        if (!forceRefresh && liveStreamCache.checkedAt && (now - liveStreamCache.checkedAt < LIVE_STREAM_CACHE_MS)) {
+          return liveStreamCache.data || { live: false };
+        }
+
         try {
           const res = await fetch('/api/social?action=check-stream', { cache: 'no-store' });
-          if (!res.ok) return { live: false };
+          if (!res.ok) {
+            liveStreamCache = {
+              data: { live: false },
+              checkedAt: Date.now()
+            };
+            return { live: false };
+          }
           const data = await res.json();
-          return data || { live: false };
+          liveStreamCache = {
+            data: data || { live: false },
+            checkedAt: Date.now()
+          };
+          return liveStreamCache.data;
         } catch (e) {
           console.warn('[Live] No se pudo verificar stream:', e);
+          liveStreamCache = {
+            data: { live: false },
+            checkedAt: Date.now()
+          };
           return { live: false };
         }
       }
@@ -10232,7 +10265,13 @@
           // Reiniciar variables de paginación
           lastVisiblePost = null;
           hasMorePosts = true;
-          const liveData = await checkLiveStream();
+          isLoadingMore = false;
+          const loadingIndicator = document.getElementById('loadingPosts');
+          const noMoreIndicator = document.getElementById('noMorePosts');
+          if (loadingIndicator) loadingIndicator.classList.add('hidden');
+          if (noMoreIndicator) noMoreIndicator.classList.add('hidden');
+
+          const liveData = await checkLiveStream(forceReload);
           const isLiveActive = !!liveData?.live;
           const isCategoryMode = activeFeedCategory !== 'recientes';
           const currentQueryLimit = postsPerLoad;

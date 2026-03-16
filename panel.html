@@ -3700,25 +3700,12 @@
                 <div id="uploadTypeTabs" style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
                   <button type="button" class="upload-type-tab active" data-upload-tab="post" style="padding:8px 12px; border-radius:8px; border:1px solid var(--border-color); background:var(--accent-color); color:#fff; cursor:pointer;">Crear publicación</button>
                   <button type="button" class="upload-type-tab" data-upload-tab="radio" style="padding:8px 12px; border-radius:8px; border:1px solid var(--border-color); background:transparent; color:var(--text-primary); cursor:pointer;">Crear radio / música</button>
-                  <button type="button" class="upload-type-tab" data-upload-tab="tv" style="padding:8px 12px; border-radius:8px; border:1px solid var(--border-color); background:transparent; color:var(--text-primary); cursor:pointer;">Crear TV</button>
+                  <button type="button" class="upload-type-tab" data-upload-tab="tv" style="padding:8px 12px; border-radius:8px; border:1px solid var(--border-color); background:transparent; color:var(--text-primary); cursor:pointer;">Crear TV / Video</button>
                 </div>
 
                 <div class="upload-tab-panel" data-upload-panel="post">
                   <input type="file" id="fileInput" accept="image/*,video/*"
                     style="margin-bottom: 10px; width: 100%; padding: 8px;">
-                  <div id="urlVideoContainer" style="display: none; margin-bottom: 10px;">
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-                      <div style="flex:1; height:1px; background: var(--border-color);"></div>
-                      <span style="font-size: 12px; color: var(--text-secondary); white-space: nowrap;">o cargar desde URL</span>
-                      <div style="flex:1; height:1px; background: var(--border-color);"></div>
-                    </div>
-                    <div style="position: relative;">
-                      <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-size: 14px;">🎬</span>
-                      <input type="url" id="videoUrlInput" placeholder="URL del video (mp4, m3u8, YouTube...)" 
-                        style="padding-left: 35px; width: 100%; background: var(--bg-secondary); border: 1px dashed var(--accent-color); color: var(--text-primary); border-radius: 8px; font-size: 13px;">
-                    </div>
-                    <small style="color: var(--text-primary); opacity: 0.9; font-size: 11px; margin-top: 4px; display: block;">⚡ Admin: Ingresa una URL directa de video para publicarla.</small>
-                  </div>
                 </div>
 
                 <div class="upload-tab-panel" data-upload-panel="radio" style="display:none;">
@@ -3740,20 +3727,35 @@
                     <div>
                       <label style="display:block; margin-bottom:4px; font-size:12px; color:var(--text-secondary);">Imagen perfil (base64)</label>
                       <input type="file" id="radioProfileImageInput" accept="image/*" style="width:100%; padding:8px;">
+                      <img id="radioProfileImagePreview" alt="Preview perfil" style="display:none; width:100%; max-height:110px; object-fit:cover; border-radius:8px; margin-top:6px; border:1px solid var(--border-color);">
                     </div>
                     <div>
                       <label style="display:block; margin-bottom:4px; font-size:12px; color:var(--text-secondary);">Imagen portada</label>
                       <input type="file" id="radioCoverImageInput" accept="image/*" style="width:100%; padding:8px;">
+                      <img id="radioCoverImagePreview" alt="Preview portada" style="display:none; width:100%; max-height:110px; object-fit:cover; border-radius:8px; margin-top:6px; border:1px solid var(--border-color);">
                     </div>
                   </div>
                   <small style="color: var(--text-primary); opacity: 0.9; font-size: 11px; margin-top: 4px; display: block;">En música se usarán imágenes por defecto automáticamente.</small>
                 </div>
 
                 <div class="upload-tab-panel" data-upload-panel="tv" style="display:none;">
-                  <input type="url" id="tvStreamUrlInput" placeholder="URL de TV (m3u8, mp4, YouTube...)" style="width:100%; padding:8px; border-radius:8px; background:var(--bg-secondary); color:var(--text-primary); border:1px dashed var(--accent-color); margin-bottom:10px;">
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+                    <div>
+                      <label style="display:block; margin-bottom:4px; font-size:12px; color:var(--text-secondary);">Modo</label>
+                      <select id="tvModeSelect" style="width:100%; padding:8px; border-radius:8px; background:var(--bg-secondary); color:var(--text-primary); border:1px solid var(--border-color);">
+                        <option value="tv">Crear TV</option>
+                        <option value="video">Crear Video</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label id="tvUrlLabel" style="display:block; margin-bottom:4px; font-size:12px; color:var(--text-secondary);">URL de TV</label>
+                      <input type="url" id="videoUrlInput" placeholder="URL de TV (m3u8, mp4, YouTube...)" style="width:100%; padding:8px; border-radius:8px; background:var(--bg-secondary); color:var(--text-primary); border:1px dashed var(--accent-color);">
+                    </div>
+                  </div>
                   <div>
-                    <label style="display:block; margin-bottom:4px; font-size:12px; color:var(--text-secondary);">Portada TV (opcional)</label>
+                    <label id="tvCoverLabel" style="display:block; margin-bottom:4px; font-size:12px; color:var(--text-secondary);">Portada TV (opcional)</label>
                     <input type="file" id="tvCoverImageInput" accept="image/*" style="width:100%; padding:8px; margin-bottom:10px;">
+                    <img id="tvCoverImagePreview" alt="Preview portada TV" style="display:none; width:100%; max-height:120px; object-fit:cover; border-radius:8px; margin-top:6px; border:1px solid var(--border-color);">
                   </div>
                 </div>
 
@@ -8289,11 +8291,6 @@ function setActiveUploadTab(tabName) {
   document.querySelectorAll('.upload-tab-panel').forEach((panel) => {
     panel.style.display = panel.dataset.uploadPanel === tabName ? 'block' : 'none';
   });
-
-  const urlVideoContainer = document.getElementById('urlVideoContainer');
-  if (urlVideoContainer) {
-    urlVideoContainer.style.display = (tabName === 'post' && window.isAdmin) ? 'block' : 'none';
-  }
 }
 
 function updateRadioModeUI() {
@@ -8308,6 +8305,27 @@ function updateRadioModeUI() {
   }
   if (imageInputs) {
     imageInputs.style.display = isMusicMode ? 'none' : 'grid';
+  }
+}
+
+function updateTvModeUI() {
+  const tvModeSelect = document.getElementById('tvModeSelect');
+  const tvUrlLabel = document.getElementById('tvUrlLabel');
+  const tvCoverLabel = document.getElementById('tvCoverLabel');
+  const videoUrlInputEl = document.getElementById('videoUrlInput');
+  if (!tvModeSelect) return;
+
+  const isVideoMode = tvModeSelect.value === 'video';
+  if (tvUrlLabel) {
+    tvUrlLabel.textContent = isVideoMode ? 'URL de Video' : 'URL de TV';
+  }
+  if (tvCoverLabel) {
+    tvCoverLabel.textContent = isVideoMode ? 'Portada Video (opcional)' : 'Portada TV (opcional)';
+  }
+  if (videoUrlInputEl) {
+    videoUrlInputEl.placeholder = isVideoMode
+      ? 'URL del video (mp4, m3u8, YouTube...)'
+      : 'URL de TV (m3u8, mp4, YouTube...)';
   }
 }
 
@@ -8806,10 +8824,42 @@ if (radioModeSelect) {
   radioModeSelect.addEventListener('change', updateRadioModeUI);
 }
 
+const tvModeSelect = document.getElementById('tvModeSelect');
+if (tvModeSelect) {
+  tvModeSelect.addEventListener('change', updateTvModeUI);
+}
+
+bindImageInputPreview('radioProfileImageInput', 'radioProfileImagePreview');
+bindImageInputPreview('radioCoverImageInput', 'radioCoverImagePreview');
+bindImageInputPreview('tvCoverImageInput', 'tvCoverImagePreview');
+
 setActiveUploadTab('post');
 updateRadioModeUI();
+updateTvModeUI();
 
 console.log('✅ Listeners configurados correctamente');
+}
+
+function bindImageInputPreview(inputId, previewId) {
+  const inputEl = document.getElementById(inputId);
+  const previewEl = document.getElementById(previewId);
+  if (!inputEl || !previewEl) return;
+
+  inputEl.addEventListener('change', (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      previewEl.src = '';
+      previewEl.style.display = 'none';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (loadEvent) => {
+      previewEl.src = String(loadEvent.target?.result || '');
+      previewEl.style.display = previewEl.src ? 'block' : 'none';
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 // 🔹 Manejar selección de archivo
@@ -9009,6 +9059,26 @@ const diffMins = Math.floor(diffMs / 60000);
       }
       }
 
+      async function refreshInicioForAdminAfterPublish() {
+      if (!window.isAdmin) return;
+
+      pauseOtherPostMedia('');
+      activeFeedCategory = 'recientes';
+
+      const tabsContainer = document.getElementById('postCategoryTabs');
+      if (tabsContainer) {
+      tabsContainer.querySelectorAll('.feed-category-tab').forEach(tab => {
+      tab.classList.toggle('active', tab.dataset.category === 'recientes');
+      });
+      }
+
+      if (typeof mostrarSeccion === 'function' && inicioSection && menuInicio) {
+      mostrarSeccion(inicioSection, menuInicio);
+      }
+
+      await loadPosts(true);
+      }
+
       // 🔹 Manejar subida de publicación - VERSIÓN FINAL CON FALLBACK
       // 🔹 Manejar subida de publicación - VERSIÓN CORREGIDA CON VALIDACIÓN
       async function handleUpload() {
@@ -9030,7 +9100,7 @@ const diffMins = Math.floor(diffMs / 60000);
       const radioStreamUrlInput = document.getElementById('radioStreamUrlInput');
       const radioProfileImageInput = document.getElementById('radioProfileImageInput');
       const radioCoverImageInput = document.getElementById('radioCoverImageInput');
-      const tvStreamUrlInput = document.getElementById('tvStreamUrlInput');
+      const tvModeSelect = document.getElementById('tvModeSelect');
       const tvCoverImageInput = document.getElementById('tvCoverImageInput');
 
       console.log('[DEBUG] Archivo:', file);
@@ -9120,8 +9190,14 @@ const diffMins = Math.floor(diffMs / 60000);
           previewContainer.innerHTML = '';
           uploadBtn.disabled = false;
           uploadBtn.textContent = 'Publicar';
-          await loadPosts(true);
-          mostrarMensaje('info', '✅ Publicación creada', publishMode === 'musica' ? 'La música fue publicada correctamente.' : 'La radio fue publicada correctamente.');
+          if (isAdmin) {
+          await refreshInicioForAdminAfterPublish();
+          mostrarMensaje('info', '✅ Publicación creada', publishMode === 'musica' ? 'La música fue publicada y ya está visible en Inicio.' : 'La radio fue publicada y ya está visible en Inicio.');
+          } else {
+          mostrarMensaje('info', '✅ Publicación creada', publishMode === 'musica'
+          ? 'La música fue enviada para revisión. Un admin debe aprobarla para que aparezca en Inicio.'
+          : 'La radio fue enviada para revisión. Un admin debe aprobarla para que aparezca en Inicio.');
+          }
           return;
         } catch (err) {
           console.error('❌ Error publicando radio/música:', err);
@@ -9133,9 +9209,10 @@ const diffMins = Math.floor(diffMs / 60000);
       }
 
       if (activeUploadTab === 'tv') {
-        const tvUrl = (tvStreamUrlInput?.value || '').trim();
+        const tvMode = tvModeSelect?.value === 'video' ? 'video' : 'tv';
+        const tvUrl = (videoUrlInputEl?.value || '').trim();
         if (!tvUrl || !isValidHttpUrl(tvUrl)) {
-          mostrarMensaje('error', 'URL inválida', 'Ingresa una URL válida para TV.');
+          mostrarMensaje('error', 'URL inválida', tvMode === 'video' ? 'Ingresa una URL válida para Video.' : 'Ingresa una URL válida para TV.');
           return;
         }
 
@@ -9161,8 +9238,8 @@ const diffMins = Math.floor(diffMs / 60000);
             userPhoto: userData.fotoURL || 'https://dummyimage.com/40x40/ccc/fff&text=User',
             userEmail: userData.email || '',
             mediaUrl: tvUrl,
-            mediaType: 'video/url',
-            description: description || '#television',
+            mediaType: inferUrlMediaType(tvUrl),
+            description: description || (tvMode === 'video' ? '#video' : '#television'),
             timestamp: new Date().toISOString(),
             imgurData: { id: null, deletehash: null },
             reactions: { like: [], laugh: [], seven: [] },
@@ -9170,100 +9247,40 @@ const diffMins = Math.floor(diffMs / 60000);
             viewCount: 0,
             comments: [],
             status: isAdmin ? 'approved' : 'pending',
-            postKind: 'tv',
+            postKind: tvMode,
             posterUrl: coverImage,
             thumbnailUrl: coverImage,
-            tags: ['television']
+            tags: [tvMode === 'video' ? 'video' : 'television']
           };
 
           await addDoc(collection(db, 'posts'), postData);
           postDescription.value = '';
-          if (tvStreamUrlInput) tvStreamUrlInput.value = '';
+          if (videoUrlInputEl) videoUrlInputEl.value = '';
           if (tvCoverImageInput) tvCoverImageInput.value = '';
           previewContainer.innerHTML = '';
           uploadBtn.disabled = false;
           uploadBtn.textContent = 'Publicar';
-          await loadPosts(true);
-          mostrarMensaje('info', '✅ TV publicada', 'La transmisión de TV fue publicada correctamente.');
-          return;
-        } catch (err) {
-          console.error('❌ Error publicando TV:', err);
-          mostrarMensaje('error', 'Error al publicar', err.message || 'No se pudo publicar la TV.');
-          uploadBtn.disabled = false;
-          uploadBtn.textContent = 'Publicar';
-          return;
-        }
-      }
-
-      // 🔹 VALIDACIÓN 1: Verificar que hay archivo O url de video (admin)
-      if (!file && !videoUrl) {
-      console.log('[WARNING] No hay archivo ni URL');
-      mostrarMensaje('info', 'Selecciona una imagen, video o URL', 'Debes seleccionar un archivo o ingresar una URL de video para publicar.');
-      return;
-      }
-
-      // Si hay URL de video (solo admins), procesar directamente sin subir archivo
-      if (videoUrl && !file) {
-        if (!isAdmin) {
-          mostrarMensaje('error', 'Acceso denegado', 'Solo los administradores pueden publicar por URL.');
-          return;
-        }
-        let parsedUrl = null;
-        try {
-          parsedUrl = new URL(videoUrl);
-          if (!/^https?:$/i.test(parsedUrl.protocol)) {
-            throw new Error('Protocolo no permitido');
+          if (isAdmin) {
+          await refreshInicioForAdminAfterPublish();
+          mostrarMensaje('info', tvMode === 'video' ? '✅ Video publicado' : '✅ TV publicada', tvMode === 'video' ? 'El video fue publicado y ya está visible en Inicio.' : 'La transmisión de TV fue publicada y ya está visible en Inicio.');
+          } else {
+          mostrarMensaje('info', tvMode === 'video' ? '✅ Video creado' : '✅ TV creada', 'La publicación fue enviada para revisión. Un admin debe aprobarla para que aparezca en Inicio.');
           }
-        } catch (_) {
-          mostrarMensaje('error', 'URL inválida', 'Ingresa una URL válida con http:// o https://');
           return;
-        }
-        if (!description) {
-          mostrarMensaje('info', 'Agrega una descripción', 'Escribe una descripción para tu publicación.');
-          return;
-        }
-        try {
-          uploadBtn.disabled = true;
-          uploadBtn.textContent = 'Publicando...';
-          const inferredMediaType = inferUrlMediaType(videoUrl);
-          const postData = {
-            userId: currentUserId,
-            userName: `${userData.nombre || ''} ${userData.apellido || ''}`.trim() || 'Usuario',
-            userNombre: userData.nombre || '',
-            userApellido: userData.apellido || '',
-            userPhoto: userData.fotoURL || 'https://dummyimage.com/40x40/ccc/fff&text=User',
-            userEmail: userData.email || '',
-            mediaUrl: videoUrl,
-            mediaType: inferredMediaType,
-            description: description,
-            timestamp: new Date().toISOString(),
-            imgurData: { id: null, deletehash: null },
-            reactions: { like: [], laugh: [], seven: [] },
-            shareCount: 0,
-            viewCount: 0,
-            comments: [],
-            status: 'approved'
-          };
-          const docRef = await addDoc(collection(db, "posts"), postData);
-          console.log('✅ Post de URL guardado, ID:', docRef.id);
-          fileInput.value = '';
-          postDescription.value = '';
-          if (videoUrlInputEl) videoUrlInputEl.value = '';
-          previewContainer.innerHTML = '';
-          uploadBtn.disabled = false;
-          uploadBtn.textContent = 'Publicar';
-          // Cerrar el modal
-          const uploadModal = document.getElementById('uploadModal');
-          if (uploadModal) uploadModal.classList.add('hiddenX');
-          await loadPosts();
-          mostrarMensaje('info', '✅ Video publicado', 'El video fue publicado exitosamente.');
         } catch (err) {
-          console.error('❌ Error publicando URL:', err);
-          mostrarMensaje('error', 'Error al publicar', err.message);
+          console.error('❌ Error publicando TV/Video:', err);
+          mostrarMensaje('error', 'Error al publicar', err.message || 'No se pudo publicar el contenido de TV/Video.');
           uploadBtn.disabled = false;
           uploadBtn.textContent = 'Publicar';
+          return;
         }
-        return;
+      }
+
+      // 🔹 VALIDACIÓN 1: Verificar que hay archivo seleccionado (solo en Crear publicación)
+      if (!file) {
+      console.log('[WARNING] No hay archivo seleccionado para Crear publicación');
+      mostrarMensaje('info', 'Selecciona una imagen o video', 'En Crear publicación debes seleccionar un archivo desde tu dispositivo.');
+      return;
       }
 
       // 🔹 VALIDACIÓN 2: Verificar que hay descripción
@@ -9380,18 +9397,18 @@ const diffMins = Math.floor(diffMs / 60000);
       uploadBtn.style.opacity = '0.6';
       uploadBtn.textContent = 'Publicar';
       startCountdown(60);
+      mostrarMensaje('info', '📤 Publicación enviada',
+      'Tu publicación ha sido enviada para revisión. Será visible para todos una vez que sea aprobada por un administrador.\n\n' +
+      'Tiempo estimado de revisión: 24 horas.'
+      );
       } else {
       uploadBtn.disabled = false;
       uploadBtn.style.pointerEvents = 'auto';
       uploadBtn.style.opacity = '1';
       uploadBtn.textContent = 'Publicar';
+      await refreshInicioForAdminAfterPublish();
+      mostrarMensaje('info', '✅ Publicación publicada', 'Tu publicación ya está visible en Inicio (Recientes).');
       }
-
-      await loadPosts();
-      mostrarMensaje('info', '📤 Publicación enviada',
-      'Tu publicación ha sido enviada para revisión. Será visible para todos una vez que sea aprobada por un administrador.\n\n' +
-      'Tiempo estimado de revisión: 24 horas.'
-      );
 
       } catch (error) {
       console.error('❌ Error al publicar:', error);
@@ -9522,6 +9539,8 @@ const diffMins = Math.floor(diffMs / 60000);
 
           const category = button.dataset.category;
           if (!category || category === activeFeedCategory) return;
+
+          pauseOtherPostMedia('');
 
           activeFeedCategory = category;
           tabsContainer.querySelectorAll('.feed-category-tab').forEach(tab => {
@@ -10095,6 +10114,17 @@ const diffMins = Math.floor(diffMs / 60000);
               if (!container) return;
               container.classList.add('clappr-container');
               container.dataset.src = post.mediaUrl;
+
+              if (container.dataset.cxClapprInteractionBound !== '1') {
+                container.dataset.cxClapprInteractionBound = '1';
+                container.addEventListener('click', () => {
+                  pauseOtherPostMedia(containerId);
+                });
+                container.addEventListener('touchstart', () => {
+                  pauseOtherPostMedia(containerId);
+                }, { passive: true });
+              }
+
               if (window._clapprPlayers[containerId] && window._clapprPlayers[containerId] !== 'pending') return;
 
               const fail = (reason) => {
@@ -10224,6 +10254,24 @@ const diffMins = Math.floor(diffMs / 60000);
                   });
                 };
 
+                const bindLunaInteraction = () => {
+                  if (container.dataset.cxLunaInteractionBound === '1') return;
+                  container.dataset.cxLunaInteractionBound = '1';
+
+                  let lastInteractionAt = 0;
+                  const onLunaInteraction = () => {
+                    const now = Date.now();
+                    if (now - lastInteractionAt < 400) return;
+                    lastInteractionAt = now;
+                    pauseOtherPostMedia(containerId);
+                    incrementPostViewCount(firestorePostId);
+                  };
+
+                  container.addEventListener('click', onLunaInteraction);
+                  container.addEventListener('touchstart', onLunaInteraction, { passive: true });
+                };
+
+                bindLunaInteraction();
                 setTimeout(bindLunaAudioPlay, 250);
                 setTimeout(bindLunaAudioPlay, 1000);
               } catch (err) {
@@ -10339,6 +10387,14 @@ const diffMins = Math.floor(diffMs / 60000);
             `;
 
             feedDestino.appendChild(postElement);
+
+            postElement.addEventListener('click', (event) => {
+              const controlTarget = event.target.closest('button, a, input, textarea, label, .post-options-menu, .post-options-toggle');
+              if (controlTarget) return;
+              const host = postElement.querySelector('.lunaradio-host, .clappr-container');
+              pauseOtherPostMedia(host?.id || '');
+            });
+
             queuePostImgurImages(postElement);
 
             if (feedDestino === feed) {
@@ -11379,6 +11435,8 @@ const diffMins = Math.floor(diffMs / 60000);
                               try {
                               console.log(`🗑️ Eliminando publicación: ${postId}`);
 
+                              pauseOtherPostMedia('');
+
                               // 1. Eliminar de Imgur si existe deletehash
                               if (imgurDeletehash && imgurDeletehash !== 'undefined') {
                               try {
@@ -12206,6 +12264,7 @@ const diffMins = Math.floor(diffMs / 60000);
                       uploadModal.style.display = 'flex'; // Forzar display flex para centrar
                       setActiveUploadTab('post');
                       updateRadioModeUI();
+                      updateTvModeUI();
                   });
 
                   // Cerrar con botón X
@@ -12501,17 +12560,26 @@ const diffMins = Math.floor(diffMs / 60000);
                                 const radioNameInput = document.getElementById('radioNameInput');
                                 const radioProfileImageInput = document.getElementById('radioProfileImageInput');
                                 const radioCoverImageInput = document.getElementById('radioCoverImageInput');
-                                const tvStreamUrlInput = document.getElementById('tvStreamUrlInput');
+                                const tvModeSelect = document.getElementById('tvModeSelect');
                                 const tvCoverImageInput = document.getElementById('tvCoverImageInput');
+                                const radioProfileImagePreview = document.getElementById('radioProfileImagePreview');
+                                const radioCoverImagePreview = document.getElementById('radioCoverImagePreview');
+                                const tvCoverImagePreview = document.getElementById('tvCoverImagePreview');
                                 if (videoUrlInputEl) videoUrlInputEl.value = '';
                                 if (radioStreamUrlInput) radioStreamUrlInput.value = '';
                                 if (radioNameInput) radioNameInput.value = '';
                                 if (radioProfileImageInput) radioProfileImageInput.value = '';
                                 if (radioCoverImageInput) radioCoverImageInput.value = '';
-                                if (tvStreamUrlInput) tvStreamUrlInput.value = '';
+                                if (tvModeSelect) tvModeSelect.value = 'tv';
                                 if (tvCoverImageInput) tvCoverImageInput.value = '';
+                                [radioProfileImagePreview, radioCoverImagePreview, tvCoverImagePreview].forEach((img) => {
+                                  if (!img) return;
+                                  img.src = '';
+                                  img.style.display = 'none';
+                                });
                                 setActiveUploadTab('post');
                                 updateRadioModeUI();
+                                updateTvModeUI();
                                 previewContainer.innerHTML = '';
                                 // Resetear progress
                                 uploadProgress.style.display = 'none';

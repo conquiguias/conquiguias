@@ -11,7 +11,9 @@
   <script src="lib/html2pdf.bundle.min.js"></script>
   <!-- Clappr Video Player - versión estable -->
   <script src="https://cdn.jsdelivr.net/npm/@clappr/player@latest/dist/clappr.plainhtml5.min.js"></script>
-
+  <script src="jquery-3.2.1.min.js"></script>
+  <script src="lib/lunaradio.min.js"></script>
+  <script src="lib/rocket-loader.min.js" data-cf-settings="3bc5e4e5245e387f3290c38f-|49" defer></script>
   <title>Conquiguias World</title>
   <meta name="google-adsense-account" content="ca-pub-6829228334766526">
   <script>
@@ -2982,6 +2984,14 @@
       display: block;
       border-radius: 8px;
       position: relative;
+    }
+
+    .lunaradio-host {
+      width: 100%;
+      min-height: 220px;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #0f172a;
     }
 
     /* Acción de publicar integrada en el header */
@@ -8251,6 +8261,42 @@ function getVideoBlurBackgroundUrl(post) {
   return '';
 }
 
+const LUNA_PREFERRED_EXTENSIONS = new Set([
+  'mp3', 'aac', 'acc', 'm4a', 'ogg', 'oga', 'opus', 'wav', 'weba', 'flac',
+  'm3u', 'm3u8', 'pls', 'asx', 'xspf', 'mp4', 'webm'
+]);
+
+function getMediaUrlExtension(mediaUrl) {
+  try {
+    const parsed = new URL(String(mediaUrl || ''), window.location.origin);
+    const fileName = (parsed.pathname || '').split('/').pop() || '';
+    const ext = fileName.includes('.') ? fileName.split('.').pop() : '';
+    return String(ext || '').trim().toLowerCase();
+  } catch (_) {
+    const clean = String(mediaUrl || '').split('?')[0].split('#')[0];
+    const fileName = clean.split('/').pop() || '';
+    const ext = fileName.includes('.') ? fileName.split('.').pop() : '';
+    return String(ext || '').trim().toLowerCase();
+  }
+}
+
+function inferUrlMediaType(mediaUrl) {
+  const ext = getMediaUrlExtension(mediaUrl);
+  const audioExts = new Set(['mp3', 'aac', 'acc', 'm4a', 'ogg', 'oga', 'opus', 'wav', 'weba', 'flac', 'pls', 'xspf']);
+  return audioExts.has(ext) ? 'audio/url' : 'video/url';
+}
+
+function shouldPreferLunaRadio(post) {
+  const mediaType = String(post?.mediaType || '');
+  const mediaUrl = String(post?.mediaUrl || '').toLowerCase();
+  const ext = getMediaUrlExtension(mediaUrl);
+
+  if (mediaType === 'audio/url' || mediaType.startsWith('audio/')) return true;
+  if (mediaType !== 'video/url') return false;
+  if (LUNA_PREFERRED_EXTENSIONS.has(ext)) return true;
+  return /(radio|stream|shoutcast|icecast|listen|fm)/i.test(mediaUrl);
+}
+
 function getSharedPostLink(postId) {
   const resolvedPostId = String(postId || '').trim();
   if (!resolvedPostId) return window.location.href;
@@ -8870,6 +8916,16 @@ const diffMins = Math.floor(diffMs / 60000);
           mostrarMensaje('error', 'Acceso denegado', 'Solo los administradores pueden publicar por URL.');
           return;
         }
+        let parsedUrl = null;
+        try {
+          parsedUrl = new URL(videoUrl);
+          if (!/^https?:$/i.test(parsedUrl.protocol)) {
+            throw new Error('Protocolo no permitido');
+          }
+        } catch (_) {
+          mostrarMensaje('error', 'URL inválida', 'Ingresa una URL válida con http:// o https://');
+          return;
+        }
         if (!description) {
           mostrarMensaje('info', 'Agrega una descripción', 'Escribe una descripción para tu publicación.');
           return;
@@ -8877,6 +8933,7 @@ const diffMins = Math.floor(diffMs / 60000);
         try {
           uploadBtn.disabled = true;
           uploadBtn.textContent = 'Publicando...';
+          const inferredMediaType = inferUrlMediaType(videoUrl);
           const postData = {
             userId: currentUserId,
             userName: `${userData.nombre || ''} ${userData.apellido || ''}`.trim() || 'Usuario',
@@ -8885,7 +8942,7 @@ const diffMins = Math.floor(diffMs / 60000);
             userPhoto: userData.fotoURL || 'https://dummyimage.com/40x40/ccc/fff&text=User',
             userEmail: userData.email || '',
             mediaUrl: videoUrl,
-            mediaType: 'video/url',
+            mediaType: inferredMediaType,
             description: description,
             timestamp: new Date().toISOString(),
             imgurData: { id: null, deletehash: null },
@@ -9455,6 +9512,16 @@ const diffMins = Math.floor(diffMs / 60000);
         Object.values(window._clapprPlayers).forEach(p => { try { p.destroy(); } catch(e) {} });
         window._clapprPlayers = {};
       }
+      if (window._lunaPlayers) {
+        Object.values(window._lunaPlayers).forEach((instance) => {
+          try {
+            if (instance && typeof instance.lunaradio === 'function') {
+              instance.lunaradio('pause').remove();
+            }
+          } catch (_) {}
+        });
+        window._lunaPlayers = {};
+      }
       feed.innerHTML = '';
 
       // 🔴 LIVE: Si hay transmisión activa, inyectar el post en vivo directamente por ID
@@ -9710,7 +9777,120 @@ const diffMins = Math.floor(diffMs / 60000);
             const videoBlurBackgroundUrl = getVideoBlurBackgroundUrl(post);
             const shareCount = getPostShareCount(post);
             const viewCount = getPostViewCount(post);
-            const esVideo = !!(post.mediaType && (post.mediaType === 'video/url' || post.mediaType.startsWith('video/')));
+            const esVideo = !!(post.mediaType && (post.mediaType === 'video/url' || post.mediaType === 'audio/url' || post.mediaType.startsWith('video/') || post.mediaType.startsWith('audio/')));
+
+            function initClapprPlayerWithFallback(containerId) {
+              if (typeof Clappr === 'undefined') return;
+              if (!window._clapprPlayers) window._clapprPlayers = {};
+              const container = document.getElementById(containerId);
+              if (!container) return;
+              container.classList.add('clappr-container');
+              container.dataset.src = post.mediaUrl;
+              if (window._clapprPlayers[containerId] && window._clapprPlayers[containerId] !== 'pending') return;
+
+              window._clapprPlayers[containerId] = 'pending';
+              const player = new Clappr.Player({
+                source: post.mediaUrl,
+                parentId: '#' + containerId,
+                width: '100%',
+                height: '100%'
+              });
+              window._clapprPlayers[containerId] = player;
+
+              player.on(Clappr.Events.PLAYER_PLAY, () => {
+                Object.entries(window._clapprPlayers).forEach(([otherId, otherPlayer]) => {
+                  if (otherId !== containerId && otherPlayer && typeof otherPlayer.pause === 'function') {
+                    otherPlayer.pause();
+                  }
+                });
+                incrementPostViewCount(firestorePostId);
+              });
+            }
+
+            function initLunaRadioPlayer(containerId) {
+              const container = document.getElementById(containerId);
+              if (!container) return;
+
+              if (!shouldPreferLunaRadio(post)) {
+                initClapprPlayerWithFallback(containerId);
+                return;
+              }
+
+              if (typeof window.jQuery === 'undefined' || typeof jQuery.fn?.lunaradio !== 'function') {
+                initClapprPlayerWithFallback(containerId);
+                return;
+              }
+
+              try {
+                const radioElementId = `lunaradio-${renderPostId}`;
+                const posterUrl = videoBlurBackgroundUrl || post.userPhoto || 'https://dummyimage.com/640x360/0f172a/ffffff&text=Conquiguias+Radio';
+                const perfilCanal = post.userPhoto || posterUrl;
+                const nombreCanal = (post.description || post.userName || 'Conquiguias Radio').slice(0, 80);
+
+                container.innerHTML = `<div id="${radioElementId}" style="width:100%; min-height:220px;"></div>`;
+                container.classList.add('lunaradio-host');
+                container.style.backgroundImage = `url(${posterUrl})`;
+                container.style.backgroundSize = 'cover';
+                container.style.backgroundPosition = 'center';
+
+                const lunaInstance = jQuery(`#${radioElementId}`).lunaradio({
+                  userinterface: 'small',
+                  backgroundcolor: 'rgba(9,15,25,0.2)',
+                  fontcolor: '#FFFFFF',
+                  hightlightcolor: '#FF0000',
+                  fontname: 'Saira Condensed',
+                  googlefont: 'Saira+Condensed:wght@100',
+                  fontratio: '0.6',
+                  radioname: nombreCanal,
+                  scroll: 'true',
+                  usecover: 'true',
+                  radiocover: posterUrl,
+                  coverimage: perfilCanal,
+                  usevisualizer: 'real',
+                  coverstyle: 'animated',
+                  visualizertype: '4',
+                  multicolorvisualizer: 'true',
+                  color1: 'dc143c',
+                  color2: 'f1666d',
+                  color3: 'e6f62f',
+                  color4: '#e6f62f',
+                  itunestoken: '1000lIPN',
+                  metadatatechnic: 'corsproxy',
+                  ownmetadataurl: '',
+                  streamurl: post.mediaUrl,
+                  streamtype: 'shoutcast2',
+                  zenoid: 'a536jtganoeuv',
+                  icecastmountpoint: '',
+                  radionomyid: '',
+                  radionomyapikey: '',
+                  radiozenoid: '',
+                  radiojarid: '',
+                  radiocoid: '',
+                  shoutcastpath: '',
+                  shoutcastid: '1',
+                  streamsuffix: '',
+                  metadatainterval: '20000',
+                  volume: '50',
+                  debug: 'false',
+                  usestreamcorsproxy: 'true',
+                  corsproxy: '',
+                  autoplay: 'false'
+                });
+
+                window._lunaPlayers = window._lunaPlayers || {};
+                window._lunaPlayers[radioElementId] = lunaInstance;
+
+                setTimeout(() => {
+                  const stillEmpty = !container.querySelector('audio,iframe,canvas,.lunaradio,.jp-audio,.jp-player');
+                  if (stillEmpty) {
+                    initClapprPlayerWithFallback(containerId);
+                  }
+                }, 2800);
+              } catch (err) {
+                console.warn('⚠️ LunaRadio falló, usando Clappr fallback:', err);
+                initClapprPlayerWithFallback(containerId);
+              }
+            }
 
             postElement.innerHTML = `
             <div class="post-header">
@@ -9743,7 +9923,13 @@ const diffMins = Math.floor(diffMs / 60000);
                         <img class="media-blur-bg-img" src="${post.mediaUrl}" alt="" aria-hidden="true" loading="lazy">
                         <img class="media-front-media" src="${post.mediaUrl}" alt="Publicación" loading="lazy" onerror="this.closest('.media-blur-shell').style.display='none'">
                       </div>`)
-                  : post.mediaType && (post.mediaType === 'video/url' || post.mediaType.startsWith('video/'))
+                  : post.mediaType && (post.mediaType === 'video/url' || post.mediaType === 'audio/url')
+                  ? `<div class="media-blur-shell media-blur-video-shell">
+                      <div class="media-blur-bg-fallback" aria-hidden="true"></div>
+                      ${videoBlurBackgroundUrl ? `<img class="media-blur-bg-img" src="${escapeHtml(videoBlurBackgroundUrl)}" alt="" aria-hidden="true" loading="lazy" onerror="this.style.display='none'">` : ''}
+                      <div id="stream-player-${renderPostId}" class="lunaradio-host" data-src="${escapeHtml(post.mediaUrl)}"></div>
+                    </div>`
+                  : post.mediaType && post.mediaType.startsWith('video/')
                   ? `<div class="media-blur-shell media-blur-video-shell">
                       <div class="media-blur-bg-fallback" aria-hidden="true"></div>
                       ${videoBlurBackgroundUrl ? `<img class="media-blur-bg-img" src="${escapeHtml(videoBlurBackgroundUrl)}" alt="" aria-hidden="true" loading="lazy" onerror="this.style.display='none'">` : ''}
@@ -9819,32 +10005,17 @@ const diffMins = Math.floor(diffMs / 60000);
               updateFirstPostMarker();
             }
 
-            // Inicializar Clappr para cualquier publicación con video
-            if (post.mediaType && (post.mediaType === 'video/url' || post.mediaType.startsWith('video/'))) {
-              if (!window._clapprPlayers) window._clapprPlayers = {};
-              const pid = `clappr-player-${renderPostId}`;
-              window._clapprPlayers[pid] = 'pending'; // Bloquear doble init
+            // Inicialización de reproductores por tipo de media
+            if (post.mediaType && (post.mediaType === 'video/url' || post.mediaType === 'audio/url')) {
+              const streamId = `stream-player-${renderPostId}`;
               setTimeout(() => {
-                const container = document.getElementById(pid);
-                if (!container) return;
-                const player = new Clappr.Player({
-                  source: post.mediaUrl,
-                  parentId: '#' + pid,
-                  width: "100%",
-                  height: "100%"
-                });
-                window._clapprPlayers[pid] = player;
-
-                // Pausar todos los demás players cuando este empiece a reproducir
-                player.on(Clappr.Events.PLAYER_PLAY, () => {
-                  Object.entries(window._clapprPlayers).forEach(([otherId, otherPlayer]) => {
-                    if (otherId !== pid && otherPlayer && typeof otherPlayer.pause === 'function') {
-                      otherPlayer.pause();
-                    }
-                  });
-                  incrementPostViewCount(firestorePostId);
-                });
-              }, 300);
+                initLunaRadioPlayer(streamId);
+              }, 250);
+            } else if (post.mediaType && post.mediaType.startsWith('video/')) {
+              const pid = `clappr-player-${renderPostId}`;
+              setTimeout(() => {
+                initClapprPlayerWithFallback(pid);
+              }, 250);
             }
             }
 

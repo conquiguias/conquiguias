@@ -10898,12 +10898,38 @@
           if (window._clapprPlayers[containerId] && window._clapprPlayers[containerId] !== 'pending') return;
 
           const fail = (reason) => {
+            let resolvedReason = reason;
+            const videoEl = container.querySelector('video');
+            const hasGenericReason = typeof resolvedReason === 'string'
+              && /se report[oó] un error al reproducir/i.test(resolvedReason);
+
+            if ((!resolvedReason || hasGenericReason) && videoEl?.error) {
+              resolvedReason = {
+                message: getNativeMediaErrorMessage(videoEl.error),
+                details: {
+                  provider: 'Clappr',
+                  event: 'HTMLMediaElement.error',
+                  code: Number(videoEl.error.code) || 0,
+                  currentSrc: videoEl.currentSrc || post.mediaUrl || ''
+                }
+              };
+            } else if (!resolvedReason) {
+              resolvedReason = {
+                message: 'Clappr PLAYER_ERROR sin detalles.',
+                details: {
+                  provider: 'Clappr',
+                  event: 'PLAYER_ERROR',
+                  currentSrc: post.mediaUrl || ''
+                }
+              };
+            }
+
             try {
               const current = window._clapprPlayers?.[containerId];
               if (current && typeof current.destroy === 'function') current.destroy();
             } catch (_) { }
             window._clapprPlayers[containerId] = null;
-            renderPlaybackError(containerId, reason || 'Error de reproducción con Clappr.', 'Clappr');
+            renderPlaybackError(containerId, resolvedReason, 'Clappr');
           };
 
           try {
@@ -10933,16 +10959,16 @@
             }
 
             if (Clappr.Events.PLAYER_ERROR) {
-              player.on(Clappr.Events.PLAYER_ERROR, (error) => {
-                const reason = error?.message || error?.code || 'Se reportó un error al reproducir.';
-                fail(reason);
+              player.on(Clappr.Events.PLAYER_ERROR, (...args) => {
+                const payload = args.length > 1 ? args : args[0];
+                fail(payload);
               });
             }
 
             if (Clappr.Events.ERROR) {
-              player.on(Clappr.Events.ERROR, (error) => {
-                const reason = error?.message || 'Ocurrió un error interno del reproductor.';
-                fail(reason);
+              player.on(Clappr.Events.ERROR, (...args) => {
+                const payload = args.length > 1 ? args : args[0];
+                fail(payload);
               });
             }
           } catch (error) {

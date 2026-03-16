@@ -8,7 +8,7 @@
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ConquiGuías World - Acceso</title>
-    <meta name="google-adsense-account" content="ca-pub-6829228334766526">
+    <meta name="google-adsense-account" content="ca-pub-6829228334766526" />
 
     <script type="module">
       // ==========================================
@@ -160,7 +160,10 @@
       function isTooManyRequestsError(error) {
         const code = String(error?.code || "").toLowerCase();
         const message = String(error?.message || "").toLowerCase();
-        return code === "auth/too-many-requests" || message.includes("auth/too-many-requests");
+        return (
+          code === "auth/too-many-requests" ||
+          message.includes("auth/too-many-requests")
+        );
       }
 
       function getFriendlyAuthMessage(error, fallback) {
@@ -192,27 +195,41 @@
         let app;
         let auth;
 
-        async function configureAuthPersistence(authInstance, setPersistence, persistenceOptions) {
-          const [localPersistence, sessionPersistence, memoryPersistence] = persistenceOptions;
+        async function configureAuthPersistence(
+          authInstance,
+          setPersistence,
+          persistenceOptions,
+        ) {
+          const [localPersistence, sessionPersistence, memoryPersistence] =
+            persistenceOptions;
 
           try {
             await setPersistence(authInstance, localPersistence);
             return;
           } catch (localError) {
-            console.warn("[WARN] No se pudo activar persistencia local:", localError);
+            console.warn(
+              "[WARN] No se pudo activar persistencia local:",
+              localError,
+            );
           }
 
           try {
             await setPersistence(authInstance, sessionPersistence);
             return;
           } catch (sessionError) {
-            console.warn("[WARN] No se pudo activar persistencia de sesión:", sessionError);
+            console.warn(
+              "[WARN] No se pudo activar persistencia de sesión:",
+              sessionError,
+            );
           }
 
           try {
             await setPersistence(authInstance, memoryPersistence);
           } catch (memoryError) {
-            console.warn("[WARN] No se pudo activar persistencia en memoria:", memoryError);
+            console.warn(
+              "[WARN] No se pudo activar persistencia en memoria:",
+              memoryError,
+            );
           }
         }
 
@@ -254,9 +271,8 @@
         async function processGoogleRedirectResult() {
           try {
             const authInstance = await ensureFirebaseAuth();
-            const { getRedirectResult } = await import(
-              "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js"
-            );
+            const { getRedirectResult } =
+              await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
 
             const redirectResult = await getRedirectResult(authInstance);
             if (!redirectResult?.user) return;
@@ -283,7 +299,11 @@
 
           try {
             const authInstance = await ensureFirebaseAuth();
-            const { signInWithEmailAndPassword, sendEmailVerification, signOut } =
+            const {
+              signInWithEmailAndPassword,
+              sendEmailVerification,
+              signOut,
+            } =
               await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
 
             const userCredential = await signInWithEmailAndPassword(
@@ -307,7 +327,10 @@
                       "Revisa tu bandeja de entrada y la carpeta de spam.",
                     );
                   } catch (verificationError) {
-                    console.error("Error reenviando verificación:", verificationError);
+                    console.error(
+                      "Error reenviando verificación:",
+                      verificationError,
+                    );
                     mostrarMensaje(
                       "error",
                       "❌ No se pudo reenviar",
@@ -332,7 +355,10 @@
             mostrarMensaje(
               "error",
               "⚠️ Error al iniciar sesión",
-              getFriendlyAuthMessage(error, "Verifica tus credenciales e intenta nuevamente."),
+              getFriendlyAuthMessage(
+                error,
+                "Verifica tus credenciales e intenta nuevamente.",
+              ),
             );
           }
         });
@@ -342,13 +368,8 @@
 
           try {
             const authInstance = await ensureFirebaseAuth();
-            const {
-              GoogleAuthProvider,
-              signInWithPopup,
-              signInWithRedirect,
-            } = await import(
-              "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js"
-            );
+            const { GoogleAuthProvider, signInWithPopup, signInWithRedirect } =
+              await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
 
             const provider = new GoogleAuthProvider();
             provider.setCustomParameters({ prompt: "select_account" });
@@ -367,9 +388,8 @@
             ) {
               try {
                 const authInstance = await ensureFirebaseAuth();
-                const { GoogleAuthProvider, signInWithRedirect } = await import(
-                  "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js"
-                );
+                const { GoogleAuthProvider, signInWithRedirect } =
+                  await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
                 const provider = new GoogleAuthProvider();
                 provider.setCustomParameters({ prompt: "select_account" });
                 await signInWithRedirect(authInstance, provider);
@@ -440,12 +460,17 @@
               fileName,
             });
 
-            let verificationMessage = "Tu cuenta fue creada. Te enviamos un correo de verificación; debes confirmarlo antes de iniciar sesión.";
+            let verificationMessage =
+              "Tu cuenta fue creada. Te enviamos un correo de verificación; debes confirmarlo antes de iniciar sesión.";
 
             try {
               updateLoader(registerBtn, "⏳ Enviando verificación...");
               const authInstance = await ensureFirebaseAuth();
-              const { signInWithEmailAndPassword, sendEmailVerification, signOut } =
+              const {
+                signInWithEmailAndPassword,
+                sendEmailVerification,
+                signOut,
+              } =
                 await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
 
               const registerCredential = await signInWithEmailAndPassword(
@@ -456,7 +481,10 @@
               await sendEmailVerification(registerCredential.user);
               await signOut(authInstance);
             } catch (verificationError) {
-              console.warn("Aviso al enviar verificación tras registro:", verificationError);
+              console.warn(
+                "Aviso al enviar verificación tras registro:",
+                verificationError,
+              );
               verificationMessage = isTooManyRequestsError(verificationError)
                 ? "Tu cuenta fue creada correctamente, pero el sistema limitó temporalmente el envío del correo de verificación. Espera unos minutos y luego usa la opción de reenvío en el inicio de sesión."
                 : "Tu cuenta fue creada correctamente, pero no pudimos enviar el correo de verificación en este momento. Intenta iniciar sesión y usar la opción de reenvío.";
@@ -478,7 +506,10 @@
             mostrarMensaje(
               "error",
               "❌ Error en el registro",
-              getFriendlyAuthMessage(error, error.message || "No se pudo completar el registro."),
+              getFriendlyAuthMessage(
+                error,
+                error.message || "No se pudo completar el registro.",
+              ),
             );
           }
         });
@@ -612,10 +643,16 @@
       /* ============================================
        ESTILOS RESTAURADOS DE FORMULARIOS & UTILIDADES
        ============================================ */
-      
+
       @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       .container h1 {
@@ -632,7 +669,8 @@
       }
 
       /* Inputs estilo panel */
-      input, select {
+      input,
+      select {
         width: 100%;
         margin: 8px 0;
         padding: 12px;
@@ -644,7 +682,8 @@
         transition: border 0.3s;
       }
 
-      input:focus, select:focus {
+      input:focus,
+      select:focus {
         outline: none;
         border-color: var(--accent-color);
         box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
@@ -717,7 +756,9 @@
       }
 
       /* Links */
-      .toggle, .forgot-password, .back-link {
+      .toggle,
+      .forgot-password,
+      .back-link {
         color: var(--accent-color);
         margin-top: 15px;
         cursor: pointer;
@@ -742,7 +783,9 @@
         text-decoration: underline;
       }
 
-      .toggle:hover, .forgot-password:hover, .back-link:hover {
+      .toggle:hover,
+      .forgot-password:hover,
+      .back-link:hover {
         text-decoration: underline;
       }
 
@@ -789,8 +832,12 @@
       }
 
       @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
       }
 
       /* Modal mensajes */
@@ -846,7 +893,8 @@
         box-shadow: none;
       }
 
-      #mensajeAceptar:hover, #mensajeCancelar:hover {
+      #mensajeAceptar:hover,
+      #mensajeCancelar:hover {
         opacity: 0.9;
         transform: translateY(-1px);
       }
@@ -878,14 +926,14 @@
   </head>
 
   <body>
-
     <!-- Contenedor principal -->
     <div class="main-wrapper">
-      
       <!-- Columna Izquierda: Branding -->
       <div class="branding-section">
         <div class="site-title-large">Conquiguias World</div>
-        <div class="tagline-large">Plataforma de Conquistadores y Guías Mayores</div>
+        <div class="tagline-large">
+          Plataforma de Conquistadores y Guías Mayores
+        </div>
       </div>
 
       <!-- Columna Derecha: Formularios -->
@@ -893,142 +941,147 @@
         <!-- Login -->
         <div class="container" id="loginBox">
           <h1>
-            <i class="fas fa-sign-in-alt" style="margin-right: 10px"></i>Iniciar Sesión
+            <i class="fas fa-sign-in-alt" style="margin-right: 10px"></i>Iniciar
+            Sesión
           </h1>
           <p>Ingresa tus credenciales para acceder a tu cuenta</p>
           <form id="loginForm">
-          <input
-            class="email"
-            type="email"
-            name="email"
-            placeholder="Correo electrónico"
-            autocomplete="email"
-            required
-          />
-          <div class="contenedor-password">
             <input
-              class="password"
-              id="password"
-              type="password"
-              name="password"
-              placeholder="Contraseña"
-              autocomplete="current-password"
+              class="email"
+              type="email"
+              name="email"
+              placeholder="Correo electrónico"
+              autocomplete="email"
               required
             />
-            <input class="chkShow" id="chkShow" type="checkbox" />
+            <div class="contenedor-password">
+              <input
+                class="password"
+                id="password"
+                type="password"
+                name="password"
+                placeholder="Contraseña"
+                autocomplete="current-password"
+                required
+              />
+              <input class="chkShow" id="chkShow" type="checkbox" />
+            </div>
+            <button type="submit" id="loginBtn" style="font-size: 20px">
+              Entrar
+            </button>
+            <div class="divider"><span>o</span></div>
+            <button type="button" id="googleLoginBtn" style="font-size: 18px">
+              <i class="fab fa-google" style="margin-right: 8px"></i>Continuar
+              con Google
+            </button>
+            <div class="guest-access-note">
+              También puedes
+              <a href="panel.html?guest=1">ingresar como invitado</a>.
+            </div>
+          </form>
+          <div class="forgot-password" onclick="showResetPassword()">
+            ¿Olvidaste tu contraseña?
           </div>
-          <button type="submit" id="loginBtn" style="font-size: 20px">
-            Entrar
-          </button>
-          <div class="divider"><span>o</span></div>
-          <button type="button" id="googleLoginBtn" style="font-size: 18px">
-            <i class="fab fa-google" style="margin-right: 8px"></i>Continuar con Google
-          </button>
-          <div class="guest-access-note">
-            También puedes <a href="panel.html?guest=1">ingresar como invitado</a>.
+          <div class="toggle" onclick="toggleForms()">
+            ¿No tienes cuenta? Regístrate
           </div>
-        </form>
-        <div class="forgot-password" onclick="showResetPassword()">
-          ¿Olvidaste tu contraseña?
         </div>
-        <div class="toggle" onclick="toggleForms()">
-          ¿No tienes cuenta? Regístrate
-        </div>
-      </div>
 
-      <!-- Registro -->
-      <div class="container hidden" id="registerBox">
-        <h1 style="margin: 0%">
-          <i class="fas fa-user-plus" style="margin-right: 10px"></i>Únete a
-          Nosotros
-        </h1>
-        <p>Crea tu cuenta y comienza tu aventura</p>
-        <form id="registerForm">
-          <input
-            type="text"
-            name="nombre"
-            placeholder="Nombre o como deseas aparecer"
-            autocomplete="name"
-            required
-          />
-          <input
-            type="text"
-            name="apellido"
-            placeholder="Apellido o como deseas aparecer"
-            autocomplete="family-name"
-            required
-          />
-          <input type="number" name="edad" placeholder="Edad" required />
-          <select name="sexo" required>
-            <option value="">Sexo</option>
-            <option>Masculino</option>
-            <option>Femenino</option>
-          </select>
-          <input
-            type="text"
-            name="pais"
-            placeholder="País"
-            autocomplete="country-name"
-            required
-          />
-          <input
-            type="email"
-            name="email"
-            placeholder="Correo"
-            autocomplete="email"
-            required
-          />
-          <div class="contenedor-password">
+        <!-- Registro -->
+        <div class="container hidden" id="registerBox">
+          <h1 style="margin: 0%">
+            <i class="fas fa-user-plus" style="margin-right: 10px"></i>Únete a
+            Nosotros
+          </h1>
+          <p>Crea tu cuenta y comienza tu aventura</p>
+          <form id="registerForm">
             <input
-              class="password"
-              id="passwordX"
-              type="password"
-              name="password"
-              placeholder="Contraseña"
-              autocomplete="new-password"
+              type="text"
+              name="nombre"
+              placeholder="Nombre o como deseas aparecer"
+              autocomplete="name"
               required
             />
-            <input class="chkShow" id="chkShowX" type="checkbox" />
+            <input
+              type="text"
+              name="apellido"
+              placeholder="Apellido o como deseas aparecer"
+              autocomplete="family-name"
+              required
+            />
+            <input type="number" name="edad" placeholder="Edad" required />
+            <select name="sexo" required>
+              <option value="">Sexo</option>
+              <option>Masculino</option>
+              <option>Femenino</option>
+            </select>
+            <input
+              type="text"
+              name="pais"
+              placeholder="País"
+              autocomplete="country-name"
+              required
+            />
+            <input
+              type="email"
+              name="email"
+              placeholder="Correo"
+              autocomplete="email"
+              required
+            />
+            <div class="contenedor-password">
+              <input
+                class="password"
+                id="passwordX"
+                type="password"
+                name="password"
+                placeholder="Contraseña"
+                autocomplete="new-password"
+                required
+              />
+              <input class="chkShow" id="chkShowX" type="checkbox" />
+            </div>
+            <h2 style="margin: 0%">Subir Foto:</h2>
+            <input
+              type="file"
+              name="foto"
+              accept="image/jpg, image/jpeg, image/png"
+              required
+            />
+            <button type="submit" id="registerBtn">Registrar</button>
+          </form>
+          <div class="toggle" onclick="toggleForms()">
+            ¿Ya tienes cuenta? Inicia sesión
           </div>
-          <h2 style="margin: 0%">Subir Foto:</h2>
-          <input
-            type="file"
-            name="foto"
-            accept="image/jpg, image/jpeg, image/png"
-            required
-          />
-          <button type="submit" id="registerBtn">Registrar</button>
-        </form>
-        <div class="toggle" onclick="toggleForms()">
-          ¿Ya tienes cuenta? Inicia sesión
         </div>
-      </div>
 
-      <!-- Recuperación de contraseña -->
-      <div class="container hidden" id="resetPasswordBox">
-        <h1>
-          <i class="fas fa-key" style="margin-right: 10px"></i>Recuperar
-          Contraseña
-        </h1>
-        <p>Te enviaremos un enlace para restablecer tu contraseña</p>
-        <form id="resetPasswordForm">
-          <input
-            type="email"
-            name="email"
-            placeholder="Correo electrónico"
-            autocomplete="email"
-            required
-          />
-          <button type="submit" id="resetPasswordBtn">
-            Enviar enlace de recuperación
-          </button>
-        </form>
-        <div class="back-link" onclick="backToLogin()">
-          Volver al inicio de sesión
+        <!-- Recuperación de contraseña -->
+        <div class="container hidden" id="resetPasswordBox">
+          <h1>
+            <i class="fas fa-key" style="margin-right: 10px"></i>Recuperar
+            Contraseña
+          </h1>
+          <p>Te enviaremos un enlace para restablecer tu contraseña</p>
+          <form id="resetPasswordForm">
+            <input
+              type="email"
+              name="email"
+              placeholder="Correo electrónico"
+              autocomplete="email"
+              required
+            />
+            <button type="submit" id="resetPasswordBtn">
+              Enviar enlace de recuperación
+            </button>
+          </form>
+          <div class="back-link" onclick="backToLogin()">
+            Volver al inicio de sesión
+          </div>
         </div>
       </div>
-      </div> <!-- Cierre auth-container -->
-    </div> <!-- Cierre main-wrapper -->
+      <!-- Cierre auth-container -->
+    </div>
+    <!-- Cierre main-wrapper -->
 
     <!-- 🔹 Contenedor general de mensajes -->
     <div id="mensajeModal" class="hiddenX">

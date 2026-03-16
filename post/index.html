@@ -1,1127 +1,1244 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Post | Conquiguias World</title>
-  <meta name="google-adsense-account" content="ca-pub-6829228334766526">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-  <!-- Clappr Video Player -->
-  <script src="https://cdn.jsdelivr.net/npm/@clappr/player@latest/dist/clappr.plainhtml5.min.js"></script>
-  <style>
-    :root {
-      --bg-primary: #0f172a;
-      --bg-secondary: #1e293b;
-      --bg-card: #1e293b;
-      --text-primary: #e2e8f0;
-      --text-secondary: #94a3b8;
-      --accent-color: #3b82f6;
-      --danger-color: #ef4444;
-      --success-color: #10b981;
-      --warning-color: #f59e0b;
-      --border-color: #334155;
-      --shadow-color: rgba(0, 0, 0, 0.3);
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    html {
-      height: 100%;
-      overflow: hidden;
-    }
-
-    body {
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      height: 100%;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .page-wrap {
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      padding: 10px;
-      overflow: hidden;
-    }
-
-    #postRoot {
-      flex: 1;
-      min-height: 0;
-      overflow: hidden;
-    }
-
-    .state-box {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 18px;
-      text-align: center;
-      color: var(--text-secondary);
-    }
-
-    .single-post-shell {
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      border-radius: 12px;
-      box-shadow: 0 6px 15px var(--shadow-color);
-      border: 1px solid var(--border-color);
-      background: linear-gradient(180deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
-    }
-
-    .post-card {
-      background: var(--bg-card);
-      border-radius: 12px;
-      box-shadow: 0 0 10px var(--shadow-color);
-      overflow: hidden;
-      border: 1px solid var(--border-color);
-      margin-bottom: 0;
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .post-header {
-      display: flex;
-      align-items: center;
-      padding: 15px;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .post-user-img {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      object-fit: cover;
-      margin-right: 12px;
-      border: 2px solid var(--accent-color);
-    }
-
-    .post-contenedor {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .post-user-name {
-      font-weight: bold;
-      color: var(--text-primary);
-      flex: 1;
-    }
-
-    .status-admin {
-      background: #facc15;
-      color: #1f2937;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 2px 9px;
-      border-radius: 999px;
-    }
-
-    .post-time {
-      font-size: 12px;
-      color: var(--text-secondary);
-    }
-
-    .post-video-views {
-      font-size: 11px;
-      color: var(--text-secondary);
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      margin-top: 2px;
-    }
-    .post-video-views .views-icon {
-      color: #e53e3e;
-      font-size: 11px;
-    }
-
-    @keyframes live-pulse {
-      0%, 100% { box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.55); }
-      50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.15); }
-    }
-
-    .post-user-img.live-border {
-      border-color: #ef4444 !important;
-      animation: live-pulse 1.6s ease-in-out infinite;
-    }
-
-    .badge-en-vivo {
-      background: #ef4444;
-      color: #fff;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 2px 9px;
-      border-radius: 999px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .post-card.live-post {
-      border-color: rgba(239, 68, 68, 0.45);
-      box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2), 0 4px 14px rgba(239, 68, 68, 0.1);
-    }
-
-    .post-options-toggle {
-      margin-left: auto;
-      border: 1px solid var(--border-color);
-      background: rgba(15, 23, 42, 0.6);
-      color: var(--text-secondary);
-      border-radius: 8px;
-      padding: 6px 8px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 1;
-      text-decoration: none;
-      transition: color 0.2s, border-color 0.2s;
-    }
-
-    .post-options-toggle:hover {
-      color: var(--accent-color);
-      border-color: var(--accent-color);
-    }
-
-    /* Clappr player */
-    .clappr-container {
-      width: 100%;
-      height: 100%;
-      display: block;
-      position: relative;
-      z-index: 1;
-      background: transparent !important;
-    }
-
-    .media-blur-video-shell .clappr-container [data-player],
-    .media-blur-video-shell .clappr-container .container[data-container],
-    .media-blur-video-shell .clappr-container [data-html5-video],
-    .media-blur-video-shell .clappr-container video {
-      background: transparent !important;
-      background-color: transparent !important;
-    }
-
-    .media-blur-video-shell .clappr-container [data-html5-video],
-    .media-blur-video-shell .clappr-container video {
-      object-fit: contain !important;
-    }
-
-    /* Mobile comments modal */
-    .comments-mobile-modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.65);
-      z-index: 5000;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 14px;
-    }
-
-    .comments-mobile-content {
-      width: min(100%, 520px);
-      max-height: 85vh;
-      overflow: auto;
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      background: var(--bg-card);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
-    }
-
-    .comments-mobile-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--border-color);
-      color: var(--text-primary);
-      font-weight: 600;
-    }
-
-    .comments-mobile-close {
-      background: none;
-      border: none;
-      color: var(--text-secondary);
-      cursor: pointer;
-      font-size: 18px;
-      padding: 2px 6px;
-    }
-
-    .comments-mobile-body {
-      padding: 12px 14px;
-    }
-
-    /* Share modal */
-    .share-modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.65);
-      z-index: 6000;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 14px;
-    }
-    .share-modal-box {
-      width: min(100%, 560px);
-      max-height: 90vh;
-      overflow: auto;
-      border: 1px solid var(--border-color);
-      border-radius: 14px;
-      background: var(--bg-card);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
-      display: flex;
-      flex-direction: column;
-    }
-    .share-modal-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--border-color);
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-    .share-modal-close {
-      background: none;
-      border: none;
-      color: var(--text-secondary);
-      cursor: pointer;
-      font-size: 18px;
-      padding: 2px 6px;
-    }
-    .share-modal-body {
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .share-modal-label {
-      font-size: 12px;
-      color: var(--text-secondary);
-    }
-    .share-modal-link-row {
-      display: flex;
-      gap: 8px;
-    }
-    .share-modal-link-row input {
-      flex: 1;
-      padding: 10px;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      background: var(--bg-secondary);
-      color: var(--text-primary);
-      font-size: 13px;
-    }
-    .share-modal-copy-btn {
-      padding: 10px 14px;
-      border: none;
-      border-radius: 8px;
-      background: var(--accent-color);
-      color: white;
-      cursor: pointer;
-      font-size: 13px;
-      white-space: nowrap;
-    }
-    .share-modal-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .share-modal-action-btn {
-      padding: 9px 12px;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      background: var(--bg-secondary);
-      color: var(--text-primary);
-      cursor: pointer;
-      font-size: 13px;
-    }
-    .share-modal-embed {
-      width: 100%;
-      min-height: 72px;
-      padding: 10px;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      background: var(--bg-secondary);
-      color: var(--text-secondary);
-      font-size: 12px;
-      resize: none;
-      box-sizing: border-box;
-    }
-    .share-modal-networks {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .share-modal-network-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 10px;
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-      color: var(--text-primary);
-      text-decoration: none;
-      background: var(--bg-secondary);
-      font-size: 13px;
-    }
-    .share-modal-status {
-      font-size: 12px;
-      color: var(--text-secondary);
-      min-height: 18px;
-    }
-    .share-modal-footer {
-      padding: 12px 16px;
-      border-top: 1px solid var(--border-color);
-      text-align: right;
-    }
-    .share-modal-accept-btn {
-      padding: 9px 22px;
-      border: none;
-      border-radius: 8px;
-      background: var(--accent-color);
-      color: white;
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    .post-content {
-      width: 100%;
-      position: relative;
-    }
-
-    .media-blur-shell {
-      position: relative;
-      width: 100%;
-      height: 350px;
-      overflow: hidden;
-      background: #000;
-      border-radius: 0;
-    }
-
-    .media-blur-bg-img,
-    .media-blur-bg-video {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      filter: blur(22px);
-      transform: scale(1.12);
-      opacity: 0.72;
-      pointer-events: none;
-    }
-
-    .media-blur-bg-fallback {
-      position: absolute;
-      inset: 0;
-      background:
-        radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.35), transparent 45%),
-        radial-gradient(circle at 80% 75%, rgba(168, 85, 247, 0.28), transparent 40%),
-        linear-gradient(180deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
-      filter: blur(16px);
-      transform: scale(1.08);
-      opacity: 0.9;
-      pointer-events: none;
-    }
-
-    .post-content .media-front-media {
-      position: relative;
-      z-index: 1;
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      background: transparent;
-      border-radius: 0;
-      overflow: hidden;
-      display: block;
-    }
-
-    .media-blur-video-shell video {
-      position: relative;
-      z-index: 1;
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      background: transparent;
-    }
-
-    .post-description {
-      padding: 10px;
-      color: var(--text-primary);
-      font-size: 14px;
-      line-height: 1.45;
-      white-space: pre-wrap;
-    }
-
-    .post-body-layout {
-      display: flex;
-      padding: 0;
-      margin: 0;
-      align-items: stretch;
-      position: relative;
-      flex: 1;
-      min-height: 0;
-      overflow: hidden;
-    }
-
-    .post-main-column {
-      width: 100%;
-      min-width: 0;
-      overflow-y: auto;
-      overflow-x: hidden;
-    }
-
-    .post-sidebar-column {
-      display: none;
-      border-left: 1px solid var(--border-color);
-      padding: 5px;
-      min-height: 0;
-      overflow: hidden;
-    }
-
-    .post-card.comments-open .post-main-column {
-      width: 70%;
-    }
-
-    .post-card.comments-open .post-sidebar-column {
-      display: flex;
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      width: 30%;
-    }
-
-    .post-actions {
-      padding: 10px 15px;
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-      border-top: 1px solid var(--border-color);
-      gap: 10px;
-    }
-
-    .post-actions-left,
-    .post-actions-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: nowrap;
-    }
-
-    .post-actions-left {
-      flex: 1;
-      min-width: 0;
-      overflow-x: hidden;
-    }
-
-    .post-actions-right {
-      justify-content: flex-end;
-      min-width: max-content;
-      overflow: visible;
-    }
-
-    .reaction-btn {
-      background: none;
-      border: 2px solid transparent;
-      border-radius: 20px;
-      padding: 6px 12px;
-      margin: 2px;
-      cursor: pointer;
-      font-size: 16px;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      color: var(--text-secondary);
-    }
-
-    .reaction-btn:hover {
-      background-color: rgba(255, 255, 255, 0.05);
-      transform: none;
-    }
-
-    .reaction-btn.active {
-      background-color: rgba(59, 130, 246, 0.2);
-      border-color: var(--accent-color);
-      transform: none;
-      box-shadow: 0 2px 5px rgba(59, 130, 246, 0.3);
-      color: var(--accent-color);
-    }
-
-    .reaction-count {
-      font-size: 13px;
-      color: var(--text-secondary);
-      font-weight: 500;
-      min-width: 20px;
-      text-align: center;
-    }
-
-    .reaction-btn.active .reaction-count {
-      color: var(--accent-color);
-      font-weight: bold;
-    }
-
-    .reaction-btn.disabled,
-    .reaction-btn:disabled {
-      cursor: not-allowed;
-      opacity: 0.6;
-    }
-
-    .reaction-btn.disabled:hover,
-    .reaction-btn:disabled:hover {
-      background-color: transparent;
-      border-color: transparent;
-      box-shadow: none;
-    }
-
-    .post-action-link,
-    .share-btn {
-      background: none;
-      border: none;
-      color: var(--text-secondary);
-      font-size: 14px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 8px;
-    }
-
-    .post-action-link:hover,
-    .share-btn:hover {
-      color: var(--accent-color);
-    }
-
-    .post-actions-separator {
-      color: var(--text-secondary);
-      opacity: 0.7;
-      user-select: none;
-    }
-
-    .post-comments-side {
-      display: flex;
-      justify-content: flex-start;
-      padding: 0;
-      flex: 1;
-      height: 100%;
-      min-height: 0;
-      overflow: hidden;
-    }
-
-    .post-comments-side.hidden {
-      display: none;
-    }
-
-    .post-comments-side-box {
-      width: 100%;
-      min-height: 44px;
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-      background: var(--bg-secondary);
-      padding: 10px 12px;
-      color: var(--text-secondary);
-      font-size: 13px;
-      line-height: 1.4;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      min-height: 0;
-      overflow: hidden;
-    }
-
-    .comments-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      color: var(--text-primary);
-      font-weight: 700;
-      font-size: 13px;
-    }
-
-    .comments-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-      overflow-x: hidden;
-      margin-bottom: 10px;
-      padding-right: 2px;
-    }
-
-    .comment-item {
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      border-radius: 8px;
-      padding: 8px;
-      background: rgba(15, 23, 42, 0.35);
-    }
-
-    .comment-meta {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 4px;
-      font-size: 11px;
-      color: var(--text-secondary);
-    }
-
-    .comment-author {
-      font-weight: 600;
-      color: var(--text-primary);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      min-width: 100px;
-    }
-
-    .comment-text {
-      color: var(--text-primary);
-      font-size: 13px;
-      line-height: 1.35;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    .comment-actions {
-      margin-top: 6px;
-      display: flex;
-      justify-content: flex-end;
-    }
-
-    .comment-delete-btn {
-      background: none;
-      border: 1px solid rgba(239, 68, 68, 0.45);
-      color: #f87171;
-      border-radius: 6px;
-      font-size: 11px;
-      padding: 2px 8px;
-      cursor: pointer;
-    }
-
-    .comment-empty {
-      color: var(--text-secondary);
-      font-size: 12px;
-      padding: 8px 4px;
-      border: 1px dashed rgba(148, 163, 184, 0.3);
-      border-radius: 8px;
-      text-align: center;
-    }
-
-    .comment-form {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-
-    .comment-input {
-      flex: 1;
-      min-width: 0;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      padding: 8px 10px;
-      font-size: 12px;
-    }
-
-    .comment-submit-btn {
-      border: none;
-      border-radius: 8px;
-      background: var(--accent-color);
-      color: white;
-      padding: 8px 10px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .comments-count {
-      font-weight: 700;
-      color: var(--text-secondary);
-      font-size: 12px;
-      margin-left: 3px;
-    }
-
-    .guest-note {
-      color: var(--warning-color);
-      font-size: 13px;
-      padding: 6px 0;
-    }
-
-    @media (max-width: 980px) {
-      .single-post-shell {
-        padding: 10px;
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Post | Conquiguias World</title>
+    <meta name="google-adsense-account" content="ca-pub-6829228334766526" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <!-- Clappr Video Player -->
+    <script src="https://cdn.jsdelivr.net/npm/@clappr/player@latest/dist/clappr.plainhtml5.min.js"></script>
+    <style>
+      :root {
+        --bg-primary: #0f172a;
+        --bg-secondary: #1e293b;
+        --bg-card: #1e293b;
+        --text-primary: #e2e8f0;
+        --text-secondary: #94a3b8;
+        --accent-color: #3b82f6;
+        --danger-color: #ef4444;
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --border-color: #334155;
+        --shadow-color: rgba(0, 0, 0, 0.3);
       }
 
-      .post-body-layout {
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      html {
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        height: 100%;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .page-wrap {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+        overflow: hidden;
+      }
+
+      #postRoot {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .state-box {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 18px;
+        text-align: center;
+        color: var(--text-secondary);
+      }
+
+      .single-post-shell {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border-radius: 12px;
+        box-shadow: 0 6px 15px var(--shadow-color);
+        border: 1px solid var(--border-color);
+        background: linear-gradient(
+          180deg,
+          rgba(30, 41, 59, 0.95),
+          rgba(15, 23, 42, 0.98)
+        );
+      }
+
+      .post-card {
+        background: var(--bg-card);
+        border-radius: 12px;
+        box-shadow: 0 0 10px var(--shadow-color);
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+        margin-bottom: 0;
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .post-header {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .post-user-img {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 12px;
+        border: 2px solid var(--accent-color);
+      }
+
+      .post-contenedor {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .post-user-name {
+        font-weight: bold;
+        color: var(--text-primary);
+        flex: 1;
+      }
+
+      .status-admin {
+        background: #facc15;
+        color: #1f2937;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 9px;
+        border-radius: 999px;
+      }
+
+      .post-time {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
+      .post-video-views {
+        font-size: 11px;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 2px;
+      }
+      .post-video-views .views-icon {
+        color: #e53e3e;
+        font-size: 11px;
+      }
+
+      @keyframes live-pulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.55);
+        }
+        50% {
+          box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.15);
+        }
+      }
+
+      .post-user-img.live-border {
+        border-color: #ef4444 !important;
+        animation: live-pulse 1.6s ease-in-out infinite;
+      }
+
+      .badge-en-vivo {
+        background: #ef4444;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 9px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .post-card.live-post {
+        border-color: rgba(239, 68, 68, 0.45);
+        box-shadow:
+          0 0 0 1px rgba(239, 68, 68, 0.2),
+          0 4px 14px rgba(239, 68, 68, 0.1);
+      }
+
+      .post-options-toggle {
+        margin-left: auto;
+        border: 1px solid var(--border-color);
+        background: rgba(15, 23, 42, 0.6);
+        color: var(--text-secondary);
+        border-radius: 8px;
+        padding: 6px 8px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 1;
+        text-decoration: none;
+        transition:
+          color 0.2s,
+          border-color 0.2s;
+      }
+
+      .post-options-toggle:hover {
+        color: var(--accent-color);
+        border-color: var(--accent-color);
+      }
+
+      /* Clappr player */
+      .clappr-container {
+        width: 100%;
+        height: 100%;
+        display: block;
+        position: relative;
+        z-index: 1;
+        background: transparent !important;
+      }
+
+      .media-blur-video-shell .clappr-container [data-player],
+      .media-blur-video-shell .clappr-container .container[data-container],
+      .media-blur-video-shell .clappr-container [data-html5-video],
+      .media-blur-video-shell .clappr-container video {
+        background: transparent !important;
+        background-color: transparent !important;
+      }
+
+      .media-blur-video-shell .clappr-container [data-html5-video],
+      .media-blur-video-shell .clappr-container video {
+        object-fit: contain !important;
+      }
+
+      /* Mobile comments modal */
+      .comments-mobile-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.65);
+        z-index: 5000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 14px;
+      }
+
+      .comments-mobile-content {
+        width: min(100%, 520px);
+        max-height: 85vh;
+        overflow: auto;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        background: var(--bg-card);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+      }
+
+      .comments-mobile-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border-color);
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+
+      .comments-mobile-close {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-size: 18px;
+        padding: 2px 6px;
+      }
+
+      .comments-mobile-body {
+        padding: 12px 14px;
+      }
+
+      /* Share modal */
+      .share-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.65);
+        z-index: 6000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 14px;
+      }
+      .share-modal-box {
+        width: min(100%, 560px);
+        max-height: 90vh;
+        overflow: auto;
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        background: var(--bg-card);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+        display: flex;
+        flex-direction: column;
+      }
+      .share-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border-color);
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      .share-modal-close {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-size: 18px;
+        padding: 2px 6px;
+      }
+      .share-modal-body {
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .share-modal-label {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+      .share-modal-link-row {
+        display: flex;
+        gap: 8px;
+      }
+      .share-modal-link-row input {
+        flex: 1;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        font-size: 13px;
+      }
+      .share-modal-copy-btn {
+        padding: 10px 14px;
+        border: none;
+        border-radius: 8px;
+        background: var(--accent-color);
+        color: white;
+        cursor: pointer;
+        font-size: 13px;
+        white-space: nowrap;
+      }
+      .share-modal-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .share-modal-action-btn {
+        padding: 9px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .share-modal-embed {
+        width: 100%;
+        min-height: 72px;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+        font-size: 12px;
+        resize: none;
+        box-sizing: border-box;
+      }
+      .share-modal-networks {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .share-modal-network-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        color: var(--text-primary);
+        text-decoration: none;
+        background: var(--bg-secondary);
+        font-size: 13px;
+      }
+      .share-modal-status {
+        font-size: 12px;
+        color: var(--text-secondary);
+        min-height: 18px;
+      }
+      .share-modal-footer {
+        padding: 12px 16px;
+        border-top: 1px solid var(--border-color);
+        text-align: right;
+      }
+      .share-modal-accept-btn {
+        padding: 9px 22px;
+        border: none;
+        border-radius: 8px;
+        background: var(--accent-color);
+        color: white;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      .post-content {
+        width: 100%;
+        position: relative;
+      }
+
+      .media-blur-shell {
+        position: relative;
+        width: 100%;
+        height: 350px;
+        overflow: hidden;
+        background: #000;
+        border-radius: 0;
+      }
+
+      .media-blur-bg-img,
+      .media-blur-bg-video {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        filter: blur(22px);
+        transform: scale(1.12);
+        opacity: 0.72;
+        pointer-events: none;
+      }
+
+      .media-blur-bg-fallback {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(
+            circle at 20% 30%,
+            rgba(59, 130, 246, 0.35),
+            transparent 45%
+          ),
+          radial-gradient(
+            circle at 80% 75%,
+            rgba(168, 85, 247, 0.28),
+            transparent 40%
+          ),
+          linear-gradient(180deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+        filter: blur(16px);
+        transform: scale(1.08);
+        opacity: 0.9;
+        pointer-events: none;
+      }
+
+      .post-content .media-front-media {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background: transparent;
+        border-radius: 0;
+        overflow: hidden;
         display: block;
       }
 
-      .post-main-column,
-      .post-sidebar-column,
-      .post-card.comments-open .post-main-column,
-      .post-card.comments-open .post-sidebar-column {
+      .media-blur-video-shell video {
+        position: relative;
+        z-index: 1;
         width: 100%;
-        position: static;
+        height: 100%;
+        object-fit: contain;
+        background: transparent;
+      }
+
+      .post-description {
+        padding: 10px;
+        color: var(--text-primary);
+        font-size: 14px;
+        line-height: 1.45;
+        white-space: pre-wrap;
       }
 
       .post-body-layout {
-        overflow-y: auto;
+        display: flex;
+        padding: 0;
+        margin: 0;
+        align-items: stretch;
+        position: relative;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
       }
 
       .post-main-column {
-        overflow-y: unset;
-      }
-
-      .post-card.comments-open .post-sidebar-column {
-        display: none;
+        width: 100%;
+        min-width: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
       }
 
       .post-sidebar-column {
-        border-left: none;
-        border-top: 1px solid var(--border-color);
+        display: none;
+        border-left: 1px solid var(--border-color);
+        padding: 5px;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .post-card.comments-open .post-main-column {
+        width: 70%;
+      }
+
+      .post-card.comments-open .post-sidebar-column {
+        display: flex;
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 30%;
       }
 
       .post-actions {
-        flex-direction: column;
-        align-items: stretch;
+        padding: 10px 15px;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        border-top: 1px solid var(--border-color);
+        gap: 10px;
       }
 
       .post-actions-left,
       .post-actions-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: nowrap;
+      }
+
+      .post-actions-left {
+        flex: 1;
+        min-width: 0;
+        overflow-x: hidden;
+      }
+
+      .post-actions-right {
+        justify-content: flex-end;
+        min-width: max-content;
+        overflow: visible;
+      }
+
+      .reaction-btn {
+        background: none;
+        border: 2px solid transparent;
+        border-radius: 20px;
+        padding: 6px 12px;
+        margin: 2px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--text-secondary);
+      }
+
+      .reaction-btn:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+        transform: none;
+      }
+
+      .reaction-btn.active {
+        background-color: rgba(59, 130, 246, 0.2);
+        border-color: var(--accent-color);
+        transform: none;
+        box-shadow: 0 2px 5px rgba(59, 130, 246, 0.3);
+        color: var(--accent-color);
+      }
+
+      .reaction-count {
+        font-size: 13px;
+        color: var(--text-secondary);
+        font-weight: 500;
+        min-width: 20px;
+        text-align: center;
+      }
+
+      .reaction-btn.active .reaction-count {
+        color: var(--accent-color);
+        font-weight: bold;
+      }
+
+      .reaction-btn.disabled,
+      .reaction-btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      .reaction-btn.disabled:hover,
+      .reaction-btn:disabled:hover {
+        background-color: transparent;
+        border-color: transparent;
+        box-shadow: none;
+      }
+
+      .post-action-link,
+      .share-btn {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 14px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 8px;
+      }
+
+      .post-action-link:hover,
+      .share-btn:hover {
+        color: var(--accent-color);
+      }
+
+      .post-actions-separator {
+        color: var(--text-secondary);
+        opacity: 0.7;
+        user-select: none;
+      }
+
+      .post-comments-side {
+        display: flex;
+        justify-content: flex-start;
+        padding: 0;
+        flex: 1;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .post-comments-side.hidden {
+        display: none;
+      }
+
+      .post-comments-side-box {
+        width: 100%;
+        min-height: 44px;
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        background: var(--bg-secondary);
+        padding: 10px 12px;
+        color: var(--text-secondary);
+        font-size: 13px;
+        line-height: 1.4;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .comments-head {
+        display: flex;
         justify-content: space-between;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="page-wrap">
-    <div id="state" class="state-box">Cargando post...</div>
-    <div id="postRoot" style="display:none;"></div>
-  </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-    import {
-      getAuth,
-      onAuthStateChanged,
-      signInAnonymously,
-      setPersistence,
-      browserLocalPersistence,
-      browserSessionPersistence,
-      inMemoryPersistence
-    } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
-    import { getFirestore, doc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
-
-    const stateEl = document.getElementById('state');
-    const postRoot = document.getElementById('postRoot');
-    const query = new URLSearchParams(window.location.search);
-    const rawPostId = String(query.get('id') || '').trim();
-
-    let db;
-    let auth;
-    let currentUser = null;
-    let currentUserProfile = null;
-    let currentPost = null;
-    let isGuest = true;
-    let hasAuthenticatedSessionInThisView = false;
-    let ADMIN_EMAILS = [];
-    const LEGACY_LIVE_POST_ID = '__live_stream__';
-    const LIVE_POST_ID = 'live_stream';
-    const LIVE_STREAM_URL = 'https://edge1-us-losangeles.picarto.tv/stream/hls/golive%2bXSTUDIOCODE/1_0/index.m3u8';
-    const postId = rawPostId === LEGACY_LIVE_POST_ID ? LIVE_POST_ID : rawPostId;
-
-    function showState(msg) {
-      stateEl.style.display = 'block';
-      stateEl.textContent = msg;
-      postRoot.style.display = 'none';
-    }
-
-    async function configureAuthPersistence(authInstance) {
-      try {
-        await setPersistence(authInstance, browserLocalPersistence);
-        return;
-      } catch (localError) {
-        console.warn('[WARN] No se pudo activar persistencia local en posts:', localError);
+        align-items: center;
+        margin-bottom: 10px;
+        color: var(--text-primary);
+        font-weight: 700;
+        font-size: 13px;
       }
 
-      try {
-        await setPersistence(authInstance, browserSessionPersistence);
-        return;
-      } catch (sessionError) {
-        console.warn('[WARN] No se pudo activar persistencia de sesión en posts:', sessionError);
+      .comments-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        margin-bottom: 10px;
+        padding-right: 2px;
       }
 
-      try {
-        await setPersistence(authInstance, inMemoryPersistence);
-      } catch (memoryError) {
-        console.warn('[WARN] No se pudo activar persistencia en memoria en posts:', memoryError);
+      .comment-item {
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 8px;
+        padding: 8px;
+        background: rgba(15, 23, 42, 0.35);
       }
-    }
 
-    function hasPersistedAuthenticatedSessionHint() {
-      const stores = [window.localStorage, window.sessionStorage].filter(Boolean);
-      for (const store of stores) {
+      .comment-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 4px;
+        font-size: 11px;
+        color: var(--text-secondary);
+      }
+
+      .comment-author {
+        font-weight: 600;
+        color: var(--text-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 100px;
+      }
+
+      .comment-text {
+        color: var(--text-primary);
+        font-size: 13px;
+        line-height: 1.35;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .comment-actions {
+        margin-top: 6px;
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .comment-delete-btn {
+        background: none;
+        border: 1px solid rgba(239, 68, 68, 0.45);
+        color: #f87171;
+        border-radius: 6px;
+        font-size: 11px;
+        padding: 2px 8px;
+        cursor: pointer;
+      }
+
+      .comment-empty {
+        color: var(--text-secondary);
+        font-size: 12px;
+        padding: 8px 4px;
+        border: 1px dashed rgba(148, 163, 184, 0.3);
+        border-radius: 8px;
+        text-align: center;
+      }
+
+      .comment-form {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .comment-input {
+        flex: 1;
+        min-width: 0;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        padding: 8px 10px;
+        font-size: 12px;
+      }
+
+      .comment-submit-btn {
+        border: none;
+        border-radius: 8px;
+        background: var(--accent-color);
+        color: white;
+        padding: 8px 10px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .comments-count {
+        font-weight: 700;
+        color: var(--text-secondary);
+        font-size: 12px;
+        margin-left: 3px;
+      }
+
+      .guest-note {
+        color: var(--warning-color);
+        font-size: 13px;
+        padding: 6px 0;
+      }
+
+      @media (max-width: 980px) {
+        .single-post-shell {
+          padding: 10px;
+        }
+
+        .post-body-layout {
+          display: block;
+        }
+
+        .post-main-column,
+        .post-sidebar-column,
+        .post-card.comments-open .post-main-column,
+        .post-card.comments-open .post-sidebar-column {
+          width: 100%;
+          position: static;
+        }
+
+        .post-body-layout {
+          overflow-y: auto;
+        }
+
+        .post-main-column {
+          overflow-y: unset;
+        }
+
+        .post-card.comments-open .post-sidebar-column {
+          display: none;
+        }
+
+        .post-sidebar-column {
+          border-left: none;
+          border-top: 1px solid var(--border-color);
+        }
+
+        .post-actions {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .post-actions-left,
+        .post-actions-right {
+          justify-content: space-between;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-wrap">
+      <div id="state" class="state-box">Cargando post...</div>
+      <div id="postRoot" style="display: none"></div>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+      import {
+        getAuth,
+        onAuthStateChanged,
+        signInAnonymously,
+        setPersistence,
+        browserLocalPersistence,
+        browserSessionPersistence,
+        inMemoryPersistence,
+      } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth.js";
+      import {
+        getFirestore,
+        doc,
+        getDoc,
+        updateDoc,
+        increment,
+      } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+
+      const stateEl = document.getElementById("state");
+      const postRoot = document.getElementById("postRoot");
+      const query = new URLSearchParams(window.location.search);
+      const rawPostId = String(query.get("id") || "").trim();
+
+      let db;
+      let auth;
+      let currentUser = null;
+      let currentUserProfile = null;
+      let currentPost = null;
+      let isGuest = true;
+      let hasAuthenticatedSessionInThisView = false;
+      let ADMIN_EMAILS = [];
+      const LEGACY_LIVE_POST_ID = "__live_stream__";
+      const LIVE_POST_ID = "live_stream";
+      const LIVE_STREAM_URL =
+        "https://edge1-us-losangeles.picarto.tv/stream/hls/golive%2bXSTUDIOCODE/1_0/index.m3u8";
+      const postId =
+        rawPostId === LEGACY_LIVE_POST_ID ? LIVE_POST_ID : rawPostId;
+
+      function showState(msg) {
+        stateEl.style.display = "block";
+        stateEl.textContent = msg;
+        postRoot.style.display = "none";
+      }
+
+      async function configureAuthPersistence(authInstance) {
         try {
-          for (let i = 0; i < store.length; i++) {
-            const key = store.key(i);
-            if (!key || !key.startsWith('firebase:authUser:')) continue;
-            const raw = store.getItem(key);
-            if (!raw) continue;
+          await setPersistence(authInstance, browserLocalPersistence);
+          return;
+        } catch (localError) {
+          console.warn(
+            "[WARN] No se pudo activar persistencia local en posts:",
+            localError,
+          );
+        }
 
-            try {
-              const parsed = JSON.parse(raw);
-              const hasEmail = !!String(parsed?.email || '').trim();
-              const isAnonymous = !!parsed?.isAnonymous;
-              if (hasEmail && !isAnonymous) return true;
-            } catch (_) {
-              if (raw.includes('"isAnonymous":false') && raw.includes('"email"')) {
-                return true;
+        try {
+          await setPersistence(authInstance, browserSessionPersistence);
+          return;
+        } catch (sessionError) {
+          console.warn(
+            "[WARN] No se pudo activar persistencia de sesión en posts:",
+            sessionError,
+          );
+        }
+
+        try {
+          await setPersistence(authInstance, inMemoryPersistence);
+        } catch (memoryError) {
+          console.warn(
+            "[WARN] No se pudo activar persistencia en memoria en posts:",
+            memoryError,
+          );
+        }
+      }
+
+      function hasPersistedAuthenticatedSessionHint() {
+        const stores = [window.localStorage, window.sessionStorage].filter(
+          Boolean,
+        );
+        for (const store of stores) {
+          try {
+            for (let i = 0; i < store.length; i++) {
+              const key = store.key(i);
+              if (!key || !key.startsWith("firebase:authUser:")) continue;
+              const raw = store.getItem(key);
+              if (!raw) continue;
+
+              try {
+                const parsed = JSON.parse(raw);
+                const hasEmail = !!String(parsed?.email || "").trim();
+                const isAnonymous = !!parsed?.isAnonymous;
+                if (hasEmail && !isAnonymous) return true;
+              } catch (_) {
+                if (
+                  raw.includes('"isAnonymous":false') &&
+                  raw.includes('"email"')
+                ) {
+                  return true;
+                }
               }
             }
-          }
-        } catch (_) {}
-      }
-      return false;
-    }
-
-    async function loadAdminEmails() {
-      try {
-        const idToken = auth.currentUser ? await auth.currentUser.getIdToken(true) : '';
-        if (!idToken) return;
-        const res = await fetch('/api/social?action=get-admins', {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${idToken}` }
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.success) {
-          const normalize = e => String(e || '').trim().toLowerCase();
-          ADMIN_EMAILS = Array.from(new Set([
-            ...(data.admins || []).map(normalize).filter(Boolean),
-            normalize(data.ownerEmail || '')
-          ].filter(Boolean)));
+          } catch (_) {}
         }
-      } catch (e) {
-        console.warn('[post] No se pudo cargar lista de admins:', e);
+        return false;
       }
-    }
 
-    function isAdminEmail(email) {
-      return ADMIN_EMAILS.includes(String(email || '').trim().toLowerCase());
-    }
-
-    async function checkLiveStream() {
-      try {
-        const res = await fetch('/api/social?action=check-stream', { cache: 'no-store' });
-        if (!res.ok) return { live: false };
-        const data = await res.json();
-        return data || { live: false };
-      } catch (e) {
-        console.warn('[post] No se pudo verificar stream en vivo:', e);
-        return { live: false };
+      async function loadAdminEmails() {
+        try {
+          const idToken = auth.currentUser
+            ? await auth.currentUser.getIdToken(true)
+            : "";
+          if (!idToken) return;
+          const res = await fetch("/api/social?action=get-admins", {
+            method: "GET",
+            headers: { Authorization: `Bearer ${idToken}` },
+          });
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data.success) {
+            const normalize = (e) =>
+              String(e || "")
+                .trim()
+                .toLowerCase();
+            ADMIN_EMAILS = Array.from(
+              new Set(
+                [
+                  ...(data.admins || []).map(normalize).filter(Boolean),
+                  normalize(data.ownerEmail || ""),
+                ].filter(Boolean),
+              ),
+            );
+          }
+        } catch (e) {
+          console.warn("[post] No se pudo cargar lista de admins:", e);
+        }
       }
-    }
 
-    function buildLivePostFromApi(liveData) {
-      return {
-        id: LIVE_POST_ID,
-        isLive: true,
-        userEmail: String(liveData?.ownerProfile?.email || '').trim().toLowerCase(),
-        userName: liveData?.ownerProfile?.name || 'Admin',
-        userPhoto: liveData?.ownerProfile?.photo || 'https://dummyimage.com/40x40/ccc/fff',
-        mediaType: 'video/url',
-        mediaUrl: LIVE_STREAM_URL,
-        description: '🔴 Transmisión en vivo',
-        timestamp: new Date().toISOString(),
-        reactions: { like: [], laugh: [], seven: [] },
-        comments: [],
-        shareCount: 0,
-        viewCount: 0
-      };
-    }
-
-    function escapeHtml(value) {
-      const div = document.createElement('div');
-      div.textContent = value == null ? '' : String(value);
-      return div.innerHTML;
-    }
-
-    function getTimeAgo(dateValue) {
-      const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
-      if (Number.isNaN(date.getTime())) return 'Fecha desconocida';
-
-      const now = new Date();
-      const diffMs = now - date;
-      const diffMins = Math.floor(diffMs / 60000);
-      const diffHours = Math.floor(diffMs / 3600000);
-      const diffDays = Math.floor(diffMs / 86400000);
-      const diffWeeks = Math.floor(diffDays / 7);
-      const diffMonths = Math.floor(diffDays / 30);
-
-      if (diffMins < 1) return 'Ahora mismo';
-      if (diffMins < 60) return `Hace ${diffMins} minuto${diffMins > 1 ? 's' : ''}`;
-      if (diffHours < 24) return `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`;
-      if (diffDays < 7) return `Hace ${diffDays} día${diffDays > 1 ? 's' : ''}`;
-      if (diffWeeks < 4) return `Hace ${diffWeeks} semana${diffWeeks > 1 ? 's' : ''}`;
-      if (diffMonths < 12) return `Hace ${diffMonths} mes${diffMonths > 1 ? 'es' : ''}`;
-
-      return date.toLocaleDateString('es-ES', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      });
-    }
-
-    function getPostDateLabel(dateValue) {
-      const safeDate = dateValue instanceof Date ? dateValue : new Date(dateValue);
-      if (Number.isNaN(safeDate.getTime())) return 'Fecha inválida';
-
-      const relative = getTimeAgo(safeDate);
-      const absoluteDate = safeDate.toLocaleDateString('es-DO', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      });
-      const absoluteTime = safeDate.toLocaleTimeString('es-DO', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      });
-
-      return `${relative} | ${absoluteDate} | ${absoluteTime}`;
-    }
-
-    function isSevenReactionEnabled(now = new Date()) {
-      const day = now.getDay();
-      const total = (now.getHours() * 60) + now.getMinutes();
-      if (day === 5) return total >= (17 * 60);
-      if (day === 6) return total <= (18 * 60);
-      return false;
-    }
-
-    function formatReactionCount(count) {
-      const numericCount = Number(count) || 0;
-      if (numericCount >= 1000000) {
-        const valueInMillions = numericCount / 1000000;
-        const formatted = valueInMillions >= 10
-          ? Math.floor(valueInMillions).toString()
-          : valueInMillions.toFixed(1).replace(/\.0$/, '');
-        return `${formatted} M`;
+      function isAdminEmail(email) {
+        return ADMIN_EMAILS.includes(
+          String(email || "")
+            .trim()
+            .toLowerCase(),
+        );
       }
-      if (numericCount >= 1000) {
-        const valueInThousands = numericCount / 1000;
-        const formatted = valueInThousands >= 10
-          ? Math.floor(valueInThousands).toString()
-          : valueInThousands.toFixed(1).replace(/\.0$/, '');
-        return `${formatted} mil`;
-      }
-      return numericCount.toString();
-    }
 
-    async function incrementPostViewCount(postId) {
-      if (!postId) return;
-      const uid = currentUser?.uid || null;
-      let viewerKey = uid || null;
-      if (!viewerKey) {
-        let anonId = localStorage.getItem('_cx_anon_id');
-        if (!anonId) { anonId = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('_cx_anon_id', anonId); }
-        viewerKey = 'anon_' + anonId;
+      async function checkLiveStream() {
+        try {
+          const res = await fetch("/api/social?action=check-stream", {
+            cache: "no-store",
+          });
+          if (!res.ok) return { live: false };
+          const data = await res.json();
+          return data || { live: false };
+        } catch (e) {
+          console.warn("[post] No se pudo verificar stream en vivo:", e);
+          return { live: false };
+        }
       }
-      const storageKey = `vv_${postId}_${viewerKey}`;
-      const ONE_HOUR = 60 * 60 * 1000;
-      const lastViewStr = localStorage.getItem(storageKey);
-      if (lastViewStr) {
-        const lastViewTime = parseInt(lastViewStr, 10);
-        if (!isNaN(lastViewTime) && Date.now() - lastViewTime < ONE_HOUR) return;
+
+      function buildLivePostFromApi(liveData) {
+        return {
+          id: LIVE_POST_ID,
+          isLive: true,
+          userEmail: String(liveData?.ownerProfile?.email || "")
+            .trim()
+            .toLowerCase(),
+          userName: liveData?.ownerProfile?.name || "Admin",
+          userPhoto:
+            liveData?.ownerProfile?.photo ||
+            "https://dummyimage.com/40x40/ccc/fff",
+          mediaType: "video/url",
+          mediaUrl: LIVE_STREAM_URL,
+          description: "🔴 Transmisión en vivo",
+          timestamp: new Date().toISOString(),
+          reactions: { like: [], laugh: [], seven: [] },
+          comments: [],
+          shareCount: 0,
+          viewCount: 0,
+        };
       }
-      localStorage.setItem(storageKey, Date.now().toString());
-      try {
-        const postRef = doc(db, 'posts', postId);
-        await updateDoc(postRef, { viewCount: increment(1) });
-        document.querySelectorAll(`.view-count-display[data-postid="${postId}"]`).forEach(el => {
-          const raw = parseInt(el.dataset.viewcount || '0', 10);
-          const updated = raw + 1;
-          el.dataset.viewcount = String(updated);
-          el.textContent = formatReactionCount(updated);
+
+      function escapeHtml(value) {
+        const div = document.createElement("div");
+        div.textContent = value == null ? "" : String(value);
+        return div.innerHTML;
+      }
+
+      function getTimeAgo(dateValue) {
+        const date =
+          dateValue instanceof Date ? dateValue : new Date(dateValue);
+        if (Number.isNaN(date.getTime())) return "Fecha desconocida";
+
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        const diffWeeks = Math.floor(diffDays / 7);
+        const diffMonths = Math.floor(diffDays / 30);
+
+        if (diffMins < 1) return "Ahora mismo";
+        if (diffMins < 60)
+          return `Hace ${diffMins} minuto${diffMins > 1 ? "s" : ""}`;
+        if (diffHours < 24)
+          return `Hace ${diffHours} hora${diffHours > 1 ? "s" : ""}`;
+        if (diffDays < 7)
+          return `Hace ${diffDays} día${diffDays > 1 ? "s" : ""}`;
+        if (diffWeeks < 4)
+          return `Hace ${diffWeeks} semana${diffWeeks > 1 ? "s" : ""}`;
+        if (diffMonths < 12)
+          return `Hace ${diffMonths} mes${diffMonths > 1 ? "es" : ""}`;
+
+        return date.toLocaleDateString("es-ES", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
         });
-      } catch (e) {
-        console.warn('[ViewCount] Error:', e);
       }
-    }
 
-    function getSharedPostLink(id) {
-      const url = new URL('/post', window.location.origin);
-      url.searchParams.set('id', id);
-      return url.toString();
-    }
+      function getPostDateLabel(dateValue) {
+        const safeDate =
+          dateValue instanceof Date ? dateValue : new Date(dateValue);
+        if (Number.isNaN(safeDate.getTime())) return "Fecha inválida";
 
-    function getShareEmbedCode(postUrl) {
-      return `<iframe src="${postUrl}" width="100%" height="640" style="border:0; border-radius:12px;" loading="lazy"></iframe>`;
-    }
-
-    function buildShareTargets(postUrl) {
-      const encodedUrl = encodeURIComponent(postUrl);
-      const encodedText = encodeURIComponent('Mira esta publicaci\u00f3n en Conquiguias World');
-      return [
-        { key: 'whatsapp', label: 'WhatsApp', icon: 'fab fa-whatsapp', href: `https://wa.me/?text=${encodedText}%20${encodedUrl}`, color: '#25D366' },
-        { key: 'facebook', label: 'Facebook', icon: 'fab fa-facebook', href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, color: '#1877F2' },
-        { key: 'x', label: 'X', icon: 'fab fa-x-twitter', href: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedText}`, color: '#111827' },
-        { key: 'telegram', label: 'Telegram', icon: 'fab fa-telegram-plane', href: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`, color: '#229ED9' },
-        { key: 'email', label: 'Correo', icon: 'fas fa-envelope', href: `mailto:?subject=${encodeURIComponent('Te comparto esta publicaci\u00f3n')}&body=${encodedText}%0A${encodedUrl}`, color: '#ea4335' }
-      ];
-    }
-
-    async function incrementPostShareCount(postId) {
-      if (!postId) return;
-      try {
-        const postRef = doc(db, 'posts', postId);
-        await updateDoc(postRef, { shareCount: increment(1) });
-        document.querySelectorAll(`.share-btn[data-postid="${postId}"] .share-count`).forEach(el => {
-          const raw = parseInt(el.dataset.sharecount || '0', 10);
-          const updated = raw + 1;
-          el.dataset.sharecount = String(updated);
-          el.textContent = formatReactionCount(updated);
+        const relative = getTimeAgo(safeDate);
+        const absoluteDate = safeDate.toLocaleDateString("es-DO", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
         });
-      } catch (e) {
-        console.warn('[ShareCount] Error:', e);
+        const absoluteTime = safeDate.toLocaleTimeString("es-DO", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        });
+
+        return `${relative} | ${absoluteDate} | ${absoluteTime}`;
       }
-    }
 
-    function openShareModal(postId, shareCount) {
-      const enlace = getSharedPostLink(postId);
-      const embedCode = getShareEmbedCode(enlace);
-      const uid = String(postId || '').replace(/[^a-zA-Z0-9_-]/g, '');
-      const shareTargets = buildShareTargets(enlace);
+      function isSevenReactionEnabled(now = new Date()) {
+        const day = now.getDay();
+        const total = now.getHours() * 60 + now.getMinutes();
+        if (day === 5) return total >= 17 * 60;
+        if (day === 6) return total <= 18 * 60;
+        return false;
+      }
 
-      // Remove any previous instance
-      const prev = document.getElementById('shareModalOverlay');
-      if (prev) prev.remove();
+      function formatReactionCount(count) {
+        const numericCount = Number(count) || 0;
+        if (numericCount >= 1000000) {
+          const valueInMillions = numericCount / 1000000;
+          const formatted =
+            valueInMillions >= 10
+              ? Math.floor(valueInMillions).toString()
+              : valueInMillions.toFixed(1).replace(/\.0$/, "");
+          return `${formatted} M`;
+        }
+        if (numericCount >= 1000) {
+          const valueInThousands = numericCount / 1000;
+          const formatted =
+            valueInThousands >= 10
+              ? Math.floor(valueInThousands).toString()
+              : valueInThousands.toFixed(1).replace(/\.0$/, "");
+          return `${formatted} mil`;
+        }
+        return numericCount.toString();
+      }
 
-      const overlay = document.createElement('div');
-      overlay.id = 'shareModalOverlay';
-      overlay.className = 'share-modal-overlay';
-      overlay.innerHTML = `
+      async function incrementPostViewCount(postId) {
+        if (!postId) return;
+        const uid = currentUser?.uid || null;
+        let viewerKey = uid || null;
+        if (!viewerKey) {
+          let anonId = localStorage.getItem("_cx_anon_id");
+          if (!anonId) {
+            anonId =
+              Math.random().toString(36).slice(2) + Date.now().toString(36);
+            localStorage.setItem("_cx_anon_id", anonId);
+          }
+          viewerKey = "anon_" + anonId;
+        }
+        const storageKey = `vv_${postId}_${viewerKey}`;
+        const ONE_HOUR = 60 * 60 * 1000;
+        const lastViewStr = localStorage.getItem(storageKey);
+        if (lastViewStr) {
+          const lastViewTime = parseInt(lastViewStr, 10);
+          if (!isNaN(lastViewTime) && Date.now() - lastViewTime < ONE_HOUR)
+            return;
+        }
+        localStorage.setItem(storageKey, Date.now().toString());
+        try {
+          const postRef = doc(db, "posts", postId);
+          await updateDoc(postRef, { viewCount: increment(1) });
+          document
+            .querySelectorAll(`.view-count-display[data-postid="${postId}"]`)
+            .forEach((el) => {
+              const raw = parseInt(el.dataset.viewcount || "0", 10);
+              const updated = raw + 1;
+              el.dataset.viewcount = String(updated);
+              el.textContent = formatReactionCount(updated);
+            });
+        } catch (e) {
+          console.warn("[ViewCount] Error:", e);
+        }
+      }
+
+      function getSharedPostLink(id) {
+        const url = new URL("/post", window.location.origin);
+        url.searchParams.set("id", id);
+        return url.toString();
+      }
+
+      function getShareEmbedCode(postUrl) {
+        return `<iframe src="${postUrl}" width="100%" height="640" style="border:0; border-radius:12px;" loading="lazy"></iframe>`;
+      }
+
+      function buildShareTargets(postUrl) {
+        const encodedUrl = encodeURIComponent(postUrl);
+        const encodedText = encodeURIComponent(
+          "Mira esta publicaci\u00f3n en Conquiguias World",
+        );
+        return [
+          {
+            key: "whatsapp",
+            label: "WhatsApp",
+            icon: "fab fa-whatsapp",
+            href: `https://wa.me/?text=${encodedText}%20${encodedUrl}`,
+            color: "#25D366",
+          },
+          {
+            key: "facebook",
+            label: "Facebook",
+            icon: "fab fa-facebook",
+            href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+            color: "#1877F2",
+          },
+          {
+            key: "x",
+            label: "X",
+            icon: "fab fa-x-twitter",
+            href: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedText}`,
+            color: "#111827",
+          },
+          {
+            key: "telegram",
+            label: "Telegram",
+            icon: "fab fa-telegram-plane",
+            href: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`,
+            color: "#229ED9",
+          },
+          {
+            key: "email",
+            label: "Correo",
+            icon: "fas fa-envelope",
+            href: `mailto:?subject=${encodeURIComponent("Te comparto esta publicaci\u00f3n")}&body=${encodedText}%0A${encodedUrl}`,
+            color: "#ea4335",
+          },
+        ];
+      }
+
+      async function incrementPostShareCount(postId) {
+        if (!postId) return;
+        try {
+          const postRef = doc(db, "posts", postId);
+          await updateDoc(postRef, { shareCount: increment(1) });
+          document
+            .querySelectorAll(
+              `.share-btn[data-postid="${postId}"] .share-count`,
+            )
+            .forEach((el) => {
+              const raw = parseInt(el.dataset.sharecount || "0", 10);
+              const updated = raw + 1;
+              el.dataset.sharecount = String(updated);
+              el.textContent = formatReactionCount(updated);
+            });
+        } catch (e) {
+          console.warn("[ShareCount] Error:", e);
+        }
+      }
+
+      function openShareModal(postId, shareCount) {
+        const enlace = getSharedPostLink(postId);
+        const embedCode = getShareEmbedCode(enlace);
+        const uid = String(postId || "").replace(/[^a-zA-Z0-9_-]/g, "");
+        const shareTargets = buildShareTargets(enlace);
+
+        // Remove any previous instance
+        const prev = document.getElementById("shareModalOverlay");
+        if (prev) prev.remove();
+
+        const overlay = document.createElement("div");
+        overlay.id = "shareModalOverlay";
+        overlay.className = "share-modal-overlay";
+        overlay.innerHTML = `
         <div class="share-modal-box" role="dialog" aria-modal="true" aria-label="Compartir">
           <div class="share-modal-header">
             <span><i class="fas fa-share-alt" style="color:var(--accent-color);margin-right:6px;"></i> Compartir publicación</span>
@@ -1140,7 +1257,7 @@
             <textarea id="shareEmbedCode_${uid}" class="share-modal-embed" readonly>${embedCode}</textarea>
             <div class="share-modal-label">Compartir en redes</div>
             <div class="share-modal-networks">
-              ${shareTargets.map(t => `<a href="${t.href}" target="_blank" rel="noopener noreferrer" data-share-network="${t.key}" class="share-modal-network-btn"><i class="${t.icon}" style="color:${t.color};font-size:16px;"></i> ${t.label}</a>`).join('')}
+              ${shareTargets.map((t) => `<a href="${t.href}" target="_blank" rel="noopener noreferrer" data-share-network="${t.key}" class="share-modal-network-btn"><i class="${t.icon}" style="color:${t.color};font-size:16px;"></i> ${t.label}</a>`).join("")}
             </div>
             <div id="shareStatus_${uid}" class="share-modal-status"></div>
           </div>
@@ -1149,167 +1266,228 @@
           </div>
         </div>
       `;
-      document.body.appendChild(overlay);
-      overlay.style.display = 'flex';
+        document.body.appendChild(overlay);
+        overlay.style.display = "flex";
 
-      const close = () => { overlay.remove(); };
-      document.getElementById('shareModalCloseBtn').addEventListener('click', close);
-      document.getElementById('shareModalAcceptBtn').addEventListener('click', close);
-      overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
-
-      const statusEl = document.getElementById(`shareStatus_${uid}`);
-      const setStatus = (text, color = 'var(--text-secondary)') => {
-        if (!statusEl) return;
-        statusEl.innerHTML = `<span style="color:${color};">${text}</span>`;
-      };
-
-      document.getElementById(`shareLinkInput_${uid}`)?.addEventListener('focus', (e) => e.target.select());
-      document.getElementById(`shareEmbedCode_${uid}`)?.addEventListener('focus', (e) => e.target.select());
-
-      document.getElementById(`shareCopyBtn_${uid}`)?.addEventListener('click', async () => {
-        try { await copyText(enlace); await incrementPostShareCount(postId); setStatus('\u2705 Enlace copiado al portapapeles.', 'var(--success-color)'); }
-        catch (err) { setStatus('\u274c No se pudo copiar el enlace.', '#ef4444'); }
-      });
-
-      document.getElementById(`shareOpenBtn_${uid}`)?.addEventListener('click', async () => {
-        window.open(enlace, '_blank', 'noopener,noreferrer');
-        await incrementPostShareCount(postId);
-        setStatus('\ud83c\udf10 Publicación abierta en nueva pestaña.', 'var(--accent-color)');
-      });
-
-      document.getElementById(`shareEmbedBtn_${uid}`)?.addEventListener('click', async () => {
-        try { await copyText(embedCode); await incrementPostShareCount(postId); setStatus('\u2705 Código de incrustación copiado.', 'var(--success-color)'); }
-        catch (err) { setStatus('\u274c No se pudo copiar el código.', '#ef4444'); }
-      });
-
-      overlay.querySelectorAll('[data-share-network]').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          await incrementPostShareCount(postId);
-          setStatus('\ud83d\ude80 Compartido correctamente.', 'var(--success-color)');
+        const close = () => {
+          overlay.remove();
+        };
+        document
+          .getElementById("shareModalCloseBtn")
+          .addEventListener("click", close);
+        document
+          .getElementById("shareModalAcceptBtn")
+          .addEventListener("click", close);
+        overlay.addEventListener("click", (e) => {
+          if (e.target === overlay) close();
         });
-      });
-    }
 
-    async function copyText(text) {
-      if (navigator?.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
-        return;
+        const statusEl = document.getElementById(`shareStatus_${uid}`);
+        const setStatus = (text, color = "var(--text-secondary)") => {
+          if (!statusEl) return;
+          statusEl.innerHTML = `<span style="color:${color};">${text}</span>`;
+        };
+
+        document
+          .getElementById(`shareLinkInput_${uid}`)
+          ?.addEventListener("focus", (e) => e.target.select());
+        document
+          .getElementById(`shareEmbedCode_${uid}`)
+          ?.addEventListener("focus", (e) => e.target.select());
+
+        document
+          .getElementById(`shareCopyBtn_${uid}`)
+          ?.addEventListener("click", async () => {
+            try {
+              await copyText(enlace);
+              await incrementPostShareCount(postId);
+              setStatus(
+                "\u2705 Enlace copiado al portapapeles.",
+                "var(--success-color)",
+              );
+            } catch (err) {
+              setStatus("\u274c No se pudo copiar el enlace.", "#ef4444");
+            }
+          });
+
+        document
+          .getElementById(`shareOpenBtn_${uid}`)
+          ?.addEventListener("click", async () => {
+            window.open(enlace, "_blank", "noopener,noreferrer");
+            await incrementPostShareCount(postId);
+            setStatus(
+              "\ud83c\udf10 Publicación abierta en nueva pestaña.",
+              "var(--accent-color)",
+            );
+          });
+
+        document
+          .getElementById(`shareEmbedBtn_${uid}`)
+          ?.addEventListener("click", async () => {
+            try {
+              await copyText(embedCode);
+              await incrementPostShareCount(postId);
+              setStatus(
+                "\u2705 Código de incrustación copiado.",
+                "var(--success-color)",
+              );
+            } catch (err) {
+              setStatus("\u274c No se pudo copiar el código.", "#ef4444");
+            }
+          });
+
+        overlay.querySelectorAll("[data-share-network]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            await incrementPostShareCount(postId);
+            setStatus(
+              "\ud83d\ude80 Compartido correctamente.",
+              "var(--success-color)",
+            );
+          });
+        });
       }
-      const helper = document.createElement('textarea');
-      helper.value = text;
-      helper.setAttribute('readonly', 'readonly');
-      helper.style.position = 'fixed';
-      helper.style.opacity = '0';
-      document.body.appendChild(helper);
-      helper.select();
-      document.execCommand('copy');
-      document.body.removeChild(helper);
-    }
 
-    function normalizeReactions(reactions = {}) {
-      return {
-        like: Array.isArray(reactions.like) ? reactions.like : [],
-        laugh: Array.isArray(reactions.laugh) ? reactions.laugh : [],
-        seven: Array.isArray(reactions.seven) ? reactions.seven : []
-      };
-    }
-
-    function parseCommentDate(value) {
-      if (!value) return new Date();
-      if (value instanceof Date) return value;
-      if (typeof value === 'string' || typeof value === 'number') {
-        const date = new Date(value);
-        return Number.isNaN(date.getTime()) ? new Date() : date;
-      }
-      if (value?.seconds) return new Date(value.seconds * 1000);
-      return new Date();
-    }
-
-    function formatRichText(text) {
-      const escaped = escapeHtml(text);
-      const withMentions = escaped
-        .replace(/@([a-zA-Z0-9_]+)/g, '<span style="color: var(--accent-color); font-weight: bold;">@$1</span>')
-        .replace(/#([a-zA-Z0-9_]+)/g, '<span style="color: var(--success-color); font-weight: bold;">#$1</span>');
-
-      const linkRegex = /(^|[\s(])((?:https?:\/\/|www\.)[^\s<]+)/gi;
-      const withLinks = withMentions.replace(linkRegex, (match, prefix = '', rawUrl = '') => {
-        let cleanUrl = rawUrl;
-        let trailing = '';
-
-        while (/[.,!?;:)]$/.test(cleanUrl)) {
-          trailing = cleanUrl.slice(-1) + trailing;
-          cleanUrl = cleanUrl.slice(0, -1);
+      async function copyText(text) {
+        if (navigator?.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+          return;
         }
+        const helper = document.createElement("textarea");
+        helper.value = text;
+        helper.setAttribute("readonly", "readonly");
+        helper.style.position = "fixed";
+        helper.style.opacity = "0";
+        document.body.appendChild(helper);
+        helper.select();
+        document.execCommand("copy");
+        document.body.removeChild(helper);
+      }
 
-        if (!cleanUrl) return match;
+      function normalizeReactions(reactions = {}) {
+        return {
+          like: Array.isArray(reactions.like) ? reactions.like : [],
+          laugh: Array.isArray(reactions.laugh) ? reactions.laugh : [],
+          seven: Array.isArray(reactions.seven) ? reactions.seven : [],
+        };
+      }
 
-        const href = cleanUrl.startsWith('www.') ? `https://${cleanUrl}` : cleanUrl;
-        const displayUrl = cleanUrl.length > 45 ? `${cleanUrl.slice(0, 42)}...` : cleanUrl;
+      function parseCommentDate(value) {
+        if (!value) return new Date();
+        if (value instanceof Date) return value;
+        if (typeof value === "string" || typeof value === "number") {
+          const date = new Date(value);
+          return Number.isNaN(date.getTime()) ? new Date() : date;
+        }
+        if (value?.seconds) return new Date(value.seconds * 1000);
+        return new Date();
+      }
 
-        return `${prefix}<a href="${href}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-color); text-decoration: underline;" title="${href}">🔗 ${displayUrl}</a>${trailing}`;
-      });
+      function formatRichText(text) {
+        const escaped = escapeHtml(text);
+        const withMentions = escaped
+          .replace(
+            /@([a-zA-Z0-9_]+)/g,
+            '<span style="color: var(--accent-color); font-weight: bold;">@$1</span>',
+          )
+          .replace(
+            /#([a-zA-Z0-9_]+)/g,
+            '<span style="color: var(--success-color); font-weight: bold;">#$1</span>',
+          );
 
-      return withLinks.replace(/\n/g, '<br>');
-    }
+        const linkRegex = /(^|[\s(])((?:https?:\/\/|www\.)[^\s<]+)/gi;
+        const withLinks = withMentions.replace(
+          linkRegex,
+          (match, prefix = "", rawUrl = "") => {
+            let cleanUrl = rawUrl;
+            let trailing = "";
 
-    function formatPostDescription(text) {
-      if (!text || typeof text !== 'string') return '';
-      return formatRichText(text);
-    }
+            while (/[.,!?;:)]$/.test(cleanUrl)) {
+              trailing = cleanUrl.slice(-1) + trailing;
+              cleanUrl = cleanUrl.slice(0, -1);
+            }
 
-    function getCommentsPanelMarkup(postIdValue, comments = []) {
-      const normalized = Array.isArray(comments) ? comments : [];
+            if (!cleanUrl) return match;
 
-      const commentsHTML = normalized.length
-        ? normalized
-            .slice()
-            .sort((a, b) => parseCommentDate(a?.createdAt) - parseCommentDate(b?.createdAt))
-            .map((comment) => {
-              const author = escapeHtml(comment?.userName || 'Usuario');
-              const text = escapeHtml(comment?.text || '');
-              const timeText = getTimeAgo(parseCommentDate(comment?.createdAt));
-              const commentId = escapeHtml(comment?.id || '');
-              const canDelete = !!currentUser && comment?.userId === currentUser.uid;
+            const href = cleanUrl.startsWith("www.")
+              ? `https://${cleanUrl}`
+              : cleanUrl;
+            const displayUrl =
+              cleanUrl.length > 45 ? `${cleanUrl.slice(0, 42)}...` : cleanUrl;
 
-              return `
+            return `${prefix}<a href="${href}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-color); text-decoration: underline;" title="${href}">🔗 ${displayUrl}</a>${trailing}`;
+          },
+        );
+
+        return withLinks.replace(/\n/g, "<br>");
+      }
+
+      function formatPostDescription(text) {
+        if (!text || typeof text !== "string") return "";
+        return formatRichText(text);
+      }
+
+      function getCommentsPanelMarkup(postIdValue, comments = []) {
+        const normalized = Array.isArray(comments) ? comments : [];
+
+        const commentsHTML = normalized.length
+          ? normalized
+              .slice()
+              .sort(
+                (a, b) =>
+                  parseCommentDate(a?.createdAt) -
+                  parseCommentDate(b?.createdAt),
+              )
+              .map((comment) => {
+                const author = escapeHtml(comment?.userName || "Usuario");
+                const text = escapeHtml(comment?.text || "");
+                const timeText = getTimeAgo(
+                  parseCommentDate(comment?.createdAt),
+                );
+                const commentId = escapeHtml(comment?.id || "");
+                const canDelete =
+                  !!currentUser && comment?.userId === currentUser.uid;
+
+                return `
                 <div class="comment-item">
                   <div class="comment-meta">
                     <span class="comment-author">${author}</span>
                     <span>${timeText}</span>
                   </div>
                   <div class="comment-text">${text}</div>
-                  ${canDelete ? `<div class="comment-actions"><button type="button" class="comment-delete-btn" data-postid="${postIdValue}" data-commentid="${commentId}">Eliminar</button></div>` : ''}
+                  ${canDelete ? `<div class="comment-actions"><button type="button" class="comment-delete-btn" data-postid="${postIdValue}" data-commentid="${commentId}">Eliminar</button></div>` : ""}
                 </div>
               `;
-            })
-            .join('')
-        : '<div class="comment-empty">Aún no hay comentarios. Sé el primero en comentar.</div>';
+              })
+              .join("")
+          : '<div class="comment-empty">Aún no hay comentarios. Sé el primero en comentar.</div>';
 
-      return `
+        return `
         <div class="post-comments-side-box comments-panel" data-postid="${postIdValue}">
           <div class="comments-head">
             <span>Comentarios</span>
             <span>${formatReactionCount(normalized.length)}</span>
           </div>
           <div class="comments-list">${commentsHTML}</div>
-          ${isGuest
-            ? '<div class="guest-note">Inicia sesión para comentar en este post.</div>'
-            : `<form class="comment-form" data-postid="${postIdValue}">
+          ${
+            isGuest
+              ? '<div class="guest-note">Inicia sesión para comentar en este post.</div>'
+              : `<form class="comment-form" data-postid="${postIdValue}">
                 <input class="comment-input" type="text" maxlength="300" placeholder="Escribe un comentario..." required>
                 <button class="comment-submit-btn" type="submit">Enviar</button>
-              </form>`}
+              </form>`
+          }
         </div>
       `;
-    }
+      }
 
-    function ensureCommentsMobileModal() {
-      let modal = document.getElementById('commentsMobileModal');
-      if (modal) return modal;
+      function ensureCommentsMobileModal() {
+        let modal = document.getElementById("commentsMobileModal");
+        if (modal) return modal;
 
-      modal = document.createElement('div');
-      modal.id = 'commentsMobileModal';
-      modal.className = 'comments-mobile-modal';
-      modal.innerHTML = `
+        modal = document.createElement("div");
+        modal.id = "commentsMobileModal";
+        modal.className = "comments-mobile-modal";
+        modal.innerHTML = `
         <div class="comments-mobile-content" role="dialog" aria-modal="true" aria-label="Comentarios">
           <div class="comments-mobile-header">
             <span>Comentarios</span>
@@ -1319,95 +1497,107 @@
         </div>
       `;
 
-      document.body.appendChild(modal);
+        document.body.appendChild(modal);
 
-      modal.addEventListener('click', (event) => {
-        if (event.target === modal) modal.style.display = 'none';
-      });
+        modal.addEventListener("click", (event) => {
+          if (event.target === modal) modal.style.display = "none";
+        });
 
-      const closeBtn = modal.querySelector('#commentsMobileClose');
-      if (closeBtn) closeBtn.addEventListener('click', () => { modal.style.display = 'none'; });
+        const closeBtn = modal.querySelector("#commentsMobileClose");
+        if (closeBtn)
+          closeBtn.addEventListener("click", () => {
+            modal.style.display = "none";
+          });
 
-      // Delegate comment form and delete inside modal
-      modal.addEventListener('submit', async (event) => {
-        const form = event.target.closest('.comment-form');
-        if (!form) return;
-        event.preventDefault();
-        const input = form.querySelector('.comment-input');
-        const text = String(input?.value || '').trim();
-        if (!text) return;
-        await addComment(text);
-        if (input) input.value = '';
-        // Refresh modal body
-        const body = document.getElementById('commentsMobileBody');
-        if (body && currentPost) body.innerHTML = getCommentsPanelMarkup(currentPost.id, Array.isArray(currentPost.comments) ? currentPost.comments : []);
-      });
+        // Delegate comment form and delete inside modal
+        modal.addEventListener("submit", async (event) => {
+          const form = event.target.closest(".comment-form");
+          if (!form) return;
+          event.preventDefault();
+          const input = form.querySelector(".comment-input");
+          const text = String(input?.value || "").trim();
+          if (!text) return;
+          await addComment(text);
+          if (input) input.value = "";
+          // Refresh modal body
+          const body = document.getElementById("commentsMobileBody");
+          if (body && currentPost)
+            body.innerHTML = getCommentsPanelMarkup(
+              currentPost.id,
+              Array.isArray(currentPost.comments) ? currentPost.comments : [],
+            );
+        });
 
-      modal.addEventListener('click', async (event) => {
-        const deleteBtn = event.target.closest('.comment-delete-btn');
-        if (!deleteBtn) return;
-        const commentId = deleteBtn.getAttribute('data-commentid');
-        if (!commentId) return;
-        await deleteComment(commentId);
-        const body = document.getElementById('commentsMobileBody');
-        if (body && currentPost) body.innerHTML = getCommentsPanelMarkup(currentPost.id, Array.isArray(currentPost.comments) ? currentPost.comments : []);
-      });
+        modal.addEventListener("click", async (event) => {
+          const deleteBtn = event.target.closest(".comment-delete-btn");
+          if (!deleteBtn) return;
+          const commentId = deleteBtn.getAttribute("data-commentid");
+          if (!commentId) return;
+          await deleteComment(commentId);
+          const body = document.getElementById("commentsMobileBody");
+          if (body && currentPost)
+            body.innerHTML = getCommentsPanelMarkup(
+              currentPost.id,
+              Array.isArray(currentPost.comments) ? currentPost.comments : [],
+            );
+        });
 
-      return modal;
-    }
+        return modal;
+      }
 
-    function openCommentsModalMobile(postId, comments) {
-      const modal = ensureCommentsMobileModal();
-      const body = document.getElementById('commentsMobileBody');
-      if (!modal || !body) return;
-      modal.dataset.postid = postId;
-      body.innerHTML = getCommentsPanelMarkup(postId, comments);
-      modal.style.display = 'flex';
-    }
+      function openCommentsModalMobile(postId, comments) {
+        const modal = ensureCommentsMobileModal();
+        const body = document.getElementById("commentsMobileBody");
+        if (!modal || !body) return;
+        modal.dataset.postid = postId;
+        body.innerHTML = getCommentsPanelMarkup(postId, comments);
+        modal.style.display = "flex";
+      }
 
-    function renderPost(post) {
-      const reactions = normalizeReactions(post.reactions || {});
-      const userId = currentUser?.uid || '';
-      const sevenEnabled = isSevenReactionEnabled();
-      const sevenBlocked = !sevenEnabled || isGuest;
-      const userLike = reactions.like.includes(userId);
-      const userLaugh = reactions.laugh.includes(userId);
-      const userSeven = reactions.seven.includes(userId);
-      const comments = Array.isArray(post.comments) ? post.comments : [];
-      const postDateLabel = getPostDateLabel(post.timestamp);
+      function renderPost(post) {
+        const reactions = normalizeReactions(post.reactions || {});
+        const userId = currentUser?.uid || "";
+        const sevenEnabled = isSevenReactionEnabled();
+        const sevenBlocked = !sevenEnabled || isGuest;
+        const userLike = reactions.like.includes(userId);
+        const userLaugh = reactions.laugh.includes(userId);
+        const userSeven = reactions.seven.includes(userId);
+        const comments = Array.isArray(post.comments) ? post.comments : [];
+        const postDateLabel = getPostDateLabel(post.timestamp);
 
-      const mediaHtml = (post.mediaType || '').startsWith('image/')
-        ? `<div class="media-blur-shell">
-             <img class="media-blur-bg-img" src="${escapeHtml(post.mediaUrl || '')}" alt="" aria-hidden="true" loading="lazy">
-             <img class="media-front-media" src="${escapeHtml(post.mediaUrl || '')}" alt="Publicación" loading="lazy" onerror="this.closest('.media-blur-shell').style.display='none'">
+        const mediaHtml = (post.mediaType || "").startsWith("image/")
+          ? `<div class="media-blur-shell">
+             <img class="media-blur-bg-img" src="${escapeHtml(post.mediaUrl || "")}" alt="" aria-hidden="true" loading="lazy">
+             <img class="media-front-media" src="${escapeHtml(post.mediaUrl || "")}" alt="Publicación" loading="lazy" onerror="this.closest('.media-blur-shell').style.display='none'">
            </div>`
-        : ((post.mediaType === 'video/url' || String(post.mediaType || '').startsWith('video/'))
-          ? `<div class="media-blur-shell media-blur-video-shell">
+          : post.mediaType === "video/url" ||
+              String(post.mediaType || "").startsWith("video/")
+            ? `<div class="media-blur-shell media-blur-video-shell">
                <div class="media-blur-bg-fallback" aria-hidden="true"></div>
-               <div id="clappr-post-player" class="clappr-container" data-src="${escapeHtml(post.mediaUrl || '')}"></div>
+               <div id="clappr-post-player" class="clappr-container" data-src="${escapeHtml(post.mediaUrl || "")}"></div>
              </div>`
-          : `<div style="padding:20px;color:#94a3b8;">Contenido no compatible</div>`);
+            : `<div style="padding:20px;color:#94a3b8;">Contenido no compatible</div>`;
 
-      postRoot.innerHTML = `
+        postRoot.innerHTML = `
         <div class="single-post-shell">
-          <article class="post-card${post.isLive ? ' live-post' : ''}" data-postid="${post.id}">
+          <article class="post-card${post.isLive ? " live-post" : ""}" data-postid="${post.id}">
             <header class="post-header">
-              <img src="${escapeHtml(post.userPhoto || 'https://dummyimage.com/40x40/ccc/fff')}" class="post-user-img${post.isLive ? ' live-border' : ''}" alt="Foto de perfil" onerror="this.src='https://dummyimage.com/40x40/ccc/fff'">
+              <img src="${escapeHtml(post.userPhoto || "https://dummyimage.com/40x40/ccc/fff")}" class="post-user-img${post.isLive ? " live-border" : ""}" alt="Foto de perfil" onerror="this.src='https://dummyimage.com/40x40/ccc/fff'">
               <div style="min-width:0;">
                 <div class="post-contenedor">
-                  <div class="post-user-name">${escapeHtml(post.userName || 'Usuario')}</div>
-                  ${post.isLive ? '<span class="badge-en-vivo"><i class="fas fa-circle" style="font-size:7px;"></i> En Vivo</span>' : ''}
-                  ${isAdminEmail(post.userEmail) ? '<span class="status-admin">Admin</span>' : ''}
+                  <div class="post-user-name">${escapeHtml(post.userName || "Usuario")}</div>
+                  ${post.isLive ? '<span class="badge-en-vivo"><i class="fas fa-circle" style="font-size:7px;"></i> En Vivo</span>' : ""}
+                  ${isAdminEmail(post.userEmail) ? '<span class="status-admin">Admin</span>' : ""}
                 </div>
                 <div class="post-time">${postDateLabel}</div>
-                ${(post.mediaType === 'video/url' || String(post.mediaType || '').startsWith('video/')) ? `<div class="post-video-views"><i class="fas fa-play-circle views-icon"></i> <span class="view-count-display" data-postid="${post.id}" data-viewcount="${post.viewCount || 0}">${formatReactionCount(post.viewCount || 0)}</span> vistas</div>` : ''}
+                ${post.mediaType === "video/url" || String(post.mediaType || "").startsWith("video/") ? `<div class="post-video-views"><i class="fas fa-play-circle views-icon"></i> <span class="view-count-display" data-postid="${post.id}" data-viewcount="${post.viewCount || 0}">${formatReactionCount(post.viewCount || 0)}</span> vistas</div>` : ""}
               </div>
             </header>
 
             <div class="post-body-layout">
               <div class="post-main-column">
                 <div class="post-content">${mediaHtml}</div>
-                <div class="post-description">${formatPostDescription(post.description || '')}</div>
+                <div class="post-description">${formatPostDescription(post.description || "")}</div>
               </div>
 
               <div class="post-sidebar-column">
@@ -1419,21 +1609,21 @@
 
             <div class="post-actions">
               <div class="post-actions-left">
-                <button class="reaction-btn ${userLike ? 'active' : ''} ${isGuest ? 'disabled' : ''}" data-reaction="like" ${isGuest ? 'aria-disabled="true" title="Inicia sesión para reaccionar"' : ''}>
+                <button class="reaction-btn ${userLike ? "active" : ""} ${isGuest ? "disabled" : ""}" data-reaction="like" ${isGuest ? 'aria-disabled="true" title="Inicia sesión para reaccionar"' : ""}>
                   <i class="fas fa-heart"></i> <span class="reaction-count">${formatReactionCount(reactions.like.length)}</span>
                 </button>
 
-                <button class="reaction-btn ${userLaugh ? 'active' : ''} ${isGuest ? 'disabled' : ''}" data-reaction="laugh" ${isGuest ? 'aria-disabled="true" title="Inicia sesión para reaccionar"' : ''}>
+                <button class="reaction-btn ${userLaugh ? "active" : ""} ${isGuest ? "disabled" : ""}" data-reaction="laugh" ${isGuest ? 'aria-disabled="true" title="Inicia sesión para reaccionar"' : ""}>
                   <i class="fas fa-grin-squint-tears"></i> <span class="reaction-count">${formatReactionCount(reactions.laugh.length)}</span>
                 </button>
 
-                <button class="reaction-btn ${userSeven ? 'active' : ''} ${sevenBlocked ? 'disabled' : ''}" data-reaction="seven" ${sevenBlocked ? 'aria-disabled="true"' : ''} title="${isGuest ? 'Inicia sesión para reaccionar' : (sevenEnabled ? 'Reacción 7 disponible' : 'Se activa los días sábados.')}">
+                <button class="reaction-btn ${userSeven ? "active" : ""} ${sevenBlocked ? "disabled" : ""}" data-reaction="seven" ${sevenBlocked ? 'aria-disabled="true"' : ""} title="${isGuest ? "Inicia sesión para reaccionar" : sevenEnabled ? "Reacción 7 disponible" : "Se activa los días sábados."}">
                   <span style="font-weight: bold; font-size: 16px;">7</span> <span class="reaction-count">${formatReactionCount(reactions.seven.length)}</span>
                 </button>
               </div>
 
               <div class="post-actions-right">
-                <button class="post-action-link comments-btn ${isGuest ? 'disabled' : ''}" id="commentsBtn" type="button" data-postid="${post.id}" data-renderid="${post.id}" ${isGuest ? 'aria-disabled="true" title="Inicia sesión para comentar"' : ''}>
+                <button class="post-action-link comments-btn ${isGuest ? "disabled" : ""}" id="commentsBtn" type="button" data-postid="${post.id}" data-renderid="${post.id}" ${isGuest ? 'aria-disabled="true" title="Inicia sesión para comentar"' : ""}>
                   <i class="fas fa-comment"></i> <span class="comments-label">Comentarios</span>
                   <span class="comments-count">${formatReactionCount(comments.length)}</span>
                 </button>
@@ -1451,281 +1641,322 @@
         </div>
       `;
 
-      postRoot.style.display = 'flex';
-      stateEl.style.display = 'none';
+        postRoot.style.display = "flex";
+        stateEl.style.display = "none";
 
-      // Mount Clappr for video posts
-      if ((post.mediaType === 'video/url' || String(post.mediaType || '').startsWith('video/')) && post.mediaUrl) {
-        if (window._postClapprPlayer) { try { window._postClapprPlayer.destroy(); } catch (e) {} window._postClapprPlayer = null; }
-        setTimeout(() => {
-          const clapprEl = document.getElementById('clappr-post-player');
-          if (clapprEl && window.Clappr) {
-            window._postClapprPlayer = new Clappr.Player({
-              source: post.mediaUrl,
-              parentId: '#clappr-post-player',
-              width: '100%',
-              height: '100%'
-            });
-            window._postClapprPlayer.on(Clappr.Events.PLAYER_PLAY, () => {
-              incrementPostViewCount(post.id);
-            });
+        // Mount Clappr for video posts
+        if (
+          (post.mediaType === "video/url" ||
+            String(post.mediaType || "").startsWith("video/")) &&
+          post.mediaUrl
+        ) {
+          if (window._postClapprPlayer) {
+            try {
+              window._postClapprPlayer.destroy();
+            } catch (e) {}
+            window._postClapprPlayer = null;
           }
-        }, 300);
-      }
-
-      // Auto-open comments sidebar on desktop
-      if (window.matchMedia('(min-width: 981px)').matches) {
-        const commentsSideAuto = document.getElementById(`post-comments-side-${post.id}`);
-        const postCardAuto = postRoot.querySelector('.post-card');
-        if (commentsSideAuto && postCardAuto) {
-          commentsSideAuto.classList.remove('hidden');
-          postCardAuto.classList.add('comments-open');
-        }
-      }
-
-      document.getElementById('shareBtn')?.addEventListener('click', () => {
-        openShareModal(post.id, post.shareCount || 0);
-      });
-
-      document.getElementById('commentsBtn')?.addEventListener('click', () => {
-        if (window.matchMedia('(max-width: 980px)').matches) {
-          openCommentsModalMobile(post.id, Array.isArray(post.comments) ? post.comments : []);
-          return;
-        }
-        const commentsSide = document.getElementById(`post-comments-side-${post.id}`);
-        const postCard = postRoot.querySelector('.post-card');
-        if (!commentsSide || !postCard) return;
-
-        const willOpen = commentsSide.classList.contains('hidden');
-        commentsSide.classList.toggle('hidden');
-        if (willOpen) {
-          postCard.classList.add('comments-open');
-        } else {
-          postCard.classList.remove('comments-open');
-        }
-      });
-
-      postRoot.querySelectorAll('.reaction-btn').forEach((btn) => {
-        btn.addEventListener('click', async () => {
-          if (btn.classList.contains('disabled')) return;
-          const reaction = btn.getAttribute('data-reaction');
-          await toggleReaction(reaction);
-        });
-      });
-
-      postRoot.querySelector('.comment-form')?.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const input = event.target.querySelector('.comment-input');
-        const text = String(input?.value || '').trim();
-        if (!text) return;
-        await addComment(text);
-        input.value = '';
-      });
-
-      postRoot.querySelectorAll('.comment-delete-btn').forEach((btn) => {
-        btn.addEventListener('click', async () => {
-          const commentId = btn.getAttribute('data-commentid');
-          if (!commentId) return;
-          await deleteComment(commentId);
-        });
-      });
-    }
-
-    async function toggleReaction(newReaction) {
-      if (!currentUser || !currentPost) return;
-      if (newReaction === 'seven' && !isSevenReactionEnabled()) return;
-
-      const postRef = doc(db, 'posts', currentPost.id);
-      const snap = await getDoc(postRef);
-      if (!snap.exists()) return;
-
-      const data = snap.data();
-      const reactions = normalizeReactions(data.reactions || {});
-      const allTypes = ['like', 'laugh', 'seven'];
-      const uid = currentUser.uid;
-
-      const hadSame = reactions[newReaction].includes(uid);
-      if (hadSame) {
-        reactions[newReaction] = reactions[newReaction].filter((id) => id !== uid);
-      } else {
-        allTypes.forEach((type) => {
-          reactions[type] = reactions[type].filter((id) => id !== uid);
-        });
-        reactions[newReaction].push(uid);
-      }
-
-      await updateDoc(postRef, { reactions });
-      currentPost = { ...data, id: snap.id, reactions };
-      renderPost(currentPost);
-    }
-
-    async function addComment(text) {
-      if (!currentUser || !currentPost) return;
-
-      const postRef = doc(db, 'posts', currentPost.id);
-      const snap = await getDoc(postRef);
-      if (!snap.exists()) return;
-      const data = snap.data() || {};
-      const comments = Array.isArray(data.comments) ? data.comments : [];
-
-      comments.push({
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-        userId: currentUser.uid,
-        userName: `${currentUserProfile?.nombre || ''} ${currentUserProfile?.apellido || ''}`.trim() || currentUser.displayName || 'Usuario',
-        text,
-        createdAt: new Date().toISOString()
-      });
-
-      await updateDoc(postRef, { comments });
-      currentPost = { ...data, id: snap.id, comments };
-      renderPost(currentPost);
-
-      const commentsSide = document.getElementById(`post-comments-side-${currentPost.id}`);
-      const postCard = postRoot.querySelector('.post-card');
-      if (commentsSide && postCard) {
-        commentsSide.classList.remove('hidden');
-        postCard.classList.add('comments-open');
-      }
-    }
-
-    async function deleteComment(commentId) {
-      if (!currentUser || !currentPost || !commentId) return;
-
-      const postRef = doc(db, 'posts', currentPost.id);
-      const snap = await getDoc(postRef);
-      if (!snap.exists()) return;
-
-      const data = snap.data() || {};
-      const comments = Array.isArray(data.comments) ? data.comments : [];
-      const target = comments.find((comment) => comment?.id === commentId);
-      if (!target || target.userId !== currentUser.uid) return;
-
-      const updatedComments = comments.filter((comment) => comment?.id !== commentId);
-      await updateDoc(postRef, { comments: updatedComments });
-      currentPost = { ...data, id: snap.id, comments: updatedComments };
-      renderPost(currentPost);
-
-      const commentsSide = document.getElementById(`post-comments-side-${currentPost.id}`);
-      const postCard = postRoot.querySelector('.post-card');
-      if (commentsSide && postCard) {
-        commentsSide.classList.remove('hidden');
-        postCard.classList.add('comments-open');
-      }
-    }
-
-    async function loadPostById(id) {
-      if (id === LIVE_POST_ID) {
-        const liveData = await checkLiveStream();
-        if (!liveData?.live) {
-          showState('La transmisión en vivo no está disponible en este momento.');
-          return;
-        }
-      }
-
-      const ref = doc(db, 'posts', id);
-      const snap = await getDoc(ref);
-      if (!snap.exists()) {
-        showState('Post no encontrado.');
-        return;
-      }
-
-      const data = snap.data() || {};
-      const isOwner = !!currentUser && data.userId === currentUser.uid;
-      if (data.status !== 'approved' && !isOwner) {
-        showState('Este post no está disponible públicamente.');
-        return;
-      }
-
-      currentPost = { ...data, id: snap.id };
-      renderPost(currentPost);
-    }
-
-    async function initialize() {
-      if (!postId) {
-        showState('Falta el parámetro id del post.');
-        return;
-      }
-
-      const configRes = await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'get-config' })
-      });
-      if (!configRes.ok) {
-        showState('No se pudo cargar la configuración.');
-        return;
-      }
-
-      const firebaseConfig = await configRes.json();
-      const app = initializeApp(firebaseConfig);
-      db = getFirestore(app);
-      auth = getAuth(app);
-      await configureAuthPersistence(auth);
-
-      onAuthStateChanged(auth, async (user) => {
-        if (!user) {
-          try {
-            if (typeof auth.authStateReady === 'function') {
-              await auth.authStateReady();
+          setTimeout(() => {
+            const clapprEl = document.getElementById("clappr-post-player");
+            if (clapprEl && window.Clappr) {
+              window._postClapprPlayer = new Clappr.Player({
+                source: post.mediaUrl,
+                parentId: "#clappr-post-player",
+                width: "100%",
+                height: "100%",
+              });
+              window._postClapprPlayer.on(Clappr.Events.PLAYER_PLAY, () => {
+                incrementPostViewCount(post.id);
+              });
             }
-          } catch (stateReadyError) {
-            console.warn('[WARN] authStateReady falló en posts:', stateReadyError);
-          }
+          }, 300);
+        }
 
-          const recoveredUser = auth.currentUser;
-          if (recoveredUser && !recoveredUser.isAnonymous) {
+        // Auto-open comments sidebar on desktop
+        if (window.matchMedia("(min-width: 981px)").matches) {
+          const commentsSideAuto = document.getElementById(
+            `post-comments-side-${post.id}`,
+          );
+          const postCardAuto = postRoot.querySelector(".post-card");
+          if (commentsSideAuto && postCardAuto) {
+            commentsSideAuto.classList.remove("hidden");
+            postCardAuto.classList.add("comments-open");
+          }
+        }
+
+        document.getElementById("shareBtn")?.addEventListener("click", () => {
+          openShareModal(post.id, post.shareCount || 0);
+        });
+
+        document
+          .getElementById("commentsBtn")
+          ?.addEventListener("click", () => {
+            if (window.matchMedia("(max-width: 980px)").matches) {
+              openCommentsModalMobile(
+                post.id,
+                Array.isArray(post.comments) ? post.comments : [],
+              );
+              return;
+            }
+            const commentsSide = document.getElementById(
+              `post-comments-side-${post.id}`,
+            );
+            const postCard = postRoot.querySelector(".post-card");
+            if (!commentsSide || !postCard) return;
+
+            const willOpen = commentsSide.classList.contains("hidden");
+            commentsSide.classList.toggle("hidden");
+            if (willOpen) {
+              postCard.classList.add("comments-open");
+            } else {
+              postCard.classList.remove("comments-open");
+            }
+          });
+
+        postRoot.querySelectorAll(".reaction-btn").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            if (btn.classList.contains("disabled")) return;
+            const reaction = btn.getAttribute("data-reaction");
+            await toggleReaction(reaction);
+          });
+        });
+
+        postRoot
+          .querySelector(".comment-form")
+          ?.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const input = event.target.querySelector(".comment-input");
+            const text = String(input?.value || "").trim();
+            if (!text) return;
+            await addComment(text);
+            input.value = "";
+          });
+
+        postRoot.querySelectorAll(".comment-delete-btn").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const commentId = btn.getAttribute("data-commentid");
+            if (!commentId) return;
+            await deleteComment(commentId);
+          });
+        });
+      }
+
+      async function toggleReaction(newReaction) {
+        if (!currentUser || !currentPost) return;
+        if (newReaction === "seven" && !isSevenReactionEnabled()) return;
+
+        const postRef = doc(db, "posts", currentPost.id);
+        const snap = await getDoc(postRef);
+        if (!snap.exists()) return;
+
+        const data = snap.data();
+        const reactions = normalizeReactions(data.reactions || {});
+        const allTypes = ["like", "laugh", "seven"];
+        const uid = currentUser.uid;
+
+        const hadSame = reactions[newReaction].includes(uid);
+        if (hadSame) {
+          reactions[newReaction] = reactions[newReaction].filter(
+            (id) => id !== uid,
+          );
+        } else {
+          allTypes.forEach((type) => {
+            reactions[type] = reactions[type].filter((id) => id !== uid);
+          });
+          reactions[newReaction].push(uid);
+        }
+
+        await updateDoc(postRef, { reactions });
+        currentPost = { ...data, id: snap.id, reactions };
+        renderPost(currentPost);
+      }
+
+      async function addComment(text) {
+        if (!currentUser || !currentPost) return;
+
+        const postRef = doc(db, "posts", currentPost.id);
+        const snap = await getDoc(postRef);
+        if (!snap.exists()) return;
+        const data = snap.data() || {};
+        const comments = Array.isArray(data.comments) ? data.comments : [];
+
+        comments.push({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          userId: currentUser.uid,
+          userName:
+            `${currentUserProfile?.nombre || ""} ${currentUserProfile?.apellido || ""}`.trim() ||
+            currentUser.displayName ||
+            "Usuario",
+          text,
+          createdAt: new Date().toISOString(),
+        });
+
+        await updateDoc(postRef, { comments });
+        currentPost = { ...data, id: snap.id, comments };
+        renderPost(currentPost);
+
+        const commentsSide = document.getElementById(
+          `post-comments-side-${currentPost.id}`,
+        );
+        const postCard = postRoot.querySelector(".post-card");
+        if (commentsSide && postCard) {
+          commentsSide.classList.remove("hidden");
+          postCard.classList.add("comments-open");
+        }
+      }
+
+      async function deleteComment(commentId) {
+        if (!currentUser || !currentPost || !commentId) return;
+
+        const postRef = doc(db, "posts", currentPost.id);
+        const snap = await getDoc(postRef);
+        if (!snap.exists()) return;
+
+        const data = snap.data() || {};
+        const comments = Array.isArray(data.comments) ? data.comments : [];
+        const target = comments.find((comment) => comment?.id === commentId);
+        if (!target || target.userId !== currentUser.uid) return;
+
+        const updatedComments = comments.filter(
+          (comment) => comment?.id !== commentId,
+        );
+        await updateDoc(postRef, { comments: updatedComments });
+        currentPost = { ...data, id: snap.id, comments: updatedComments };
+        renderPost(currentPost);
+
+        const commentsSide = document.getElementById(
+          `post-comments-side-${currentPost.id}`,
+        );
+        const postCard = postRoot.querySelector(".post-card");
+        if (commentsSide && postCard) {
+          commentsSide.classList.remove("hidden");
+          postCard.classList.add("comments-open");
+        }
+      }
+
+      async function loadPostById(id) {
+        if (id === LIVE_POST_ID) {
+          const liveData = await checkLiveStream();
+          if (!liveData?.live) {
+            showState(
+              "La transmisión en vivo no está disponible en este momento.",
+            );
             return;
           }
+        }
 
-          const hasPersistentRealSession = hasPersistedAuthenticatedSessionHint();
-          if (hasAuthenticatedSessionInThisView || hasPersistentRealSession) {
-            showState('Restaurando sesión...');
-            return;
-          }
-
-          // Sign in anonymously so Firestore rules (require auth) allow reads
-          try {
-            await signInAnonymously(auth);
-            // onAuthStateChanged will fire again with the anonymous user
-          } catch (anonErr) {
-            console.error('signInAnonymously falló:', anonErr);
-            showState('⚠️ La autenticación anónima no está habilitada. Actívala en Firebase Console → Authentication → Sign-in method → Anonymous → Habilitar.');
-          }
+        const ref = doc(db, "posts", id);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) {
+          showState("Post no encontrado.");
           return;
         }
 
-        const isAnon = user.isAnonymous;
-        currentUser = isAnon ? null : user;
-        isGuest = isAnon;
-        if (!isAnon) {
-          hasAuthenticatedSessionInThisView = true;
+        const data = snap.data() || {};
+        const isOwner = !!currentUser && data.userId === currentUser.uid;
+        if (data.status !== "approved" && !isOwner) {
+          showState("Este post no está disponible públicamente.");
+          return;
         }
 
-        if (!isGuest) {
-          try {
-            const profileSnap = await getDoc(doc(db, 'usuarios', user.uid));
-            currentUserProfile = profileSnap.exists() ? (profileSnap.data() || {}) : null;
-          } catch {
+        currentPost = { ...data, id: snap.id };
+        renderPost(currentPost);
+      }
+
+      async function initialize() {
+        if (!postId) {
+          showState("Falta el parámetro id del post.");
+          return;
+        }
+
+        const configRes = await fetch("/api/auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "get-config" }),
+        });
+        if (!configRes.ok) {
+          showState("No se pudo cargar la configuración.");
+          return;
+        }
+
+        const firebaseConfig = await configRes.json();
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+        await configureAuthPersistence(auth);
+
+        onAuthStateChanged(auth, async (user) => {
+          if (!user) {
+            try {
+              if (typeof auth.authStateReady === "function") {
+                await auth.authStateReady();
+              }
+            } catch (stateReadyError) {
+              console.warn(
+                "[WARN] authStateReady falló en posts:",
+                stateReadyError,
+              );
+            }
+
+            const recoveredUser = auth.currentUser;
+            if (recoveredUser && !recoveredUser.isAnonymous) {
+              return;
+            }
+
+            const hasPersistentRealSession =
+              hasPersistedAuthenticatedSessionHint();
+            if (hasAuthenticatedSessionInThisView || hasPersistentRealSession) {
+              showState("Restaurando sesión...");
+              return;
+            }
+
+            // Sign in anonymously so Firestore rules (require auth) allow reads
+            try {
+              await signInAnonymously(auth);
+              // onAuthStateChanged will fire again with the anonymous user
+            } catch (anonErr) {
+              console.error("signInAnonymously falló:", anonErr);
+              showState(
+                "⚠️ La autenticación anónima no está habilitada. Actívala en Firebase Console → Authentication → Sign-in method → Anonymous → Habilitar.",
+              );
+            }
+            return;
+          }
+
+          const isAnon = user.isAnonymous;
+          currentUser = isAnon ? null : user;
+          isGuest = isAnon;
+          if (!isAnon) {
+            hasAuthenticatedSessionInThisView = true;
+          }
+
+          if (!isGuest) {
+            try {
+              const profileSnap = await getDoc(doc(db, "usuarios", user.uid));
+              currentUserProfile = profileSnap.exists()
+                ? profileSnap.data() || {}
+                : null;
+            } catch {
+              currentUserProfile = null;
+            }
+          } else {
             currentUserProfile = null;
           }
-        } else {
-          currentUserProfile = null;
-        }
 
-        try {
-          await loadAdminEmails();
-          await loadPostById(postId);
-        } catch (err) {
-          console.error(err);
-          showState('No se pudo cargar el post.');
-        }
+          try {
+            await loadAdminEmails();
+            await loadPostById(postId);
+          } catch (err) {
+            console.error(err);
+            showState("No se pudo cargar el post.");
+          }
+        });
+      }
+
+      initialize().catch((error) => {
+        console.error(error);
+        showState("Error al inicializar la página del post.");
       });
-    }
-
-    initialize().catch((error) => {
-      console.error(error);
-      showState('Error al inicializar la página del post.');
-    });
-  </script>
-</body>
+    </script>
+  </body>
 </html>

@@ -36,11 +36,11 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
     "Access-Control-Allow-Methods",
-    "GET,OPTIONS,PATCH,DELETE,POST,PUT"
+    "GET,OPTIONS,PATCH,DELETE,POST,PUT",
   );
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Authorization, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
+    "Authorization, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version",
   );
 
   if (req.method === "OPTIONS") {
@@ -78,10 +78,10 @@ export default async function handler(req, res) {
       case "get-assignable-users":
         await handleGetAssignableUsers(req, res);
         break;
-        case "check-stream":
-          await handleCheckStream(req, res);
-          break;
-        default:
+      case "check-stream":
+        await handleCheckStream(req, res);
+        break;
+      default:
         res.status(400).json({ error: "Acción no válida" });
     }
   } catch (error) {
@@ -113,7 +113,7 @@ async function handleDelete(req, res) {
         headers: {
           Authorization: `Client-ID ${IMGUR_CLIENT_ID}`,
         },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -178,12 +178,13 @@ function normalizeEmail(value) {
 
 function getAdminEmails() {
   return Array.from(
-    new Set(ADMIN_EMAILS.map((email) => normalizeEmail(email)).filter(Boolean))
+    new Set(ADMIN_EMAILS.map((email) => normalizeEmail(email)).filter(Boolean)),
   );
 }
 
 function getBearerToken(req) {
-  const authHeader = req.headers?.authorization || req.headers?.Authorization || "";
+  const authHeader =
+    req.headers?.authorization || req.headers?.Authorization || "";
   if (typeof authHeader !== "string") return "";
   const match = authHeader.match(/^Bearer\s+(.+)$/i);
   return match ? match[1].trim() : "";
@@ -317,7 +318,10 @@ async function handleGetInstructorAssignments(req, res) {
   try {
     await requireAdminOrOwner(req);
 
-    const configRef = admin.firestore().collection("configuracion").doc("rolesPermisos");
+    const configRef = admin
+      .firestore()
+      .collection("configuracion")
+      .doc("rolesPermisos");
     const configSnap = await configRef.get();
     const data = configSnap.exists ? configSnap.data() || {} : {};
 
@@ -342,7 +346,10 @@ async function handleGetMyInstructorAssignment(req, res) {
 
   try {
     const requester = await requireAuthenticated(req);
-    const configRef = admin.firestore().collection("configuracion").doc("rolesPermisos");
+    const configRef = admin
+      .firestore()
+      .collection("configuracion")
+      .doc("rolesPermisos");
     const configSnap = await configRef.get();
     const data = configSnap.exists ? configSnap.data() || {} : {};
     const assignments = data.instructores || {};
@@ -393,7 +400,10 @@ async function handleSaveInstructorAssignments(req, res) {
     const requesterEmail = await requireOwner(req, body);
     const instructoresSanitizados = sanitizeAssignments(body.instructores);
 
-    const configRef = admin.firestore().collection("configuracion").doc("rolesPermisos");
+    const configRef = admin
+      .firestore()
+      .collection("configuracion")
+      .doc("rolesPermisos");
     await configRef.set({
       ownerEmail: OWNER_EMAIL,
       instructores: instructoresSanitizados,
@@ -428,12 +438,15 @@ async function handleGetAssignableUsers(req, res) {
     const usuariosSnap = await admin.firestore().collection("usuarios").get();
     usuariosSnap.forEach((docSnap) => {
       const data = docSnap.data() || {};
-      const email = normalizeEmail(data.email || data.correo || data.mail || "");
+      const email = normalizeEmail(
+        data.email || data.correo || data.mail || "",
+      );
       if (!email) return;
 
       const nombre = String(data.nombre || "").trim();
       const apellido = String(data.apellido || "").trim();
-      const name = `${nombre} ${apellido}`.trim() || String(data.userName || email).trim();
+      const name =
+        `${nombre} ${apellido}`.trim() || String(data.userName || email).trim();
 
       map.set(docSnap.id, {
         uid: docSnap.id,
@@ -452,7 +465,9 @@ async function handleGetAssignableUsers(req, res) {
 
       postsSnap.forEach((docSnap) => {
         const post = docSnap.data() || {};
-        const key = String(post.userId || normalizeEmail(post.userEmail || "")).trim();
+        const key = String(
+          post.userId || normalizeEmail(post.userEmail || ""),
+        ).trim();
         const email = normalizeEmail(post.userEmail || "");
         if (!key || !email) return;
 
@@ -465,7 +480,10 @@ async function handleGetAssignableUsers(req, res) {
         }
       });
     } catch (error) {
-      console.warn("[WARN] No se pudieron completar usuarios desde publicaciones:", error);
+      console.warn(
+        "[WARN] No se pudieron completar usuarios desde publicaciones:",
+        error,
+      );
     }
 
     const users = Array.from(map.values())
@@ -504,7 +522,8 @@ async function handleCheckStream(req, res) {
       method: "GET",
       signal: controller.signal,
       headers: {
-        Accept: "application/vnd.apple.mpegurl, application/x-mpegURL, text/plain;q=0.9, */*;q=0.8",
+        Accept:
+          "application/vnd.apple.mpegurl, application/x-mpegURL, text/plain;q=0.9, */*;q=0.8",
         "Cache-Control": "no-cache",
       },
     });
@@ -517,10 +536,17 @@ async function handleCheckStream(req, res) {
       // Master playlist: has #EXT-X-STREAM-INF (variant stream info) — Picarto uses this
       const hasVariantInfo = /#EXT-X-STREAM-INF/i.test(playlist);
       // Either playlist: non-comment lines referencing .ts/.m4s/.m3u8 files
-      const hasMediaOrVariantUrls = /^[^#\n\r][^\n\r]*\.(ts|m4s|m3u8)(\?[^\n\r]*)?\s*$/im.test(playlist);
+      const hasMediaOrVariantUrls =
+        /^[^#\n\r][^\n\r]*\.(ts|m4s|m3u8)(\?[^\n\r]*)?\s*$/im.test(playlist);
       // Sanity: not an error page, not trivially empty
-      const looksOffline = /\boffline\b|\bnot.?found\b|\bforbidden\b|\berror\b/i.test(playlist.slice(0, 500));
-      live = (hasSegments || hasVariantInfo || hasMediaOrVariantUrls) && !looksOffline && playlist.trim().length > 30;
+      const looksOffline =
+        /\boffline\b|\bnot.?found\b|\bforbidden\b|\berror\b/i.test(
+          playlist.slice(0, 500),
+        );
+      live =
+        (hasSegments || hasVariantInfo || hasMediaOrVariantUrls) &&
+        !looksOffline &&
+        playlist.trim().length > 30;
     }
   } catch (_) {
     live = false;
@@ -551,20 +577,27 @@ async function handleCheckStream(req, res) {
           userId: ownerProfile.uid || existing.userId || "",
           userEmail: OWNER_EMAIL,
           userName: ownerProfile.name || existing.userName || "Admin",
-          userPhoto: ownerProfile.photo || existing.userPhoto || "https://dummyimage.com/40x40/ccc/fff",
+          userPhoto:
+            ownerProfile.photo ||
+            existing.userPhoto ||
+            "https://dummyimage.com/40x40/ccc/fff",
           mediaType: "video/url",
           mediaUrl: LIVE_STREAM_URL,
           description: existing.description || "🔴 Transmisión en vivo",
           timestamp: new Date().toISOString(),
           reactions: existing.reactions || { like: [], laugh: [], seven: [] },
           comments: existing.comments || [],
-          shareCount: Number.isFinite(existing.shareCount) ? existing.shareCount : 0,
-          viewCount: Number.isFinite(existing.viewCount) ? existing.viewCount : 0,
+          shareCount: Number.isFinite(existing.shareCount)
+            ? existing.shareCount
+            : 0,
+          viewCount: Number.isFinite(existing.viewCount)
+            ? existing.viewCount
+            : 0,
           status: "approved",
           isLive: true,
           isSpecialLive: true,
         },
-        { merge: true }
+        { merge: true },
       );
     }
   } catch (_) {

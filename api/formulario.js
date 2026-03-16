@@ -37,24 +37,29 @@ if (!admin.apps.length) {
 }
 
 function normalizeEmail(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function getAdminEmails() {
   return Array.from(
-    new Set(ADMIN_EMAILS.map((email) => normalizeEmail(email)).filter(Boolean))
+    new Set(ADMIN_EMAILS.map((email) => normalizeEmail(email)).filter(Boolean)),
   );
 }
 
 function getBearerToken(req) {
-  const authHeader = req.headers?.authorization || req.headers?.Authorization || "";
+  const authHeader =
+    req.headers?.authorization || req.headers?.Authorization || "";
   if (typeof authHeader !== "string") return "";
   const match = authHeader.match(/^Bearer\s+(.+)$/i);
   return match ? match[1].trim() : "";
 }
 
 async function verifyAuthenticatedUserFromBody(body = {}) {
-  const token = getBearerToken({ headers: body?.__headers || {} }) || String(body?.idToken || "").trim();
+  const token =
+    getBearerToken({ headers: body?.__headers || {} }) ||
+    String(body?.idToken || "").trim();
   if (!token) {
     const error = new Error("Token de autenticación requerido");
     error.statusCode = 401;
@@ -215,7 +220,8 @@ async function handleObtenerFormulario(req, res) {
   const fechaCierreValor = form?.tarea?.fechaFin || form?.fechaCierre || null;
   const fechaCierre = fechaCierreValor ? new Date(fechaCierreValor) : null;
   const fechaValida = fechaCierre && !Number.isNaN(fechaCierre.getTime());
-  const estado = fechaValida && new Date() > fechaCierre ? "cerrado" : "abierto";
+  const estado =
+    fechaValida && new Date() > fechaCierre ? "cerrado" : "abierto";
 
   // Devolvemos el JSON exacto que espera el frontend
   res.status(200).json({
@@ -301,7 +307,8 @@ async function handleListarFormulariosPendientes(req, res) {
         asistentesUnicos.add(uniqueKey);
       });
 
-      asistieronPrimeraPorEspecialidad[item?.especialidad_id] = asistentesUnicos.size;
+      asistieronPrimeraPorEspecialidad[item?.especialidad_id] =
+        asistentesUnicos.size;
     });
   }
 
@@ -319,27 +326,28 @@ async function handleListarFormulariosPendientes(req, res) {
       let count = 0;
       let calificadas = 0;
       let total = 0;
-      
+
       Object.values(tareas).forEach((t) => {
         if (t) {
-            total++;
-            if (t.estado === "calificado") {
-                calificadas++;
-            } else {
-                // Asumimos que si no está calificado, está pendiente (entregado)
-                count++;
-            }
+          total++;
+          if (t.estado === "calificado") {
+            calificadas++;
+          } else {
+            // Asumimos que si no está calificado, está pendiente (entregado)
+            count++;
+          }
         }
       });
-      
+
       if (count > 0) {
         pendientes.push({
           id: item.especialidad_id,
           titulo: titulos[item.especialidad_id] || item.especialidad_id,
-          asistieron: asistieronPrimeraPorEspecialidad[item.especialidad_id] || 0,
+          asistieron:
+            asistieronPrimeraPorEspecialidad[item.especialidad_id] || 0,
           pendientes: count,
           calificadas: calificadas,
-          total: total
+          total: total,
         });
       }
     });
@@ -435,7 +443,9 @@ async function handleGuardar(req, res) {
   if (asistenciaNum === 1 && !(nombre || "").trim()) {
     return res
       .status(400)
-      .json({ error: "❌ El nombre es obligatorio para la primera asistencia." });
+      .json({
+        error: "❌ El nombre es obligatorio para la primera asistencia.",
+      });
   }
 
   // 1. Verificar estado activo desde Supabase
@@ -588,8 +598,9 @@ async function handleGuardarResultadoExamen(req, res) {
 async function handleActualizarEstadoAsistencia(req, res) {
   const { id, asistencia, activo, adminEmail } = req.body;
   const adminEmails = getAdminEmails();
-  const isAdmin = !!adminEmail && adminEmails.includes(normalizeEmail(adminEmail));
-  
+  const isAdmin =
+    !!adminEmail && adminEmails.includes(normalizeEmail(adminEmail));
+
   if (!isAdmin) {
     return res.status(403).json({ error: "No autorizado" });
   }
@@ -615,23 +626,29 @@ async function handleActualizarEstadoAsistencia(req, res) {
 async function handleCalificarTareas(req, res) {
   try {
     const { id, tareas, targetVisitanteId } = req.body || {};
-    const requesterEmail = normalizeEmail(req.body?.requesterEmail || req.body?.adminEmail || "");
+    const requesterEmail = normalizeEmail(
+      req.body?.requesterEmail || req.body?.adminEmail || "",
+    );
     const isOwner = requesterEmail === normalizeEmail(OWNER_EMAIL);
 
     if (!id || !tareas || typeof tareas !== "object") {
-      return res.status(400).json({ error: "Payload inválido para calificar tareas" });
+      return res
+        .status(400)
+        .json({ error: "Payload inválido para calificar tareas" });
     }
 
     const targetId = String(targetVisitanteId || "").trim();
-    const targetData = targetId && tareas[targetId] && typeof tareas[targetId] === "object"
-      ? tareas[targetId]
-      : null;
+    const targetData =
+      targetId && tareas[targetId] && typeof tareas[targetId] === "object"
+        ? tareas[targetId]
+        : null;
     const targetEmail = normalizeEmail(
-      targetData?.email || (targetId.includes("@") ? targetId : "")
+      targetData?.email || (targetId.includes("@") ? targetId : ""),
     );
     const adminEmails = getAdminEmails();
     const isTargetAdmin = !!targetEmail && adminEmails.includes(targetEmail);
-    const isTargetSelfByEmail = !!targetEmail && !!requesterEmail && targetEmail === requesterEmail;
+    const isTargetSelfByEmail =
+      !!targetEmail && !!requesterEmail && targetEmail === requesterEmail;
     const isTargetSelfByUid = false;
     const isTargetSelf = isTargetSelfByEmail || isTargetSelfByUid;
 
@@ -772,7 +789,9 @@ async function handleListarArchivosPDF(req, res, repo) {
     `https://api.github.com/repos/${repo}/git/trees/main?recursive=1`,
     { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
   ).then((x) => x.json());
-  const { data: formData } = await supabase.from("formularios").select("id, titulo");
+  const { data: formData } = await supabase
+    .from("formularios")
+    .select("id, titulo");
   const titulos = {};
   (formData || []).forEach((f) => {
     titulos[f.id] = f.titulo || f.id;
@@ -886,8 +905,8 @@ async function handleEliminarTodasTareasPDF(req, res, repo) {
 
 async function handleEliminarTareasPDF(req, res, repo) {
   const { ruta } = req.body;
-  if (!ruta || typeof ruta !== 'string') {
-    res.status(400).json({ error: 'Ruta de archivo requerida' });
+  if (!ruta || typeof ruta !== "string") {
+    res.status(400).json({ error: "Ruta de archivo requerida" });
     return;
   }
   try {
@@ -899,26 +918,26 @@ async function handleEliminarTareasPDF(req, res, repo) {
     // Obtener SHA del archivo
     const r = await fetch(
       `https://api.github.com/repos/${repo}/contents/${ruta}`,
-      { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } }
+      { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
     );
-    if (!r.ok) throw new Error('No se pudo obtener SHA del archivo');
+    if (!r.ok) throw new Error("No se pudo obtener SHA del archivo");
     const fileData = await r.json();
     const sha = fileData.sha;
     // Eliminar archivo
     const delResp = await fetch(
       `https://api.github.com/repos/${repo}/contents/${ruta}`,
       {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
           Authorization: `token ${process.env.GITHUB_TOKEN}`,
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          message: 'Eliminar PDF individual',
+          message: "Eliminar PDF individual",
           sha,
-          branch: 'main',
+          branch: "main",
         }),
-      }
+      },
     );
     if (delResp.ok) {
       if (especialidadId && ident) {
@@ -933,13 +952,18 @@ async function handleEliminarTareasPDF(req, res, repo) {
           delete tareas[ident];
           await supabase
             .from("evaluaciones")
-            .upsert({ especialidad_id: especialidadId, contenido_tareas: tareas });
+            .upsert({
+              especialidad_id: especialidadId,
+              contenido_tareas: tareas,
+            });
         }
       }
       res.status(200).json({ ok: true });
     } else {
       const err = await delResp.json();
-      res.status(500).json({ error: err.message || 'Error al eliminar en GitHub' });
+      res
+        .status(500)
+        .json({ error: err.message || "Error al eliminar en GitHub" });
     }
   } catch (e) {
     res.status(500).json({ error: e.message });

@@ -9486,6 +9486,18 @@ const diffMins = Math.floor(diffMs / 60000);
         return normalizeTagValue(value).replace(/[^a-z0-9]/g, '');
       }
 
+      function getCategoryCanonicalTags(category) {
+        return new Set(
+          (FEED_CATEGORY_TAGS[category] || [])
+            .map(canonicalizeTag)
+            .filter(Boolean)
+        );
+      }
+
+      function getNormalizedPostKind(post) {
+        return canonicalizeTag(post?.postKind || post?.kind || post?.type || '');
+      }
+
       function getPostTagSet(post) {
         const descriptionTags = extractPostHashtags(post?.description || '');
         const extraTags = [post?.tags, post?.hashtags, post?.etiquetas]
@@ -9502,19 +9514,22 @@ const diffMins = Math.floor(diffMs / 60000);
 
       function postMatchesActiveCategory(post) {
         if (activeFeedCategory === 'recientes') return true;
-        const allowedTags = FEED_CATEGORY_TAGS[activeFeedCategory] || [];
-        if (allowedTags.length === 0) return true;
-        const normalizedDescription = normalizeTagValue(post?.description || '');
-        const compactDescription = normalizedDescription.replace(/[^a-z0-9#]/g, '');
+
+        const allowedCanonicalTags = getCategoryCanonicalTags(activeFeedCategory);
+        if (allowedCanonicalTags.size === 0) return true;
+
         const postTags = getPostTagSet(post);
-        return allowedTags.some((tag) => {
-          const normalizedTag = normalizeTagValue(tag);
-          const canonicalTag = canonicalizeTag(tag);
-          if (!normalizedTag && !canonicalTag) return false;
-          if (canonicalTag && postTags.has(canonicalTag)) return true;
-          if (normalizedTag && (normalizedDescription.includes(`#${normalizedTag}`) || normalizedDescription.includes(normalizedTag))) return true;
-          return !!(canonicalTag && compactDescription.includes(canonicalTag));
-        });
+        const normalizedPostKind = getNormalizedPostKind(post);
+
+        if (normalizedPostKind && allowedCanonicalTags.has(normalizedPostKind)) {
+          return true;
+        }
+
+        for (const tag of postTags) {
+          if (allowedCanonicalTags.has(tag)) return true;
+        }
+
+        return false;
       }
 
       function getFeedSnapOffset() {

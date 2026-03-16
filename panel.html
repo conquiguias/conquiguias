@@ -9274,42 +9274,39 @@ const diffMins = Math.floor(diffMs / 60000);
         }
       }
 
-      // 🔹 VALIDACIÓN 1: Verificar que hay archivo seleccionado (solo en Crear publicación)
-      if (!file) {
-      console.log('[WARNING] No hay archivo seleccionado para Crear publicación');
-      mostrarMensaje('info', 'Selecciona una imagen o video', 'En Crear publicación debes seleccionar un archivo desde tu dispositivo.');
+      // 🔹 VALIDACIÓN 1: Permitir texto solo, media solo o ambos
+      if (!file && !description) {
+      console.log('[WARNING] No hay archivo ni descripción');
+      mostrarMensaje('info', 'Contenido requerido', 'Escribe texto o selecciona una imagen/video para publicar.');
       return;
       }
 
-      // 🔹 VALIDACIÓN 2: Verificar que hay descripción
-      if (!description) {
-      console.log('[WARNING] No hay descripción');
-      mostrarMensaje('info', 'Agrega una descripción', 'Escribe una descripción para tu publicación.');
-      return;
-      }
+      const descriptionToPublish = description || (file
+        ? ((file.type.startsWith('video/') || file.type === 'image/gif') ? '#video' : '#imagen')
+        : '');
 
-      // 🔹 VALIDACIÓN 3: LONGITUD MÁXIMA DEL TEXTO (ESTA ES LA CLAVE)
+      // 🔹 VALIDACIÓN 2: LONGITUD MÁXIMA DEL TEXTO
       const MAX_DESCRIPTION_LENGTH = 1000;
-      if (description.length > MAX_DESCRIPTION_LENGTH) {
-      console.log(`[WARNING] Texto demasiado largo: ${description.length} caracteres`);
+      if (descriptionToPublish.length > MAX_DESCRIPTION_LENGTH) {
+      console.log(`[WARNING] Texto demasiado largo: ${descriptionToPublish.length} caracteres`);
       mostrarMensaje('error', 'Texto muy largo',
       `La descripción no puede tener más de ${MAX_DESCRIPTION_LENGTH} caracteres.\n\n` +
-      `Tu texto actual tiene: ${description.length} caracteres\n` +
-      `Te excedes por: ${description.length - MAX_DESCRIPTION_LENGTH} caracteres\n\n` +
+      `Tu texto actual tiene: ${descriptionToPublish.length} caracteres\n` +
+      `Te excedes por: ${descriptionToPublish.length - MAX_DESCRIPTION_LENGTH} caracteres\n\n` +
       `Por favor, acorta tu texto antes de publicar.`);
       return; // 🔥 ESTE return ES CRÍTICO - DETIENE LA PUBLICACIÓN
       }
 
-      // Resto de validaciones (tipos de archivo, tamaños, etc.)
+      // Validaciones de archivo (solo si hay media)
+      const IMAGE_MAX = 20 * 1024 * 1024;
+      const VIDEO_MAX = 200 * 1024 * 1024;
+
+      if (file) {
       const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'video/mp4', 'video/quicktime'];
       if (!validTypes.includes(file.type)) {
       mostrarMensaje('error', 'Tipo de archivo no válido', 'Solo se permiten imágenes (JPEG, PNG, GIF) y videos (MP4).');
       return;
       }
-
-      // Validaciones de tamaño de archivo
-      const IMAGE_MAX = 20 * 1024 * 1024;
-      const VIDEO_MAX = 200 * 1024 * 1024;
 
       if (file.type.startsWith("image/") && file.size > IMAGE_MAX) {
       mostrarMensaje('error', 'Imagen muy grande', 'Las imágenes no deben superar los 20MB.');
@@ -9320,15 +9317,18 @@ const diffMins = Math.floor(diffMs / 60000);
       mostrarMensaje('error', 'Video demasiado grande', 'Los videos y GIF no deben superar los 200MB.');
       return;
       }
+      }
 
       // 🔹 SI PASÓ TODAS LAS VALIDACIONES, PROCEDER CON LA PUBLICACIÓN
       try {
       uploadBtn.disabled = true;
-      uploadBtn.textContent = 'Subiendo...';
+      uploadBtn.textContent = file ? 'Subiendo...' : 'Publicando...';
 
-      // 1. Subir a Imgur...
+      let mediaData = { id: null, deletehash: null, url: null };
+      if (file) {
       console.log('📤 Subiendo a Imgur...');
-      const mediaData = await uploadToImgur(file);
+      mediaData = await uploadToImgur(file);
+      }
 
       // 2. Preparar datos de la publicación...
       const postData = {
@@ -9338,9 +9338,9 @@ const diffMins = Math.floor(diffMs / 60000);
       userApellido: userData.apellido || '',
       userPhoto: userData.fotoURL || 'https://dummyimage.com/40x40/ccc/fff&text=User',
       userEmail: userData.email || '',
-      mediaUrl: mediaData.url,
-      mediaType: file.type,
-      description: description,
+      mediaUrl: mediaData.url || '',
+      mediaType: file ? file.type : 'text/plain',
+      description: descriptionToPublish,
       timestamp: new Date().toISOString(),
       imgurData: mediaData,
       reactions: { like: [], laugh: [], seven: [] },
@@ -10321,7 +10321,7 @@ const diffMins = Math.floor(diffMs / 60000);
                       ${videoBlurBackgroundUrl ? `<img class="media-blur-bg-img" src="${escapeHtml(videoBlurBackgroundUrl)}" alt="" aria-hidden="true" loading="lazy" onerror="this.style.display='none'">` : ''}
                       <div id="clappr-player-${renderPostId}" class="clappr-container" data-src="${post.mediaUrl}"></div>
                     </div>`
-                  : `<div style="padding: 20px; text-align: center; color: #666;">Tipo de archivo no compatible</div>`
+                  : ``
                   }
                 </div>
 

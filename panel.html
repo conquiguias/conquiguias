@@ -10787,15 +10787,88 @@
         const viewCount = getPostViewCount(post);
         const esVideo = !!(post.mediaType && (post.mediaType === 'video/url' || post.mediaType === 'audio/url' || post.mediaType.startsWith('video/') || post.mediaType.startsWith('audio/')));
 
-        function renderPlaybackError(containerId, details = '') {
+        function normalizePlaybackError(errorLike) {
+          if (!errorLike) {
+            return {
+              message: 'Error de reproducción desconocido.',
+              details: ''
+            };
+          }
+
+          if (typeof errorLike === 'string') {
+            return {
+              message: errorLike,
+              details: ''
+            };
+          }
+
+          if (errorLike instanceof Error) {
+            return {
+              message: errorLike.message || errorLike.name || 'Error de reproducción.',
+              details: errorLike.stack || ''
+            };
+          }
+
+          const messageCandidates = [
+            errorLike.message,
+            errorLike.error,
+            errorLike.details,
+            errorLike.description,
+            errorLike.code,
+            errorLike.type,
+            errorLike.statusText,
+          ].filter(value => value != null && String(value).trim());
+
+          let details = '';
+          try {
+            details = JSON.stringify(errorLike, null, 2);
+          } catch (_) {
+            details = String(errorLike);
+          }
+
+          return {
+            message: messageCandidates.length ? String(messageCandidates[0]) : 'Error de reproducción.',
+            details
+          };
+        }
+
+        function getNativeMediaErrorMessage(mediaError) {
+          if (!mediaError) return 'Error nativo del reproductor.';
+
+          const code = Number(mediaError.code) || 0;
+          const codeMap = {
+            1: 'MEDIA_ERR_ABORTED: la reproducción fue abortada por el navegador o el usuario.',
+            2: 'MEDIA_ERR_NETWORK: ocurrió un error de red mientras se descargaba el medio.',
+            3: 'MEDIA_ERR_DECODE: el navegador no pudo decodificar el medio.',
+            4: 'MEDIA_ERR_SRC_NOT_SUPPORTED: no se encontró una fuente compatible o el formato no es soportado.',
+          };
+
+          return codeMap[code] || `Error nativo del medio. Código: ${code}`;
+        }
+
+        function bindNativeMediaError(mediaElement, containerId, providerLabel) {
+          if (!(mediaElement instanceof HTMLMediaElement)) return;
+          if (mediaElement.dataset.cxNativeErrorBound === '1') return;
+          mediaElement.dataset.cxNativeErrorBound = '1';
+
+          mediaElement.addEventListener('error', () => {
+            const nativeMessage = getNativeMediaErrorMessage(mediaElement.error);
+            renderPlaybackError(containerId, nativeMessage, providerLabel);
+          });
+        }
+
+        function renderPlaybackError(containerId, errorLike = '', providerLabel = 'Reproductor') {
           const container = document.getElementById(containerId);
           if (!container) return;
-          const detailText = details ? `<div style="font-size:12px; opacity:0.85; margin-top:6px;">${escapeHtml(details)}</div>` : '';
+          const normalized = normalizePlaybackError(errorLike);
+          const detailText = normalized.details
+            ? `<pre style="font-size:12px; opacity:0.9; margin-top:10px; text-align:left; width:100%; max-width:720px; white-space:pre-wrap; word-break:break-word; background:rgba(0,0,0,0.2); border-radius:8px; padding:10px; overflow:auto;">${escapeHtml(normalized.details)}</pre>`
+            : '';
           container.innerHTML = `
                 <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:220px; padding:16px; text-align:center; color:var(--text-primary); background:rgba(15,23,42,0.7); border:1px solid var(--border-color); border-radius:10px;">
                   <div style="font-size:18px; margin-bottom:8px;"><i class="fas fa-exclamation-triangle" style="color:var(--warning-color);"></i></div>
-                  <div style="font-weight:600;">No se puede reproducir el contenido en este momento.</div>
-                  <div style="font-size:13px; opacity:0.9; margin-top:4px;">Inténtalo nuevamente más tarde o verifica la URL del stream.</div>
+                  <div style="font-weight:600;">${escapeHtml(providerLabel)} reportó un error</div>
+                  <div style="font-size:13px; opacity:0.95; margin-top:4px; word-break:break-word;">${escapeHtml(normalized.message)}</div>
                   ${detailText}
                 </div>
               `;
@@ -10803,7 +10876,7 @@
 
         function initClapprPlayerWithFallback(containerId, context = {}) {
           if (typeof Clappr === 'undefined') {
-            renderPlaybackError(containerId, 'Reproductor no está disponible.');
+            renderPlaybackError(containerId, 'Reproductor no está disponible.', 'Clappr');
             return;
           }
           if (!window._clapprPlayers) window._clapprPlayers = {};
@@ -10830,7 +10903,7 @@
               if (current && typeof current.destroy === 'function') current.destroy();
             } catch (_) { }
             window._clapprPlayers[containerId] = null;
-            renderPlaybackError(containerId, reason || 'Error de reproducción con Clappr.');
+            renderPlaybackError(containerId, reason || 'Error de reproducción con Clappr.', 'Clappr');
           };
 
           try {
@@ -10853,6 +10926,9 @@
             if (Clappr.Events.PLAYER_READY) {
               player.on(Clappr.Events.PLAYER_READY, () => {
                 container.dataset.cxClapprReady = '1';
+                container.querySelectorAll('video').forEach((videoEl) => {
+                  bindNativeMediaError(videoEl, containerId, 'Clappr');
+                });
               });
             }
 
@@ -10879,13 +10955,13 @@
           if (!container) return;
 
           if (!shouldPreferLunaRadio(post)) {
-            renderPlaybackError(containerId, 'Extensión de audio no compatible.');
+            renderPlaybackError(containerId, 'Extensión de audio no compatible.', 'Luna Radio');
             return;
           }
 
           const jq = window.jQuery;
           if (!jq || !jq.fn || typeof jq.fn.lunaradio !== 'function') {
-            renderPlaybackError(containerId, 'Emisión no está disponible.');
+            renderPlaybackError(containerId, 'Emisión no está disponible.', 'Luna Radio');
             return;
           }
 
@@ -10954,6 +11030,7 @@
               container.querySelectorAll('audio').forEach((audioEl) => {
                 if (audioEl.dataset.cxPlayBound === '1') return;
                 audioEl.dataset.cxPlayBound = '1';
+                bindNativeMediaError(audioEl, containerId, 'Luna Radio');
                 audioEl.addEventListener('play', () => {
                   pauseOtherPostMedia(containerId);
                   incrementPostViewCount(firestorePostId);
@@ -10983,7 +11060,7 @@
             setTimeout(bindLunaAudioPlay, 1000);
           } catch (err) {
             console.warn('⚠️ LunaRadio falló:', err);
-            renderPlaybackError(containerId, err?.message || 'Error inicializando Audio.');
+            renderPlaybackError(containerId, err || 'Error inicializando Audio.', 'Luna Radio');
           }
         }
 

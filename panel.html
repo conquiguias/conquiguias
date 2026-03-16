@@ -2988,10 +2988,19 @@
 
     .lunaradio-host {
       width: 100%;
+      height: 100%;
       min-height: 220px;
       border-radius: 8px;
       overflow: hidden;
       background: #0f172a;
+      position: relative;
+      z-index: 2;
+    }
+
+    .media-blur-video-shell .lunaradio-host,
+    .media-blur-video-shell .lunaradio-host .lunaaudioplayer {
+      height: 100% !important;
+      width: 100% !important;
     }
 
     /* Acción de publicar integrada en el header */
@@ -9884,19 +9893,20 @@ const diffMins = Math.floor(diffMs / 60000);
               }
 
               try {
-                const radioElementId = `lunaradio-${renderPostId}`;
                 const posterUrl = videoBlurBackgroundUrl || post.userPhoto || 'https://dummyimage.com/640x360/0f172a/ffffff&text=Conquiguias+Radio';
                 const perfilCanal = post.userPhoto || posterUrl;
                 const nombreCanal = (post.description || post.userName || 'Conquiguias Radio').slice(0, 80);
 
-                container.innerHTML = `<div id="${radioElementId}" style="width:100%; height:100%; min-height:220px;"></div>`;
                 container.classList.add('lunaradio-host');
                 container.style.backgroundImage = `url(${posterUrl})`;
                 container.style.backgroundSize = 'cover';
                 container.style.backgroundPosition = 'center';
                 container.style.display = 'flex';
+                container.style.width = '100%';
+                container.style.height = '100%';
+                container.style.minHeight = '220px';
 
-                const lunaInstance = jq(`#${radioElementId}`).lunaradio({
+                const lunaInstance = jq(`#${containerId}`).lunaradio({
                   userinterface: 'big',
                   backgroundcolor: 'rgba(9,15,25,0.2)',
                   fontcolor: '#FFFFFF',
@@ -9941,7 +9951,7 @@ const diffMins = Math.floor(diffMs / 60000);
                 });
 
                 window._lunaPlayers = window._lunaPlayers || {};
-                window._lunaPlayers[radioElementId] = lunaInstance;
+                window._lunaPlayers[containerId] = lunaInstance;
               } catch (err) {
                 console.warn('⚠️ LunaRadio falló:', err);
                 renderPlaybackError(containerId, err?.message || 'Error inicializando LunaRadio.');

@@ -9723,23 +9723,13 @@
         console.log('[DEBUG] Descripción:', description);
         console.log('[DEBUG] Longitud del texto:', description.length);
 
-        const isValidHttpUrl = (candidateUrl) => {
-          if (!candidateUrl) return false;
-          try {
-            const parsed = new URL(candidateUrl);
-            return /^https?:$/i.test(parsed.protocol);
-          } catch (_) {
-            return false;
-          }
-        };
-
         if (activeUploadTab === 'radio') {
           const publishMode = radioModeSelect?.value === 'musica' ? 'musica' : 'radio';
           const streamUrl = (radioStreamUrlInput?.value || '').trim();
           const radioName = (radioNameInput?.value || '').trim();
 
-          if (!streamUrl || !isValidHttpUrl(streamUrl)) {
-            mostrarMensaje('error', 'URL inválida', 'Ingresa una URL válida de transmisión para radio o música.');
+          if (!streamUrl) {
+            mostrarMensaje('error', 'URL requerida', 'Ingresa la URL de transmisión para radio o música.');
             return;
           }
 
@@ -9824,8 +9814,8 @@
         if (activeUploadTab === 'tv') {
           const tvMode = tvModeSelect?.value === 'video' ? 'video' : 'tv';
           const tvUrl = (videoUrlInputEl?.value || '').trim();
-          if (!tvUrl || !isValidHttpUrl(tvUrl)) {
-            mostrarMensaje('error', 'URL inválida', tvMode === 'video' ? 'Ingresa una URL válida para Video.' : 'Ingresa una URL válida para TV.');
+          if (!tvUrl) {
+            mostrarMensaje('error', 'URL requerida', tvMode === 'video' ? 'Ingresa la URL para Video.' : 'Ingresa la URL para TV.');
             return;
           }
 
@@ -10788,47 +10778,59 @@
         const esVideo = !!(post.mediaType && (post.mediaType === 'video/url' || post.mediaType === 'audio/url' || post.mediaType.startsWith('video/') || post.mediaType.startsWith('audio/')));
 
         function normalizePlaybackError(errorLike) {
+          const normalizeMessageText = (value, fallback = 'No se pudo reproducir este contenido.') => {
+            let text = String(value || '').trim();
+            if (!text || /^\[object\s+Object\]$/i.test(text)) {
+              return fallback;
+            }
+
+            text = text
+              .replace(/\bclappr\b/ig, '')
+              .replace(/\bluna\s*radio\b/ig, '')
+              .replace(/\s{2,}/g, ' ')
+              .trim();
+
+            return text || fallback;
+          };
+
           if (!errorLike) {
             return {
-              message: 'Error de reproducción desconocido.',
+              message: 'No se pudo reproducir este contenido.',
               details: ''
             };
           }
 
           if (typeof errorLike === 'string') {
             return {
-              message: errorLike,
+              message: normalizeMessageText(errorLike),
               details: ''
             };
           }
 
           if (errorLike instanceof Error) {
             return {
-              message: errorLike.message || errorLike.name || 'Error de reproducción.',
+              message: normalizeMessageText(errorLike.message || errorLike.name),
               details: errorLike.stack || ''
             };
           }
 
+          const messageFromDetails = typeof errorLike.details === 'object'
+            ? (errorLike.details?.message || errorLike.details?.error || errorLike.details?.description || '')
+            : errorLike.details;
+
           const messageCandidates = [
             errorLike.message,
             errorLike.error,
-            errorLike.details,
+            messageFromDetails,
             errorLike.description,
             errorLike.code,
             errorLike.type,
             errorLike.statusText,
           ].filter(value => value != null && String(value).trim());
 
-          let details = '';
-          try {
-            details = JSON.stringify(errorLike, null, 2);
-          } catch (_) {
-            details = String(errorLike);
-          }
-
           return {
-            message: messageCandidates.length ? String(messageCandidates[0]) : 'Error de reproducción.',
-            details
+            message: normalizeMessageText(messageCandidates.length ? messageCandidates[0] : ''),
+            details: ''
           };
         }
 
@@ -10861,15 +10863,11 @@
           const container = document.getElementById(containerId);
           if (!container) return;
           const normalized = normalizePlaybackError(errorLike);
-          const detailText = normalized.details
-            ? `<pre style="font-size:12px; opacity:0.9; margin-top:10px; text-align:left; width:100%; max-width:720px; white-space:pre-wrap; word-break:break-word; background:rgba(0,0,0,0.2); border-radius:8px; padding:10px; overflow:auto;">${escapeHtml(normalized.details)}</pre>`
-            : '';
           container.innerHTML = `
                 <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:220px; padding:16px; text-align:center; color:var(--text-primary); background:rgba(15,23,42,0.7); border:1px solid var(--border-color); border-radius:10px;">
                   <div style="font-size:18px; margin-bottom:8px;"><i class="fas fa-exclamation-triangle" style="color:var(--warning-color);"></i></div>
-                  <div style="font-weight:600;">${escapeHtml(providerLabel)} reportó un error</div>
+                  <div style="font-weight:600;">Error de reproducción</div>
                   <div style="font-size:13px; opacity:0.95; margin-top:4px; word-break:break-word;">${escapeHtml(normalized.message)}</div>
-                  ${detailText}
                 </div>
               `;
         }
@@ -10900,10 +10898,8 @@
           const fail = (reason) => {
             let resolvedReason = reason;
             const videoEl = container.querySelector('video');
-            const hasGenericReason = typeof resolvedReason === 'string'
-              && /se report[oó] un error al reproducir/i.test(resolvedReason);
 
-            if ((!resolvedReason || hasGenericReason) && videoEl?.error) {
+            if (videoEl?.error) {
               resolvedReason = {
                 message: getNativeMediaErrorMessage(videoEl.error),
                 details: {
@@ -10915,7 +10911,7 @@
               };
             } else if (!resolvedReason) {
               resolvedReason = {
-                message: 'Clappr PLAYER_ERROR sin detalles.',
+                message: 'No se pudo reproducir este contenido.',
                 details: {
                   provider: 'Clappr',
                   event: 'PLAYER_ERROR',
@@ -11871,16 +11867,6 @@
         }
       }
 
-      function isValidHttpUrlValue(candidateUrl) {
-        if (!candidateUrl) return false;
-        try {
-          const parsed = new URL(candidateUrl);
-          return /^https?:$/i.test(parsed.protocol);
-        } catch (_) {
-          return false;
-        }
-      }
-
       function ensureEditPostModal() {
         let modal = document.getElementById('editPostModal');
         if (modal) return modal;
@@ -12054,8 +12040,8 @@
                 return;
               }
 
-              if (!isValidHttpUrlValue(nextUrl)) {
-                mostrarMensaje('error', 'URL inválida', 'Ingresa una URL válida para radio o música.');
+              if (!nextUrl) {
+                mostrarMensaje('error', 'URL requerida', 'Ingresa la URL para radio o música.');
                 return;
               }
 
@@ -12089,8 +12075,8 @@
               const nextMode = tvModeSelect?.value === 'video' ? 'video' : 'tv';
               const nextUrl = String(tvUrlInput?.value || '').trim();
 
-              if (!isValidHttpUrlValue(nextUrl)) {
-                mostrarMensaje('error', 'URL inválida', nextMode === 'video' ? 'Ingresa una URL válida para Video.' : 'Ingresa una URL válida para TV.');
+              if (!nextUrl) {
+                mostrarMensaje('error', 'URL requerida', nextMode === 'video' ? 'Ingresa la URL para Video.' : 'Ingresa la URL para TV.');
                 return;
               }
 

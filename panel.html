@@ -3735,7 +3735,7 @@
                       <img id="radioCoverImagePreview" alt="Preview portada" style="display:none; width:100%; max-height:110px; object-fit:cover; border-radius:8px; margin-top:6px; border:1px solid var(--border-color);">
                     </div>
                   </div>
-                  <small style="color: var(--text-primary); opacity: 0.9; font-size: 11px; margin-top: 4px; display: block;">En música se usarán imágenes por defecto automáticamente.</small>
+                  <small style="color: var(--text-primary); opacity: 0.9; font-size: 11px; margin-top: 4px; display: block;">Puedes subir imágenes en radio o música; si no subes, se usarán las predeterminadas.</small>
                 </div>
 
                 <div class="upload-tab-panel" data-upload-panel="tv" style="display:none;">
@@ -8304,7 +8304,7 @@ function updateRadioModeUI() {
     nameLabel.textContent = isMusicMode ? 'Nombre de la música' : 'Nombre de la radio';
   }
   if (imageInputs) {
-    imageInputs.style.display = isMusicMode ? 'none' : 'grid';
+    imageInputs.style.display = 'grid';
   }
 }
 
@@ -9137,13 +9137,11 @@ const diffMins = Math.floor(diffMs / 60000);
         let profileImage = publishMode === 'musica' ? DEFAULT_MUSIC_PROFILE_IMAGE : (userData.fotoURL || DEFAULT_RADIO_PROFILE_IMAGE);
 
         try {
-          if (publishMode === 'radio') {
-            if (radioProfileImageInput?.files?.[0]) {
-              profileImage = await fileToBase64(radioProfileImageInput.files[0]);
-            }
-            if (radioCoverImageInput?.files?.[0]) {
-              coverImage = await fileToBase64(radioCoverImageInput.files[0]);
-            }
+          if (radioProfileImageInput?.files?.[0]) {
+            profileImage = await fileToBase64(radioProfileImageInput.files[0]);
+          }
+          if (radioCoverImageInput?.files?.[0]) {
+            coverImage = await fileToBase64(radioCoverImageInput.files[0]);
           }
         } catch (imgErr) {
           mostrarMensaje('error', 'Imagen inválida', 'No se pudieron procesar las imágenes de perfil/portada.');

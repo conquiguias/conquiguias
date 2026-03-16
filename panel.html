@@ -9886,8 +9886,9 @@ const diffMins = Math.floor(diffMs / 60000);
                 return;
               }
 
-              if (typeof window.jQuery === 'undefined' || typeof jQuery.fn?.lunaradio !== 'function') {
-                renderPlaybackError(containerId, 'LunaRadio no está disponible.');
+              const jq = window.jQuery || window.$;
+              if (!jq || !jq.fn || typeof jq.fn.lunaradio !== 'function') {
+                renderPlaybackError(containerId, 'Emisión no está disponible.');
                 return;
               }
 
@@ -9897,14 +9898,15 @@ const diffMins = Math.floor(diffMs / 60000);
                 const perfilCanal = post.userPhoto || posterUrl;
                 const nombreCanal = (post.description || post.userName || 'Conquiguias Radio').slice(0, 80);
 
-                container.innerHTML = `<div id="${radioElementId}" style="width:100%; min-height:220px;"></div>`;
+                container.innerHTML = `<div id="${radioElementId}" style="width:100%; height:100%; min-height:220px;"></div>`;
                 container.classList.add('lunaradio-host');
                 container.style.backgroundImage = `url(${posterUrl})`;
                 container.style.backgroundSize = 'cover';
                 container.style.backgroundPosition = 'center';
+                container.style.display = 'flex';
 
-                const lunaInstance = jQuery(`#${radioElementId}`).lunaradio({
-                  userinterface: 'small',
+                const lunaInstance = jq(`#${radioElementId}`).lunaradio({
+                  userinterface: 'big',
                   backgroundcolor: 'rgba(9,15,25,0.2)',
                   fontcolor: '#FFFFFF',
                   hightlightcolor: '#FF0000',
@@ -9949,13 +9951,6 @@ const diffMins = Math.floor(diffMs / 60000);
 
                 window._lunaPlayers = window._lunaPlayers || {};
                 window._lunaPlayers[radioElementId] = lunaInstance;
-
-                setTimeout(() => {
-                  const stillEmpty = !container.querySelector('audio,iframe,canvas,.lunaradio,.jp-audio,.jp-player');
-                  if (stillEmpty) {
-                    renderPlaybackError(containerId, 'LunaRadio no pudo inicializar la reproducción.');
-                  }
-                }, 2800);
               } catch (err) {
                 console.warn('⚠️ LunaRadio falló:', err);
                 renderPlaybackError(containerId, err?.message || 'Error inicializando LunaRadio.');

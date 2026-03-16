@@ -9961,6 +9961,8 @@
         `;
       }
 
+      const postReadMoreCache = new Map();
+
       function initializeFeedCategoryTabs() {
         const tabsContainer = document.getElementById('postCategoryTabs');
         if (!tabsContainer || tabsContainer.dataset.ready === 'true') return;
@@ -10363,6 +10365,24 @@
           setTimeout(() => {
             initializeInfiniteScroll();
           }, 500);
+
+          postsLoading = false;
+          if (queuedCategoryReload) {
+            const nextCategory = queuedCategoryReload;
+            queuedCategoryReload = null;
+            if (nextCategory !== activeFeedCategory) {
+              activeFeedCategory = nextCategory;
+              const tabsContainer = document.getElementById('postCategoryTabs');
+              if (tabsContainer) {
+                tabsContainer.querySelectorAll('.feed-category-tab').forEach(tab => {
+                  tab.classList.toggle('active', tab.dataset.category === activeFeedCategory);
+                });
+              }
+            }
+            setTimeout(() => {
+              loadPosts(true);
+            }, 80);
+          }
 
         } catch (error) {
           console.error('❌ Error cargando publicaciones:', error);
@@ -10872,13 +10892,19 @@
         const MAX_LENGTH = 300;
         const hasLongText = text.length > MAX_LENGTH;
         const displayText = hasLongText ? `${text.substring(0, MAX_LENGTH)}...` : text;
+        const normalizedPostId = String(postId || '');
+
+        if (normalizedPostId) {
+          postReadMoreCache.set(normalizedPostId, text);
+        }
 
         let formattedText = formatRichText(displayText);
 
         if (hasLongText) {
+          const encodedPostId = encodeURIComponent(normalizedPostId);
           formattedText += `
                 <br>
-                <button class="read-more-btn" onclick="toggleReadMore('${postId}', '${escapeHtml(text)}')" style="background: none; border: none; color: var(--accent-color); 
+                <button class="read-more-btn" onclick="toggleReadMore(decodeURIComponent('${encodedPostId}'))" style="background: none; border: none; color: var(--accent-color); 
                      cursor: pointer; font-weight: bold; padding: 5px 0; margin-top: 5px;
                      font-size: 14px;">
                   Leer más
@@ -10925,24 +10951,26 @@
       }
 
       // 🔹 Alternar entre texto completo y texto corto
-      function toggleReadMore(postId, fullText) {
+      function toggleReadMore(postId) {
         const descriptionElement = document.getElementById(`post-description-${postId}`);
         const readMoreBtn = descriptionElement.querySelector('.read-more-btn');
+        const fullText = postReadMoreCache.get(String(postId || '')) || '';
 
-        if (!descriptionElement || !readMoreBtn) return;
+        if (!descriptionElement || !readMoreBtn || !fullText) return;
 
         const isExpanded = readMoreBtn.textContent === 'Leer menos';
 
         if (isExpanded) {
           // Contraer texto
-          const shortText = formatPostDescription(fullText.substring(0, 300) + '...', postId);
+          const shortText = formatPostDescription(fullText, postId);
           descriptionElement.innerHTML = shortText;
         } else {
           // Expandir texto completo
           const fullFormattedText = formatFullText(fullText);
+          const encodedPostId = encodeURIComponent(String(postId || ''));
           descriptionElement.innerHTML = fullFormattedText + `
                 <br>
-                <button class="read-more-btn" onclick="toggleReadMore('${postId}', '${escapeHtml(fullText)}')" style="background: none; border: none; color: var(--accent-color); 
+                <button class="read-more-btn" onclick="toggleReadMore(decodeURIComponent('${encodedPostId}'))" style="background: none; border: none; color: var(--accent-color); 
                      cursor: pointer; font-weight: bold; padding: 5px 0; margin-top: 5px;
                      font-size: 14px;">
                   Leer menos

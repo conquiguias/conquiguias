@@ -2005,35 +2005,70 @@
       background: transparent;
     }
 
-    /* Header fijo con información del usuario */
     #userHeader {
-      position: fixed;
-      top: 25px;
-      right: 30px;
+      display: none !important;
+    }
+
+    #feedDesktopHeader {
+      position: sticky;
+      top: 10px;
+      z-index: 30;
       display: flex;
       align-items: center;
-      gap: 15px;
-      background: rgba(30, 41, 59, 0.8);
-      padding: 10px 20px;
-      border-radius: 50px;
-      box-shadow: 0 4px 15px var(--shadow-color);
-      z-index: 100;
-      backdrop-filter: blur(10px);
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      padding: 10px 12px;
+      border-radius: 14px;
       border: 1px solid var(--border-color);
+      background: rgba(30, 41, 59, 0.9);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 15px var(--shadow-color);
     }
 
-    #userHeader img {
-      width: 45px;
-      height: 45px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid var(--accent-color);
+    .feed-categories {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: thin;
+      flex: 1;
+      min-width: 0;
+      padding-bottom: 2px;
     }
 
-    #headerUserName {
+    .feed-categories::-webkit-scrollbar {
+      height: 5px;
+    }
+
+    .feed-categories::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.45);
+      border-radius: 999px;
+    }
+
+    .feed-category-tab {
+      border: 1px solid var(--border-color);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      border-radius: 999px;
+      padding: 8px 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: 13px;
       font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .feed-category-tab:hover {
       color: var(--text-primary);
-      font-size: 20px;
+      transform: translateY(-1px);
+    }
+
+    .feed-category-tab.active {
+      background: var(--accent-color);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 4px 12px var(--shadow-color);
     }
 
     /* ============================================
@@ -2317,6 +2352,14 @@
         background: rgba(30, 41, 59, 0.95);
         justify-content: center;
         width: 100%;
+      }
+
+      .feed-categories {
+        display: none;
+      }
+
+      #feedDesktopHeader {
+        justify-content: flex-end;
       }
     }
 
@@ -2892,6 +2935,10 @@
       animation: bounceSnap 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     }
 
+    .post-card.first-feed-post:focus {
+      animation: none;
+    }
+
     @keyframes bounceSnap {
       0% {
         transform: scale(0.95);
@@ -2941,7 +2988,7 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      margin-left: 8px;
+      margin-left: 0;
       padding: 8px 14px;
       border-radius: 999px;
       border: 1px solid transparent;
@@ -3076,6 +3123,15 @@
 
     /* Responsive */
     @media (max-width: 767px) {
+      #feedDesktopHeader {
+        top: 6px;
+        padding: 8px;
+      }
+
+      .feed-categories {
+        display: none;
+      }
+
       #floatingUploadBtn {
         width: 36px;
         height: 36px;
@@ -3591,14 +3647,10 @@
 
   <!-- Contenido principal -->
   <div id="mainContent">
-    <!-- Header fijo con información del usuario -->
+    <!-- Metadatos de usuario (se mantienen para lógica JS, ocultos en UI) -->
     <div id="userHeader">
       <img id="headerUserPhoto" src="https://dummyimage.com/45x45/ccc/fff">
       <span id="headerUserName">Cargando...</span>
-      <button id="floatingUploadBtn" class="hidden" type="button" aria-label="Crear publicación">
-        <i class="fas fa-pen"></i>
-        <span class="upload-label">Publicar</span>
-      </button>
     </div>
 
 
@@ -3672,6 +3724,23 @@
 
     <!-- Inicio - Red Social -->
     <div id="inicioSection" class="card">
+      <div id="feedDesktopHeader">
+        <div id="postCategoryTabs" class="feed-categories" aria-label="Categorías de publicaciones">
+          <button class="feed-category-tab active" data-category="recientes" type="button">Recientes</button>
+          <button class="feed-category-tab" data-category="memes" type="button">Memes</button>
+          <button class="feed-category-tab" data-category="conquis" type="button">Conquis</button>
+          <button class="feed-category-tab" data-category="panoleta" type="button">Pañoleta</button>
+          <button class="feed-category-tab" data-category="post-adventistas" type="button">Post Adventistas</button>
+          <button class="feed-category-tab" data-category="television" type="button">Televisión</button>
+          <button class="feed-category-tab" data-category="radio" type="button">Radio</button>
+          <button class="feed-category-tab" data-category="musica" type="button">Música</button>
+          <button class="feed-category-tab" data-category="potcast" type="button">Potcast</button>
+        </div>
+        <button id="floatingUploadBtn" class="hidden" type="button" aria-label="Crear publicación">
+          <i class="fas fa-upload"></i>
+          <span class="upload-label">Subir</span>
+        </button>
+      </div>
 
 
 
@@ -8528,6 +8597,7 @@ return;
 
 setupUploadListeners();
 checkPostCooldown();
+initializeFeedCategoryTabs();
 await loadPosts(); // Esto ahora carga solo el primer lote
 // Inicializar sistema de videos
 inicializarSistemaVideos();
@@ -8982,6 +9052,91 @@ const diffMins = Math.floor(diffMs / 60000);
       let isLoadingMore = false; // Para evitar múltiples cargas simultáneas
       let postsPerLoad = 10; // Número de publicaciones a cargar por vez
       let observer = null; // Observer para el scroll infinito
+      let activeFeedCategory = 'recientes';
+
+      const FEED_CATEGORY_TAGS = {
+        recientes: [],
+        memes: ['memes'],
+        conquis: ['conquis'],
+        panoleta: ['panoleta'],
+        'post-adventistas': ['postadventistas', 'adventistas'],
+        television: ['television', 'tv'],
+        radio: ['radio'],
+        musica: ['musica'],
+        potcast: ['potcast', 'podcast']
+      };
+
+      const FEED_CATEGORY_LABELS = {
+        recientes: 'Recientes',
+        memes: 'Memes',
+        conquis: 'Conquis',
+        panoleta: 'Pañoleta',
+        'post-adventistas': 'Post Adventistas',
+        television: 'Televisión',
+        radio: 'Radio',
+        musica: 'Música',
+        potcast: 'Potcast'
+      };
+
+      function normalizeTagValue(value) {
+        return String(value || '')
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .trim();
+      }
+
+      function extractPostHashtags(description) {
+        const matches = String(description || '').match(/#[^\s#.,!?;:()]+/g) || [];
+        return matches.map(tag => normalizeTagValue(tag.replace(/^#/, ''))).filter(Boolean);
+      }
+
+      function postMatchesActiveCategory(post) {
+        if (activeFeedCategory === 'recientes') return true;
+        const allowedTags = FEED_CATEGORY_TAGS[activeFeedCategory] || [];
+        if (allowedTags.length === 0) return true;
+        const postTags = new Set(extractPostHashtags(post?.description || ''));
+        return allowedTags.some(tag => postTags.has(normalizeTagValue(tag)));
+      }
+
+      function updateFirstPostMarker() {
+        const posts = Array.from(feed.querySelectorAll('.post-card'));
+        posts.forEach((post, index) => {
+          post.classList.toggle('first-feed-post', index === 0);
+        });
+      }
+
+      function renderEmptyFeedMessage() {
+        const categoryLabel = FEED_CATEGORY_LABELS[activeFeedCategory] || 'esta categoría';
+        feed.innerHTML = `
+          <div class="empty-feed">
+            <h3>📷 No hay publicaciones aún</h3>
+            <p>No se encontraron publicaciones para ${categoryLabel}.</p>
+          </div>
+        `;
+      }
+
+      function initializeFeedCategoryTabs() {
+        const tabsContainer = document.getElementById('postCategoryTabs');
+        if (!tabsContainer || tabsContainer.dataset.ready === 'true') return;
+
+        tabsContainer.addEventListener('click', async (event) => {
+          const button = event.target.closest('.feed-category-tab');
+          if (!button) return;
+
+          const category = button.dataset.category;
+          if (!category || category === activeFeedCategory) return;
+
+          activeFeedCategory = category;
+          tabsContainer.querySelectorAll('.feed-category-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.category === category);
+          });
+
+          await loadPosts(true);
+        });
+
+        tabsContainer.dataset.ready = 'true';
+      }
 
       // 🔹 INICIALIZAR SCROLL INFINITO
       function initializeInfiniteScroll() {
@@ -9033,6 +9188,7 @@ const diffMins = Math.floor(diffMs / 60000);
       const mainContent = document.getElementById('mainContent');
       const currentScroll = mainContent.scrollTop;
       const currentPostBeforeLoad = currentSnappedPost;
+      const currentQueryLimit = activeFeedCategory === 'recientes' ? postsPerLoad : postsPerLoad * 4;
 
       let q;
       if (lastVisiblePost) {
@@ -9042,7 +9198,7 @@ const diffMins = Math.floor(diffMs / 60000);
       where("status", "==", "approved"),
       orderBy("timestamp", "desc"),
       startAfter(lastVisiblePost),
-      limit(postsPerLoad)
+      limit(currentQueryLimit)
       );
       } else {
       // Primera carga (esto no debería pasar, pero por si acaso)
@@ -9050,7 +9206,7 @@ const diffMins = Math.floor(diffMs / 60000);
       collection(db, "posts"),
       where("status", "==", "approved"),
       orderBy("timestamp", "desc"),
-      limit(postsPerLoad)
+      limit(currentQueryLimit)
       );
       }
 
@@ -9075,8 +9231,11 @@ const diffMins = Math.floor(diffMs / 60000);
       const post = { ...doc.data(), id: doc.id };
       if (doc.id === LIVE_POST_ID && !isLiveActive) return;
       if (doc.id === LIVE_POST_ID) post.isLive = true;
+      if (!postMatchesActiveCategory(post)) return;
       displayPost(post, doc.id);
       });
+
+      updateFirstPostMarker();
 
       setTimeout(() => {
       inicializarSistemaVideos();
@@ -9097,7 +9256,7 @@ const diffMins = Math.floor(diffMs / 60000);
       }, 200);
 
       // Si cargamos menos de postsPerLoad, no hay más publicaciones
-      if (querySnapshot.size < postsPerLoad) {
+      if (querySnapshot.size < currentQueryLimit) {
         hasMorePosts = false;
       }
     } catch (error) {
@@ -9161,7 +9320,7 @@ const diffMins = Math.floor(diffMs / 60000);
   }
 
   // 🔹 CARGA INICIAL DE PUBLICACIONES (Modificada para scroll infinito)
-  async function loadPosts() {
+  async function loadPosts(forceReload = false) {
     agregarLogFirestore('loadPosts');
     // 🔒 Protección contra llamadas simultáneas
     if (postsLoading) {
@@ -9170,7 +9329,7 @@ const diffMins = Math.floor(diffMs / 60000);
     }
     // 🔒 Protección contra llamadas muy frecuentes (mínimo 30 segundos)
     const now = Date.now();
-    if (lastLoadTime && (now - lastLoadTime < 30000)) {
+    if (!forceReload && lastLoadTime && (now - lastLoadTime < 30000)) {
       console.log('⏰ LoadPosts llamado muy pronto, ignorando...');
       return;
     }
@@ -9184,11 +9343,12 @@ const diffMins = Math.floor(diffMs / 60000);
       hasMorePosts = true;
       const liveData = await checkLiveStream();
       const isLiveActive = !!liveData?.live;
+      const currentQueryLimit = activeFeedCategory === 'recientes' ? postsPerLoad : postsPerLoad * 4;
       const q = query(
         collection(db, "posts"),
         where("status", "==", "approved"),
         orderBy("timestamp", "desc"),
-        limit(postsPerLoad) // 🔥 Cargar solo el primer lote
+        limit(currentQueryLimit) // 🔥 Cargar solo el primer lote
       );
       const querySnapshot = await getDocs(q);
       console.log(`📊 Se encontraron ${querySnapshot.size} publicaciones aprobadas`);
@@ -9210,12 +9370,14 @@ const diffMins = Math.floor(diffMs / 60000);
           const liveDocSnap = await getDoc(liveDocRef);
           if (liveDocSnap.exists()) {
             const livePost = { ...liveDocSnap.data(), id: LIVE_POST_ID, isLive: true };
-            displayPost(livePost, LIVE_POST_ID);
-            livePostRendered = true;
+            if (postMatchesActiveCategory(livePost)) {
+              displayPost(livePost, LIVE_POST_ID);
+              livePostRendered = true;
+            }
           } else {
             // Doc aún no existe, construir desde datos del API
             const op = liveData.ownerProfile || {};
-            displayPost({
+            const liveFallbackPost = {
               id: LIVE_POST_ID,
               userId: op.uid || '',
               userEmail: op.email || '',
@@ -9232,8 +9394,11 @@ const diffMins = Math.floor(diffMs / 60000);
               status: 'approved',
               isLive: true,
               isSpecialLive: true,
-            }, LIVE_POST_ID);
-            livePostRendered = true;
+            };
+            if (postMatchesActiveCategory(liveFallbackPost)) {
+              displayPost(liveFallbackPost, LIVE_POST_ID);
+              livePostRendered = true;
+            }
           }
         } catch (e) {
           console.warn('[Live] Error cargando post en vivo directo:', e);
@@ -9241,12 +9406,7 @@ const diffMins = Math.floor(diffMs / 60000);
       }
 
       if (querySnapshot.empty && !livePostRendered) {
-        feed.innerHTML = `
-          <div class="empty-feed">
-            <h3>📷 No hay publicaciones aún</h3>
-            <p>¡Sé el primero en compartir algo!</p>
-          </div>
-        `;
+        renderEmptyFeedMessage();
         hasMorePosts = false;
         return;
       }
@@ -9261,27 +9421,25 @@ const diffMins = Math.floor(diffMs / 60000);
       querySnapshot.forEach((doc) => {
         const post = { ...doc.data(), id: doc.id };
         if (doc.id === LIVE_POST_ID) return; // ya renderizado arriba
+        if (!postMatchesActiveCategory(post)) return;
         displayPost(post, doc.id);
         renderedPostsCount++;
       });
 
       if (renderedPostsCount === 0) {
-        feed.innerHTML = `
-          <div class="empty-feed">
-            <h3>📷 No hay publicaciones aún</h3>
-            <p>¡Sé el primero en compartir algo!</p>
-          </div>
-        `;
+        renderEmptyFeedMessage();
         hasMorePosts = false;
         return;
       }
+
+      updateFirstPostMarker();
 
         setTimeout(() => {
         inicializarSistemaVideos();
         }, 100);
 
         // Si cargamos menos de postsPerLoad, no hay más publicaciones
-        if (querySnapshot.size < postsPerLoad) { 
+        if (querySnapshot.size < currentQueryLimit) { 
           hasMorePosts = false; 
         } 
         
@@ -9302,22 +9460,18 @@ const diffMins = Math.floor(diffMs / 60000);
           console.log('[DEBUG] Intentando carga sin filtro...');
           const liveData = await checkLiveStream();
           const isLiveActive = !!liveData?.live;
+          const fallbackLimit = activeFeedCategory === 'recientes' ? postsPerLoad : postsPerLoad * 4;
           const q = query(
           collection(db, "posts"),
           orderBy("timestamp", "desc"),
-          limit(postsPerLoad)
+          limit(fallbackLimit)
           );
           const querySnapshot = await getDocs(q);
 
           feed.innerHTML = '';
 
           if (querySnapshot.empty) {
-          feed.innerHTML = `
-          <div class="empty-feed">
-            <h3><i class="fas fa-image" style="margin-right: 8px;"></i> No hay publicaciones aún</h3>
-            <p>¡Sé el primero en compartir algo!</p>
-          </div>
-          `;
+          renderEmptyFeedMessage();
           hasMorePosts = false;
           return;
           }
@@ -9328,16 +9482,19 @@ const diffMins = Math.floor(diffMs / 60000);
           const post = doc.data();
           if (doc.id === LIVE_POST_ID && !isLiveActive) return;
           if (post.status === 'approved') {
+          if (!postMatchesActiveCategory(post)) return;
           displayPost({ ...post, id: doc.id, isLive: doc.id === LIVE_POST_ID }, doc.id);
           approvedCount++;
           lastVisiblePost = doc;
           }
           });
 
-          if (approvedCount < postsPerLoad) { hasMorePosts=false; } // Inicializar scroll infinito después del fallback
+          if (approvedCount < fallbackLimit) { hasMorePosts=false; } // Inicializar scroll infinito después del fallback
             setTimeout(()=> {
             initializeInfiniteScroll();
             }, 500);
+
+            updateFirstPostMarker();
 
             } catch (fallbackError) {
             console.error('[ERROR] Error en fallback:', fallbackError);
@@ -9541,6 +9698,10 @@ const diffMins = Math.floor(diffMs / 60000);
 
             feedDestino.appendChild(postElement);
             queuePostImgurImages(postElement);
+
+            if (feedDestino === feed) {
+              updateFirstPostMarker();
+            }
 
             // Inicializar Clappr para cualquier publicación con video
             if (post.mediaType && (post.mediaType === 'video/url' || post.mediaType.startsWith('video/'))) {
@@ -11641,10 +11802,12 @@ const diffMins = Math.floor(diffMs / 60000);
                               currentSnappedPost = postElement;
 
                               // Efecto de rebote
+                              if (!postElement.classList.contains('first-feed-post')) {
                               postElement.style.animation = 'none';
                               setTimeout(() => {
                               postElement.style.animation = 'bounceSnap 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
                               }, 10);
+                              }
                               }
 
                               // Función para centrar una publicación específica
@@ -11746,10 +11909,12 @@ const diffMins = Math.floor(diffMs / 60000);
                                 currentSnappedPost = entry.target;
 
                                 // Efecto rebote
+                                if (!entry.target.classList.contains('first-feed-post')) {
                                 entry.target.style.animation = 'none';
                                 setTimeout(() => {
                                 entry.target.style.animation = 'bounceSnap 0.6s ease';
                                 }, 10);
+                                }
                                 }
                                 });
                                 }, {

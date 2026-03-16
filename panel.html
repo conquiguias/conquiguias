@@ -2921,31 +2921,24 @@
     }
 
     /* ============================================
-   SCROLL SNAPPING CON EFECTO REBOTE
+   FEED SIN SNAP AUTOMÁTICO
    ============================================ */
 
-    /* Configurar el contenedor principal para scroll snapping */
     #mainContent {
-      scroll-snap-type: y mandatory;
-      scroll-behavior: smooth;
+      scroll-snap-type: none;
+      scroll-behavior: auto;
       overflow-y: auto;
-      scroll-padding-top: var(--feed-snap-offset, 0px);
-      scroll-padding-bottom: 12px;
+      scroll-padding-top: 0;
+      scroll-padding-bottom: 0;
     }
 
-    /* Cada publicación será un punto de snap */
     .post-card {
-      scroll-snap-align: center;
-      scroll-snap-stop: always;
-      transition: all 0.3s ease;
+      scroll-snap-align: none;
+      scroll-snap-stop: normal;
+      transition: box-shadow 0.2s ease;
     }
 
-    /* Efecto de rebote cuando se activa el snap */
     .post-card:focus {
-      animation: bounceSnap 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    }
-
-    .post-card.first-feed-post:focus {
       animation: none;
     }
 
@@ -2968,8 +2961,7 @@
 
     /* Indicador visual cuando una publicación está centrada */
     .post-card.snapped {
-      /*border: 2px solid var(--accent-color);*/
-      animation: gentlePulse 2s infinite;
+      animation: none;
     }
 
     @keyframes gentlePulse {
@@ -9052,10 +9044,6 @@ const diffMins = Math.floor(diffMs / 60000);
       'Tiempo estimado de revisión: 24 horas.'
       );
 
-      setTimeout(() => {
-      initializeScrollSnapOnce();
-      }, 500);
-
       } catch (error) {
       console.error('❌ Error al publicar:', error);
       mostrarMensaje('error', 'Error al publicar', error.message || 'No se pudo completar la publicación.');
@@ -9079,11 +9067,11 @@ const diffMins = Math.floor(diffMs / 60000);
         memes: ['memes', 'meme'],
         conquis: ['conquis', 'conqui', 'conquistadores', 'conquistador'],
         panoleta: ['panoleta', 'pañoleta', 'panuelo', 'pañuelo'],
-        'post-adventistas': ['postadventistas', 'post-adventistas', 'adventistas', 'adventista'],
+        'post-adventistas': ['postadventistas', 'post-adventistas', 'post adventistas', 'adventistas', 'adventista'],
         television: ['television', 'tv', 'tele'],
         radio: ['radio'],
-        musica: ['musica', 'música', 'music'],
-        podcast: ['podcast', 'potcast']
+        musica: ['musica', 'música', 'music', 'musica cristiana', 'musica adventista'],
+        podcast: ['podcast', 'potcast', 'pod cast']
       };
 
       const FEED_CATEGORY_LABELS = {
@@ -9111,12 +9099,22 @@ const diffMins = Math.floor(diffMs / 60000);
         return matches.map(tag => normalizeTagValue(tag.replace(/^#/, ''))).filter(Boolean);
       }
 
+      function getPostTagSet(post) {
+        const descriptionTags = extractPostHashtags(post?.description || '');
+        const extraTags = [post?.tags, post?.hashtags, post?.etiquetas]
+          .flatMap(value => Array.isArray(value) ? value : [])
+          .map(value => normalizeTagValue(String(value || '').replace(/^#/, '')))
+          .filter(Boolean);
+
+        return new Set([...descriptionTags, ...extraTags]);
+      }
+
       function postMatchesActiveCategory(post) {
         if (activeFeedCategory === 'recientes') return true;
         const allowedTags = FEED_CATEGORY_TAGS[activeFeedCategory] || [];
         if (allowedTags.length === 0) return true;
         const normalizedDescription = normalizeTagValue(post?.description || '');
-        const postTags = new Set(extractPostHashtags(post?.description || ''));
+        const postTags = getPostTagSet(post);
         return allowedTags.some((tag) => {
           const normalizedTag = normalizeTagValue(tag);
           if (!normalizedTag) return false;
@@ -9126,25 +9124,15 @@ const diffMins = Math.floor(diffMs / 60000);
       }
 
       function getFeedSnapOffset() {
-        const header = document.getElementById('feedDesktopHeader');
-        if (!header) return 0;
-        const computed = window.getComputedStyle(header);
-        if (computed.display === 'none') return 0;
-        if (computed.position !== 'sticky') return 0;
-        const rect = header.getBoundingClientRect();
-        return Math.max(0, Math.ceil(rect.height) + 10);
+        return 0;
       }
 
       function updateFeedSnapOffset() {
-        const offset = getFeedSnapOffset();
-        document.documentElement.style.setProperty('--feed-snap-offset', `${offset}px`);
+        document.documentElement.style.setProperty('--feed-snap-offset', `0px`);
       }
 
       function updateFirstPostMarker() {
-        const posts = Array.from(feed.querySelectorAll('.post-card'));
-        posts.forEach((post, index) => {
-          post.classList.toggle('first-feed-post', index === 0);
-        });
+        return;
       }
 
       function renderEmptyFeedMessage() {
@@ -9225,6 +9213,7 @@ const diffMins = Math.floor(diffMs / 60000);
 
       // 🔹 CARGAR MÁS PUBLICACIONES (Paginación)
       async function loadMorePosts() {
+      if (activeFeedCategory !== 'recientes') return;
       if (!hasMorePosts) return;
 
       try {
@@ -9233,8 +9222,7 @@ const diffMins = Math.floor(diffMs / 60000);
       // 🔥 GUARDAR LA POSICIÓN ACTUAL ANTES DE CARGAR
       const mainContent = document.getElementById('mainContent');
       const currentScroll = mainContent.scrollTop;
-      const currentPostBeforeLoad = currentSnappedPost;
-      const currentQueryLimit = activeFeedCategory === 'recientes' ? postsPerLoad : postsPerLoad * categoryScanMultiplier;
+      const currentQueryLimit = postsPerLoad;
 
       let q;
       if (lastVisiblePost) {
@@ -9271,7 +9259,6 @@ const diffMins = Math.floor(diffMs / 60000);
       // Actualizar el último documento visible
       lastVisiblePost = querySnapshot.docs[querySnapshot.docs.length - 1];
 
-      isProgrammaticScroll = true;
       // Mostrar las nuevas publicaciones
       querySnapshot.forEach((doc) => {
       const post = { ...doc.data(), id: doc.id };
@@ -9287,17 +9274,10 @@ const diffMins = Math.floor(diffMs / 60000);
       inicializarSistemaVideos();
       }, 100);
 
-      // 🔥 RESTAURAR POSICIÓN Y ACTUALIZAR SNAPPING
+      // 🔥 RESTAURAR POSICIÓN
       setTimeout(() => {
       // Restaurar scroll position
       mainContent.scrollTop = currentScroll;
-
-      // Re-activar snapping SIN centrar automáticamente
-      setupScrollSnapSystem();
-      // Quitar flag después de un tiempo
-      setTimeout(() => {
-      isProgrammaticScroll = false;
-      }, 500);
 
       }, 200);
 
@@ -9392,7 +9372,8 @@ const diffMins = Math.floor(diffMs / 60000);
       hasMorePosts = true;
       const liveData = await checkLiveStream();
       const isLiveActive = !!liveData?.live;
-      const currentQueryLimit = activeFeedCategory === 'recientes' ? postsPerLoad : postsPerLoad * categoryScanMultiplier;
+      const isCategoryMode = activeFeedCategory !== 'recientes';
+      const currentQueryLimit = isCategoryMode ? Math.max(150, postsPerLoad * categoryScanMultiplier) : postsPerLoad;
       const q = query(
         collection(db, "posts"),
         where("status", "==", "approved"),
@@ -9487,8 +9468,8 @@ const diffMins = Math.floor(diffMs / 60000);
         inicializarSistemaVideos();
         }, 100);
 
-        // Si cargamos menos de postsPerLoad, no hay más publicaciones
-        if (querySnapshot.size < currentQueryLimit) { 
+        // En categorías no usamos scroll infinito para evitar inconsistencias del filtro
+        if (isCategoryMode || querySnapshot.size < currentQueryLimit) { 
           hasMorePosts = false; 
         } 
         
@@ -9496,10 +9477,6 @@ const diffMins = Math.floor(diffMs / 60000);
         setTimeout(() => {
           initializeInfiniteScroll();
         }, 500);
-
-          setTimeout(() => {
-          initializeScrollSnapOnce();
-          }, 500);
 
           } catch (error) {
           console.error('❌ Error cargando publicaciones:', error);
@@ -9509,7 +9486,7 @@ const diffMins = Math.floor(diffMs / 60000);
           console.log('[DEBUG] Intentando carga sin filtro...');
           const liveData = await checkLiveStream();
           const isLiveActive = !!liveData?.live;
-          const fallbackLimit = activeFeedCategory === 'recientes' ? postsPerLoad : postsPerLoad * categoryScanMultiplier;
+          const fallbackLimit = isCategoryMode ? Math.max(150, postsPerLoad * categoryScanMultiplier) : postsPerLoad;
           const q = query(
           collection(db, "posts"),
           orderBy("timestamp", "desc"),
@@ -9538,7 +9515,7 @@ const diffMins = Math.floor(diffMs / 60000);
           }
           });
 
-          if (approvedCount < fallbackLimit) { hasMorePosts=false; } // Inicializar scroll infinito después del fallback
+          if (isCategoryMode || approvedCount < fallbackLimit) { hasMorePosts=false; } // Inicializar scroll infinito después del fallback
             setTimeout(()=> {
             initializeInfiniteScroll();
             }, 500);
@@ -11791,265 +11768,23 @@ const diffMins = Math.floor(diffMs / 60000);
 
 
                               // 🔹 SISTEMA DE SCROLL SNAPPING AUTOMÁTICO
-
-                              let isScrolling = false;
-                              let scrollTimeout;
-                              let currentSnappedPost = null;
+                              let isProgrammaticScroll = false;
 
                               function initializeScrollSnapping() {
-                              const mainContent = document.getElementById('mainContent');
-                              const posts = document.querySelectorAll('.post-card');
-
-                              if (posts.length === 0) return;
-
-                              // Configurar Intersection Observer para detectar posts centrados
-                              const observer = new IntersectionObserver((entries) => {
-                              entries.forEach(entry => {
-                              if (entry.isIntersecting && entry.intersectionRatio > 0.7) {
-                              // Esta es la publicación actualmente centrada
-                              highlightSnappedPost(entry.target);
-                              }
-                              });
-                              }, {
-                              root: mainContent,
-                              threshold: [0.7, 0.8, 0.9],
-                              rootMargin: '-45% 0px -45% 0px' // Solo el centro (10% arriba y abajo)
-                              });
-
-                              // Observar todas las publicaciones
-                              posts.forEach(post => {
-                              observer.observe(post);
-
-                              // Agregar efecto de rebote al hacer clic
-                              post.addEventListener('click', (e) => {
-                              if (!e.target.closest('.post-actions') && !e.target.closest('.delete-post-btn')) {
-                              snapToPost(post);
-                              }
-                              });
-                              });
-
-                              // Detectar scroll para mejorar la experiencia
-                              mainContent.addEventListener('scroll', () => {
-                              if (!isScrolling) {
-                              isScrolling = true;
+                                return;
                               }
 
-                              clearTimeout(scrollTimeout);
-                              scrollTimeout = setTimeout(() => {
-                              isScrolling = false;
-                              // Al terminar el scroll, asegurar que un post esté centrado
-                              ensurePostIsCentered();
-                              }, 150);
-                              });
-
-                              console.log('🎯 Scroll snapping inicializado');
+                              function setupScrollSnapSystem() {
+                                return;
                               }
 
-                              // Función para resaltar la publicación centrada
-                              function highlightSnappedPost(postElement) {
-                              // Remover highlight anterior
-                              if (currentSnappedPost && currentSnappedPost !== postElement) {
-                              currentSnappedPost.classList.remove('snapped');
+                              function initializeScrollSnapOnce() {
+                                return;
                               }
 
-                              // Aplicar highlight nuevo
-                              postElement.classList.add('snapped');
-                              currentSnappedPost = postElement;
-
-                              // Efecto de rebote
-                              if (!postElement.classList.contains('first-feed-post')) {
-                              postElement.style.animation = 'none';
-                              setTimeout(() => {
-                              postElement.style.animation = 'bounceSnap 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
-                              }, 10);
+                              function smoothScrollToPost() {
+                                return;
                               }
-                              }
-
-                              // Función para centrar una publicación específica
-                              function snapToPost(postElement) {
-                              const mainContent = document.getElementById('mainContent');
-                              updateFeedSnapOffset();
-                              const snapOffset = getFeedSnapOffset();
-                              const postRect = postElement.getBoundingClientRect();
-                              const mainRect = mainContent.getBoundingClientRect();
-                              const visibleHeight = Math.max(1, mainRect.height - snapOffset);
-                              const visibleTop = mainRect.top + snapOffset;
-
-                              const targetScroll = mainContent.scrollTop + (postRect.top - visibleTop) -
-                              (visibleHeight / 2) + (postRect.height / 2);
-
-                              mainContent.scrollTo({
-                              top: targetScroll,
-                              behavior: 'smooth'
-                              });
-
-                              highlightSnappedPost(postElement);
-                              }
-
-                              // Asegurar que siempre haya un post centrado
-                               function ensurePostIsCentered() {
-                                 const posts = document.querySelectorAll('.post-card');
-                                 const mainContent = document.getElementById('mainContent');
-                                 if (posts.length === 0) return;
-                                 updateFeedSnapOffset();
-                                 const snapOffset = getFeedSnapOffset();
-                                 const mainRect = mainContent.getBoundingClientRect();
-                                 const visibleHeight = Math.max(1, mainRect.height - snapOffset);
-                                 const visibleTop = mainRect.top + snapOffset;
-                                 const visibleCenter = visibleTop + (visibleHeight / 2);
-
-                                 let closestPost = null;
-                                 let closestDistance = Infinity;
-
-                                 posts.forEach(post => {
-                                   const postRect = post.getBoundingClientRect();
-                                   const postCenter = postRect.top + (postRect.height / 2);
-                                   const distance = Math.abs(postCenter - visibleCenter);
-
-                                   if (distance < closestDistance) {
-                                     closestDistance = distance;
-                                     closestPost = post;
-                                   }
-                                 });
-
-                                 if (closestPost && closestDistance < mainContent.offsetHeight * 0.4) {
-                                   snapToPost(closestPost);
-                                 }
-                               }
-
-                               // Navegación con teclado
-                               function setupKeyboardSnapping() {
-                                 document.addEventListener('keydown', (e) => {
-                                   if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === ' ' || e.key === 'PageDown' || e.key === 'PageUp') {
-                                     const posts = Array.from(document.querySelectorAll('.post-card'));
-                                     if (posts.length === 0) return;
-
-                                     let currentIndex = currentSnappedPost ? posts.indexOf(currentSnappedPost) : 0;
-
-                                     if (e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown') {
-                                       if (currentIndex < posts.length - 1) {
-                                         e.preventDefault();
-                                         currentIndex++;
-                                       }
-                                     } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-                                       if (currentIndex > 0) {
-                                         e.preventDefault();
-                                         currentIndex--;
-                                       }
-                                     }
-
-                                     if (posts[currentIndex]) {
-                                       snapToPost(posts[currentIndex]);
-                                       smoothScrollToPost(posts[currentIndex]);
-                                     }
-                                   }
-                                 });
-                               }
-
-                                // 🔹 SISTEMA DE SCROLL SNAPPING MEJORADO (MANTIENE POSICIÓN)
-                                let scrollSnapObserver = null;
-                                let isProgrammaticScroll = false;
-
-                                function setupScrollSnapSystem() {
-                                const posts = document.querySelectorAll('.post-card');
-                                if (posts.length === 0) return;
-                                    updateFeedSnapOffset();
-                                    const snapOffset = getFeedSnapOffset();
-
-                                // Detener el observer anterior si existe
-                                if (scrollSnapObserver) {
-                                scrollSnapObserver.disconnect();
-                                }
-
-                                // Crear nuevo observer
-                                scrollSnapObserver = new IntersectionObserver((entries) => {
-                                // Si es un scroll programático, ignorar
-                                if (isProgrammaticScroll) return;
-                                entries.forEach(entry => {
-                                if (entry.isIntersecting && entry.intersectionRatio > 0.7) {
-                                if (currentSnappedPost && currentSnappedPost !== entry.target) {
-                                currentSnappedPost.classList.remove('snapped');
-                                }
-                                entry.target.classList.add('snapped');
-                                currentSnappedPost = entry.target;
-
-                                // Efecto rebote
-                                if (!entry.target.classList.contains('first-feed-post')) {
-                                entry.target.style.animation = 'none';
-                                setTimeout(() => {
-                                entry.target.style.animation = 'bounceSnap 0.6s ease';
-                                }, 10);
-                                }
-                                }
-                                });
-                                }, {
-                                root: document.getElementById('mainContent'),
-                                threshold: 0.7,
-                                rootMargin: `${-(40 + Math.min(snapOffset, 120))}px 0px -40% 0px`
-                                });
-
-                                // Observar solo las nuevas publicaciones (no todas)
-                                posts.forEach(post => {
-                                if (!post.hasAttribute('data-observed')) {
-                                scrollSnapObserver.observe(post);
-                                post.setAttribute('data-observed', 'true');
-                                }
-                                });
-
-                                console.log('🎯 Scroll snapping actualizado para', posts.length, 'publicaciones');
-                                }
-
-                                // Función para inicializar solo una vez al principio
-                                function initializeScrollSnapOnce() {
-                                const posts = document.querySelectorAll('.post-card');
-                                if (posts.length === 0) return;
-                                updateFeedSnapOffset();
-
-                                // Solo centrar la primera publicación la primera vez
-                                if (!document.body.hasAttribute('data-snap-initialized')) {
-                                setTimeout(() => {
-                                if (posts[0]) {
-                                smoothScrollToPost(posts[0]);
-                                }
-                                }, 500);
-                                document.body.setAttribute('data-snap-initialized', 'true');
-                                }
-
-                                setupScrollSnapSystem();
-                                }
-
-                                // 🔹 FUNCIÓN PARA SCROLL SUAVE SIN INTERFERENCIAS
-                                function smoothScrollToPost(postElement) {
-                                isProgrammaticScroll = true;
-
-                                const mainContent = document.getElementById('mainContent');
-                                updateFeedSnapOffset();
-                                const snapOffset = getFeedSnapOffset();
-                                const postRect = postElement.getBoundingClientRect();
-                                const mainRect = mainContent.getBoundingClientRect();
-                                const visibleHeight = Math.max(1, mainRect.height - snapOffset);
-                                const visibleTop = mainRect.top + snapOffset;
-
-                                const targetScroll = mainContent.scrollTop + (postRect.top - visibleTop) -
-                                (visibleHeight / 2) + (postRect.height / 2);
-
-                                mainContent.scrollTo({
-                                top: targetScroll,
-                                behavior: 'smooth'
-                                });
-
-                                // Resaltar la publicación
-                                if (currentSnappedPost) {
-                                currentSnappedPost.classList.remove('snapped');
-                                }
-                                postElement.classList.add('snapped');
-                                currentSnappedPost = postElement;
-
-                                // Permitir que el observer vuelva a funcionar
-                                setTimeout(() => {
-                                isProgrammaticScroll = false;
-                                }, 1000);
-                                }
 
                                 // Solo agregar la función de limpieza y modificar las llamadas
                                 function limpiarTextoCertificado(texto) {

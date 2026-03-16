@@ -9137,10 +9137,15 @@ const diffMins = Math.floor(diffMs / 60000);
 
       function renderEmptyFeedMessage() {
         const categoryLabel = FEED_CATEGORY_LABELS[activeFeedCategory] || 'esta categoría';
+        const allowedTags = FEED_CATEGORY_TAGS[activeFeedCategory] || [];
+        const primaryTag = allowedTags.length > 0 ? normalizeTagValue(allowedTags[0]).replace(/\s+/g, '') : '';
+        const filterHint = (activeFeedCategory !== 'recientes' && primaryTag)
+          ? ` con la etiqueta #${primaryTag}`
+          : '';
         feed.innerHTML = `
           <div class="empty-feed">
             <h3>📷 No hay publicaciones aún</h3>
-            <p>No se encontraron publicaciones para ${categoryLabel}.</p>
+            <p>No se encontraron publicaciones para ${categoryLabel}${filterHint}.</p>
           </div>
         `;
       }

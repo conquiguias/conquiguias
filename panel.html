@@ -1759,12 +1759,15 @@
     }
 
     .edit-post-modal-content {
-      width: min(100%, 620px);
+      width: min(100%, 720px);
+      max-height: min(92vh, 860px);
       border: 1px solid var(--border-color);
       border-radius: 14px;
       background: var(--bg-card);
       box-shadow: 0 24px 50px rgba(0, 0, 0, 0.45);
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
     .edit-post-modal-header {
@@ -1779,6 +1782,71 @@
 
     .edit-post-modal-body {
       padding: 12px 14px;
+      overflow-y: auto;
+    }
+
+    .edit-post-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .edit-post-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .edit-post-field label {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .edit-post-input,
+    .edit-post-select,
+    .edit-post-file {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    .edit-post-file {
+      padding: 8px;
+    }
+
+    .edit-post-highlight {
+      border-style: dashed;
+      border-color: var(--accent-color);
+    }
+
+    .edit-post-extra-section {
+      display: none;
+      margin-bottom: 12px;
+    }
+
+    .edit-post-extra-section.active {
+      display: block;
+    }
+
+    .edit-post-note {
+      color: var(--text-secondary);
+      font-size: 11px;
+      margin-bottom: 12px;
+    }
+
+    .edit-post-preview {
+      display: none;
+      width: 100%;
+      max-height: 130px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      margin-top: 6px;
     }
 
     .edit-post-textarea {
@@ -1835,6 +1903,10 @@
     @media (max-width: 980px) {
       .post-body-layout {
         flex-direction: column;
+      }
+
+      .edit-post-grid {
+        grid-template-columns: 1fr;
       }
 
       .post-main-column,
@@ -11427,6 +11499,153 @@
 
       let editingPostContext = null;
 
+      function getEditablePostMode(post) {
+        const normalizedPostKind = getNormalizedPostKind(post);
+        const mediaType = String(post?.mediaType || '').toLowerCase();
+
+        if (normalizedPostKind === 'radio' || normalizedPostKind === 'musica' || mediaType === 'audio/url') {
+          return 'radio';
+        }
+
+        if (normalizedPostKind === 'tv' || normalizedPostKind === 'video' || mediaType === 'video/url') {
+          return 'tv';
+        }
+
+        return 'basic';
+      }
+
+      function setEditPostPreview(previewEl, src) {
+        if (!previewEl) return;
+        const cleanSrc = String(src || '').trim();
+        if (cleanSrc) {
+          previewEl.src = cleanSrc;
+          previewEl.style.display = 'block';
+        } else {
+          previewEl.removeAttribute('src');
+          previewEl.style.display = 'none';
+        }
+      }
+
+      function syncEditPostRadioModeUI(modal) {
+        if (!modal) return;
+        const modeSelect = modal.querySelector('#editPostRadioMode');
+        const nameLabel = modal.querySelector('#editPostRadioNameLabel');
+        const urlLabel = modal.querySelector('#editPostRadioUrlLabel');
+        const isMusicMode = modeSelect?.value === 'musica';
+
+        if (nameLabel) {
+          nameLabel.textContent = isMusicMode ? 'Nombre de la música' : 'Nombre de la radio';
+        }
+
+        if (urlLabel) {
+          urlLabel.textContent = isMusicMode ? 'URL de la música' : 'URL del stream';
+        }
+      }
+
+      function syncEditPostTvModeUI(modal) {
+        if (!modal) return;
+        const modeSelect = modal.querySelector('#editPostTvMode');
+        const urlLabel = modal.querySelector('#editPostTvUrlLabel');
+        const coverLabel = modal.querySelector('#editPostTvCoverLabel');
+        const urlInput = modal.querySelector('#editPostTvUrlInput');
+        const isVideoMode = modeSelect?.value === 'video';
+
+        if (urlLabel) {
+          urlLabel.textContent = isVideoMode ? 'URL de Video' : 'URL de TV';
+        }
+
+        if (coverLabel) {
+          coverLabel.textContent = isVideoMode ? 'Portada Video (opcional)' : 'Portada TV (opcional)';
+        }
+
+        if (urlInput) {
+          urlInput.placeholder = isVideoMode
+            ? 'URL del video (mp4, m3u8, YouTube...)'
+            : 'URL de TV (m3u8, mp4, YouTube...)';
+        }
+      }
+
+      async function updateEditPostFilePreview(inputEl, previewEl) {
+        if (!inputEl || !previewEl) return;
+        const file = inputEl.files?.[0];
+        if (!file) return;
+
+        try {
+          const base64 = await fileToBase64(file);
+          setEditPostPreview(previewEl, base64);
+        } catch (error) {
+          console.warn('No se pudo previsualizar la imagen editada:', error);
+        }
+      }
+
+      function applyEditPostModalState(modal, context) {
+        if (!modal || !context) return;
+
+        const { editMode, postData } = context;
+        const titleEl = modal.querySelector('#editPostModalTitle');
+        const radioSection = modal.querySelector('#editPostRadioSection');
+        const tvSection = modal.querySelector('#editPostTvSection');
+        const radioModeSelect = modal.querySelector('#editPostRadioMode');
+        const radioNameInput = modal.querySelector('#editPostRadioNameInput');
+        const radioUrlInput = modal.querySelector('#editPostRadioUrlInput');
+        const radioProfileInput = modal.querySelector('#editPostRadioProfileImageInput');
+        const radioCoverInput = modal.querySelector('#editPostRadioCoverImageInput');
+        const radioProfilePreview = modal.querySelector('#editPostRadioProfilePreview');
+        const radioCoverPreview = modal.querySelector('#editPostRadioCoverPreview');
+        const tvModeSelect = modal.querySelector('#editPostTvMode');
+        const tvUrlInput = modal.querySelector('#editPostTvUrlInput');
+        const tvCoverInput = modal.querySelector('#editPostTvCoverImageInput');
+        const tvCoverPreview = modal.querySelector('#editPostTvCoverPreview');
+
+        if (titleEl) {
+          titleEl.innerHTML = editMode === 'radio'
+            ? '<i class="fas fa-pen"></i> Editar radio / música'
+            : editMode === 'tv'
+              ? '<i class="fas fa-pen"></i> Editar TV / Video'
+              : '<i class="fas fa-pen"></i> Editar descripción';
+        }
+
+        if (radioSection) radioSection.classList.toggle('active', editMode === 'radio');
+        if (tvSection) tvSection.classList.toggle('active', editMode === 'tv');
+
+        if (radioProfileInput) radioProfileInput.value = '';
+        if (radioCoverInput) radioCoverInput.value = '';
+        if (tvCoverInput) tvCoverInput.value = '';
+
+        if (editMode === 'radio') {
+          const radioMode = getNormalizedPostKind(postData) === 'musica' ? 'musica' : 'radio';
+          if (radioModeSelect) radioModeSelect.value = radioMode;
+          if (radioNameInput) radioNameInput.value = String(postData?.radioname || postData?.description || '').trim();
+          if (radioUrlInput) radioUrlInput.value = String(postData?.mediaUrl || '').trim();
+          setEditPostPreview(radioProfilePreview, postData?.coverimage || postData?.userPhoto || '');
+          setEditPostPreview(radioCoverPreview, postData?.radiocover || postData?.posterUrl || postData?.thumbnailUrl || '');
+          syncEditPostRadioModeUI(modal);
+        } else {
+          setEditPostPreview(radioProfilePreview, '');
+          setEditPostPreview(radioCoverPreview, '');
+        }
+
+        if (editMode === 'tv') {
+          const tvMode = getNormalizedPostKind(postData) === 'video' ? 'video' : 'tv';
+          if (tvModeSelect) tvModeSelect.value = tvMode;
+          if (tvUrlInput) tvUrlInput.value = String(postData?.mediaUrl || '').trim();
+          setEditPostPreview(tvCoverPreview, postData?.posterUrl || postData?.thumbnailUrl || '');
+          syncEditPostTvModeUI(modal);
+        } else {
+          setEditPostPreview(tvCoverPreview, '');
+        }
+      }
+
+      function isValidHttpUrlValue(candidateUrl) {
+        if (!candidateUrl) return false;
+        try {
+          const parsed = new URL(candidateUrl);
+          return /^https?:$/i.test(parsed.protocol);
+        } catch (_) {
+          return false;
+        }
+      }
+
       function ensureEditPostModal() {
         let modal = document.getElementById('editPostModal');
         if (modal) return modal;
@@ -11437,10 +11656,65 @@
         modal.innerHTML = `
                                   <div class="edit-post-modal-content" role="dialog" aria-modal="true" aria-label="Editar publicación">
                                     <div class="edit-post-modal-header">
-                                      <span><i class="fas fa-pen"></i> Editar descripción</span>
+                                      <span id="editPostModalTitle"><i class="fas fa-pen"></i> Editar descripción</span>
                                       <button type="button" class="comments-mobile-close" id="editPostModalClose">×</button>
                                     </div>
                                     <div class="edit-post-modal-body">
+                                      <div id="editPostRadioSection" class="edit-post-extra-section">
+                                        <div class="edit-post-grid">
+                                          <div class="edit-post-field">
+                                            <label for="editPostRadioMode">Modo</label>
+                                            <select id="editPostRadioMode" class="edit-post-select">
+                                              <option value="radio">Crear radio</option>
+                                              <option value="musica">Subir música</option>
+                                            </select>
+                                          </div>
+                                          <div class="edit-post-field">
+                                            <label id="editPostRadioNameLabel" for="editPostRadioNameInput">Nombre de la radio</label>
+                                            <input type="text" id="editPostRadioNameInput" class="edit-post-input" placeholder="Nombre del canal o música">
+                                          </div>
+                                        </div>
+                                        <div class="edit-post-field">
+                                          <label id="editPostRadioUrlLabel" for="editPostRadioUrlInput">URL del stream</label>
+                                          <input type="url" id="editPostRadioUrlInput" class="edit-post-input edit-post-highlight" placeholder="URL del stream o música (mp3, aac, pls...)">
+                                        </div>
+                                        <div class="edit-post-grid">
+                                          <div class="edit-post-field">
+                                            <label for="editPostRadioProfileImageInput">Imagen perfil (opcional)</label>
+                                            <input type="file" id="editPostRadioProfileImageInput" class="edit-post-file" accept="image/*">
+                                            <img id="editPostRadioProfilePreview" class="edit-post-preview" alt="Preview perfil">
+                                          </div>
+                                          <div class="edit-post-field">
+                                            <label for="editPostRadioCoverImageInput">Imagen portada (opcional)</label>
+                                            <input type="file" id="editPostRadioCoverImageInput" class="edit-post-file" accept="image/*">
+                                            <img id="editPostRadioCoverPreview" class="edit-post-preview" alt="Preview portada">
+                                          </div>
+                                        </div>
+                                        <div class="edit-post-note">Puedes cambiar el nombre, enlace e imágenes de radio o música.</div>
+                                      </div>
+
+                                      <div id="editPostTvSection" class="edit-post-extra-section">
+                                        <div class="edit-post-grid">
+                                          <div class="edit-post-field">
+                                            <label for="editPostTvMode">Modo</label>
+                                            <select id="editPostTvMode" class="edit-post-select">
+                                              <option value="tv">Crear TV</option>
+                                              <option value="video">Crear Video</option>
+                                            </select>
+                                          </div>
+                                          <div class="edit-post-field">
+                                            <label id="editPostTvUrlLabel" for="editPostTvUrlInput">URL de TV</label>
+                                            <input type="url" id="editPostTvUrlInput" class="edit-post-input edit-post-highlight" placeholder="URL de TV (m3u8, mp4, YouTube...)">
+                                          </div>
+                                        </div>
+                                        <div class="edit-post-field">
+                                          <label id="editPostTvCoverLabel" for="editPostTvCoverImageInput">Portada TV (opcional)</label>
+                                          <input type="file" id="editPostTvCoverImageInput" class="edit-post-file" accept="image/*">
+                                          <img id="editPostTvCoverPreview" class="edit-post-preview" alt="Preview portada TV">
+                                        </div>
+                                        <div class="edit-post-note">Puedes cambiar el tipo, el enlace y la portada de TV o Video.</div>
+                                      </div>
+
                                       <textarea id="editPostTextarea" class="edit-post-textarea" maxlength="500" placeholder="Escribe la descripción..."></textarea>
                                       <div class="edit-post-footer">
                                         <span id="editPostCounter" class="edit-post-counter">0/500</span>
@@ -11457,6 +11731,14 @@
 
         const textarea = modal.querySelector('#editPostTextarea');
         const counter = modal.querySelector('#editPostCounter');
+        const radioModeSelect = modal.querySelector('#editPostRadioMode');
+        const tvModeSelect = modal.querySelector('#editPostTvMode');
+        const radioProfileInput = modal.querySelector('#editPostRadioProfileImageInput');
+        const radioCoverInput = modal.querySelector('#editPostRadioCoverImageInput');
+        const tvCoverInput = modal.querySelector('#editPostTvCoverImageInput');
+        const radioProfilePreview = modal.querySelector('#editPostRadioProfilePreview');
+        const radioCoverPreview = modal.querySelector('#editPostRadioCoverPreview');
+        const tvCoverPreview = modal.querySelector('#editPostTvCoverPreview');
         const updateCounter = () => {
           if (!textarea || !counter) return;
           counter.textContent = `${textarea.value.length}/500`;
@@ -11466,6 +11748,20 @@
 
         const closeModal = () => {
           modal.style.display = 'none';
+          const radioNameInput = modal.querySelector('#editPostRadioNameInput');
+          const radioUrlInput = modal.querySelector('#editPostRadioUrlInput');
+          const tvUrlInput = modal.querySelector('#editPostTvUrlInput');
+
+          if (textarea) textarea.value = '';
+          if (radioNameInput) radioNameInput.value = '';
+          if (radioUrlInput) radioUrlInput.value = '';
+          if (tvUrlInput) tvUrlInput.value = '';
+          if (radioProfileInput) radioProfileInput.value = '';
+          if (radioCoverInput) radioCoverInput.value = '';
+          if (tvCoverInput) tvCoverInput.value = '';
+          setEditPostPreview(radioProfilePreview, '');
+          setEditPostPreview(radioCoverPreview, '');
+          setEditPostPreview(tvCoverPreview, '');
           editingPostContext = null;
         };
 
@@ -11473,14 +11769,24 @@
           if (event.target === modal) closeModal();
         });
 
+        radioModeSelect?.addEventListener('change', () => syncEditPostRadioModeUI(modal));
+        tvModeSelect?.addEventListener('change', () => syncEditPostTvModeUI(modal));
+        radioProfileInput?.addEventListener('change', () => updateEditPostFilePreview(radioProfileInput, radioProfilePreview));
+        radioCoverInput?.addEventListener('change', () => updateEditPostFilePreview(radioCoverInput, radioCoverPreview));
+        tvCoverInput?.addEventListener('change', () => updateEditPostFilePreview(tvCoverInput, tvCoverPreview));
+
         modal.querySelector('#editPostModalClose')?.addEventListener('click', closeModal);
         modal.querySelector('#editPostCancel')?.addEventListener('click', closeModal);
 
         modal.querySelector('#editPostSave')?.addEventListener('click', async () => {
           if (!editingPostContext || !textarea) return;
 
-          const { postId, renderId } = editingPostContext;
+          const saveBtn = modal.querySelector('#editPostSave');
+          const { postId, renderId, postData, editMode } = editingPostContext;
           const newDescription = textarea.value;
+          const radioNameInput = modal.querySelector('#editPostRadioNameInput');
+          const radioUrlInput = modal.querySelector('#editPostRadioUrlInput');
+          const tvUrlInput = modal.querySelector('#editPostTvUrlInput');
 
           if (!newDescription.trim()) {
             mostrarMensaje('info', 'Descripción vacía', 'La descripción no puede quedar vacía.');
@@ -11493,36 +11799,127 @@
           }
 
           try {
-            await updateDoc(doc(db, 'posts', postId), {
+            if (saveBtn) {
+              saveBtn.disabled = true;
+              saveBtn.textContent = 'Guardando...';
+            }
+
+            const updates = {
               description: newDescription,
               updatedAt: new Date().toISOString(),
-            });
+            };
 
-            const descriptionEl = document.getElementById(`post-description-${renderId}`);
-            if (descriptionEl) {
-              descriptionEl.innerHTML = formatPostDescription(newDescription, renderId);
+            if (editMode === 'radio') {
+              const nextMode = radioModeSelect?.value === 'musica' ? 'musica' : 'radio';
+              const nextName = String(radioNameInput?.value || '').trim();
+              const nextUrl = String(radioUrlInput?.value || '').trim();
+
+              if (!nextName) {
+                mostrarMensaje('info', 'Nombre requerido', nextMode === 'musica' ? 'Escribe el nombre de la música.' : 'Escribe el nombre de la radio.');
+                return;
+              }
+
+              if (!isValidHttpUrlValue(nextUrl)) {
+                mostrarMensaje('error', 'URL inválida', 'Ingresa una URL válida para radio o música.');
+                return;
+              }
+
+              let profileImage = String(postData?.coverimage || '').trim() || (nextMode === 'musica'
+                ? DEFAULT_MUSIC_PROFILE_IMAGE
+                : (window.userData?.fotoURL || DEFAULT_RADIO_PROFILE_IMAGE));
+              let coverImage = String(postData?.radiocover || postData?.posterUrl || postData?.thumbnailUrl || '').trim() || (nextMode === 'musica'
+                ? DEFAULT_MUSIC_COVER_IMAGE
+                : DEFAULT_RADIO_COVER_IMAGE);
+
+              if (radioProfileInput?.files?.[0]) {
+                profileImage = await fileToBase64(radioProfileInput.files[0]);
+              }
+
+              if (radioCoverInput?.files?.[0]) {
+                coverImage = await fileToBase64(radioCoverInput.files[0]);
+              }
+
+              Object.assign(updates, {
+                mediaUrl: nextUrl,
+                mediaType: 'audio/url',
+                postKind: nextMode,
+                tags: [nextMode],
+                radioname: nextName,
+                coverimage: profileImage,
+                radiocover: coverImage,
+                posterUrl: coverImage,
+                thumbnailUrl: coverImage,
+              });
+            } else if (editMode === 'tv') {
+              const nextMode = tvModeSelect?.value === 'video' ? 'video' : 'tv';
+              const nextUrl = String(tvUrlInput?.value || '').trim();
+
+              if (!isValidHttpUrlValue(nextUrl)) {
+                mostrarMensaje('error', 'URL inválida', nextMode === 'video' ? 'Ingresa una URL válida para Video.' : 'Ingresa una URL válida para TV.');
+                return;
+              }
+
+              let coverImage = String(postData?.posterUrl || postData?.thumbnailUrl || '').trim() || DEFAULT_TV_COVER_IMAGE;
+              if (tvCoverInput?.files?.[0]) {
+                coverImage = await fileToBase64(tvCoverInput.files[0]);
+              }
+
+              Object.assign(updates, {
+                mediaUrl: nextUrl,
+                mediaType: inferUrlMediaType(nextUrl),
+                postKind: nextMode,
+                tags: [nextMode === 'video' ? 'video' : 'television'],
+                posterUrl: coverImage,
+                thumbnailUrl: coverImage,
+              });
+            }
+
+            await updateDoc(doc(db, 'posts', postId), updates);
+
+            if (editMode === 'basic') {
+              const descriptionEl = document.getElementById(`post-description-${renderId}`);
+              if (descriptionEl) {
+                descriptionEl.innerHTML = formatPostDescription(newDescription, renderId);
+              }
+            } else {
+              await loadPosts(true);
             }
 
             closeModal();
-            mostrarMensaje('success', '✅ Publicación actualizada', 'La descripción fue actualizada correctamente.');
+            mostrarMensaje('success', '✅ Publicación actualizada', editMode === 'basic'
+              ? 'La descripción fue actualizada correctamente.'
+              : 'La publicación fue actualizada correctamente.');
           } catch (error) {
             console.error('Error editando descripción:', error);
-            mostrarMensaje('error', 'Error', 'No se pudo actualizar la descripción.');
+            mostrarMensaje('error', 'Error', editMode === 'basic'
+              ? 'No se pudo actualizar la descripción.'
+              : 'No se pudo actualizar la publicación.');
+          } finally {
+            if (saveBtn) {
+              saveBtn.disabled = false;
+              saveBtn.textContent = 'Guardar';
+            }
           }
         });
 
         return modal;
       }
 
-      function openEditPostModal({ postId, renderId, currentDescription }) {
+      function openEditPostModal({ postId, renderId, currentDescription, postData }) {
         const modal = ensureEditPostModal();
         const textarea = modal.querySelector('#editPostTextarea');
         const counter = modal.querySelector('#editPostCounter');
         if (!textarea || !counter) return;
 
-        editingPostContext = { postId, renderId };
+        editingPostContext = {
+          postId,
+          renderId,
+          postData: postData || {},
+          editMode: getEditablePostMode(postData || {})
+        };
         textarea.value = currentDescription || '';
         counter.textContent = `${textarea.value.length}/500`;
+        applyEditPostModalState(modal, editingPostContext);
         modal.style.display = 'flex';
         setTimeout(() => {
           textarea.focus();
@@ -11605,6 +12002,7 @@
               postId,
               renderId,
               currentDescription,
+              postData: data,
             });
 
             const menu = editBtn.closest('.post-options-menu');

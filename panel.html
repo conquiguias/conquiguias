@@ -8262,12 +8262,11 @@ function getVideoBlurBackgroundUrl(post) {
 }
 
 const LUNA_AUDIO_EXTENSIONS = new Set([
-  'mp3', 'aac', 'acc', 'm4a', 'ogg', 'oga', 'opus', 'wav', 'weba', 'flac',
-  'm3u', 'm3u8', 'pls', 'asx', 'xspf'
+  'mp3', 'aac', 'acc', 'pls'
 ]);
 
 const CLAPPR_VIDEO_EXTENSIONS = new Set([
-  'mp4', 'webm', 'mov', 'mkv', 'm4v', 'avi', 'ogv', 'ts'
+  'mp4', 'web', 'webm', 'm3u8', 'mov', 'mkv', 'm4v', 'avi', 'ogv', 'ts'
 ]);
 
 function getMediaUrlExtension(mediaUrl) {
@@ -8293,17 +8292,14 @@ function getMediaUrlExtension(mediaUrl) {
 function inferUrlMediaType(mediaUrl) {
   const ext = getMediaUrlExtension(mediaUrl);
   if (LUNA_AUDIO_EXTENSIONS.has(ext)) return 'audio/url';
+  if (CLAPPR_VIDEO_EXTENSIONS.has(ext)) return 'video/url';
   return 'video/url';
 }
 
 function shouldPreferLunaRadio(post) {
-  const mediaType = String(post?.mediaType || '');
   const mediaUrl = String(post?.mediaUrl || '').toLowerCase();
   const ext = getMediaUrlExtension(mediaUrl);
-
-  if (mediaType === 'audio/url' || mediaType.startsWith('audio/')) return true;
-  if (LUNA_AUDIO_EXTENSIONS.has(ext)) return true;
-  return /(radio|stream|shoutcast|icecast|listen|fm)/i.test(mediaUrl);
+  return LUNA_AUDIO_EXTENSIONS.has(ext);
 }
 
 function shouldUseClappr(post) {
@@ -8312,9 +8308,10 @@ function shouldUseClappr(post) {
   const ext = getMediaUrlExtension(mediaUrl);
 
   if (mediaType.startsWith('video/') && mediaType !== 'video/url') return true;
-  if (mediaType === 'video/url' && !shouldPreferLunaRadio(post)) return true;
+  if (mediaType === 'audio/url') return false;
+  if (mediaType === 'video/url') return CLAPPR_VIDEO_EXTENSIONS.has(ext);
   if (CLAPPR_VIDEO_EXTENSIONS.has(ext)) return true;
-  return /(youtube|vimeo|mp4|webm|video)/i.test(mediaUrl) && !shouldPreferLunaRadio(post);
+  return false;
 }
 
 function getSharedPostLink(postId) {
@@ -9885,12 +9882,12 @@ const diffMins = Math.floor(diffMs / 60000);
               if (!container) return;
 
               if (!shouldPreferLunaRadio(post)) {
-                initClapprPlayerWithFallback(containerId, { fromLuna: false });
+                renderPlaybackError(containerId, 'Extensión de audio no compatible para LunaRadio.');
                 return;
               }
 
               if (typeof window.jQuery === 'undefined' || typeof jQuery.fn?.lunaradio !== 'function') {
-                initClapprPlayerWithFallback(containerId, { fromLuna: true });
+                renderPlaybackError(containerId, 'LunaRadio no está disponible.');
                 return;
               }
 
@@ -9956,12 +9953,12 @@ const diffMins = Math.floor(diffMs / 60000);
                 setTimeout(() => {
                   const stillEmpty = !container.querySelector('audio,iframe,canvas,.lunaradio,.jp-audio,.jp-player');
                   if (stillEmpty) {
-                    initClapprPlayerWithFallback(containerId, { fromLuna: true });
+                    renderPlaybackError(containerId, 'LunaRadio no pudo inicializar la reproducción.');
                   }
                 }, 2800);
               } catch (err) {
-                console.warn('⚠️ LunaRadio falló, usando Clappr fallback:', err);
-                initClapprPlayerWithFallback(containerId, { fromLuna: true });
+                console.warn('⚠️ LunaRadio falló:', err);
+                renderPlaybackError(containerId, err?.message || 'Error inicializando LunaRadio.');
               }
             }
 
@@ -10087,7 +10084,7 @@ const diffMins = Math.floor(diffMs / 60000);
                 } else if (shouldUseClappr(post)) {
                   initClapprPlayerWithFallback(streamId, { fromLuna: false });
                 } else {
-                  initLunaRadioPlayer(streamId);
+                  renderPlaybackError(streamId, 'URL no compatible. Usa .mp3/.aac/.acc/.pls para audio o .mp4/.web/.webm/.m3u8 para video.');
                 }
               }, 250);
             } else if (post.mediaType && post.mediaType.startsWith('video/')) {

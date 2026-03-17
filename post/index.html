@@ -1603,6 +1603,30 @@
           usestreamcorsproxy: "true",
           autoplay: "false",
         });
+
+        let lastInteractionAt = 0;
+        const markRadioView = () => {
+          const now = Date.now();
+          if (now - lastInteractionAt < 450) return;
+          lastInteractionAt = now;
+          incrementPostViewCount(post.id);
+        };
+
+        container.addEventListener("click", markRadioView);
+        container.addEventListener("touchstart", markRadioView, {
+          passive: true,
+        });
+
+        const bindAudioPlay = () => {
+          container.querySelectorAll("audio").forEach((audioEl) => {
+            if (audioEl.dataset.cxPlayBound === "1") return;
+            audioEl.dataset.cxPlayBound = "1";
+            audioEl.addEventListener("play", markRadioView);
+          });
+        };
+
+        setTimeout(bindAudioPlay, 250);
+        setTimeout(bindAudioPlay, 1000);
       }
 
       function parseCommentDate(value) {
@@ -1833,7 +1857,7 @@
                   ${isAdminEmail(post.userEmail) ? '<span class="status-admin">Admin</span>' : ""}
                 </div>
                 <div class="post-time">${postDateLabel}</div>
-                ${post.mediaType === "video/url" || String(post.mediaType || "").startsWith("video/") ? `<div class="post-video-views"><i class="fas fa-play-circle views-icon"></i> <span class="view-count-display" data-postid="${post.id}" data-viewcount="${post.viewCount || 0}">${formatReactionCount(post.viewCount || 0)}</span> vistas</div>` : ""}
+                ${(isVideoMedia || isAudioMedia) ? `<div class="post-video-views"><i class="fas fa-play-circle views-icon"></i> <span class="view-count-display" data-postid="${post.id}" data-viewcount="${post.viewCount || 0}">${formatReactionCount(post.viewCount || 0)}</span> vistas</div>` : ""}
               </div>
             </header>
 

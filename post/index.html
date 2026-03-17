@@ -526,13 +526,17 @@
         position: relative;
       }
 
+      .post-description .post-description-clamp-wrap.has-overflow .post-description-text.clamped {
+        padding-right: 96px;
+      }
+
       .read-more-btn {
         background: none;
         border: none;
         color: var(--accent-color);
         cursor: pointer;
         font-weight: bold;
-        padding: 0 0 0 8px;
+        padding: 0 0 0 10px;
         margin: 0;
         font-size: 14px;
         display: none;
@@ -540,7 +544,7 @@
         right: 0;
         bottom: 0;
         line-height: 1.45;
-        background: linear-gradient(to right, transparent, var(--bg-card) 32%);
+        background: linear-gradient(to right, transparent, var(--bg-card) 24%, var(--bg-card) 100%);
         white-space: nowrap;
         z-index: 1;
       }
@@ -549,7 +553,19 @@
         display: inline-block;
       }
 
-      .read-more-btn:hover {
+      .read-less-btn {
+        background: none;
+        border: none;
+        color: var(--accent-color);
+        cursor: pointer;
+        font-weight: bold;
+        padding: 6px 0 0;
+        font-size: 14px;
+        display: inline-block;
+      }
+
+      .read-more-btn:hover,
+      .read-less-btn:hover {
         color: var(--accent-hover);
         text-decoration: underline;
       }
@@ -2023,16 +2039,19 @@
 
         const isExpanded = normalizedPostId && postReadMoreExpanded.has(normalizedPostId);
         const fullFormattedText = formatRichText(fullText);
+        const encodedPostId = encodeURIComponent(normalizedPostId);
 
         if (isExpanded) {
-          return `<div class="post-description-text">${fullFormattedText}</div>`;
+          return `
+            <div class="post-description-text">${fullFormattedText}</div>
+            <button class="read-less-btn" type="button" data-read-toggle-postid="${encodedPostId}">Ver menos</button>
+          `;
         }
 
-        const encodedPostId = encodeURIComponent(normalizedPostId);
         return `
           <div class="post-description-clamp-wrap" data-readmore-wrap="${encodedPostId}">
             <div class="post-description-text clamped">${fullFormattedText}</div>
-            <button class="read-more-btn" type="button" data-read-more-postid="${encodedPostId}">... Leer más</button>
+            <button class="read-more-btn" type="button" data-read-toggle-postid="${encodedPostId}">... Leer más</button>
           </div>
         `;
       }
@@ -2059,8 +2078,14 @@
         const fullText = postReadMoreCache.get(normalizedPostId) || "";
         if (!descriptionElement || !fullText) return;
 
-        postReadMoreExpanded.add(normalizedPostId);
-        descriptionElement.innerHTML = `<div class="post-description-text">${formatRichText(fullText)}</div>`;
+        if (postReadMoreExpanded.has(normalizedPostId)) {
+          postReadMoreExpanded.delete(normalizedPostId);
+        } else {
+          postReadMoreExpanded.add(normalizedPostId);
+        }
+
+        descriptionElement.innerHTML = formatPostDescription(fullText, normalizedPostId);
+        requestAnimationFrame(() => applyReadMoreOverflowState(descriptionElement));
       }
 
       function getCommentsPanelMarkup(postIdValue, comments = []) {
@@ -2301,9 +2326,9 @@
           }, 250);
         }
 
-        postRoot.querySelectorAll(".read-more-btn[data-read-more-postid]").forEach((btn) => {
+        postRoot.querySelectorAll("button[data-read-toggle-postid]").forEach((btn) => {
           btn.addEventListener("click", () => {
-            const encodedId = btn.getAttribute("data-read-more-postid") || "";
+            const encodedId = btn.getAttribute("data-read-toggle-postid") || "";
             if (!encodedId) return;
             toggleReadMore(decodeURIComponent(encodedId));
           });

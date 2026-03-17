@@ -3480,13 +3480,17 @@
       position: relative;
     }
 
+    .post-description .post-description-clamp-wrap.has-overflow .post-description-text.clamped {
+      padding-right: 96px;
+    }
+
     .read-more-btn {
       background: none !important;
       border: none !important;
       color: var(--accent-color) !important;
       cursor: pointer !important;
       font-weight: bold !important;
-      padding: 0 0 0 8px !important;
+      padding: 0 0 0 10px !important;
       font-size: 14px !important;
       transition: all 0.2s ease !important;
       display: none !important;
@@ -3495,7 +3499,7 @@
       right: 0 !important;
       bottom: 0 !important;
       line-height: 1.45 !important;
-      background: linear-gradient(to right, transparent, var(--bg-card) 32%) !important;
+      background: linear-gradient(to right, transparent, var(--bg-card) 24%, var(--bg-card) 100%) !important;
       white-space: nowrap !important;
       z-index: 1 !important;
     }
@@ -3504,7 +3508,19 @@
       display: inline-block !important;
     }
 
-    .read-more-btn:hover {
+    .read-less-btn {
+      background: none !important;
+      border: none !important;
+      color: var(--accent-color) !important;
+      cursor: pointer !important;
+      font-weight: bold !important;
+      padding: 6px 0 0 !important;
+      font-size: 14px !important;
+      display: inline-block !important;
+    }
+
+    .read-more-btn:hover,
+    .read-less-btn:hover {
       color: var(--accent-hover) !important;
       text-decoration: underline !important;
     }
@@ -11560,12 +11576,15 @@
 
         const isExpanded = normalizedPostId && postReadMoreExpanded.has(normalizedPostId);
         const fullFormattedText = formatRichText(fullText);
+        const encodedPostId = encodeURIComponent(normalizedPostId);
 
         if (isExpanded) {
-          return `<div class="post-description-text">${fullFormattedText}</div>`;
+          return `
+            <div class="post-description-text">${fullFormattedText}</div>
+            <button class="read-less-btn" type="button" onclick="toggleReadMore(decodeURIComponent('${encodedPostId}'))">Ver menos</button>
+          `;
         }
 
-        const encodedPostId = encodeURIComponent(normalizedPostId);
         return `
           <div class="post-description-clamp-wrap" data-readmore-wrap="${encodedPostId}">
             <div class="post-description-text clamped">${fullFormattedText}</div>
@@ -11633,9 +11652,14 @@
         if (!descriptionElement || !fullText) return;
 
         const normalizedPostId = String(postId || '');
-        postReadMoreExpanded.add(normalizedPostId);
-        const fullFormattedText = formatFullText(fullText);
-        descriptionElement.innerHTML = `<div class="post-description-text">${fullFormattedText}</div>`;
+        if (postReadMoreExpanded.has(normalizedPostId)) {
+          postReadMoreExpanded.delete(normalizedPostId);
+        } else {
+          postReadMoreExpanded.add(normalizedPostId);
+        }
+
+        descriptionElement.innerHTML = formatPostDescription(fullText, normalizedPostId);
+        requestAnimationFrame(() => applyReadMoreOverflowState(descriptionElement));
       }
       window.toggleReadMore = toggleReadMore;
 

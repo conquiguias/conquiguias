@@ -8871,6 +8871,8 @@
 
       const MAX_AUTO_INIT_PLAYERS = 1;
       let autoInitializedPlayerCount = 0;
+      let deferredPlayerInitObserver = null;
+      const deferredPlayerInitCallbacks = new WeakMap();
 
       const CLAPPR_VIDEO_EXTENSIONS = new Set([
         'mp4', 'web', 'webm', 'm3u8', 'mov', 'mkv', 'm4v', 'avi', 'ogv', 'ts'
@@ -9056,12 +9058,46 @@
           if (initialized) return;
           initialized = true;
           container.dataset.cxPlayerInitialized = '1';
+          if (deferredPlayerInitObserver) {
+            try { deferredPlayerInitObserver.unobserve(container); } catch (_) { }
+          }
           initFn();
         };
 
+        const ensureDeferredPlayerObserver = () => {
+          if (deferredPlayerInitObserver) return deferredPlayerInitObserver;
+
+          const rootElement = document.getElementById('mainContent') || null;
+          deferredPlayerInitObserver = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+              if (!entry.isIntersecting) return;
+              const target = entry.target;
+              if (!(target instanceof HTMLElement)) return;
+              if (target.dataset.cxPlayerInitBound !== '1') return;
+              if (target.dataset.cxPlayerInitialized === '1') return;
+              const deferredInit = deferredPlayerInitCallbacks.get(target);
+              if (typeof deferredInit === 'function') {
+                deferredInit();
+              }
+            });
+          }, {
+            root: rootElement,
+            rootMargin: '260px 0px',
+            threshold: 0.08
+          });
+
+          return deferredPlayerInitObserver;
+        };
+
         container.dataset.cxPlayerInitBound = '1';
+        deferredPlayerInitCallbacks.set(container, runInit);
         container.addEventListener('click', runInit, { once: true });
         container.addEventListener('touchstart', runInit, { once: true, passive: true });
+
+        const observer = ensureDeferredPlayerObserver();
+        if (observer) {
+          observer.observe(container);
+        }
 
         if (auto) {
           setTimeout(runInit, 220);
@@ -10639,6 +10675,10 @@
               } catch (_) { }
             });
             window._lunaPlayers = {};
+          }
+          if (deferredPlayerInitObserver) {
+            try { deferredPlayerInitObserver.disconnect(); } catch (_) { }
+            deferredPlayerInitObserver = null;
           }
           autoInitializedPlayerCount = 0;
           feed.innerHTML = '';

@@ -8981,6 +8981,38 @@
         return false;
       }
 
+      function resolveClapprSourceUrl(post) {
+        const mediaUrl = String(post?.mediaUrl || '').trim();
+        if (!mediaUrl) return mediaUrl;
+
+        const mediaType = String(post?.mediaType || '').toLowerCase();
+        const ext = getMediaUrlExtension(mediaUrl);
+        if (CLAPPR_VIDEO_EXTENSIONS.has(ext)) return mediaUrl;
+        if (!(mediaType === 'video/url' || mediaType.startsWith('video/'))) return mediaUrl;
+
+        try {
+          const parsed = new URL(mediaUrl, window.location.origin);
+          if (!/imgur\.com$/i.test(parsed.hostname)) return mediaUrl;
+
+          const fileName = (parsed.pathname || '').split('/').pop() || '';
+          const dotAt = fileName.lastIndexOf('.');
+          if (dotAt <= 0) return mediaUrl;
+
+          let imgurId = fileName.slice(0, dotAt);
+          const fileExt = fileName.slice(dotAt + 1).toLowerCase();
+          if (!['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(fileExt)) return mediaUrl;
+
+          if (imgurId.length > 6 && /[sbtmlh]$/i.test(imgurId)) {
+            imgurId = imgurId.slice(0, -1);
+          }
+
+          if (!/^[a-z0-9]+$/i.test(imgurId)) return mediaUrl;
+          return `https://i.imgur.com/${imgurId}.mp4`;
+        } catch (_) {
+          return mediaUrl;
+        }
+      }
+
       function getAvailableClapprPlugins() {
         const plugins = [];
 
@@ -9038,7 +9070,7 @@
       }
 
       function buildClapprPlayerOptions(containerId, post) {
-        const mediaUrl = String(post?.mediaUrl || '').trim();
+        const mediaUrl = resolveClapprSourceUrl(post);
         const ext = getMediaUrlExtension(mediaUrl);
         const isHls = ext === 'm3u8' || /\.m3u8(?:$|[?#])/i.test(mediaUrl);
         const posterUrl = post?.posterUrl || post?.radiocover || getVideoBlurBackgroundUrl(post) || DEFAULT_TV_COVER_IMAGE;

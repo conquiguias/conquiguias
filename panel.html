@@ -10777,99 +10777,9 @@
         const viewCount = getPostViewCount(post);
         const esVideo = !!(post.mediaType && (post.mediaType === 'video/url' || post.mediaType === 'audio/url' || post.mediaType.startsWith('video/') || post.mediaType.startsWith('audio/')));
 
-        function normalizePlaybackError(errorLike) {
-          const normalizeMessageText = (value, fallback = 'No se pudo reproducir este contenido.') => {
-            let text = String(value || '').trim();
-            if (!text || /^\[object\s+Object\]$/i.test(text)) {
-              return fallback;
-            }
-
-            text = text
-              .replace(/\bclappr\b/ig, '')
-              .replace(/\bluna\s*radio\b/ig, '')
-              .replace(/\s{2,}/g, ' ')
-              .trim();
-
-            return text || fallback;
-          };
-
-          if (!errorLike) {
-            return {
-              message: 'No se pudo reproducir este contenido.',
-              details: ''
-            };
-          }
-
-          if (typeof errorLike === 'string') {
-            return {
-              message: normalizeMessageText(errorLike),
-              details: ''
-            };
-          }
-
-          if (errorLike instanceof Error) {
-            return {
-              message: normalizeMessageText(errorLike.message || errorLike.name),
-              details: errorLike.stack || ''
-            };
-          }
-
-          const messageFromDetails = typeof errorLike.details === 'object'
-            ? (errorLike.details?.message || errorLike.details?.error || errorLike.details?.description || '')
-            : errorLike.details;
-
-          const messageCandidates = [
-            errorLike.message,
-            errorLike.error,
-            messageFromDetails,
-            errorLike.description,
-            errorLike.code,
-            errorLike.type,
-            errorLike.statusText,
-          ].filter(value => value != null && String(value).trim());
-
-          return {
-            message: normalizeMessageText(messageCandidates.length ? messageCandidates[0] : ''),
-            details: ''
-          };
-        }
-
-        function getNativeMediaErrorMessage(mediaError) {
-          if (!mediaError) return 'Error nativo del reproductor.';
-
-          const code = Number(mediaError.code) || 0;
-          const codeMap = {
-            1: 'MEDIA_ERR_ABORTED: la reproducción fue abortada por el navegador o el usuario.',
-            2: 'MEDIA_ERR_NETWORK: ocurrió un error de red mientras se descargaba el medio.',
-            3: 'MEDIA_ERR_DECODE: el navegador no pudo decodificar el medio.',
-            4: 'MEDIA_ERR_SRC_NOT_SUPPORTED: no se encontró una fuente compatible o el formato no es soportado.',
-          };
-
-          return codeMap[code] || `Error nativo del medio. Código: ${code}`;
-        }
-
-        function bindNativeMediaError(mediaElement, containerId, providerLabel) {
-          if (!(mediaElement instanceof HTMLMediaElement)) return;
-          if (mediaElement.dataset.cxNativeErrorBound === '1') return;
-          mediaElement.dataset.cxNativeErrorBound = '1';
-
-          mediaElement.addEventListener('error', () => {
-            const nativeMessage = getNativeMediaErrorMessage(mediaElement.error);
-            renderPlaybackError(containerId, nativeMessage, providerLabel);
-          });
-        }
-
         function renderPlaybackError(containerId, errorLike = '', providerLabel = 'Reproductor') {
-          const container = document.getElementById(containerId);
-          if (!container) return;
-          const normalized = normalizePlaybackError(errorLike);
-          container.innerHTML = `
-                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:220px; padding:16px; text-align:center; color:var(--text-primary); background:rgba(15,23,42,0.7); border:1px solid var(--border-color); border-radius:10px;">
-                  <div style="font-size:18px; margin-bottom:8px;"><i class="fas fa-exclamation-triangle" style="color:var(--warning-color);"></i></div>
-                  <div style="font-weight:600;">Error de reproducción</div>
-                  <div style="font-size:13px; opacity:0.95; margin-top:4px; word-break:break-word;">${escapeHtml(normalized.message)}</div>
-                </div>
-              `;
+          // Dejar que Clappr maneje nativo el error, sin inyectar contenedor personalizado
+          // Clappr mostrará su mensaje por defecto
         }
 
         function initClapprPlayerWithFallback(containerId, context = {}) {
@@ -10896,36 +10806,12 @@
           if (window._clapprPlayers[containerId] && window._clapprPlayers[containerId] !== 'pending') return;
 
           const fail = (reason) => {
-            let resolvedReason = reason;
-            const videoEl = container.querySelector('video');
-
-            if (videoEl?.error) {
-              resolvedReason = {
-                message: getNativeMediaErrorMessage(videoEl.error),
-                details: {
-                  provider: 'Clappr',
-                  event: 'HTMLMediaElement.error',
-                  code: Number(videoEl.error.code) || 0,
-                  currentSrc: videoEl.currentSrc || post.mediaUrl || ''
-                }
-              };
-            } else if (!resolvedReason) {
-              resolvedReason = {
-                message: 'No se pudo reproducir este contenido.',
-                details: {
-                  provider: 'Clappr',
-                  event: 'PLAYER_ERROR',
-                  currentSrc: post.mediaUrl || ''
-                }
-              };
-            }
-
+            // Clappr maneja errores nativamente, solo destruir el player si falla
             try {
               const current = window._clapprPlayers?.[containerId];
               if (current && typeof current.destroy === 'function') current.destroy();
             } catch (_) { }
             window._clapprPlayers[containerId] = null;
-            renderPlaybackError(containerId, resolvedReason, 'Clappr');
           };
 
           try {
@@ -10948,9 +10834,6 @@
             if (Clappr.Events.PLAYER_READY) {
               player.on(Clappr.Events.PLAYER_READY, () => {
                 container.dataset.cxClapprReady = '1';
-                container.querySelectorAll('video').forEach((videoEl) => {
-                  bindNativeMediaError(videoEl, containerId, 'Clappr');
-                });
               });
             }
 
@@ -11052,7 +10935,6 @@
               container.querySelectorAll('audio').forEach((audioEl) => {
                 if (audioEl.dataset.cxPlayBound === '1') return;
                 audioEl.dataset.cxPlayBound = '1';
-                bindNativeMediaError(audioEl, containerId, 'Luna Radio');
                 audioEl.addEventListener('play', () => {
                   pauseOtherPostMedia(containerId);
                   incrementPostViewCount(firestorePostId);

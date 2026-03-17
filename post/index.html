@@ -1486,6 +1486,45 @@
         return plugins;
       }
 
+      function buildClapprPlaybackRateConfig() {
+        return {
+          defaultValue: 1,
+          options: [
+            { value: 0.1, label: "0.1x" },
+            { value: 0.5, label: "0.5x" },
+            { value: 0.75, label: "0.75x" },
+            { value: 1, label: "Normal" },
+            { value: 1.5, label: "1.5x" },
+            { value: 2, label: "2x" },
+            { value: 4, label: "4x" },
+          ],
+        };
+      }
+
+      function buildClapprLevelSelectorConfig() {
+        return {
+          title: "Calidad",
+          labels: {
+            7: "",
+            6: "",
+            5: "",
+            4: "",
+            3: "",
+            2: "",
+            1: "",
+            0: "",
+          },
+          labelCallback(playbackLevel, customLabel) {
+            const height = playbackLevel?.level?.height;
+            if (!height) return customLabel || "Auto";
+            return `${customLabel || ""}${height}p`;
+          },
+          onLevelsAvailable(levels) {
+            return Array.isArray(levels) ? levels.slice().reverse() : levels;
+          },
+        };
+      }
+
       function buildClapprPlayerOptions(containerId, post) {
         const mediaUrl = String(post?.mediaUrl || "").trim();
         const ext = getMediaUrlExtension(mediaUrl);
@@ -1507,11 +1546,26 @@
           disableVideoTagContextMenu: true,
           playbackNotSupportedMessage: "No se puede reproducir.",
           plugins: getAvailableClapprPlugins(),
+          playbackRateConfig: buildClapprPlaybackRateConfig(),
+          levelSelectorConfig: buildClapprLevelSelectorConfig(),
           playback: {
             crossOrigin: "anonymous",
+            extrapolatedWindowNumSegments: 2,
+            triggerFatalErrorOnResourceDenied: false,
             hlsjsConfig: {
-              maxBufferLength: 30,
-              maxBufferSize: 60 * 1000 * 1000,
+              enableWebVTT: true,
+              captions: true,
+              maxBufferLength: 10,
+              maxBufferSize: 12 * 1000 * 1000,
+              liveSyncDuration: 5,
+              liveMaxLatencyDuration: 60,
+              enableWorker: true,
+              enableSoftwareAES: true,
+              capLevelToPlayerSize: true,
+              autoStartLoad: false,
+              startPosition: -1,
+              maxRetries: 6,
+              retryDelay: 2000,
               lowLatencyMode: isHls,
             },
           },
@@ -1521,6 +1575,13 @@
           Object.assign(options, {
             actualLiveTime: true,
             hideMediaControl: true,
+            hlsUseNextLevel: true,
+            hlsMinimumDvrSize: 120,
+            hlsRecoverAttempts: 16,
+            hlsPlayback: {
+              preload: false,
+              customListeners: [],
+            },
           });
         }
         return options;
@@ -1531,6 +1592,23 @@
         const container = document.getElementById(containerId);
         if (!container || !post?.mediaUrl) return;
 
+        container.classList.add("clappr-container");
+        container.dataset.src = post.mediaUrl;
+
+        if (container.dataset.cxClapprInteractionBound !== "1") {
+          container.dataset.cxClapprInteractionBound = "1";
+          container.addEventListener("click", () => {
+            refreshPostMediaLayout(container.closest(".post-card"));
+          });
+          container.addEventListener(
+            "touchstart",
+            () => {
+              refreshPostMediaLayout(container.closest(".post-card"));
+            },
+            { passive: true },
+          );
+        }
+
         if (window._postClapprPlayer) {
           try {
             window._postClapprPlayer.destroy();
@@ -1538,12 +1616,49 @@
           window._postClapprPlayer = null;
         }
 
-        window._postClapprPlayer = new Clappr.Player(
-          buildClapprPlayerOptions(containerId, post),
-        );
-        window._postClapprPlayer.on(Clappr.Events.PLAYER_PLAY, () => {
-          incrementPostViewCount(post.id);
-        });
+        const fail = () => {
+          try {
+            if (window._postClapprPlayer && typeof window._postClapprPlayer.destroy === "function") {
+              window._postClapprPlayer.destroy();
+            }
+          } catch (_) {}
+          window._postClapprPlayer = null;
+        };
+
+        try {
+          window._postClapprPlayer = new Clappr.Player(
+            buildClapprPlayerOptions(containerId, post),
+          );
+
+          try {
+            const clickToPausePlugin =
+              window._postClapprPlayer.getPlugin &&
+              window._postClapprPlayer.getPlugin("click_to_pause");
+            if (clickToPausePlugin && typeof clickToPausePlugin.disable === "function") {
+              clickToPausePlugin.disable();
+            }
+          } catch (_) {}
+
+          window._postClapprPlayer.on(Clappr.Events.PLAYER_PLAY, () => {
+            incrementPostViewCount(post.id);
+          });
+
+          if (Clappr.Events.PLAYER_READY) {
+            window._postClapprPlayer.on(Clappr.Events.PLAYER_READY, () => {
+              container.dataset.cxClapprReady = "1";
+            });
+          }
+
+          if (Clappr.Events.PLAYER_ERROR) {
+            window._postClapprPlayer.on(Clappr.Events.PLAYER_ERROR, fail);
+          }
+
+          if (Clappr.Events.ERROR) {
+            window._postClapprPlayer.on(Clappr.Events.ERROR, fail);
+          }
+        } catch (_) {
+          fail();
+        }
       }
 
       function destroySinglePostMediaPlayers() {
@@ -1598,9 +1713,14 @@
             80,
           );
 
+        container.classList.add("lunaradio-host");
         container.style.backgroundImage = `url(${posterUrl})`;
         container.style.backgroundSize = "cover";
         container.style.backgroundPosition = "center";
+        container.style.display = "flex";
+        container.style.width = "100%";
+        container.style.height = "100%";
+        container.style.minHeight = "220px";
 
         window._postLunaInstance = jq(`#${containerId}`).lunaradio({
           userinterface: "big",
@@ -1623,28 +1743,44 @@
           color2: "f1666d",
           color3: "e6f62f",
           color4: "#e6f62f",
+          itunestoken: "1000lIPN",
           metadatatechnic: "corsproxy",
+          ownmetadataurl: "",
           streamurl: post.mediaUrl,
           streamtype: "shoutcast2",
+          zenoid: "a536jtganoeuv",
+          icecastmountpoint: "",
+          radionomyid: "",
+          radionomyapikey: "",
+          radiozenoid: "",
+          radiojarid: "",
+          radiocoid: "",
+          shoutcastpath: "",
           shoutcastid: "1",
+          streamsuffix: "",
+          metadatainterval: "20000",
           volume: "50",
           debug: "false",
           usestreamcorsproxy: "true",
+          corsproxy: "",
           autoplay: "false",
         });
 
         let lastInteractionAt = 0;
         const markRadioView = () => {
           const now = Date.now();
-          if (now - lastInteractionAt < 450) return;
+          if (now - lastInteractionAt < 400) return;
           lastInteractionAt = now;
           incrementPostViewCount(post.id);
         };
 
-        container.addEventListener("click", markRadioView);
-        container.addEventListener("touchstart", markRadioView, {
-          passive: true,
-        });
+        if (container.dataset.cxLunaInteractionBound !== "1") {
+          container.dataset.cxLunaInteractionBound = "1";
+          container.addEventListener("click", markRadioView);
+          container.addEventListener("touchstart", markRadioView, {
+            passive: true,
+          });
+        }
 
         const bindAudioPlay = () => {
           container.querySelectorAll("audio").forEach((audioEl) => {

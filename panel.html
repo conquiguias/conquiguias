@@ -8869,6 +8869,9 @@
         'mp3', 'aac', 'acc', 'pls', 'm3u', 'ogg', 'oga', 'm4a', 'opus', 'weba', 'flac', 'wav'
       ]);
 
+      const MAX_AUTO_INIT_PLAYERS = 1;
+      let autoInitializedPlayerCount = 0;
+
       const CLAPPR_VIDEO_EXTENSIONS = new Set([
         'mp4', 'web', 'webm', 'm3u8', 'mov', 'mkv', 'm4v', 'avi', 'ogv', 'ts'
       ]);
@@ -9002,16 +9005,16 @@
             hlsjsConfig: {
               enableWebVTT: true,
               captions: true,
-              maxBufferLength: 30,
-              maxBufferSize: 60 * 1000 * 1000,
+              maxBufferLength: 10,
+              maxBufferSize: 12 * 1000 * 1000,
               liveSyncDuration: 5,
               liveMaxLatencyDuration: 60,
               enableWorker: true,
               enableSoftwareAES: true,
               capLevelToPlayerSize: true,
-              autoStartLoad: true,
+              autoStartLoad: false,
               startPosition: -1,
-              maxRetries: 9999,
+              maxRetries: 6,
               retryDelay: 2000,
               lowLatencyMode: isHls,
             },
@@ -9026,7 +9029,7 @@
             hlsMinimumDvrSize: 120,
             hlsRecoverAttempts: 16,
             hlsPlayback: {
-              preload: true,
+              preload: false,
               customListeners: [],
             },
           });
@@ -9041,6 +9044,28 @@
         const shareUrl = new URL('/post', window.location.origin);
         shareUrl.searchParams.set('id', resolvedPostId);
         return shareUrl.toString();
+      }
+
+      function queuePlayerInitialization(containerId, initFn, { auto = false } = {}) {
+        const container = document.getElementById(containerId);
+        if (!container || typeof initFn !== 'function') return;
+        if (container.dataset.cxPlayerInitBound === '1') return;
+
+        let initialized = false;
+        const runInit = () => {
+          if (initialized) return;
+          initialized = true;
+          container.dataset.cxPlayerInitialized = '1';
+          initFn();
+        };
+
+        container.dataset.cxPlayerInitBound = '1';
+        container.addEventListener('click', runInit, { once: true });
+        container.addEventListener('touchstart', runInit, { once: true, passive: true });
+
+        if (auto) {
+          setTimeout(runInit, 220);
+        }
       }
 
       function getShareEmbedCode(postUrl) {
@@ -10615,6 +10640,7 @@
             });
             window._lunaPlayers = {};
           }
+          autoInitializedPlayerCount = 0;
           feed.innerHTML = '';
 
           // 🔴 LIVE: Si hay transmisión activa, inyectar el post en vivo directamente por ID
@@ -11215,7 +11241,8 @@
         // Inicialización de reproductores por tipo de media
         if (post.mediaType && (post.mediaType === 'video/url' || post.mediaType === 'audio/url')) {
           const streamId = `stream-player-${renderPostId}`;
-          setTimeout(() => {
+          const shouldAutoInit = autoInitializedPlayerCount < MAX_AUTO_INIT_PLAYERS;
+          queuePlayerInitialization(streamId, () => {
             if (shouldPreferLunaRadio(post)) {
               initLunaRadioPlayer(streamId);
             } else if (shouldUseClappr(post)) {
@@ -11223,12 +11250,15 @@
             } else {
               renderPlaybackError(streamId, 'URL no compatible. Usa .mp3/.aac/.acc/.pls para audio o .mp4/.web/.webm/.m3u8 para video.');
             }
-          }, 250);
+          }, { auto: shouldAutoInit });
+          if (shouldAutoInit) autoInitializedPlayerCount++;
         } else if (post.mediaType && post.mediaType.startsWith('video/')) {
           const pid = `clappr-player-${renderPostId}`;
-          setTimeout(() => {
+          const shouldAutoInit = autoInitializedPlayerCount < MAX_AUTO_INIT_PLAYERS;
+          queuePlayerInitialization(pid, () => {
             initClapprPlayerWithFallback(pid, { fromLuna: false });
-          }, 250);
+          }, { auto: shouldAutoInit });
+          if (shouldAutoInit) autoInitializedPlayerCount++;
         }
       }
 

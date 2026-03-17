@@ -1547,11 +1547,6 @@
       }
 
       function destroySinglePostMediaPlayers() {
-        if (window._postMediaMountTimer) {
-          clearTimeout(window._postMediaMountTimer);
-          window._postMediaMountTimer = null;
-        }
-
         if (window._postClapprPlayer) {
           try {
             window._postClapprPlayer.destroy();
@@ -1567,34 +1562,6 @@
           } catch (_) {}
           window._postLunaInstance = null;
         }
-      }
-
-      function scheduleSinglePostMediaMount(post, delay = 180) {
-        const safePost = post || currentPost;
-        if (!safePost) return;
-
-        if (window._postMediaMountTimer) {
-          clearTimeout(window._postMediaMountTimer);
-        }
-
-        const renderPostId = String(safePost.id || "").replace(/[^a-zA-Z0-9_-]/g, "");
-        const isAudioMedia = shouldPreferLunaRadio(safePost);
-        const isVideoMedia = shouldUseClappr(safePost);
-
-        window._postMediaMountTimer = setTimeout(() => {
-          window._postMediaMountTimer = null;
-
-          if (safePost.id !== currentPost?.id) return;
-
-          if (isVideoMedia && safePost.mediaUrl) {
-            initClapprPlayerWithFallback(`clappr-post-player-${renderPostId}`, safePost);
-            return;
-          }
-
-          if (isAudioMedia && safePost.mediaUrl) {
-            initLunaRadioPlayer(`stream-post-player-${renderPostId}`, safePost);
-          }
-        }, Math.max(0, delay));
       }
 
       function initLunaRadioPlayer(containerId, post) {
@@ -1691,13 +1658,33 @@
         setTimeout(bindAudioPlay, 1000);
       }
 
-      function refreshPostMediaLayout(post) {
-        const safePost = post || currentPost;
-        if (!safePost) return;
+      function refreshPostMediaLayout(postCard) {
+        if (!postCard) return;
 
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            scheduleSinglePostMediaMount(safePost, 60);
+            window.dispatchEvent(new Event("resize"));
+
+            postCard.querySelectorAll(".clappr-container").forEach((container) => {
+              const player = window._postClapprPlayer;
+              if (!player || typeof player.resize !== "function") return;
+
+              const width = container.clientWidth || 0;
+              const height = container.clientHeight || 0;
+
+              try {
+                if (width > 0 && height > 0) {
+                  player.resize({ width, height });
+                } else {
+                  player.resize();
+                }
+              } catch (_) {}
+            });
+
+            postCard.querySelectorAll(".lunaradio-host, .lunaradio-host .lunaaudioplayer").forEach((el) => {
+              el.style.width = "100%";
+              el.style.height = "100%";
+            });
           });
         });
       }
@@ -1985,6 +1972,16 @@
         postRoot.style.display = "flex";
         stateEl.style.display = "none";
 
+        if (isVideoMedia && post.mediaUrl) {
+          setTimeout(() => {
+            initClapprPlayerWithFallback(`clappr-post-player-${renderPostId}`, post);
+          }, 250);
+        } else if (isAudioMedia && post.mediaUrl) {
+          setTimeout(() => {
+            initLunaRadioPlayer(`stream-post-player-${renderPostId}`, post);
+          }, 250);
+        }
+
         // Auto-open comments sidebar on desktop
         if (window.matchMedia("(min-width: 981px)").matches) {
           const commentsSideAuto = document.getElementById(
@@ -1994,10 +1991,9 @@
           if (commentsSideAuto && postCardAuto) {
             commentsSideAuto.classList.remove("hidden");
             postCardAuto.classList.add("comments-open");
+            refreshPostMediaLayout(postCardAuto);
           }
         }
-
-        scheduleSinglePostMediaMount(post);
 
         document.getElementById("shareBtn")?.addEventListener("click", () => {
           openShareModal(post.id, post.shareCount || 0);
@@ -2026,7 +2022,7 @@
             } else {
               postCard.classList.remove("comments-open");
             }
-            refreshPostMediaLayout(post);
+            refreshPostMediaLayout(postCard);
           });
 
         postRoot.querySelectorAll(".reaction-btn").forEach((btn) => {

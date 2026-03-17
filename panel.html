@@ -9070,7 +9070,7 @@
               enableWorker: true,
               enableSoftwareAES: true,
               capLevelToPlayerSize: true,
-              autoStartLoad: false,
+              autoStartLoad: true,
               startPosition: -1,
               maxRetries: 6,
               retryDelay: 2000,
@@ -9082,12 +9082,12 @@
         if (isHls) {
           Object.assign(options, {
             actualLiveTime: true,
-            hideMediaControl: true,
+            hideMediaControl: false,
             hlsUseNextLevel: true,
             hlsMinimumDvrSize: 120,
             hlsRecoverAttempts: 16,
             hlsPlayback: {
-              preload: false,
+              preload: true,
               customListeners: [],
             },
           });

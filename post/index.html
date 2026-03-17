@@ -1443,14 +1443,27 @@
         return LUNA_AUDIO_EXTENSIONS.has(ext);
       }
 
+      function hasKnownVideoProvider(mediaUrl) {
+        const value = String(mediaUrl || "").toLowerCase().trim();
+        if (!value) return false;
+        return (
+          /(?:youtube\.com|youtu\.be|vimeo\.com|dailymotion\.com|dai\.ly|streamable\.com|twitch\.tv|kick\.com|fb\.watch|facebook\.com\/watch)/i.test(value) ||
+          /\.gifv(?:$|[?#])/i.test(value)
+        );
+      }
+
       function shouldUseClappr(post) {
         const mediaType = String(post?.mediaType || "").toLowerCase();
         const mediaUrl = String(post?.mediaUrl || "").toLowerCase();
         const ext = getMediaUrlExtension(mediaUrl);
+        const imgurDataType = String(post?.imgurData?.type || "").toLowerCase();
 
         if (mediaType.startsWith("video/") && mediaType !== "video/url") return true;
         if (mediaType === "audio/url") return false;
         if (mediaType === "video/url") return !LUNA_AUDIO_EXTENSIONS.has(ext);
+        if (imgurDataType.startsWith("video/")) return true;
+        if (typeof post?.imgurData?.mp4 === "string" && post.imgurData.mp4.trim()) return true;
+        if (hasKnownVideoProvider(mediaUrl)) return true;
         if (CLAPPR_VIDEO_EXTENSIONS.has(ext)) return true;
         return false;
       }
@@ -1460,9 +1473,14 @@
         if (!mediaUrl) return mediaUrl;
 
         const mediaType = String(post?.mediaType || "").toLowerCase();
+        const imgurMp4 = String(post?.imgurData?.mp4 || "").trim();
         const ext = getMediaUrlExtension(mediaUrl);
+        if (imgurMp4) return imgurMp4;
+        if (/\.gifv(?:$|[?#])/i.test(mediaUrl)) {
+          return mediaUrl.replace(/\.gifv(?:$|[?#])/i, ".mp4");
+        }
         if (CLAPPR_VIDEO_EXTENSIONS.has(ext)) return mediaUrl;
-        if (!(mediaType === "video/url" || mediaType.startsWith("video/"))) return mediaUrl;
+        if (!(mediaType === "video/url" || mediaType.startsWith("video/") || hasKnownVideoProvider(mediaUrl))) return mediaUrl;
 
         try {
           const parsed = new URL(mediaUrl, window.location.origin);
@@ -2053,9 +2071,9 @@
         const postDateLabel = getPostDateLabel(post.timestamp);
         const renderPostId = String(post.id || "").replace(/[^a-zA-Z0-9_-]/g, "");
 
-        const isImageMedia = String(post.mediaType || "").startsWith("image/");
         const isAudioMedia = shouldPreferLunaRadio(post);
-        const isVideoMedia = shouldUseClappr(post);
+        const isVideoMedia = !isAudioMedia && shouldUseClappr(post);
+        const isImageMedia = !isAudioMedia && !isVideoMedia && String(post.mediaType || "").startsWith("image/");
 
         const mediaHtml = isImageMedia
           ? `<div class="media-blur-shell">

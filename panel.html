@@ -3461,6 +3461,21 @@
       overflow: visible;
     }
 
+    .post-description .post-description-text {
+      display: block;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    .post-description .post-description-text.clamped {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      overflow: hidden;
+    }
+
     .read-more-btn {
       background: none !important;
       border: none !important;
@@ -3470,7 +3485,8 @@
       padding: 5px 0 !important;
       font-size: 14px !important;
       transition: all 0.2s ease !important;
-      display: inline-block !important;
+      display: block !important;
+      margin-top: 4px !important;
     }
 
     .read-more-btn:hover {
@@ -10533,6 +10549,7 @@
       }
 
       const postReadMoreCache = new Map();
+      const postReadMoreExpanded = new Set();
 
       function initializeFeedCategoryTabs() {
         const tabsContainer = document.getElementById('postCategoryTabs');
@@ -11518,24 +11535,28 @@
       function formatPostDescription(text, postId) {
         if (!text || typeof text !== 'string') return '';
 
-        const MAX_LENGTH = 300;
-        const hasLongText = text.length > MAX_LENGTH;
-        const displayText = hasLongText ? `${text.substring(0, MAX_LENGTH)}...` : text;
+        const MAX_PREVIEW_CHARS = 170;
         const normalizedPostId = String(postId || '');
+        const fullText = text;
 
         if (normalizedPostId) {
-          postReadMoreCache.set(normalizedPostId, text);
+          postReadMoreCache.set(normalizedPostId, fullText);
         }
 
-        let formattedText = formatRichText(displayText);
+        const shouldClamp = fullText.length > MAX_PREVIEW_CHARS;
+        const isExpanded = normalizedPostId && postReadMoreExpanded.has(normalizedPostId);
+        const fullFormattedText = formatRichText(fullText);
 
-        if (hasLongText) {
+        if (!shouldClamp || isExpanded) {
+          return `<div class="post-description-text">${fullFormattedText}</div>`;
+        }
+
+        let formattedText = `<div class="post-description-text clamped">${fullFormattedText}</div>`;
+
+        if (shouldClamp) {
           const encodedPostId = encodeURIComponent(normalizedPostId);
           formattedText += `
-                <br>
-                <button class="read-more-btn" onclick="toggleReadMore(decodeURIComponent('${encodedPostId}'))" style="background: none; border: none; color: var(--accent-color); 
-                     cursor: pointer; font-weight: bold; padding: 5px 0; margin-top: 5px;
-                     font-size: 14px;">
+                <button class="read-more-btn" type="button" onclick="toggleReadMore(decodeURIComponent('${encodedPostId}'))">
                   Leer más
                 </button>
                 `;
@@ -11582,30 +11603,14 @@
       // 🔹 Alternar entre texto completo y texto corto
       function toggleReadMore(postId) {
         const descriptionElement = document.getElementById(`post-description-${postId}`);
-        const readMoreBtn = descriptionElement.querySelector('.read-more-btn');
         const fullText = postReadMoreCache.get(String(postId || '')) || '';
 
-        if (!descriptionElement || !readMoreBtn || !fullText) return;
+        if (!descriptionElement || !fullText) return;
 
-        const isExpanded = readMoreBtn.textContent === 'Leer menos';
-
-        if (isExpanded) {
-          // Contraer texto
-          const shortText = formatPostDescription(fullText, postId);
-          descriptionElement.innerHTML = shortText;
-        } else {
-          // Expandir texto completo
-          const fullFormattedText = formatFullText(fullText);
-          const encodedPostId = encodeURIComponent(String(postId || ''));
-          descriptionElement.innerHTML = fullFormattedText + `
-                <br>
-                <button class="read-more-btn" onclick="toggleReadMore(decodeURIComponent('${encodedPostId}'))" style="background: none; border: none; color: var(--accent-color); 
-                     cursor: pointer; font-weight: bold; padding: 5px 0; margin-top: 5px;
-                     font-size: 14px;">
-                  Leer menos
-                </button>
-                `;
-        }
+        const normalizedPostId = String(postId || '');
+        postReadMoreExpanded.add(normalizedPostId);
+        const fullFormattedText = formatFullText(fullText);
+        descriptionElement.innerHTML = `<div class="post-description-text">${fullFormattedText}</div>`;
       }
 
       // 🔹 Formatear texto completo (sin límite de caracteres)

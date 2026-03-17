@@ -505,7 +505,38 @@
         color: var(--text-primary);
         font-size: 14px;
         line-height: 1.45;
+      }
+
+      .post-description .post-description-text {
+        display: block;
         white-space: pre-wrap;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+      }
+
+      .post-description .post-description-text.clamped {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+        overflow: hidden;
+      }
+
+      .read-more-btn {
+        background: none;
+        border: none;
+        color: var(--accent-color);
+        cursor: pointer;
+        font-weight: bold;
+        padding: 5px 0;
+        margin-top: 4px;
+        font-size: 14px;
+        display: block;
+      }
+
+      .read-more-btn:hover {
+        color: var(--accent-hover);
+        text-decoration: underline;
       }
 
       .post-body-layout {
@@ -890,6 +921,8 @@
       let currentUserProfile = null;
       let currentPost = null;
       let isGuest = true;
+      const postReadMoreCache = new Map();
+      const postReadMoreExpanded = new Set();
       let hasAuthenticatedSessionInThisView = false;
       let ADMIN_EMAILS = [];
       const LEGACY_LIVE_POST_ID = "__live_stream__";
@@ -1963,9 +1996,40 @@
         return withLinks.replace(/\n/g, "<br>");
       }
 
-      function formatPostDescription(text) {
+      function formatPostDescription(text, postId) {
         if (!text || typeof text !== "string") return "";
-        return formatRichText(text);
+
+        const normalizedPostId = String(postId || "");
+        const MAX_PREVIEW_CHARS = 170;
+        const fullText = text;
+
+        if (normalizedPostId) {
+          postReadMoreCache.set(normalizedPostId, fullText);
+        }
+
+        const shouldClamp = fullText.length > MAX_PREVIEW_CHARS;
+        const isExpanded = normalizedPostId && postReadMoreExpanded.has(normalizedPostId);
+        const fullFormattedText = formatRichText(fullText);
+
+        if (!shouldClamp || isExpanded) {
+          return `<div class="post-description-text">${fullFormattedText}</div>`;
+        }
+
+        const encodedPostId = encodeURIComponent(normalizedPostId);
+        return `
+          <div class="post-description-text clamped">${fullFormattedText}</div>
+          <button class="read-more-btn" type="button" data-read-more-postid="${encodedPostId}">Leer más</button>
+        `;
+      }
+
+      function toggleReadMore(postId) {
+        const normalizedPostId = String(postId || "");
+        const descriptionElement = document.getElementById(`post-description-${normalizedPostId}`);
+        const fullText = postReadMoreCache.get(normalizedPostId) || "";
+        if (!descriptionElement || !fullText) return;
+
+        postReadMoreExpanded.add(normalizedPostId);
+        descriptionElement.innerHTML = `<div class="post-description-text">${formatRichText(fullText)}</div>`;
       }
 
       function getCommentsPanelMarkup(postIdValue, comments = []) {
@@ -2149,7 +2213,7 @@
             <div class="post-body-layout">
               <div class="post-main-column">
                 <div class="post-content">${mediaHtml}</div>
-                <div class="post-description">${formatPostDescription(post.description || "")}</div>
+                <div class="post-description" id="post-description-${post.id}">${formatPostDescription(post.description || "", post.id)}</div>
               </div>
 
               <div class="post-sidebar-column">
@@ -2205,6 +2269,14 @@
             initLunaRadioPlayer(`stream-post-player-${renderPostId}`, post);
           }, 250);
         }
+
+        postRoot.querySelectorAll(".read-more-btn[data-read-more-postid]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const encodedId = btn.getAttribute("data-read-more-postid") || "";
+            if (!encodedId) return;
+            toggleReadMore(decodeURIComponent(encodedId));
+          });
+        });
 
         // Auto-open comments sidebar on desktop
         if (window.matchMedia("(min-width: 981px)").matches) {

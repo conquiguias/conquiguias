@@ -1547,6 +1547,11 @@
       }
 
       function destroySinglePostMediaPlayers() {
+        if (window._postMediaMountTimer) {
+          clearTimeout(window._postMediaMountTimer);
+          window._postMediaMountTimer = null;
+        }
+
         if (window._postClapprPlayer) {
           try {
             window._postClapprPlayer.destroy();
@@ -1562,6 +1567,34 @@
           } catch (_) {}
           window._postLunaInstance = null;
         }
+      }
+
+      function scheduleSinglePostMediaMount(post, delay = 180) {
+        const safePost = post || currentPost;
+        if (!safePost) return;
+
+        if (window._postMediaMountTimer) {
+          clearTimeout(window._postMediaMountTimer);
+        }
+
+        const renderPostId = String(safePost.id || "").replace(/[^a-zA-Z0-9_-]/g, "");
+        const isAudioMedia = shouldPreferLunaRadio(safePost);
+        const isVideoMedia = shouldUseClappr(safePost);
+
+        window._postMediaMountTimer = setTimeout(() => {
+          window._postMediaMountTimer = null;
+
+          if (safePost.id !== currentPost?.id) return;
+
+          if (isVideoMedia && safePost.mediaUrl) {
+            initClapprPlayerWithFallback(`clappr-post-player-${renderPostId}`, safePost);
+            return;
+          }
+
+          if (isAudioMedia && safePost.mediaUrl) {
+            initLunaRadioPlayer(`stream-post-player-${renderPostId}`, safePost);
+          }
+        }, Math.max(0, delay));
       }
 
       function initLunaRadioPlayer(containerId, post) {
@@ -1662,20 +1695,9 @@
         const safePost = post || currentPost;
         if (!safePost) return;
 
-        const renderPostId = String(safePost.id || "").replace(/[^a-zA-Z0-9_-]/g, "");
-        const isAudioMedia = shouldPreferLunaRadio(safePost);
-        const isVideoMedia = shouldUseClappr(safePost);
-
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            if (isVideoMedia && safePost.mediaUrl) {
-              initClapprPlayerWithFallback(`clappr-post-player-${renderPostId}`, safePost);
-              return;
-            }
-
-            if (isAudioMedia && safePost.mediaUrl) {
-              initLunaRadioPlayer(`stream-post-player-${renderPostId}`, safePost);
-            }
+            scheduleSinglePostMediaMount(safePost, 60);
           });
         });
       }
@@ -1963,17 +1985,6 @@
         postRoot.style.display = "flex";
         stateEl.style.display = "none";
 
-        // Mount Clappr for video posts
-        if (isVideoMedia && post.mediaUrl) {
-          setTimeout(() => {
-            initClapprPlayerWithFallback(`clappr-post-player-${renderPostId}`, post);
-          }, 250);
-        } else if (isAudioMedia && post.mediaUrl) {
-          setTimeout(() => {
-            initLunaRadioPlayer(`stream-post-player-${renderPostId}`, post);
-          }, 250);
-        }
-
         // Auto-open comments sidebar on desktop
         if (window.matchMedia("(min-width: 981px)").matches) {
           const commentsSideAuto = document.getElementById(
@@ -1983,9 +1994,10 @@
           if (commentsSideAuto && postCardAuto) {
             commentsSideAuto.classList.remove("hidden");
             postCardAuto.classList.add("comments-open");
-            refreshPostMediaLayout(post);
           }
         }
+
+        scheduleSinglePostMediaMount(post);
 
         document.getElementById("shareBtn")?.addEventListener("click", () => {
           openShareModal(post.id, post.shareCount || 0);

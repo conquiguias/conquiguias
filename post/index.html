@@ -522,16 +522,31 @@
         overflow: hidden;
       }
 
+      .post-description .post-description-clamp-wrap {
+        position: relative;
+      }
+
       .read-more-btn {
         background: none;
         border: none;
         color: var(--accent-color);
         cursor: pointer;
         font-weight: bold;
-        padding: 5px 0;
-        margin-top: 4px;
+        padding: 0 0 0 8px;
+        margin: 0;
         font-size: 14px;
-        display: block;
+        display: none;
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        line-height: 1.45;
+        background: linear-gradient(to right, transparent, var(--bg-card) 32%);
+        white-space: nowrap;
+        z-index: 1;
+      }
+
+      .post-description .post-description-clamp-wrap.has-overflow .read-more-btn {
+        display: inline-block;
       }
 
       .read-more-btn:hover {
@@ -2000,26 +2015,42 @@
         if (!text || typeof text !== "string") return "";
 
         const normalizedPostId = String(postId || "");
-        const MAX_PREVIEW_CHARS = 170;
         const fullText = text;
 
         if (normalizedPostId) {
           postReadMoreCache.set(normalizedPostId, fullText);
         }
 
-        const shouldClamp = fullText.length > MAX_PREVIEW_CHARS;
         const isExpanded = normalizedPostId && postReadMoreExpanded.has(normalizedPostId);
         const fullFormattedText = formatRichText(fullText);
 
-        if (!shouldClamp || isExpanded) {
+        if (isExpanded) {
           return `<div class="post-description-text">${fullFormattedText}</div>`;
         }
 
         const encodedPostId = encodeURIComponent(normalizedPostId);
         return `
-          <div class="post-description-text clamped">${fullFormattedText}</div>
-          <button class="read-more-btn" type="button" data-read-more-postid="${encodedPostId}">Leer más</button>
+          <div class="post-description-clamp-wrap" data-readmore-wrap="${encodedPostId}">
+            <div class="post-description-text clamped">${fullFormattedText}</div>
+            <button class="read-more-btn" type="button" data-read-more-postid="${encodedPostId}">... Leer más</button>
+          </div>
         `;
+      }
+
+      function applyReadMoreOverflowState(scope = document) {
+        const root = scope instanceof Element || scope instanceof Document ? scope : document;
+        root.querySelectorAll(".post-description .post-description-clamp-wrap").forEach((wrap) => {
+          const textEl = wrap.querySelector(".post-description-text");
+          const btn = wrap.querySelector(".read-more-btn");
+          if (!textEl || !btn) return;
+
+          const isOverflowing = textEl.scrollHeight > (textEl.clientHeight + 1);
+          wrap.classList.toggle("has-overflow", isOverflowing);
+
+          if (!isOverflowing) {
+            textEl.classList.remove("clamped");
+          }
+        });
       }
 
       function toggleReadMore(postId) {
@@ -2278,6 +2309,8 @@
           });
         });
 
+        requestAnimationFrame(() => applyReadMoreOverflowState(postRoot));
+
         // Auto-open comments sidebar on desktop
         if (window.matchMedia("(min-width: 981px)").matches) {
           const commentsSideAuto = document.getElementById(
@@ -2319,6 +2352,7 @@
               postCard.classList.remove("comments-open");
             }
             refreshPostMediaLayout(postCard);
+            requestAnimationFrame(() => applyReadMoreOverflowState(postRoot));
           });
 
         postRoot.querySelectorAll(".reaction-btn").forEach((btn) => {

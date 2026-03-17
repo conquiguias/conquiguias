@@ -3476,17 +3476,32 @@
       overflow: hidden;
     }
 
+    .post-description .post-description-clamp-wrap {
+      position: relative;
+    }
+
     .read-more-btn {
       background: none !important;
       border: none !important;
       color: var(--accent-color) !important;
       cursor: pointer !important;
       font-weight: bold !important;
-      padding: 5px 0 !important;
+      padding: 0 0 0 8px !important;
       font-size: 14px !important;
       transition: all 0.2s ease !important;
-      display: block !important;
-      margin-top: 4px !important;
+      display: none !important;
+      margin: 0 !important;
+      position: absolute !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      line-height: 1.45 !important;
+      background: linear-gradient(to right, transparent, var(--bg-card) 32%) !important;
+      white-space: nowrap !important;
+      z-index: 1 !important;
+    }
+
+    .post-description .post-description-clamp-wrap.has-overflow .read-more-btn {
+      display: inline-block !important;
     }
 
     .read-more-btn:hover {
@@ -11524,6 +11539,7 @@
         });
 
         queuePostImgurImages(postElement);
+        requestAnimationFrame(() => applyReadMoreOverflowState(postElement));
 
         if (feedDestino === feed) {
           updateFirstPostMarker();
@@ -11535,7 +11551,6 @@
       function formatPostDescription(text, postId) {
         if (!text || typeof text !== 'string') return '';
 
-        const MAX_PREVIEW_CHARS = 170;
         const normalizedPostId = String(postId || '');
         const fullText = text;
 
@@ -11543,26 +11558,36 @@
           postReadMoreCache.set(normalizedPostId, fullText);
         }
 
-        const shouldClamp = fullText.length > MAX_PREVIEW_CHARS;
         const isExpanded = normalizedPostId && postReadMoreExpanded.has(normalizedPostId);
         const fullFormattedText = formatRichText(fullText);
 
-        if (!shouldClamp || isExpanded) {
+        if (isExpanded) {
           return `<div class="post-description-text">${fullFormattedText}</div>`;
         }
 
-        let formattedText = `<div class="post-description-text clamped">${fullFormattedText}</div>`;
+        const encodedPostId = encodeURIComponent(normalizedPostId);
+        return `
+          <div class="post-description-clamp-wrap" data-readmore-wrap="${encodedPostId}">
+            <div class="post-description-text clamped">${fullFormattedText}</div>
+            <button class="read-more-btn" type="button" onclick="toggleReadMore(decodeURIComponent('${encodedPostId}'))">... Leer más</button>
+          </div>
+        `;
+      }
 
-        if (shouldClamp) {
-          const encodedPostId = encodeURIComponent(normalizedPostId);
-          formattedText += `
-                <button class="read-more-btn" type="button" onclick="toggleReadMore(decodeURIComponent('${encodedPostId}'))">
-                  Leer más
-                </button>
-                `;
-        }
+      function applyReadMoreOverflowState(scope = document) {
+        const root = scope instanceof Element || scope instanceof Document ? scope : document;
+        root.querySelectorAll('.post-description .post-description-clamp-wrap').forEach((wrap) => {
+          const textEl = wrap.querySelector('.post-description-text');
+          const btn = wrap.querySelector('.read-more-btn');
+          if (!textEl || !btn) return;
 
-        return formattedText;
+          const isOverflowing = textEl.scrollHeight > (textEl.clientHeight + 1);
+          wrap.classList.toggle('has-overflow', isOverflowing);
+
+          if (!isOverflowing) {
+            textEl.classList.remove('clamped');
+          }
+        });
       }
 
       function formatRichText(text) {
@@ -11612,6 +11637,7 @@
         const fullFormattedText = formatFullText(fullText);
         descriptionElement.innerHTML = `<div class="post-description-text">${fullFormattedText}</div>`;
       }
+      window.toggleReadMore = toggleReadMore;
 
       // 🔹 Formatear texto completo (sin límite de caracteres)
       function formatFullText(text) {

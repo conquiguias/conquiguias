@@ -11291,34 +11291,8 @@
 
           if (mediaMode === 'luna') {
             initLunaRadioPlayer(containerId);
-            setTimeout(() => {
-              try {
-                const luna = window._lunaPlayers?.[containerId];
-                if (luna && typeof luna.lunaradio === 'function') {
-                  luna.lunaradio('play');
-                }
-              } catch (_) { }
-
-              try {
-                const audioEl = container.querySelector('audio');
-                if (audioEl && typeof audioEl.play === 'function') {
-                  const playPromise = audioEl.play();
-                  if (playPromise && typeof playPromise.catch === 'function') {
-                    playPromise.catch(() => { });
-                  }
-                }
-              } catch (_) { }
-            }, 180);
           } else {
             initClapprPlayerWithFallback(containerId, { fromLuna: false });
-            setTimeout(() => {
-              try {
-                const player = window._clapprPlayers?.[containerId];
-                if (player && player !== 'pending' && typeof player.play === 'function') {
-                  player.play();
-                }
-              } catch (_) { }
-            }, 120);
           }
 
           postElement.dataset.cxActiveContainerId = containerId;

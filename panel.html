@@ -8831,6 +8831,12 @@
       let imgurQueueTimer = null;
       let imgurIntersectionObserver = null;
 
+      // ── Diagnóstico de memoria ──────────────────────────────────────
+      window._diag = window._diag || {};
+      window._diag.imgurQueue = imgurImageLoadQueue;
+      Object.defineProperty(window._diag, 'imgurActiveLoads',      { get: () => imgurActiveLoads });
+      Object.defineProperty(window._diag, 'imgurIntersectionObserver', { get: () => imgurIntersectionObserver });
+
       // isAdmin y userData son globales
       let lastPostTime = null;
       let countdownInterval = null;
@@ -10327,6 +10333,7 @@
       }
 
       const postReadMoreCache = new Map();
+      window._diag.readMoreCache = postReadMoreCache;
 
       function initializeFeedCategoryTabs() {
         const tabsContainer = document.getElementById('postCategoryTabs');
@@ -16897,6 +16904,219 @@
       window.cargarTablaCertificacionesCorrecta = cargarTablaCertificacionesCorrecta;
     </script>
     <script src="security.js"></script>
+
+    <!-- ═══════════════════════════════════════════════════
+         PANEL DE DIAGNÓSTICO DE MEMORIA (solo admin/dev)
+         Para ocultarlo: window._diagHUD.style.display='none'
+         Para mostrarlo: window._diagHUD.style.display='flex'
+    ══════════════════════════════════════════════════════ -->
+    <script>
+    (function() {
+      const HUD_INTERVAL_MS = 3000;
+      const HISTORY_SIZE    = 30;   // ~90 s de historial
+      const SPARKLINE_CHARS = ['▁','▂','▃','▄','▅','▆','▇','█'];
+      const WARN_HEAP_MB    = 600;
+      const CRIT_HEAP_MB    = 1200;
+
+      const history = {
+        heap:    [],
+        nodes:   [],
+        clappr:  [],
+        luna:    [],
+        imgurQ:  [],
+        cache:   [],
+      };
+
+      function sparkline(arr) {
+        if (arr.length < 2) return '–';
+        const min = Math.min(...arr);
+        const max = Math.max(...arr);
+        const range = max - min || 1;
+        return arr.map(v => {
+          const idx = Math.round(((v - min) / range) * (SPARKLINE_CHARS.length - 1));
+          return SPARKLINE_CHARS[idx];
+        }).join('');
+      }
+
+      function push(key, val) {
+        history[key].push(val);
+        if (history[key].length > HISTORY_SIZE) history[key].shift();
+      }
+
+      function heapMB() {
+        const mem = performance?.memory;
+        if (!mem) return null;
+        return { used: (mem.usedJSHeapSize / 1048576).toFixed(1), total: (mem.totalJSHeapSize / 1048576).toFixed(1), limit: (mem.jsHeapSizeLimit / 1048576).toFixed(0) };
+      }
+
+      function countClappr() {
+        const p = window._clapprPlayers || {};
+        return Object.values(p).filter(v => v && v !== 'pending').length;
+      }
+
+      function countLuna() {
+        return Object.keys(window._lunaPlayers || {}).length;
+      }
+
+      function countNodes() {
+        return document.querySelectorAll('*').length;
+      }
+
+      // ── Crear HUD ──────────────────────────────────────────────────
+      const hud = document.createElement('div');
+      hud.id = '_memHUD';
+      window._diagHUD = hud;
+      Object.assign(hud.style, {
+        position: 'fixed', bottom: '10px', right: '10px', zIndex: '999999',
+        background: 'rgba(10,12,20,0.93)', color: '#e2e8f0',
+        fontFamily: 'monospace', fontSize: '11px', lineHeight: '1.55',
+        padding: '8px 10px', borderRadius: '8px', minWidth: '230px',
+        border: '1px solid #334155', boxShadow: '0 2px 12px rgba(0,0,0,0.6)',
+        display: 'flex', flexDirection: 'column', gap: '2px',
+        userSelect: 'none', cursor: 'pointer',
+      });
+
+      let collapsed = false;
+      hud.addEventListener('click', () => {
+        collapsed = !collapsed;
+        body.style.display = collapsed ? 'none' : 'flex';
+        title.textContent = collapsed ? '📊 MEM ▶' : '📊 Memory Diagnostics ▼';
+      });
+
+      const title = document.createElement('div');
+      title.textContent = '📊 Memory Diagnostics ▼';
+      Object.assign(title.style, { fontWeight: 'bold', color: '#94a3b8', marginBottom: '4px' });
+      hud.appendChild(title);
+
+      const body = document.createElement('div');
+      Object.assign(body.style, { display: 'flex', flexDirection: 'column', gap: '2px' });
+      hud.appendChild(body);
+
+      function row(label, valueId, sparkId) {
+        const div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.justifyContent = 'space-between';
+        div.style.gap = '6px';
+        div.innerHTML =
+          `<span style="color:#64748b">${label}</span>` +
+          `<span style="letter-spacing:0" id="_dv_${valueId}">…</span>` +
+          `<span style="color:#475569;font-size:9px" id="_ds_${sparkId}"></span>`;
+        body.appendChild(div);
+      }
+
+      row('Heap JS',   'heap',   'heap');
+      row('DOM nodes', 'nodes',  'nodes');
+      row('Clappr 🎬', 'clappr', 'clappr');
+      row('Luna 📻',   'luna',   'luna');
+      row('ImgurQueue','imgurQ', 'imgurQ');
+      row('ReadCache', 'cache',  'cache');
+
+      const logRow = document.createElement('div');
+      logRow.style.cssText = 'color:#334155;font-size:9px;margin-top:4px;border-top:1px solid #1e293b;padding-top:3px';
+      logRow.textContent = 'console: window._diagSnapshot()';
+      body.appendChild(logRow);
+
+      document.body.appendChild(hud);
+
+      // ── tick ───────────────────────────────────────────────────────
+      function set(id, text, color) {
+        const el = document.getElementById('_dv_' + id);
+        if (el) { el.textContent = text; if (color) el.style.color = color; }
+      }
+      function spark(id, key) {
+        const el = document.getElementById('_ds_' + id);
+        if (el) el.textContent = sparkline(history[key]);
+      }
+
+      function tick() {
+        const mem   = heapMB();
+        const nodes = countNodes();
+        const clappr= countClappr();
+        const luna  = countLuna();
+        const imgurQ= (window._diag?.imgurQueue?.length) ?? '?';
+        const cache = (window._diag?.readMoreCache?.size) ?? '?';
+
+        const heapUsed = mem ? parseFloat(mem.used) : 0;
+        push('heap',   heapUsed);
+        push('nodes',  nodes);
+        push('clappr', clappr);
+        push('luna',   luna);
+        push('imgurQ', typeof imgurQ === 'number' ? imgurQ : 0);
+        push('cache',  typeof cache  === 'number' ? cache  : 0);
+
+        const heapColor = !mem ? '#94a3b8'
+          : heapUsed > CRIT_HEAP_MB ? '#ef4444'
+          : heapUsed > WARN_HEAP_MB ? '#f59e0b'
+          : '#4ade80';
+
+        set('heap',  mem ? `${mem.used} / ${mem.total} MB` : 'N/A (HTTPS only)', heapColor);
+        set('nodes', nodes, nodes > 8000 ? '#f59e0b' : '#e2e8f0');
+        set('clappr',clappr, clappr > 3 ? '#f59e0b' : '#e2e8f0');
+        set('luna',  luna,   luna   > 3 ? '#f59e0b' : '#e2e8f0');
+        set('imgurQ',imgurQ);
+        set('cache', cache, typeof cache === 'number' && cache > 200 ? '#f59e0b' : '#e2e8f0');
+
+        spark('heap',   'heap');
+        spark('nodes',  'nodes');
+        spark('clappr', 'clappr');
+        spark('luna',   'luna');
+        spark('imgurQ', 'imgurQ');
+        spark('cache',  'cache');
+
+        // Crecimiento de heap: alerta si sube >200 MB en el último minuto
+        if (history.heap.length >= 20) {
+          const oldest = history.heap[history.heap.length - 20];
+          const newest = history.heap[history.heap.length - 1];
+          if (newest - oldest > 200) {
+            logRow.textContent = `⚠️ Heap +${(newest - oldest).toFixed(0)} MB en ~60 s`;
+            logRow.style.color = '#ef4444';
+          } else {
+            logRow.style.color = '#334155';
+            logRow.textContent = 'console: window._diagSnapshot()';
+          }
+        }
+      }
+
+      setInterval(tick, HUD_INTERVAL_MS);
+      setTimeout(tick, 500);
+
+      // ── snapshot manual ────────────────────────────────────────────
+      window._diagSnapshot = function() {
+        const mem = heapMB();
+        const snap = {
+          timestamp:    new Date().toLocaleTimeString('es-DO'),
+          heapUsed_MB:  mem?.used ?? 'N/A',
+          heapTotal_MB: mem?.total ?? 'N/A',
+          domNodes:     countNodes(),
+          clapprPlayers:Object.keys(window._clapprPlayers || {}).filter(k => window._clapprPlayers[k] && window._clapprPlayers[k] !== 'pending'),
+          lunaPlayers:  Object.keys(window._lunaPlayers  || {}),
+          imgurQueue:   window._diag?.imgurQueue?.length ?? 'N/A',
+          readMoreCache:window._diag?.readMoreCache?.size ?? 'N/A',
+          imgurObserver:!!window._diag?.imgurIntersectionObserver,
+          heapHistory_MB: history.heap.slice(-10).map(v => v.toFixed(1)),
+          nodesHistory:   history.nodes.slice(-10),
+        };
+        console.groupCollapsed(`%c[MemDiag] ${snap.timestamp}  Heap: ${snap.heapUsed_MB} MB  Nodes: ${snap.domNodes}`, 'color:#60a5fa;font-weight:bold');
+        console.table({
+          'Heap (MB)':   snap.heapUsed_MB + ' / ' + snap.heapTotal_MB,
+          'DOM nodes':   snap.domNodes,
+          'Clappr':      snap.clapprPlayers.length + ' → ' + JSON.stringify(snap.clapprPlayers),
+          'Luna':        snap.lunaPlayers.length  + ' → ' + JSON.stringify(snap.lunaPlayers),
+          'imgurQueue':  snap.imgurQueue,
+          'readMoreCache': snap.readMoreCache,
+          'Heap history': snap.heapHistory_MB.join(', '),
+          'Nodes history':snap.nodesHistory.join(', '),
+        });
+        console.groupEnd();
+        return snap;
+      };
+
+      // ── snapshot automático cada 30 s en consola ───────────────────
+      setInterval(() => window._diagSnapshot(), 30000);
+
+    })();
+    </script>
+
 </body>
 
 </html>

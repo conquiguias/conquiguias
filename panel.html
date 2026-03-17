@@ -4055,7 +4055,7 @@
                 </div>
               </div>
 
-              <textarea id="postDescription" placeholder="¿Qué quieres compartir? Puedes usar:
+                <textarea id="postDescription" maxlength="10000" placeholder="¿Qué quieres compartir? Puedes usar:
                   • Saltos de línea (Enter)
                   • Enlaces (se detectarán automáticamente)
                   • Menciones @usuario  
@@ -4068,7 +4068,7 @@
                   Presiona Enter para saltos de línea • Los enlaces se abrirán en nueva pestaña
                 </small>
                 <small id="charCount" style="color: var(--text-secondary); font-size: 12px;">
-                  0/500
+                  0/10000
                 </small>
               </div>
               <div id="previewContainer" style="margin-bottom: 10px;"></div>
@@ -10320,7 +10320,7 @@
           : '');
 
         // 🔹 VALIDACIÓN 2: LONGITUD MÁXIMA DEL TEXTO
-        const MAX_DESCRIPTION_LENGTH = 1000;
+        const MAX_DESCRIPTION_LENGTH = 10000;
         if (descriptionToPublish.length > MAX_DESCRIPTION_LENGTH) {
           console.log(`[WARNING] Texto demasiado largo: ${descriptionToPublish.length} caracteres`);
           mostrarMensaje('error', 'Texto muy largo',
@@ -11671,7 +11671,7 @@
 
       // Contador de caracteres mejorado para el textarea
       postDescription.addEventListener('input', function () {
-        const MAX_DESCRIPTION_LENGTH = 500;
+        const MAX_DESCRIPTION_LENGTH = 10000;
         const currentLength = this.value.length;
         const charCount = document.getElementById('charCount');
 
@@ -12278,9 +12278,9 @@
                                         <div class="edit-post-note">Puedes cambiar el tipo, el enlace y la portada de TV o Video.</div>
                                       </div>
 
-                                      <textarea id="editPostTextarea" class="edit-post-textarea" maxlength="500" placeholder="Escribe la descripción..."></textarea>
+                                      <textarea id="editPostTextarea" class="edit-post-textarea" maxlength="10000" placeholder="Escribe la descripción..."></textarea>
                                       <div class="edit-post-footer">
-                                        <span id="editPostCounter" class="edit-post-counter">0/500</span>
+                                        <span id="editPostCounter" class="edit-post-counter">0/10000</span>
                                         <div class="edit-post-actions">
                                           <button type="button" class="edit-post-cancel" id="editPostCancel">Cancelar</button>
                                           <button type="button" class="edit-post-save" id="editPostSave">Guardar</button>
@@ -12304,7 +12304,7 @@
         const tvCoverPreview = modal.querySelector('#editPostTvCoverPreview');
         const updateCounter = () => {
           if (!textarea || !counter) return;
-          counter.textContent = `${textarea.value.length}/500`;
+          counter.textContent = `${textarea.value.length}/10000`;
         };
 
         textarea?.addEventListener('input', updateCounter);
@@ -12356,8 +12356,8 @@
             return;
           }
 
-          if (newDescription.length > 500) {
-            mostrarMensaje('info', 'Muy larga', 'La descripción no puede superar 500 caracteres.');
+          if (newDescription.length > 10000) {
+            mostrarMensaje('info', 'Muy larga', 'La descripción no puede superar 10000 caracteres.');
             return;
           }
 
@@ -12507,7 +12507,7 @@
           editMode: getEditablePostMode(postData || {})
         };
         textarea.value = currentDescription || '';
-        counter.textContent = `${textarea.value.length}/500`;
+        counter.textContent = `${textarea.value.length}/10000`;
         applyEditPostModalState(modal, editingPostContext);
         modal.style.display = 'flex';
         setTimeout(() => {
@@ -14204,7 +14204,7 @@
         if (charCount) {
           charCount.classList.remove('warning', 'error');
           charCount.classList.add('normal');
-          charCount.innerHTML = '<span id="currentChars">0</span>/<span id="maxChars">500</span> caracteres';
+          charCount.innerHTML = '<span id="currentChars">0</span>/<span id="maxChars">10000</span> caracteres';
         }
         if (currentChars) {
           currentChars.textContent = '0';

@@ -9588,6 +9588,7 @@
             let height = img.height;
             let quality = 0.8;
             let result = base64String;
+            let bestResult = base64String;
 
             const tryCompress = () => {
               canvas.width = width;
@@ -9595,6 +9596,9 @@
               const ctx = canvas.getContext('2d');
               ctx.drawImage(img, 0, 0, width, height);
               result = canvas.toDataURL('image/jpeg', quality);
+              if (typeof result === 'string' && result.length < bestResult.length) {
+                bestResult = result;
+              }
 
               if (result.length > maxSizeBytes && quality > 0.1) {
                 quality -= 0.1;
@@ -9608,11 +9612,90 @@
             };
 
             tryCompress();
-            resolve(result.length <= maxSizeBytes ? result : base64String);
+            resolve(bestResult);
           };
           img.onerror = () => reject(new Error('No se pudo procesar la imagen.'));
           img.src = base64String;
         });
+      }
+
+      function isBase64ImageDataUrl(value) {
+        return typeof value === 'string' && /^data:image\//i.test(value.trim());
+      }
+
+      async function optimizeImageForFirestore(value, maxSizeBytes = 220000) {
+        const raw = String(value || '').trim();
+        if (!raw || !isBase64ImageDataUrl(raw)) {
+          return raw;
+        }
+
+        const compressed = await compressBase64Image(raw, maxSizeBytes);
+        return typeof compressed === 'string' && compressed.trim()
+          ? compressed.trim()
+          : raw;
+      }
+
+      function isFirestoreDocumentTooLargeError(error) {
+        const message = String(error?.message || '');
+        return /cannot be written because its size|exceeds the maximum allowed size/i.test(message);
+      }
+
+      async function buildCompactVisualUpdates(postLike, mode = 'basic', aggressive = false) {
+        const merged = postLike && typeof postLike === 'object' ? postLike : {};
+        const resolvedMode = mode === 'basic' ? getEditablePostMode(merged) : mode;
+        const profileLimit = aggressive ? 90000 : 140000;
+        const radioCoverLimit = aggressive ? 140000 : 220000;
+        const tvCoverLimit = aggressive ? 160000 : 240000;
+        const compactUpdates = {};
+
+        if (resolvedMode === 'radio') {
+          const profileImage = await optimizeImageForFirestore(
+            String(merged.coverimage || '').trim(),
+            profileLimit
+          );
+          const coverImage = await optimizeImageForFirestore(
+            String(merged.radiocover || merged.posterUrl || merged.thumbnailUrl || '').trim(),
+            radioCoverLimit
+          );
+
+          compactUpdates.coverimage = profileImage;
+          compactUpdates.radiocover = coverImage;
+          compactUpdates.posterUrl = '';
+          compactUpdates.thumbnailUrl = '';
+          return compactUpdates;
+        }
+
+        if (resolvedMode === 'tv') {
+          const coverImage = await optimizeImageForFirestore(
+            String(merged.posterUrl || merged.thumbnailUrl || '').trim(),
+            tvCoverLimit
+          );
+
+          compactUpdates.posterUrl = coverImage;
+          compactUpdates.thumbnailUrl = '';
+          return compactUpdates;
+        }
+
+        const posterUrl = await optimizeImageForFirestore(String(merged.posterUrl || '').trim(), tvCoverLimit);
+        const thumbnailUrl = await optimizeImageForFirestore(String(merged.thumbnailUrl || '').trim(), aggressive ? 80000 : 120000);
+        const radioCover = await optimizeImageForFirestore(String(merged.radiocover || '').trim(), radioCoverLimit);
+        const profileImage = await optimizeImageForFirestore(String(merged.coverimage || '').trim(), profileLimit);
+
+        if (profileImage) compactUpdates.coverimage = profileImage;
+        if (radioCover) compactUpdates.radiocover = radioCover;
+        if (posterUrl) compactUpdates.posterUrl = posterUrl;
+
+        if (thumbnailUrl && thumbnailUrl !== posterUrl && thumbnailUrl !== radioCover) {
+          compactUpdates.thumbnailUrl = thumbnailUrl;
+        } else if (String(merged.thumbnailUrl || '').trim()) {
+          compactUpdates.thumbnailUrl = '';
+        }
+
+        if (compactUpdates.posterUrl && compactUpdates.posterUrl === compactUpdates.radiocover) {
+          compactUpdates.posterUrl = '';
+        }
+
+        return compactUpdates;
       }
 
       // 🔹 Subir a Imgur a través del backend unificado - VERSIÓN CORREGIDA
@@ -9783,10 +9866,10 @@
 
           try {
             if (radioProfileImageInput?.files?.[0]) {
-              profileImage = await compressBase64Image(await fileToBase64(radioProfileImageInput.files[0]));
+              profileImage = await optimizeImageForFirestore(await fileToBase64(radioProfileImageInput.files[0]), 140000);
             }
             if (radioCoverImageInput?.files?.[0]) {
-              coverImage = await compressBase64Image(await fileToBase64(radioCoverImageInput.files[0]));
+              coverImage = await optimizeImageForFirestore(await fileToBase64(radioCoverImageInput.files[0]), 220000);
             }
           } catch (imgErr) {
             mostrarMensaje('error', 'Imagen inválida', 'No se pudieron procesar las imágenes de perfil/portada.');
@@ -9818,8 +9901,8 @@
               radioname: radioName,
               coverimage: profileImage,
               radiocover: coverImage,
-              posterUrl: coverImage,
-              thumbnailUrl: coverImage,
+              posterUrl: '',
+              thumbnailUrl: '',
               tags: [publishMode]
             };
 
@@ -9862,7 +9945,7 @@
           let coverImage = DEFAULT_TV_COVER_IMAGE;
           try {
             if (tvCoverImageInput?.files?.[0]) {
-              coverImage = await compressBase64Image(await fileToBase64(tvCoverImageInput.files[0]));
+              coverImage = await optimizeImageForFirestore(await fileToBase64(tvCoverImageInput.files[0]), 240000);
             }
           } catch (imgErr) {
             mostrarMensaje('error', 'Imagen inválida', 'No se pudo procesar la portada de TV.');
@@ -9892,7 +9975,7 @@
               status: isAdmin ? 'approved' : 'pending',
               postKind: tvMode,
               posterUrl: coverImage,
-              thumbnailUrl: coverImage,
+              thumbnailUrl: '',
               tags: [tvMode === 'video' ? 'video' : 'television']
             };
 
@@ -11975,11 +12058,11 @@
                 : DEFAULT_RADIO_COVER_IMAGE);
 
               if (radioProfileInput?.files?.[0]) {
-                profileImage = await compressBase64Image(await fileToBase64(radioProfileInput.files[0]));
+                profileImage = await optimizeImageForFirestore(await fileToBase64(radioProfileInput.files[0]), 140000);
               }
 
               if (radioCoverInput?.files?.[0]) {
-                coverImage = await compressBase64Image(await fileToBase64(radioCoverInput.files[0]));
+                coverImage = await optimizeImageForFirestore(await fileToBase64(radioCoverInput.files[0]), 220000);
               }
 
               Object.assign(updates, {
@@ -11990,8 +12073,8 @@
                 radioname: nextName,
                 coverimage: profileImage,
                 radiocover: coverImage,
-                posterUrl: coverImage,
-                thumbnailUrl: coverImage,
+                posterUrl: '',
+                thumbnailUrl: '',
               });
             } else if (editMode === 'tv') {
               const nextMode = tvModeSelect?.value === 'video' ? 'video' : 'tv';
@@ -12004,7 +12087,7 @@
 
               let coverImage = String(postData?.posterUrl || postData?.thumbnailUrl || '').trim() || DEFAULT_TV_COVER_IMAGE;
               if (tvCoverInput?.files?.[0]) {
-                coverImage = await compressBase64Image(await fileToBase64(tvCoverInput.files[0]));
+                coverImage = await optimizeImageForFirestore(await fileToBase64(tvCoverInput.files[0]), 240000);
               }
 
               Object.assign(updates, {
@@ -12013,11 +12096,33 @@
                 postKind: nextMode,
                 tags: [nextMode === 'video' ? 'video' : 'television'],
                 posterUrl: coverImage,
-                thumbnailUrl: coverImage,
+                thumbnailUrl: '',
               });
             }
 
-            await updateDoc(doc(db, 'posts', postId), updates);
+            Object.assign(updates, await buildCompactVisualUpdates({
+              ...(postData || {}),
+              ...updates,
+            }, editMode));
+
+            try {
+              await updateDoc(doc(db, 'posts', postId), updates);
+            } catch (writeError) {
+              if (!isFirestoreDocumentTooLargeError(writeError)) {
+                throw writeError;
+              }
+
+              const aggressiveUpdates = {
+                ...updates,
+                ...(await buildCompactVisualUpdates({
+                  ...(postData || {}),
+                  ...updates,
+                }, editMode, true))
+              };
+
+              await updateDoc(doc(db, 'posts', postId), aggressiveUpdates);
+              Object.assign(updates, aggressiveUpdates);
+            }
 
             if (editMode === 'basic') {
               const descriptionEl = document.getElementById(`post-description-${renderId}`);
@@ -12034,9 +12139,13 @@
               : 'La publicación fue actualizada correctamente.');
           } catch (error) {
             console.error('Error editando descripción:', error);
-            mostrarMensaje('error', 'Error', editMode === 'basic'
-              ? 'No se pudo actualizar la descripción.'
-              : 'No se pudo actualizar la publicación.');
+            if (isFirestoreDocumentTooLargeError(error)) {
+              mostrarMensaje('error', 'Publicación demasiado pesada', 'La publicación tiene imágenes demasiado grandes. Reduce o cambia la portada antes de guardar.');
+            } else {
+              mostrarMensaje('error', 'Error', editMode === 'basic'
+                ? 'No se pudo actualizar la descripción.'
+                : 'No se pudo actualizar la publicación.');
+            }
           } finally {
             if (saveBtn) {
               saveBtn.disabled = false;

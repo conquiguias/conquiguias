@@ -3996,15 +3996,7 @@
     <div id="inicioSection" class="card">
       <div id="feedDesktopHeader">
         <div id="postCategoryTabs" class="feed-categories" aria-label="Categorías de publicaciones">
-          <button class="feed-category-tab active" data-category="recientes" type="button">Recientes</button>
-          <button class="feed-category-tab" data-category="memes" type="button">Memes</button>
-          <button class="feed-category-tab" data-category="conquis" type="button">Conquis</button>
-          <button class="feed-category-tab" data-category="panoleta" type="button">Pañoleta</button>
-          <button class="feed-category-tab" data-category="post-adventistas" type="button">Post Adventistas</button>
-          <button class="feed-category-tab" data-category="television" type="button">Televisión</button>
-          <button class="feed-category-tab" data-category="radio" type="button">Radio</button>
-          <button class="feed-category-tab" data-category="musica" type="button">Música</button>
-          <button class="feed-category-tab" data-category="podcast" type="button">Podcast</button>
+          <!-- Las pestañas se generan dinámicamente desde FEED_CATEGORIES en el JS -->
         </div>
         <button id="floatingUploadBtn" class="hidden" type="button" aria-label="Crear publicación">
           <i class="fas fa-upload"></i>
@@ -10156,29 +10148,31 @@
       let liveStreamCache = { data: { live: false }, checkedAt: 0 };
       const LIVE_STREAM_CACHE_MS = 45000;
 
-      const FEED_CATEGORY_TAGS = {
-        recientes: [],
-        memes: ['memes', 'meme'],
-        conquis: ['conquis', 'conqui', 'conquistadores', 'conquistador'],
-        panoleta: ['panoleta', 'pañoleta', 'panuelo', 'pañuelo'],
-        'post-adventistas': ['postadventistas', 'post-adventistas', 'post adventistas', 'adventistas', 'adventista'],
-        television: ['television', 'tv', 'tele'],
-        radio: ['radio'],
-        musica: ['musica', 'música', 'music', 'musica cristiana', 'musica adventista'],
-        podcast: ['podcast', 'potcast', 'pod cast']
-      };
+      // ─────────────────────────────────────────────────────────────
+      // FUENTE ÚNICA DE VERDAD para las pestañas/etiquetas del feed.
+      // Para agregar, quitar o renombrar una pestaña, solo edita este
+      // arreglo. El resto del código se actualiza automáticamente.
+      //
+      // Estructura de cada elemento:
+      //   key   – identificador interno (slug), debe ser único
+      //   label – texto visible en la pestaña
+      //   tags  – etiquetas que activan el filtro (vacío = sin filtro)
+      // ─────────────────────────────────────────────────────────────
+      const FEED_CATEGORIES = [
+        { key: 'recientes',        label: 'Recientes',        tags: [] },
+        { key: 'memes',            label: 'Memes',            tags: ['memes', 'meme'] },
+        { key: 'conquis',          label: 'Conquis',          tags: ['conquis', 'conqui', 'conquistadores', 'conquistador'] },
+        { key: 'panoleta',         label: 'Pañoleta',         tags: ['panoleta', 'pañoleta', 'panuelo', 'pañuelo'] },
+        { key: 'post-adventistas', label: 'Post Adventistas', tags: ['postadventistas', 'post-adventistas', 'post adventistas', 'adventistas', 'adventista'] },
+        { key: 'television',       label: 'Televisión',       tags: ['television', 'tv', 'tele'] },
+        { key: 'radio',            label: 'Radio',            tags: ['radio'] },
+        { key: 'musica',           label: 'Música',           tags: ['musica', 'música', 'music', 'musica cristiana', 'musica adventista'] },
+        { key: 'podcast',          label: 'Podcast',          tags: ['podcast', 'potcast', 'pod cast'] }
+      ];
 
-      const FEED_CATEGORY_LABELS = {
-        recientes: 'Recientes',
-        memes: 'Memes',
-        conquis: 'Conquis',
-        panoleta: 'Pañoleta',
-        'post-adventistas': 'Post Adventistas',
-        television: 'Televisión',
-        radio: 'Radio',
-        musica: 'Música',
-        podcast: 'Podcast'
-      };
+      // Mapas derivados — NO edites estos directamente, edita FEED_CATEGORIES.
+      const FEED_CATEGORY_TAGS   = Object.fromEntries(FEED_CATEGORIES.map(c => [c.key, c.tags]));
+      const FEED_CATEGORY_LABELS = Object.fromEntries(FEED_CATEGORIES.map(c => [c.key, c.label]));
 
       function normalizeTagValue(value) {
         return String(value || '')
@@ -10275,6 +10269,11 @@
       function initializeFeedCategoryTabs() {
         const tabsContainer = document.getElementById('postCategoryTabs');
         if (!tabsContainer || tabsContainer.dataset.ready === 'true') return;
+
+        // Renderizar pestañas desde FEED_CATEGORIES
+        tabsContainer.innerHTML = FEED_CATEGORIES.map(({ key, label }, i) =>
+          `<button class="feed-category-tab${i === 0 ? ' active' : ''}" data-category="${key}" type="button">${label}</button>`
+        ).join('');
 
         updateFeedSnapOffset();
 

@@ -3163,6 +3163,31 @@
       width: 100% !important;
     }
 
+    .media-play-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, rgba(2, 6, 23, 0.42), rgba(2, 6, 23, 0.68));
+      color: #ffffff;
+      transition: opacity 0.2s ease;
+    }
+
+    .media-play-overlay i {
+      font-size: 38px;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+      pointer-events: none;
+    }
+
+    .media-play-overlay.hidden {
+      display: none !important;
+    }
+
     /* Acción de publicar integrada en el header */
     #floatingUploadBtn {
       display: none;
@@ -9055,7 +9080,7 @@
         if (!container || typeof initFn !== 'function') return;
         if (container.dataset.cxPlayerInitBound === '1') return;
 
-        installMediaLifecycleObserver();
+          scheduleMediaCleanup();
 
         let initialized = false;
         const runInit = () => {
@@ -9158,23 +9183,18 @@
         });
       }
 
-      function installMediaLifecycleObserver() {
-        if (mediaLifecycleObserver) return;
 
-        mediaLifecycleObserver = new MutationObserver(() => {
+      // 🔹 LIFECYCLE CLEANUP (Debounced, no aggressive sweeping)
+      let cleanupDebounceTimer = null;
+      function scheduleMediaCleanup() {
+        if (cleanupDebounceTimer) clearTimeout(cleanupDebounceTimer);
+        cleanupDebounceTimer = setTimeout(() => {
           cleanupDetachedMediaInstances();
-        });
-
-        mediaLifecycleObserver.observe(document.body, {
-          childList: true,
-          subtree: true,
-        });
-
-        if (!mediaLifecycleSweepTimer) {
-          mediaLifecycleSweepTimer = setInterval(cleanupDetachedMediaInstances, 12000);
-        }
+        }, 2000);
       }
-
+      
+      // Call scheduleMediaCleanup when posts are loaded
+      // Example: document.addEventListener('postsLoaded', scheduleMediaCleanup);
       function getShareEmbedCode(postUrl) {
         return `<iframe src="${postUrl}" width="100%" height="640" style="border:0; border-radius:12px;" loading="lazy"></iframe>`;
       }
@@ -10698,8 +10718,8 @@
         agregarLogFirestore('loadPosts');
         postsLoading = true;
         lastLoadTime = now;
-        installMediaLifecycleObserver();
-        cleanupDetachedMediaInstances();
+          cleanupDetachedMediaInstances();
+          scheduleMediaCleanup();
         try {
           console.log('📥 Cargando publicaciones aprobadas...');
           console.log('🔍 Firestore Read - loadPosts iniciado');
@@ -11217,6 +11237,37 @@
           }
         }
 
+        function activatePostMediaPlayback(containerId, mediaMode) {
+          if (!containerId) return;
+          const container = document.getElementById(containerId);
+          if (!container) return;
+
+          const currentClappr = window._clapprPlayers?.[containerId];
+          const currentLuna = window._lunaPlayers?.[containerId];
+          const alreadyPlaying = mediaMode === 'luna'
+            ? !!(currentLuna && typeof currentLuna.lunaradio === 'function')
+            : !!(currentClappr && currentClappr !== 'pending');
+
+          if (alreadyPlaying) return;
+
+          destroyMediaPlayers((playerId) => playerId !== containerId);
+          document.querySelectorAll('.media-play-overlay').forEach((overlayEl) => {
+            overlayEl.classList.remove('hidden');
+          });
+
+          const overlay = postElement.querySelector(`.media-play-overlay[data-container-id="${containerId}"]`);
+          if (overlay) overlay.classList.add('hidden');
+
+          if (mediaMode === 'luna') {
+            initLunaRadioPlayer(containerId);
+          } else {
+            initClapprPlayerWithFallback(containerId, { fromLuna: false });
+          }
+
+          postElement.dataset.cxActiveContainerId = containerId;
+          refreshPostMediaLayout(postElement);
+        }
+
         postElement.innerHTML = `
             <div class="post-header">
               <img src="${post.userPhoto}" alt="Foto de perfil" class="post-user-img${post.isLive ? ' live-border' : ''}"
@@ -11253,12 +11304,18 @@
                       <div class="media-blur-bg-fallback" aria-hidden="true"></div>
                       ${videoBlurBackgroundUrl ? `<img class="media-blur-bg-img" src="${escapeHtml(videoBlurBackgroundUrl)}" alt="" aria-hidden="true" loading="lazy" onerror="this.style.display='none'">` : ''}
                       <div id="stream-player-${renderPostId}" class="lunaradio-host" data-src="${escapeHtml(post.mediaUrl)}"></div>
+                      <button type="button" class="media-play-overlay" data-container-id="stream-player-${renderPostId}" data-media-mode="${shouldPreferLunaRadio(post) ? 'luna' : 'clappr'}" aria-label="Reproducir">
+                        <i class="fas fa-play-circle"></i>
+                      </button>
                     </div>`
               : post.mediaType && post.mediaType.startsWith('video/')
                 ? `<div class="media-blur-shell media-blur-video-shell">
                       <div class="media-blur-bg-fallback" aria-hidden="true"></div>
                       ${videoBlurBackgroundUrl ? `<img class="media-blur-bg-img" src="${escapeHtml(videoBlurBackgroundUrl)}" alt="" aria-hidden="true" loading="lazy" onerror="this.style.display='none'">` : ''}
                       <div id="clappr-player-${renderPostId}" class="clappr-container" data-src="${post.mediaUrl}"></div>
+                      <button type="button" class="media-play-overlay" data-container-id="clappr-player-${renderPostId}" data-media-mode="clappr" aria-label="Reproducir">
+                        <i class="fas fa-play-circle"></i>
+                      </button>
                     </div>`
                 : ``
           }
@@ -11332,34 +11389,22 @@
           pauseOtherPostMedia(host?.id || '');
         });
 
+        postElement.querySelectorAll('.media-play-overlay').forEach((overlayBtn) => {
+          overlayBtn.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const containerId = overlayBtn.dataset.containerId || '';
+            const mediaMode = overlayBtn.dataset.mediaMode || 'clappr';
+            activatePostMediaPlayback(containerId, mediaMode);
+          });
+        });
+
         queuePostImgurImages(postElement);
 
         if (feedDestino === feed) {
           updateFirstPostMarker();
         }
 
-        // Inicialización de reproductores por tipo de media
-        if (post.mediaType && (post.mediaType === 'video/url' || post.mediaType === 'audio/url')) {
-          const streamId = `stream-player-${renderPostId}`;
-          const shouldAutoInit = autoInitializedPlayerCount < MAX_AUTO_INIT_PLAYERS;
-          queuePlayerInitialization(streamId, () => {
-            if (shouldPreferLunaRadio(post)) {
-              initLunaRadioPlayer(streamId);
-            } else if (shouldUseClappr(post)) {
-              initClapprPlayerWithFallback(streamId, { fromLuna: false });
-            } else {
-              renderPlaybackError(streamId, 'URL no compatible. Usa .mp3/.aac/.acc/.pls para audio o .mp4/.web/.webm/.m3u8 para video.');
-            }
-          }, { auto: shouldAutoInit });
-          if (shouldAutoInit) autoInitializedPlayerCount++;
-        } else if (post.mediaType && post.mediaType.startsWith('video/')) {
-          const pid = `clappr-player-${renderPostId}`;
-          const shouldAutoInit = autoInitializedPlayerCount < MAX_AUTO_INIT_PLAYERS;
-          queuePlayerInitialization(pid, () => {
-            initClapprPlayerWithFallback(pid, { fromLuna: false });
-          }, { auto: shouldAutoInit });
-          if (shouldAutoInit) autoInitializedPlayerCount++;
-        }
       }
 
       // 🔹 Formatear descripción del post con detección robusta de enlaces
@@ -13249,8 +13294,8 @@
           const adminPostsContainer = document.getElementById('adminPostsContainer');
           const noPendingPosts = document.getElementById('noPendingPosts');
 
-          installMediaLifecycleObserver();
           cleanupDetachedMediaInstances();
+            scheduleMediaCleanup();
           cleanupPendingMediaPlayers();
           adminLoading.style.display = 'block';
           adminPostsContainer.innerHTML = '';
@@ -13324,7 +13369,7 @@
 
       function cleanupPendingMediaPlayers() {
         destroyMediaPlayers((playerId) => String(playerId).startsWith('pending-'));
-        cleanupDetachedMediaInstances();
+          scheduleMediaCleanup();
       }
 
       // Mostrar publicación pendiente en el panel admin
@@ -13882,18 +13927,19 @@
 
       // 🔹 INICIALIZAR REPRODUCTORES CLAPPR (backup para scroll infinito)
       function inicializarSistemaVideos() {
-        cleanupDetachedMediaInstances();
+          scheduleMediaCleanup();
       }
 
       // 🔹 PAUSAR TODOS LOS REPRODUCTORES (Clappr + nativos)
       function pausarTodosLosVideos() {
-        // Pausar instancias Clappr
-        Object.values(window._clapprPlayers || {}).forEach(player => {
-          try { player.pause(); } catch (e) { }
+        destroyMediaPlayers();
+        document.querySelectorAll('.post-card audio, .post-card video').forEach((mediaEl) => {
+          try {
+            if (!mediaEl.paused) mediaEl.pause();
+          } catch (_) { }
         });
-        // Pausar videos nativos (si quedan)
-        document.querySelectorAll('video').forEach(video => {
-          if (!video.paused) video.pause();
+        document.querySelectorAll('.media-play-overlay').forEach((overlayEl) => {
+          overlayEl.classList.remove('hidden');
         });
         videoActualmenteReproduciendose = null;
         console.log('⏸️ Todos los reproductores pausados');

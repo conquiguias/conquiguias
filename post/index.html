@@ -500,6 +500,30 @@
         background: transparent;
       }
 
+      .media-play-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 4;
+        border: none;
+        border-radius: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(180deg, rgba(2, 6, 23, 0.42), rgba(2, 6, 23, 0.68));
+        color: #fff;
+      }
+
+      .media-play-overlay i {
+        font-size: 38px;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+        pointer-events: none;
+      }
+
+      .media-play-overlay.hidden {
+        display: none !important;
+      }
+
       .post-description {
         padding: 10px;
         color: var(--text-primary);
@@ -1679,6 +1703,33 @@
         }
       }
 
+      function resetSinglePostMediaOverlay() {
+        postRoot.querySelectorAll(".media-play-overlay").forEach((overlayBtn) => {
+          overlayBtn.classList.remove("hidden");
+        });
+      }
+
+      function activateSinglePostMedia(containerId, mediaMode, post) {
+        if (!containerId || !post) return;
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        destroySinglePostMediaPlayers();
+        resetSinglePostMediaOverlay();
+
+        const activeOverlay = postRoot.querySelector(`.media-play-overlay[data-container-id="${containerId}"]`);
+        if (activeOverlay) activeOverlay.classList.add("hidden");
+
+        if (mediaMode === "luna") {
+          initLunaRadioPlayer(containerId, post);
+        } else {
+          initClapprPlayerWithFallback(containerId, post);
+        }
+
+        const postCard = postRoot.querySelector(".post-card");
+        if (postCard) refreshPostMediaLayout(postCard);
+      }
+
       function initLunaRadioPlayer(containerId, post) {
         const container = document.getElementById(containerId);
         if (!container) return;
@@ -2034,11 +2085,17 @@
             ? `<div class="media-blur-shell media-blur-video-shell">
                <div class="media-blur-bg-fallback" aria-hidden="true"></div>
                <div id="stream-post-player-${renderPostId}" class="lunaradio-host" data-src="${escapeHtml(post.mediaUrl || "")}"></div>
+               <button type="button" class="media-play-overlay" data-container-id="stream-post-player-${renderPostId}" data-media-mode="luna" aria-label="Reproducir">
+                 <i class="fas fa-play-circle"></i>
+               </button>
              </div>`
             : isVideoMedia
             ? `<div class="media-blur-shell media-blur-video-shell">
                <div class="media-blur-bg-fallback" aria-hidden="true"></div>
                <div id="clappr-post-player-${renderPostId}" class="clappr-container" data-src="${escapeHtml(post.mediaUrl || "")}"></div>
+               <button type="button" class="media-play-overlay" data-container-id="clappr-post-player-${renderPostId}" data-media-mode="clappr" aria-label="Reproducir">
+                 <i class="fas fa-play-circle"></i>
+               </button>
              </div>`
             : `<div style="padding:20px;color:#94a3b8;">No se pudo cargar el contenido de este post.</div>`;
 
@@ -2108,15 +2165,15 @@
         postRoot.style.display = "flex";
         stateEl.style.display = "none";
 
-        if (isVideoMedia && post.mediaUrl) {
-          setTimeout(() => {
-            initClapprPlayerWithFallback(`clappr-post-player-${renderPostId}`, post);
-          }, 250);
-        } else if (isAudioMedia && post.mediaUrl) {
-          setTimeout(() => {
-            initLunaRadioPlayer(`stream-post-player-${renderPostId}`, post);
-          }, 250);
-        }
+        postRoot.querySelectorAll(".media-play-overlay").forEach((overlayBtn) => {
+          overlayBtn.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const containerId = overlayBtn.dataset.containerId || "";
+            const mediaMode = overlayBtn.dataset.mediaMode || "clappr";
+            activateSinglePostMedia(containerId, mediaMode, post);
+          });
+        });
 
         // Auto-open comments sidebar on desktop
         if (window.matchMedia("(min-width: 981px)").matches) {

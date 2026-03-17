@@ -2111,10 +2111,36 @@
         if (isVideoMedia && post.mediaUrl) {
           setTimeout(() => {
             initClapprPlayerWithFallback(`clappr-post-player-${renderPostId}`, post);
+            setTimeout(() => {
+              try {
+                const player = window._postClapprPlayer;
+                if (player && player !== 'pending' && typeof player.play === 'function') {
+                  player.play();
+                }
+              } catch (_) {}
+            }, 120);
           }, 250);
         } else if (isAudioMedia && post.mediaUrl) {
           setTimeout(() => {
             initLunaRadioPlayer(`stream-post-player-${renderPostId}`, post);
+            setTimeout(() => {
+              try {
+                const luna = window._postLunaInstance;
+                if (luna && typeof luna.lunaradio === 'function') {
+                  luna.lunaradio('play');
+                }
+              } catch (_) {}
+
+              try {
+                const containerId = `stream-post-player-${renderPostId}`;
+                const container = document.getElementById(containerId);
+                const audioEl = container?.querySelector('audio');
+                if (audioEl && typeof audioEl.play === 'function') {
+                  const p = audioEl.play();
+                  if (p && typeof p.catch === 'function') p.catch(() => {});
+                }
+              } catch (_) {}
+            }, 180);
           }, 250);
         }
 

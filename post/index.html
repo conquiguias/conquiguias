@@ -9,8 +9,17 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
     />
-    <!-- Clappr Video Player -->
-    <script src="https://cdn.jsdelivr.net/npm/@clappr/player@latest/dist/clappr.plainhtml5.min.js"></script>
+    <!-- Sistema de reproducción igual al panel -->
+    <script src="../lib/clappr.js"></script>
+    <script src="../lib/clappr-pip-plugin.js"></script>
+    <script src="../lib/level-selector.js"></script>
+    <script src="../lib/clappr-playback-rate.js"></script>
+    <script src="../lib/dashShakaPlayBack.js"></script>
+    <script src="../lib/hlsjs-playback.js"></script>
+    <script src="../lib/clappr-youtube-playback.js"></script>
+    <script src="../lib/audio-track-selector.js"></script>
+    <script src="../lib/jquery-3.2.1.min.js"></script>
+    <script src="../lib/lunaradio.min.js"></script>
     <style>
       :root {
         --bg-primary: #0f172a;
@@ -233,6 +242,13 @@
       .media-blur-video-shell .clappr-container [data-html5-video],
       .media-blur-video-shell .clappr-container video {
         object-fit: contain !important;
+      }
+
+      .lunaradio-host {
+        width: 100%;
+        height: 100%;
+        min-height: 220px;
+        display: flex;
       }
 
       /* Mobile comments modal */
@@ -1371,6 +1387,224 @@
         };
       }
 
+      const LUNA_AUDIO_EXTENSIONS = new Set([
+        "mp3",
+        "aac",
+        "acc",
+        "pls",
+        "m3u",
+        "ogg",
+        "oga",
+        "m4a",
+        "opus",
+        "weba",
+        "flac",
+        "wav",
+      ]);
+
+      const CLAPPR_VIDEO_EXTENSIONS = new Set([
+        "mp4",
+        "web",
+        "webm",
+        "m3u8",
+        "mov",
+        "mkv",
+        "m4v",
+        "avi",
+        "ogv",
+        "ts",
+      ]);
+
+      function getMediaUrlExtension(mediaUrl) {
+        const raw = String(mediaUrl || "").trim();
+        const regexExt = raw.match(/\.([a-z0-9]{2,5})(?:$|[?#&])/i);
+        if (regexExt && regexExt[1]) return regexExt[1].toLowerCase();
+
+        try {
+          const parsed = new URL(raw, window.location.origin);
+          const fileName = (parsed.pathname || "").split("/").pop() || "";
+          const ext = fileName.includes(".") ? fileName.split(".").pop() : "";
+          return String(ext || "").trim().toLowerCase();
+        } catch (_) {
+          const clean = raw.split("?")[0].split("#")[0];
+          const fileName = clean.split("/").pop() || "";
+          const ext = fileName.includes(".") ? fileName.split(".").pop() : "";
+          return String(ext || "").trim().toLowerCase();
+        }
+      }
+
+      function shouldPreferLunaRadio(post) {
+        const mediaType = String(post?.mediaType || "").toLowerCase();
+        const mediaUrl = String(post?.mediaUrl || "").toLowerCase();
+        const ext = getMediaUrlExtension(mediaUrl);
+        if (mediaType === "audio/url" || mediaType.startsWith("audio/")) {
+          return true;
+        }
+        return LUNA_AUDIO_EXTENSIONS.has(ext);
+      }
+
+      function shouldUseClappr(post) {
+        const mediaType = String(post?.mediaType || "").toLowerCase();
+        const mediaUrl = String(post?.mediaUrl || "").toLowerCase();
+        const ext = getMediaUrlExtension(mediaUrl);
+
+        if (mediaType.startsWith("video/") && mediaType !== "video/url") return true;
+        if (mediaType === "audio/url") return false;
+        if (mediaType === "video/url") return !LUNA_AUDIO_EXTENSIONS.has(ext);
+        if (CLAPPR_VIDEO_EXTENSIONS.has(ext)) return true;
+        return false;
+      }
+
+      function getVideoBlurBackgroundUrl(post) {
+        if (!post || typeof post !== "object") return "";
+        const candidates = [
+          post.thumbnailUrl,
+          post.thumbnail,
+          post.thumbUrl,
+          post.posterUrl,
+          post.poster,
+          post.radiocover,
+          post.imgurData?.thumbnail,
+          post.imgurData?.thumb,
+          post.imgurData?.poster,
+        ].filter((value) => typeof value === "string" && value.trim());
+        return candidates.length ? candidates[0].trim() : "";
+      }
+
+      function getAvailableClapprPlugins() {
+        const plugins = [];
+        if (typeof AudioTrackSelector !== "undefined") plugins.push(AudioTrackSelector);
+        if (typeof HlsjsPlayback !== "undefined") plugins.push(HlsjsPlayback);
+        if (typeof DashShakaPlayback !== "undefined") plugins.push(DashShakaPlayback);
+        if (typeof ClapprPip !== "undefined") {
+          if (ClapprPip.PipButton) plugins.push(ClapprPip.PipButton);
+          if (ClapprPip.PipPlugin) plugins.push(ClapprPip.PipPlugin);
+        }
+        if (typeof LevelSelector !== "undefined") plugins.push(LevelSelector);
+        if (typeof PlaybackRatePlugin !== "undefined") plugins.push(PlaybackRatePlugin);
+        if (typeof YoutubePlayback !== "undefined") plugins.push(YoutubePlayback);
+        return plugins;
+      }
+
+      function buildClapprPlayerOptions(containerId, post) {
+        const mediaUrl = String(post?.mediaUrl || "").trim();
+        const ext = getMediaUrlExtension(mediaUrl);
+        const isHls = ext === "m3u8" || /\.m3u8(?:$|[?#])/i.test(mediaUrl);
+        const posterUrl =
+          post?.posterUrl ||
+          post?.radiocover ||
+          getVideoBlurBackgroundUrl(post) ||
+          "https://dummyimage.com/640x360/0f172a/ffffff&text=Conquiguias+TV";
+
+        const options = {
+          source: mediaUrl,
+          parentId: `#${containerId}`,
+          poster: posterUrl,
+          width: "100%",
+          height: "100%",
+          autoPlay: false,
+          hideVolumeBar: false,
+          disableVideoTagContextMenu: true,
+          playbackNotSupportedMessage: "No se puede reproducir.",
+          plugins: getAvailableClapprPlugins(),
+          playback: {
+            crossOrigin: "anonymous",
+            hlsjsConfig: {
+              maxBufferLength: 30,
+              maxBufferSize: 60 * 1000 * 1000,
+              lowLatencyMode: isHls,
+            },
+          },
+        };
+
+        if (isHls) {
+          Object.assign(options, {
+            actualLiveTime: true,
+            hideMediaControl: true,
+          });
+        }
+        return options;
+      }
+
+      function initClapprPlayerWithFallback(containerId, post) {
+        if (typeof Clappr === "undefined") return;
+        const container = document.getElementById(containerId);
+        if (!container || !post?.mediaUrl) return;
+
+        if (window._postClapprPlayer) {
+          try {
+            window._postClapprPlayer.destroy();
+          } catch (_) {}
+          window._postClapprPlayer = null;
+        }
+
+        window._postClapprPlayer = new Clappr.Player(
+          buildClapprPlayerOptions(containerId, post),
+        );
+        window._postClapprPlayer.on(Clappr.Events.PLAYER_PLAY, () => {
+          incrementPostViewCount(post.id);
+        });
+      }
+
+      function initLunaRadioPlayer(containerId, post) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        const jq = window.jQuery;
+        if (!jq || !jq.fn || typeof jq.fn.lunaradio !== "function") {
+          container.innerHTML =
+            '<div style="padding:20px;color:#94a3b8;">No se pudo iniciar el audio.</div>';
+          return;
+        }
+
+        const posterUrl =
+          post.radiocover ||
+          post.posterUrl ||
+          getVideoBlurBackgroundUrl(post) ||
+          "https://dummyimage.com/640x360/0f172a/ffffff&text=Conquiguias+Radio";
+        const perfilCanal = post.coverimage || post.userPhoto || posterUrl;
+        const nombreCanal =
+          (post.radioname || post.description || post.userName || "Conquiguias Radio").slice(
+            0,
+            80,
+          );
+
+        container.style.backgroundImage = `url(${posterUrl})`;
+        container.style.backgroundSize = "cover";
+        container.style.backgroundPosition = "center";
+
+        jq(`#${containerId}`).lunaradio({
+          userinterface: "big",
+          backgroundcolor: "rgba(9,15,25,0.2)",
+          fontcolor: "#FFFFFF",
+          hightlightcolor: "#FF0000",
+          fontname: "Saira Condensed",
+          googlefont: "Saira+Condensed:wght@100",
+          fontratio: "0.6",
+          radioname: nombreCanal,
+          scroll: "true",
+          usecover: "true",
+          radiocover: posterUrl,
+          coverimage: perfilCanal,
+          usevisualizer: "real",
+          coverstyle: "animated",
+          visualizertype: "4",
+          multicolorvisualizer: "true",
+          color1: "dc143c",
+          color2: "f1666d",
+          color3: "e6f62f",
+          color4: "#e6f62f",
+          metadatatechnic: "corsproxy",
+          streamurl: post.mediaUrl,
+          streamtype: "shoutcast2",
+          shoutcastid: "1",
+          volume: "50",
+          debug: "false",
+          usestreamcorsproxy: "true",
+          autoplay: "false",
+        });
+      }
+
       function parseCommentDate(value) {
         if (!value) return new Date();
         if (value instanceof Date) return value;
@@ -1564,19 +1798,28 @@
         const userSeven = reactions.seven.includes(userId);
         const comments = Array.isArray(post.comments) ? post.comments : [];
         const postDateLabel = getPostDateLabel(post.timestamp);
+        const renderPostId = String(post.id || "").replace(/[^a-zA-Z0-9_-]/g, "");
 
-        const mediaHtml = (post.mediaType || "").startsWith("image/")
+        const isImageMedia = String(post.mediaType || "").startsWith("image/");
+        const isAudioMedia = shouldPreferLunaRadio(post);
+        const isVideoMedia = shouldUseClappr(post);
+
+        const mediaHtml = isImageMedia
           ? `<div class="media-blur-shell">
              <img class="media-blur-bg-img" src="${escapeHtml(post.mediaUrl || "")}" alt="" aria-hidden="true" loading="lazy">
              <img class="media-front-media" src="${escapeHtml(post.mediaUrl || "")}" alt="Publicación" loading="lazy" onerror="this.closest('.media-blur-shell').style.display='none'">
            </div>`
-          : post.mediaType === "video/url" ||
-              String(post.mediaType || "").startsWith("video/")
+          : isAudioMedia
             ? `<div class="media-blur-shell media-blur-video-shell">
                <div class="media-blur-bg-fallback" aria-hidden="true"></div>
-               <div id="clappr-post-player" class="clappr-container" data-src="${escapeHtml(post.mediaUrl || "")}"></div>
+               <div id="stream-post-player-${renderPostId}" class="lunaradio-host" data-src="${escapeHtml(post.mediaUrl || "")}"></div>
              </div>`
-            : `<div style="padding:20px;color:#94a3b8;">Contenido no compatible</div>`;
+            : isVideoMedia
+            ? `<div class="media-blur-shell media-blur-video-shell">
+               <div class="media-blur-bg-fallback" aria-hidden="true"></div>
+               <div id="clappr-post-player-${renderPostId}" class="clappr-container" data-src="${escapeHtml(post.mediaUrl || "")}"></div>
+             </div>`
+            : `<div style="padding:20px;color:#94a3b8;">No se pudo cargar el contenido de este post.</div>`;
 
         postRoot.innerHTML = `
         <div class="single-post-shell">
@@ -1645,31 +1888,14 @@
         stateEl.style.display = "none";
 
         // Mount Clappr for video posts
-        if (
-          (post.mediaType === "video/url" ||
-            String(post.mediaType || "").startsWith("video/")) &&
-          post.mediaUrl
-        ) {
-          if (window._postClapprPlayer) {
-            try {
-              window._postClapprPlayer.destroy();
-            } catch (e) {}
-            window._postClapprPlayer = null;
-          }
+        if (isVideoMedia && post.mediaUrl) {
           setTimeout(() => {
-            const clapprEl = document.getElementById("clappr-post-player");
-            if (clapprEl && window.Clappr) {
-              window._postClapprPlayer = new Clappr.Player({
-                source: post.mediaUrl,
-                parentId: "#clappr-post-player",
-                width: "100%",
-                height: "100%",
-              });
-              window._postClapprPlayer.on(Clappr.Events.PLAYER_PLAY, () => {
-                incrementPostViewCount(post.id);
-              });
-            }
-          }, 300);
+            initClapprPlayerWithFallback(`clappr-post-player-${renderPostId}`, post);
+          }, 250);
+        } else if (isAudioMedia && post.mediaUrl) {
+          setTimeout(() => {
+            initLunaRadioPlayer(`stream-post-player-${renderPostId}`, post);
+          }, 250);
         }
 
         // Auto-open comments sidebar on desktop

@@ -9575,6 +9575,46 @@
         });
       }
 
+      async function compressBase64Image(base64String, maxSizeBytes = 800000) {
+        if (base64String.length <= maxSizeBytes) {
+          return base64String;
+        }
+
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            let quality = 0.8;
+            let result = base64String;
+
+            const tryCompress = () => {
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, width, height);
+              result = canvas.toDataURL('image/jpeg', quality);
+
+              if (result.length > maxSizeBytes && quality > 0.1) {
+                quality -= 0.1;
+                tryCompress();
+              } else if (result.length > maxSizeBytes && width > 100) {
+                quality = 0.8;
+                width = Math.max(100, Math.floor(width * 0.85));
+                height = Math.max(100, Math.floor(height * 0.85));
+                tryCompress();
+              }
+            };
+
+            tryCompress();
+            resolve(result.length <= maxSizeBytes ? result : base64String);
+          };
+          img.onerror = () => reject(new Error('No se pudo procesar la imagen.'));
+          img.src = base64String;
+        });
+      }
+
       // 🔹 Subir a Imgur a través del backend unificado - VERSIÓN CORREGIDA
       // 🔹 Subir a Imgur DIRECTAMENTE desde el frontend
       async function uploadToImgur(file) {
@@ -9743,10 +9783,10 @@
 
           try {
             if (radioProfileImageInput?.files?.[0]) {
-              profileImage = await fileToBase64(radioProfileImageInput.files[0]);
+              profileImage = await compressBase64Image(await fileToBase64(radioProfileImageInput.files[0]));
             }
             if (radioCoverImageInput?.files?.[0]) {
-              coverImage = await fileToBase64(radioCoverImageInput.files[0]);
+              coverImage = await compressBase64Image(await fileToBase64(radioCoverImageInput.files[0]));
             }
           } catch (imgErr) {
             mostrarMensaje('error', 'Imagen inválida', 'No se pudieron procesar las imágenes de perfil/portada.');
@@ -9822,7 +9862,7 @@
           let coverImage = DEFAULT_TV_COVER_IMAGE;
           try {
             if (tvCoverImageInput?.files?.[0]) {
-              coverImage = await fileToBase64(tvCoverImageInput.files[0]);
+              coverImage = await compressBase64Image(await fileToBase64(tvCoverImageInput.files[0]));
             }
           } catch (imgErr) {
             mostrarMensaje('error', 'Imagen inválida', 'No se pudo procesar la portada de TV.');
@@ -11935,11 +11975,11 @@
                 : DEFAULT_RADIO_COVER_IMAGE);
 
               if (radioProfileInput?.files?.[0]) {
-                profileImage = await fileToBase64(radioProfileInput.files[0]);
+                profileImage = await compressBase64Image(await fileToBase64(radioProfileInput.files[0]));
               }
 
               if (radioCoverInput?.files?.[0]) {
-                coverImage = await fileToBase64(radioCoverInput.files[0]);
+                coverImage = await compressBase64Image(await fileToBase64(radioCoverInput.files[0]));
               }
 
               Object.assign(updates, {
@@ -11964,7 +12004,7 @@
 
               let coverImage = String(postData?.posterUrl || postData?.thumbnailUrl || '').trim() || DEFAULT_TV_COVER_IMAGE;
               if (tvCoverInput?.files?.[0]) {
-                coverImage = await fileToBase64(tvCoverInput.files[0]);
+                coverImage = await compressBase64Image(await fileToBase64(tvCoverInput.files[0]));
               }
 
               Object.assign(updates, {

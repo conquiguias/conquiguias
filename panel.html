@@ -13189,6 +13189,7 @@
           const adminPostsContainer = document.getElementById('adminPostsContainer');
           const noPendingPosts = document.getElementById('noPendingPosts');
 
+          cleanupPendingMediaPlayers();
           adminLoading.style.display = 'block';
           adminPostsContainer.innerHTML = '';
           noPendingPosts.style.display = 'none';
@@ -13259,22 +13260,77 @@
         }
       }
 
+      function cleanupPendingMediaPlayers() {
+        Object.entries(window._clapprPlayers || {}).forEach(([playerId, playerInstance]) => {
+          if (!String(playerId).startsWith('pending-')) return;
+          try {
+            if (playerInstance && typeof playerInstance.destroy === 'function') {
+              playerInstance.destroy();
+            }
+          } catch (_) { }
+          delete window._clapprPlayers[playerId];
+        });
+
+        Object.entries(window._lunaPlayers || {}).forEach(([playerId, playerInstance]) => {
+          if (!String(playerId).startsWith('pending-')) return;
+          try {
+            if (playerInstance && typeof playerInstance.lunaradio === 'function') {
+              playerInstance.lunaradio('pause').remove();
+            }
+          } catch (_) { }
+          delete window._lunaPlayers[playerId];
+        });
+      }
+
       // Mostrar publicación pendiente en el panel admin
       function displayPendingPost(post, postId) {
+        const normalizedMediaType = String(post?.mediaType || '').trim() || inferUrlMediaType(post?.mediaUrl || '');
+        const normalizedPost = {
+          ...post,
+          mediaType: normalizedMediaType
+        };
+
         const postElement = document.createElement('div');
         postElement.className = 'post-card';
         postElement.style.marginBottom = '20px';
         postElement.style.border = '2px solid #ff9800';
 
-        const postDateLabel = getPostDateLabel(new Date(post.timestamp));
-        const videoBlurBackgroundUrl = getVideoBlurBackgroundUrl(post);
+        const postDateLabel = getPostDateLabel(new Date(normalizedPost.timestamp));
+        const videoBlurBackgroundUrl = getVideoBlurBackgroundUrl(normalizedPost);
+        const pendingRenderId = `pending-${postId}`;
+        const hasMedia = !!(normalizedPost?.mediaUrl && normalizedPost?.mediaType && normalizedPost.mediaType !== 'text/plain');
+
+        let pendingMediaMarkup = '';
+        if (hasMedia && normalizedPost.mediaType.startsWith('image/')) {
+          pendingMediaMarkup = isImgurUrl(normalizedPost.mediaUrl)
+            ? `<div class="media-blur-shell">
+                 <img class="media-blur-bg-img" src="${IMGUR_IMAGE_PLACEHOLDER}" alt="" aria-hidden="true" loading="lazy">
+                 <img class="media-front-media" src="${IMGUR_IMAGE_PLACEHOLDER}" data-media-url="${escapeHtml(normalizedPost.mediaUrl)}" alt="Publicación pendiente" loading="lazy">
+               </div>`
+            : `<div class="media-blur-shell">
+                 <img class="media-blur-bg-img" src="${normalizedPost.mediaUrl}" alt="" aria-hidden="true" loading="lazy">
+                 <img class="media-front-media" src="${normalizedPost.mediaUrl}" alt="Publicación pendiente" loading="lazy" onerror="this.closest('.media-blur-shell').style.display='none'">
+               </div>`;
+        } else if (hasMedia && (normalizedPost.mediaType === 'video/url' || normalizedPost.mediaType === 'audio/url')) {
+          pendingMediaMarkup = `<div class="media-blur-shell media-blur-video-shell">
+                                  <div class="media-blur-bg-fallback" aria-hidden="true"></div>
+                                  ${videoBlurBackgroundUrl ? `<img class="media-blur-bg-img" src="${escapeHtml(videoBlurBackgroundUrl)}" alt="" aria-hidden="true" loading="lazy" onerror="this.style.display='none'">` : ''}
+                                  <div id="pending-stream-player-${pendingRenderId}" class="lunaradio-host" data-src="${escapeHtml(normalizedPost.mediaUrl)}"></div>
+                                 </div>`;
+        } else if (hasMedia && normalizedPost.mediaType.startsWith('video/')) {
+          pendingMediaMarkup = `<div class="media-blur-shell media-blur-video-shell">
+                                  <div class="media-blur-bg-fallback" aria-hidden="true"></div>
+                                  ${videoBlurBackgroundUrl ? `<img class="media-blur-bg-img" src="${escapeHtml(videoBlurBackgroundUrl)}" alt="" aria-hidden="true" loading="lazy" onerror="this.style.display='none'">` : ''}
+                                  <div id="pending-clappr-player-${pendingRenderId}" class="clappr-container" data-src="${escapeHtml(normalizedPost.mediaUrl)}"></div>
+                                 </div>`;
+        }
 
         postElement.innerHTML = `
                               <div class="post-header">
-                                <img src="${post.userPhoto}" alt="Foto de perfil" class="post-user-img"
+                                <img src="${normalizedPost.userPhoto}" alt="Foto de perfil" class="post-user-img"
                                   onerror="this.src='https://dummyimage.com/40x40/ccc/fff'">
                                 <div class="post-header-meta">
-                                  <div class="post-user-name">${post.userName}</div>
+                                  <div class="post-user-name">${normalizedPost.userName || 'Usuario'}</div>
                                   <div class="post-time">${postDateLabel}</div>
                                   <div style="font-size: 12px; color: #ff9800; margin-top: 5px;">
                                     ⏳ Esperando aprobación
@@ -13282,43 +13338,26 @@
                                 </div>
                               </div>
 
-                              <div class="post-content">
-                                ${post.mediaType.startsWith('image/')
-            ? (isImgurUrl(post.mediaUrl)
-              ? `<div class="media-blur-shell">
-                                      <img class="media-blur-bg-img" src="${IMGUR_IMAGE_PLACEHOLDER}" alt="" aria-hidden="true" loading="lazy">
-                                      <img class="media-front-media" src="${IMGUR_IMAGE_PLACEHOLDER}" data-media-url="${escapeHtml(post.mediaUrl)}" alt="Publicación pendiente" loading="lazy">
-                                    </div>`
-              : `<div class="media-blur-shell">
-                                      <img class="media-blur-bg-img" src="${post.mediaUrl}" alt="" aria-hidden="true" loading="lazy">
-                                      <img class="media-front-media" src="${post.mediaUrl}" alt="Publicación pendiente" loading="lazy" onerror="this.closest('.media-blur-shell').style.display='none'">
-                                    </div>`)
-            : `<div class="media-blur-shell media-blur-video-shell">
-                                    <div class="media-blur-bg-fallback" aria-hidden="true"></div>
-                                    ${videoBlurBackgroundUrl ? `<img class="media-blur-bg-img" src="${escapeHtml(videoBlurBackgroundUrl)}" alt="" aria-hidden="true" loading="lazy" onerror="this.style.display='none'">` : ''}
-                                    <video class="media-front-media" src="${post.mediaUrl}" controls playsinline preload="metadata"></video>
-                                   </div>`
-          }
-                              </div>
+                              ${pendingMediaMarkup ? `<div class="post-content">${pendingMediaMarkup}</div>` : ''}
 
                               <div class="post-description">
-                                ${post.description}
+                                ${formatRichText(String(normalizedPost.description || ''))}
                               </div>
 
                               <div style="padding: 15px;border-radius: 8px; margin: 10px 0;">
                                 <h4 style="margin-bottom: 10px;">🔧 Acciones de Moderación</h4>
                                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                                   <button class="approve-btn" data-postid="${postId}"
-                                    data-deletehash="${post.imgurData?.deletehash}"
+                                    data-deletehash="${normalizedPost.imgurData?.deletehash}"
                                     style="background: #4caf50; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px;">
                                     ✅ Aprobar
                                   </button>
                                   <button class="reject-btn" data-postid="${postId}"
-                                    data-deletehash="${post.imgurData?.deletehash}"
+                                    data-deletehash="${normalizedPost.imgurData?.deletehash}"
                                     style="background: #f44336; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px;">
                                     ❌ Rechazar
                                   </button>
-                                  <button class="view-user-btn" data-userid="${post.userId}"
+                                  <button class="view-user-btn" data-userid="${normalizedPost.userId}"
                                     style="background: #2196f3; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px;">
                                     👤 Ver Usuario
                                   </button>
@@ -13328,6 +13367,112 @@
 
         document.getElementById('adminPostsContainer').appendChild(postElement);
         queuePostImgurImages(postElement);
+
+        if (hasMedia && (normalizedPost.mediaType === 'video/url' || normalizedPost.mediaType === 'audio/url')) {
+          const streamId = `pending-stream-player-${pendingRenderId}`;
+          queuePlayerInitialization(streamId, () => {
+            if (shouldPreferLunaRadio(normalizedPost)) {
+              initPendingLunaRadioPlayer(streamId, normalizedPost, postId);
+            } else if (shouldUseClappr(normalizedPost)) {
+              initPendingClapprPlayer(streamId, normalizedPost, postId);
+            }
+          }, { auto: true });
+        } else if (hasMedia && normalizedPost.mediaType.startsWith('video/')) {
+          const playerId = `pending-clappr-player-${pendingRenderId}`;
+          queuePlayerInitialization(playerId, () => {
+            initPendingClapprPlayer(playerId, normalizedPost, postId);
+          }, { auto: true });
+        }
+      }
+
+      function initPendingClapprPlayer(containerId, post, firestorePostId) {
+        if (typeof Clappr === 'undefined') return;
+        if (!window._clapprPlayers) window._clapprPlayers = {};
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        if (window._clapprPlayers[containerId] && window._clapprPlayers[containerId] !== 'pending') return;
+
+        try {
+          window._clapprPlayers[containerId] = 'pending';
+          const player = new Clappr.Player(buildClapprPlayerOptions(containerId, post));
+          window._clapprPlayers[containerId] = player;
+
+          player.on(Clappr.Events.PLAYER_PLAY, () => {
+            pauseOtherPostMedia(containerId);
+            incrementPostViewCount(firestorePostId);
+          });
+        } catch (_) {
+          window._clapprPlayers[containerId] = null;
+        }
+      }
+
+      function initPendingLunaRadioPlayer(containerId, post, firestorePostId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        const jq = window.jQuery;
+        if (!jq || !jq.fn || typeof jq.fn.lunaradio !== 'function') return;
+
+        try {
+          const posterUrl = post.radiocover || post.posterUrl || getVideoBlurBackgroundUrl(post) || DEFAULT_RADIO_COVER_IMAGE;
+          const perfilCanal = post.coverimage || post.userPhoto || posterUrl;
+          const nombreCanal = (post.radioname || post.description || post.userName || 'Conquiguias Radio').slice(0, 80);
+
+          const lunaInstance = jq(`#${containerId}`).lunaradio({
+            userinterface: 'big',
+            backgroundcolor: 'rgba(9,15,25,0.2)',
+            fontcolor: '#FFFFFF',
+            hightlightcolor: '#FF0000',
+            fontname: 'Saira Condensed',
+            googlefont: 'Saira+Condensed:wght@100',
+            fontratio: '0.6',
+            radioname: nombreCanal,
+            scroll: 'true',
+            usecover: 'true',
+            radiocover: posterUrl,
+            coverimage: perfilCanal,
+            usevisualizer: 'real',
+            coverstyle: 'animated',
+            visualizertype: '4',
+            multicolorvisualizer: 'true',
+            color1: 'dc143c',
+            color2: 'f1666d',
+            color3: 'e6f62f',
+            color4: '#e6f62f',
+            itunestoken: '1000lIPN',
+            metadatatechnic: 'corsproxy',
+            ownmetadataurl: '',
+            streamurl: post.mediaUrl,
+            streamtype: 'shoutcast2',
+            zenoid: 'a536jtganoeuv',
+            icecastmountpoint: '',
+            radionomyid: '',
+            radionomyapikey: '',
+            radiozenoid: '',
+            radiojarid: '',
+            radiocoid: '',
+            shoutcastpath: '',
+            shoutcastid: '1',
+            streamsuffix: '',
+            metadatainterval: '20000',
+            volume: '50',
+            debug: 'false',
+            usestreamcorsproxy: 'true',
+            corsproxy: '',
+            autoplay: 'false'
+          });
+
+          window._lunaPlayers = window._lunaPlayers || {};
+          window._lunaPlayers[containerId] = lunaInstance;
+
+          container.querySelectorAll('audio').forEach((audioEl) => {
+            if (audioEl.dataset.cxPlayBound === '1') return;
+            audioEl.dataset.cxPlayBound = '1';
+            audioEl.addEventListener('play', () => {
+              pauseOtherPostMedia(containerId);
+              incrementPostViewCount(firestorePostId);
+            });
+          });
+        } catch (_) { }
       }
 
       // Aprobar publicación

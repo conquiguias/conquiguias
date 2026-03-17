@@ -1521,7 +1521,7 @@
         return candidates.length ? candidates[0].trim() : "";
       }
 
-      function getAvailableClapprPlugins() {
+      function getAvailableClapprPlugins(mediaUrl = "") {
         const plugins = [];
         if (typeof AudioTrackSelector !== "undefined") plugins.push(AudioTrackSelector);
         if (typeof HlsjsPlayback !== "undefined") plugins.push(HlsjsPlayback);
@@ -1532,7 +1532,8 @@
         }
         if (typeof LevelSelector !== "undefined") plugins.push(LevelSelector);
         if (typeof PlaybackRatePlugin !== "undefined") plugins.push(PlaybackRatePlugin);
-        if (typeof YoutubePlayback !== "undefined") plugins.push(YoutubePlayback);
+        const hasYouTubeId = !!extractYouTubeVideoId(mediaUrl);
+        if (hasYouTubeId && typeof YoutubePlayback !== "undefined") plugins.push(YoutubePlayback);
         return plugins;
       }
 
@@ -1595,7 +1596,7 @@
           hideVolumeBar: false,
           disableVideoTagContextMenu: true,
           playbackNotSupportedMessage: "No se puede reproducir.",
-          plugins: getAvailableClapprPlugins(),
+          plugins: getAvailableClapprPlugins(mediaUrl),
           playbackRateConfig: buildClapprPlaybackRateConfig(),
           levelSelectorConfig: buildClapprLevelSelectorConfig(),
           playback: {

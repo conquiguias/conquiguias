@@ -3178,7 +3178,36 @@
       transition: opacity 0.2s ease;
     }
 
+    .media-play-overlay-cover {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.32;
+      pointer-events: none;
+    }
+
+    .media-play-overlay[data-overlay-kind="audio"] .media-play-overlay-cover {
+      opacity: 0.46;
+      filter: saturate(1.05);
+    }
+
+    .media-play-overlay[data-overlay-kind="video"] .media-play-overlay-cover {
+      opacity: 0.30;
+      filter: saturate(0.95);
+    }
+
+    .media-play-overlay-tint {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(2, 6, 23, 0.34), rgba(2, 6, 23, 0.62));
+      pointer-events: none;
+    }
+
     .media-play-overlay i {
+      position: relative;
+      z-index: 2;
       font-size: 38px;
       text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
       pointer-events: none;
@@ -11042,6 +11071,8 @@
         );
         const isSevenEnabled = isSevenReactionEnabled();
         const videoBlurBackgroundUrl = getVideoBlurBackgroundUrl(post);
+        const audioOverlayCover = escapeHtml(post.radiocover || post.posterUrl || post.thumbnailUrl || post.userPhoto || DEFAULT_RADIO_COVER_IMAGE);
+        const videoOverlayCover = escapeHtml(videoBlurBackgroundUrl || post.posterUrl || post.thumbnailUrl || DEFAULT_TV_COVER_IMAGE);
         const shareCount = getPostShareCount(post);
         const viewCount = getPostViewCount(post);
         const esVideo = !!(post.mediaType && (post.mediaType === 'video/url' || post.mediaType === 'audio/url' || post.mediaType.startsWith('video/') || post.mediaType.startsWith('audio/')));
@@ -11304,7 +11335,9 @@
                       <div class="media-blur-bg-fallback" aria-hidden="true"></div>
                       ${videoBlurBackgroundUrl ? `<img class="media-blur-bg-img" src="${escapeHtml(videoBlurBackgroundUrl)}" alt="" aria-hidden="true" loading="lazy" onerror="this.style.display='none'">` : ''}
                       <div id="stream-player-${renderPostId}" class="lunaradio-host" data-src="${escapeHtml(post.mediaUrl)}"></div>
-                      <button type="button" class="media-play-overlay" data-container-id="stream-player-${renderPostId}" data-media-mode="${shouldPreferLunaRadio(post) ? 'luna' : 'clappr'}" aria-label="Reproducir">
+                      <button type="button" class="media-play-overlay" data-container-id="stream-player-${renderPostId}" data-media-mode="${shouldPreferLunaRadio(post) ? 'luna' : 'clappr'}" data-overlay-kind="${shouldPreferLunaRadio(post) ? 'audio' : 'video'}" aria-label="Reproducir">
+                        <img class="media-play-overlay-cover" src="${shouldPreferLunaRadio(post) ? audioOverlayCover : videoOverlayCover}" alt="" aria-hidden="true" loading="lazy" onerror="this.style.display='none'">
+                        <span class="media-play-overlay-tint" aria-hidden="true"></span>
                         <i class="fas fa-play-circle"></i>
                       </button>
                     </div>`
@@ -11313,7 +11346,9 @@
                       <div class="media-blur-bg-fallback" aria-hidden="true"></div>
                       ${videoBlurBackgroundUrl ? `<img class="media-blur-bg-img" src="${escapeHtml(videoBlurBackgroundUrl)}" alt="" aria-hidden="true" loading="lazy" onerror="this.style.display='none'">` : ''}
                       <div id="clappr-player-${renderPostId}" class="clappr-container" data-src="${post.mediaUrl}"></div>
-                      <button type="button" class="media-play-overlay" data-container-id="clappr-player-${renderPostId}" data-media-mode="clappr" aria-label="Reproducir">
+                      <button type="button" class="media-play-overlay" data-container-id="clappr-player-${renderPostId}" data-media-mode="clappr" data-overlay-kind="video" aria-label="Reproducir">
+                        <img class="media-play-overlay-cover" src="${videoOverlayCover}" alt="" aria-hidden="true" loading="lazy" onerror="this.style.display='none'">
+                        <span class="media-play-overlay-tint" aria-hidden="true"></span>
                         <i class="fas fa-play-circle"></i>
                       </button>
                     </div>`

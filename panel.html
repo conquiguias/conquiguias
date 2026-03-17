@@ -8969,13 +8969,41 @@
         return LUNA_AUDIO_EXTENSIONS.has(ext);
       }
 
+      function extractYouTubeVideoId(mediaUrl) {
+        const raw = String(mediaUrl || '').trim();
+        if (!raw) return '';
+
+        try {
+          const parsed = new URL(raw, window.location.origin);
+          const host = (parsed.hostname || '').toLowerCase();
+          let candidate = '';
+
+          if (host === 'youtu.be') {
+            candidate = (parsed.pathname || '').split('/').filter(Boolean)[0] || '';
+          } else if (host.endsWith('youtube.com') || host.endsWith('youtube-nocookie.com')) {
+            candidate = parsed.searchParams.get('v') || '';
+            if (!candidate) {
+              const segments = (parsed.pathname || '').split('/').filter(Boolean);
+              const marker = segments.findIndex((seg) => ['embed', 'shorts', 'live', 'v'].includes(seg));
+              if (marker >= 0 && segments[marker + 1]) {
+                candidate = segments[marker + 1];
+              }
+            }
+          }
+
+          candidate = String(candidate || '').trim();
+          if (!/^[a-zA-Z0-9_-]{10,15}$/.test(candidate)) return '';
+          return candidate;
+        } catch (_) {
+          return '';
+        }
+      }
+
       function hasKnownVideoProvider(mediaUrl) {
         const value = String(mediaUrl || '').toLowerCase().trim();
         if (!value) return false;
-        return (
-          /(?:youtube\.com|youtu\.be|vimeo\.com|dailymotion\.com|dai\.ly|streamable\.com|twitch\.tv|kick\.com|fb\.watch|facebook\.com\/watch)/i.test(value) ||
-          /\.gifv(?:$|[?#])/i.test(value)
-        );
+        if (/\.gifv(?:$|[?#])/i.test(value)) return true;
+        return !!extractYouTubeVideoId(value);
       }
 
       function shouldUseClappr(post) {
@@ -8983,6 +9011,9 @@
         const mediaUrl = String(post?.mediaUrl || '').toLowerCase();
         const ext = getMediaUrlExtension(mediaUrl);
         const imgurDataType = String(post?.imgurData?.type || '').toLowerCase();
+        const hasYouTubeHost = /(?:youtube\.com|youtu\.be|youtube-nocookie\.com)/i.test(mediaUrl);
+        const youtubeId = extractYouTubeVideoId(mediaUrl);
+        if (hasYouTubeHost && !youtubeId) return false;
 
         if (mediaType.startsWith('video/') && mediaType !== 'video/url') return true;
         if (mediaType === 'audio/url') return false;
@@ -9002,6 +9033,10 @@
         const imgurMp4 = String(post?.imgurData?.mp4 || '').trim();
         const ext = getMediaUrlExtension(mediaUrl);
         if (imgurMp4) return imgurMp4;
+        const youtubeId = extractYouTubeVideoId(mediaUrl);
+        if (youtubeId) {
+          return `https://www.youtube.com/watch?v=${youtubeId}`;
+        }
         if (/\.gifv(?:$|[?#])/i.test(mediaUrl)) {
           return mediaUrl.replace(/\.gifv(?:$|[?#])/i, '.mp4');
         }

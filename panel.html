@@ -9313,7 +9313,8 @@
         const player = window._lunaPlayers?.[playerId];
         try {
           if (player && typeof player.lunaradio === 'function') {
-            player.lunaradio('pause').remove();
+            player.lunaradio('pause');
+            player.empty();
           }
         } catch (_) { }
         if (window._lunaPlayers && Object.prototype.hasOwnProperty.call(window._lunaPlayers, playerId)) {

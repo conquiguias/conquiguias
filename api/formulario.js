@@ -809,7 +809,7 @@ async function handleListarArchivosPDF(req, res, repo) {
             nombre: tarea.nombreArchivoOriginal || `${ident}.pdf`,
             ruta: tarea.storagePath,
             url: tarea.url, // Ya es una signed URL temporal
-            tamano: 0,
+            tamano: tarea.tamano || 0,
             especialidadId: item.especialidad_id,
             especialidadNombre: titulos[item.especialidad_id] || item.especialidad_id,
             ident: ident,
@@ -908,6 +908,7 @@ async function handleSubirTarea(req, res, repo) {
       storagePath,
       nota: null,
       nombreArchivoOriginal: fileName,
+      tamano: fileBuffer.length,
     };
 
     await supabase

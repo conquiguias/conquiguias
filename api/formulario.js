@@ -877,6 +877,9 @@ async function handleSubirTarea(req, res, repo) {
 
     if (uploadError) {
       console.error('Upload error:', uploadError);
+      if (uploadError.message.includes('already exists')) {
+        return res.status(400).json({ error: 'Ya entregaste una tarea para esta especialidad' });
+      }
       return res.status(500).json({ error: 'Error al subir: ' + uploadError.message });
     }
 

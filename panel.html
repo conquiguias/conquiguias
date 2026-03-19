@@ -15694,29 +15694,30 @@
         };
 
         xhr.onload = function () {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              const res = JSON.parse(xhr.responseText);
-              if (res.ok) {
-                progressBar.style.width = '100%';
-                progressText.innerText = '100%';
-                msg.innerHTML = '<span style="color:var(--success-color)">✅ Tarea enviada correctamente.</span>';
+          try {
+            const res = JSON.parse(xhr.responseText);
+            
+            if (xhr.status >= 200 && xhr.status < 300 && res.ok) {
+              progressBar.style.width = '100%';
+              progressText.innerText = '100%';
+              msg.innerHTML = '<span style="color:var(--success-color)">✅ Tarea enviada correctamente.</span>';
 
-                setTimeout(() => {
-                  document.getElementById('modalSubirTarea').style.display = 'none';
-                  // Refrescar tablas
-                  if (typeof window.cargarTareasExamenes === 'function') window.cargarTareasExamenes();
-                  if (typeof cargarTablaCertificacionesCorrecta === 'function') setTimeout(cargarTablaCertificacionesCorrecta, 1000);
-                }, 1500);
-              } else {
-                msg.innerHTML = `<span style="color:red">Error: ${res.error}</span>`;
-                progressContainer.style.display = 'none';
-              }
-            } catch (e) {
-              msg.innerHTML = '<span style="color:red">Error procesando respuesta.</span>';
+              setTimeout(() => {
+                document.getElementById('modalSubirTarea').style.display = 'none';
+                // Refrescar tablas
+                if (typeof window.cargarTareasExamenes === 'function') window.cargarTareasExamenes();
+                if (typeof cargarTablaCertificacionesCorrecta === 'function') setTimeout(cargarTablaCertificacionesCorrecta, 1000);
+              }, 1500);
+            } else if (res.error) {
+              msg.innerHTML = `<span style="color:red">⚠️ ${res.error}</span>`;
+              progressContainer.style.display = 'none';
+            } else {
+              msg.innerHTML = `<span style="color:red">Error del servidor: ${xhr.status}</span>`;
+              progressContainer.style.display = 'none';
             }
-          } else {
+          } catch (e) {
             msg.innerHTML = `<span style="color:red">Error del servidor: ${xhr.status}</span>`;
+            progressContainer.style.display = 'none';
           }
         };
 

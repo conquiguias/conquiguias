@@ -823,12 +823,13 @@ async function handleListarArchivosPDF(req, res, repo) {
 
 // Actualizado: recibe archivo vía FormData, lo sube a Supabase Storage (privado)
 async function handleSubirTarea(req, res, repo) {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const bb = busboy({ headers: req.headers });
-      let file = null;
-      let fields = {};
+  try {
+    // Busboy para parsear multipart/form-data
+    const bb = busboy({ headers: req.headers, limits: { fileSize: 5 * 1024 * 1024 } });
+    let file = null;
+    let fields = {};
 
+    await new Promise((resolve, reject) => {
       bb.on('file', (fieldname, stream, info) => {
         if (fieldname === 'file') {
           const chunks = [];
@@ -836,10 +837,10 @@ async function handleSubirTarea(req, res, repo) {
           stream.on('end', () => {
             file = {
               data: Buffer.concat(chunks),
-              name: info.filename,
-              mimetype: info.encoding
+              name: info.filename
             };
           });
+          stream.on('error', reject);
         }
       });
 
@@ -847,84 +848,74 @@ async function handleSubirTarea(req, res, repo) {
         fields[fieldname] = value;
       });
 
-      bb.on('finish', async () => {
-        try {
-          if (!file) {
-            return res.status(400).json({ error: "Archivo requerido" });
-          }
-
-          const { id, visitanteId, email } = fields;
-          const ident = (email || visitanteId || 'usuario').replace(/[^a-zA-Z0-9.@_-]/g, '_');
-          const storagePath = `tareas/${id}/${ident}.pdf`;
-
-          // Subir a Supabase Storage (privado) usando credenciales del servidor
-          const { data, error: uploadError } = await supabase.storage
-            .from('tareas-pdf')
-            .upload(storagePath, file.data, {
-              contentType: 'application/pdf',
-              upsert: false
-            });
-
-          if (uploadError) {
-            console.error('Error uploading to Supabase Storage:', uploadError);
-            return res.status(500).json({ error: 'Error al subir el archivo: ' + uploadError.message });
-          }
-
-          // Generar URL firmada temporal (válida 7 días)
-          const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-            .from('tareas-pdf')
-            .createSignedUrl(storagePath, 7 * 24 * 60 * 60); // 7 days
-
-          if (signedUrlError) {
-            console.error('Error creating signed URL:', signedUrlError);
-            return res.status(500).json({ error: 'Error generando URL de descarga' });
-          }
-
-          const publicUrl = signedUrlData?.signedUrl || '';
-
-          // Guardar metadatos en Supabase
-          const { data: evData } = await supabase
-            .from("evaluaciones")
-            .select("contenido_tareas")
-            .eq("especialidad_id", id)
-            .single();
-          const tareas = evData?.contenido_tareas || {};
-
-          tareas[ident] = {
-            estado: "entregado",
-            fecha: new Date().toISOString(),
-            url: publicUrl,
-            storagePath: storagePath,
-            nota: null,
-            nombreArchivoOriginal: file.name,
-          };
-
-          await supabase
-            .from("evaluaciones")
-            .upsert({ especialidad_id: id, contenido_tareas: tareas });
-
-          res.status(200).json({ ok: true, message: "Tarea enviada correctamente" });
-          resolve();
-        } catch (error) {
-          console.error('Error en handleSubirTarea:', error);
-          res.status(500).json({ error: error.message || 'Error al procesar la tarea' });
-          resolve();
-        }
-      });
-
-      bb.on('error', (error) => {
-        console.error('Busboy error:', error);
-        res.status(500).json({ error: 'Error procesando archivo' });
-        resolve();
-      });
-
+      bb.on('finish', resolve);
+      bb.on('error', reject);
       req.pipe(bb);
-    } catch (error) {
-      console.error('Error en handleSubirTarea:', error);
-      res.status(500).json({ error: error.message || 'Error al procesar la tarea' });
-      resolve();
+    });
+
+    if (!file) {
+      return res.status(400).json({ error: "Archivo requerido" });
     }
-  });
+
+    const { id, visitanteId, email } = fields;
+    if (!id) {
+      return res.status(400).json({ error: "ID de especialidad requerido" });
+    }
+
+    const ident = (email || visitanteId || 'usuario').replace(/[^a-zA-Z0-9.@_-]/g, '_');
+    const storagePath = `tareas/${id}/${ident}.pdf`;
+
+    // Subir a Supabase Storage (privado)
+    const { data, error: uploadError } = await supabase.storage
+      .from('tareas-pdf')
+      .upload(storagePath, file.data, {
+        contentType: 'application/pdf',
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('Error uploading to Supabase Storage:', uploadError);
+      return res.status(500).json({ error: 'Error al subir el archivo: ' + uploadError.message });
+    }
+
+    // Generar URL firmada temporal (válida 7 días)
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+      .from('tareas-pdf')
+      .createSignedUrl(storagePath, 7 * 24 * 60 * 60);
+
+    if (signedUrlError) {
+      console.error('Error creating signed URL:', signedUrlError);
+      return res.status(500).json({ error: 'Error generando URL de descarga' });
+    }
+
+    const publicUrl = signedUrlData?.signedUrl || '';
+
+    // Guardar metadatos en Supabase
+    const { data: evData } = await supabase
+      .from("evaluaciones")
+      .select("contenido_tareas")
+      .eq("especialidad_id", id)
+      .single();
+    const tareas = evData?.contenido_tareas || {};
+
+    tareas[ident] = {
+      estado: "entregado",
+      fecha: new Date().toISOString(),
+      url: publicUrl,
+      storagePath: storagePath,
+      nota: null,
+      nombreArchivoOriginal: file.name,
+    };
+
+    await supabase
+      .from("evaluaciones")
+      .upsert({ especialidad_id: id, contenido_tareas: tareas });
+
+    res.status(200).json({ ok: true, message: "Tarea enviada correctamente" });
+  } catch (error) {
+    console.error('Error en handleSubirTarea:', error);
+    res.status(500).json({ error: error.message || 'Error al procesar la tarea' });
+  }
 }
 
 async function handleEliminarTodasTareasPDF(req, res, repo) {
@@ -1017,12 +1008,6 @@ async function handleEliminarTareasPDF(req, res, repo) {
     }
 
     res.status(200).json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-}
-        .json({ error: err.message || "Error al eliminar en GitHub" });
-    }
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

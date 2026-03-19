@@ -1,5 +1,6 @@
 const { createClient } = require("@supabase/supabase-js");
 const admin = require("firebase-admin");
+const busboy = require("busboy");
 
 // Configuración Supabase
 const SUPABASE_URL =
@@ -785,10 +786,7 @@ async function handleEliminarImagen(req, res, repo) {
 }
 
 async function handleListarArchivosPDF(req, res, repo) {
-  const r = await fetch(
-    `https://api.github.com/repos/${repo}/git/trees/main?recursive=1`,
-    { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
-  ).then((x) => x.json());
+  // Leer PDFs desde metadatos guardados en Supabase
   const { data: formData } = await supabase
     .from("formularios")
     .select("id, titulo");
@@ -797,172 +795,232 @@ async function handleListarArchivosPDF(req, res, repo) {
     titulos[f.id] = f.titulo || f.id;
   });
 
-  const pdfs = (r.tree || [])
-    .filter(
-      (n) => n.path.startsWith("tareas_files/") && n.path.endsWith(".pdf"),
-    )
-    .map((n) => {
-      const partes = n.path.split("/");
-      const especialidadId = partes[1] || "";
-      return {
-        nombre: n.path.split("/").pop(),
-        ruta: n.path,
-        url: `https://raw.githubusercontent.com/${repo}/main/${n.path}`,
-        tamano: n.size || 0,
-        especialidadId,
-        especialidadNombre: titulos[especialidadId] || especialidadId,
-      };
+  const { data: evalData } = await supabase
+    .from("evaluaciones")
+    .select("especialidad_id, contenido_tareas");
+  
+  const pdfs = [];
+  if (evalData) {
+    evalData.forEach((item) => {
+      const tareas = item.contenido_tareas || {};
+      Object.entries(tareas).forEach(([ident, tarea]) => {
+        if (tarea && tarea.storagePath && tarea.url) {
+          pdfs.push({
+            nombre: tarea.nombreArchivoOriginal || `${ident}.pdf`,
+            ruta: tarea.storagePath,
+            url: tarea.url, // Ya es una signed URL temporal
+            tamano: 0,
+            especialidadId: item.especialidad_id,
+            especialidadNombre: titulos[item.especialidad_id] || item.especialidad_id,
+            ident: ident,
+          });
+        }
+      });
     });
+  }
   res.status(200).json(pdfs);
 }
 
-// Este handler es crucial: Sube al GitHub (blob) PERO guarda metadatos en SUPABASE
+// Actualizado: recibe archivo vía FormData, lo sube a Supabase Storage (privado)
 async function handleSubirTarea(req, res, repo) {
-  const { id, visitanteId, email, contenido, nombreArchivo } = req.body;
-  const ident = email || visitanteId;
+  return new Promise(async (resolve, reject) => {
+    try {
+      const bb = busboy({ headers: req.headers });
+      let file = null;
+      let fields = {};
 
-  // 1. Subir PDF a GitHub
-  const path = `tareas_files/${id}/${ident.replace(/[^a-zA-Z0-9.@_-]/g, "_")}.pdf`;
-  await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
-    method: "PUT",
-    headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` },
-    body: JSON.stringify({
-      message: `Tarea: ${ident}`,
-      content: contenido,
-      branch: "main",
-    }),
+      bb.on('file', (fieldname, stream, info) => {
+        if (fieldname === 'file') {
+          const chunks = [];
+          stream.on('data', (chunk) => chunks.push(chunk));
+          stream.on('end', () => {
+            file = {
+              data: Buffer.concat(chunks),
+              name: info.filename,
+              mimetype: info.encoding
+            };
+          });
+        }
+      });
+
+      bb.on('field', (fieldname, value) => {
+        fields[fieldname] = value;
+      });
+
+      bb.on('finish', async () => {
+        try {
+          if (!file) {
+            return res.status(400).json({ error: "Archivo requerido" });
+          }
+
+          const { id, visitanteId, email } = fields;
+          const ident = (email || visitanteId || 'usuario').replace(/[^a-zA-Z0-9.@_-]/g, '_');
+          const storagePath = `tareas/${id}/${ident}.pdf`;
+
+          // Subir a Supabase Storage (privado) usando credenciales del servidor
+          const { data, error: uploadError } = await supabase.storage
+            .from('tareas-pdf')
+            .upload(storagePath, file.data, {
+              contentType: 'application/pdf',
+              upsert: false
+            });
+
+          if (uploadError) {
+            console.error('Error uploading to Supabase Storage:', uploadError);
+            return res.status(500).json({ error: 'Error al subir el archivo: ' + uploadError.message });
+          }
+
+          // Generar URL firmada temporal (válida 7 días)
+          const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+            .from('tareas-pdf')
+            .createSignedUrl(storagePath, 7 * 24 * 60 * 60); // 7 days
+
+          if (signedUrlError) {
+            console.error('Error creating signed URL:', signedUrlError);
+            return res.status(500).json({ error: 'Error generando URL de descarga' });
+          }
+
+          const publicUrl = signedUrlData?.signedUrl || '';
+
+          // Guardar metadatos en Supabase
+          const { data: evData } = await supabase
+            .from("evaluaciones")
+            .select("contenido_tareas")
+            .eq("especialidad_id", id)
+            .single();
+          const tareas = evData?.contenido_tareas || {};
+
+          tareas[ident] = {
+            estado: "entregado",
+            fecha: new Date().toISOString(),
+            url: publicUrl,
+            storagePath: storagePath,
+            nota: null,
+            nombreArchivoOriginal: file.name,
+          };
+
+          await supabase
+            .from("evaluaciones")
+            .upsert({ especialidad_id: id, contenido_tareas: tareas });
+
+          res.status(200).json({ ok: true, message: "Tarea enviada correctamente" });
+          resolve();
+        } catch (error) {
+          console.error('Error en handleSubirTarea:', error);
+          res.status(500).json({ error: error.message || 'Error al procesar la tarea' });
+          resolve();
+        }
+      });
+
+      bb.on('error', (error) => {
+        console.error('Busboy error:', error);
+        res.status(500).json({ error: 'Error procesando archivo' });
+        resolve();
+      });
+
+      req.pipe(bb);
+    } catch (error) {
+      console.error('Error en handleSubirTarea:', error);
+      res.status(500).json({ error: error.message || 'Error al procesar la tarea' });
+      resolve();
+    }
   });
-
-  // 2. Actualizar JSON de tareas en Supabase
-  const { data: evData } = await supabase
-    .from("evaluaciones")
-    .select("contenido_tareas")
-    .eq("especialidad_id", id)
-    .single();
-  const tareas = evData?.contenido_tareas || {};
-
-  tareas[ident] = {
-    estado: "entregado",
-    fecha: new Date().toISOString(),
-    url: `https://raw.githubusercontent.com/${repo}/main/${path}`,
-    nota: null,
-    nombreArchivoOriginal: nombreArchivo,
-  };
-
-  await supabase
-    .from("evaluaciones")
-    .upsert({ especialidad_id: id, contenido_tareas: tareas });
-  res.status(200).json({ ok: true, message: "Tarea enviada correctamente" });
 }
 
 async function handleEliminarTodasTareasPDF(req, res, repo) {
-  const r = await fetch(
-    `https://api.github.com/repos/${repo}/git/trees/main?recursive=1`,
-    { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
-  ).then((x) => x.json());
-
-  const files = (r.tree || []).filter(
-    (n) => n.path.startsWith("tareas_files/") && n.type === "blob",
-  );
-
   let eliminados = 0;
   let errores = 0;
 
-  // PROCESAMIENTO SECUENCIAL (CRÍTICO PARA EVITAR CONFLICTOS DE GIT)
-  // GitHub no permite múltiples commits simultáneos sobre la misma rama (409 Conflict)
-  for (const f of files) {
-    try {
-      const delResp = await fetch(
-        `https://api.github.com/repos/${repo}/contents/${f.path}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `token ${process.env.GITHUB_TOKEN}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            message: "Limpieza",
-            sha: f.sha,
-            branch: "main",
-          }),
-        },
-      );
-
-      if (delResp.ok) {
-        eliminados++;
-      } else {
-        console.error(`Error API GitHub al borrar ${f.path}:`, delResp.status);
-        errores++;
-      }
-    } catch (e) {
-      console.error(`Excepción borrando ${f.path}`, e);
-      errores++;
+  try {
+    // Leer todos los metadatos de tareas
+    const { data: evalData } = await supabase
+      .from("evaluaciones")
+      .select("especialidad_id, contenido_tareas");
+    
+    const pathsAEliminar = [];
+    
+    if (evalData) {
+      evalData.forEach((item) => {
+        const tareas = item.contenido_tareas || {};
+        Object.entries(tareas).forEach(([ident, tarea]) => {
+          if (tarea && tarea.storagePath) {
+            pathsAEliminar.push(tarea.storagePath);
+          }
+        });
+      });
     }
-  }
 
-  res.status(200).json({ ok: true, eliminados, errores });
+    // Eliminar archivos de Supabase Storage
+    if (pathsAEliminar.length > 0) {
+      const { error } = await supabase.storage
+        .from('tareas-pdf')
+        .remove(pathsAEliminar);
+      
+      if (error) {
+        console.error('Error eliminando archivos de Storage:', error);
+        errores = pathsAEliminar.length;
+      } else {
+        eliminados = pathsAEliminar.length;
+      }
+    }
+
+    // Limpiar metadatos: eliminar contenido_tareas
+    for (const item of (evalData || [])) {
+      await supabase
+        .from("evaluaciones")
+        .update({ contenido_tareas: {} })
+        .eq("especialidad_id", item.especialidad_id);
+    }
+
+    res.status(200).json({ ok: true, eliminados, errores });
+  } catch (e) {
+    console.error('Error en eliminación masiva:', e);
+    res.status(500).json({ error: e.message });
+  }
 }
 
 async function handleEliminarTareasPDF(req, res, repo) {
-  const { ruta } = req.body;
+  const { ruta, ident, especialidadId } = req.body;
   if (!ruta || typeof ruta !== "string") {
     res.status(400).json({ error: "Ruta de archivo requerida" });
     return;
   }
+
   try {
-    const partes = ruta.split("/");
-    const especialidadId = partes[1];
-    const archivo = partes[2] || "";
-    const ident = archivo.replace(/\.pdf$/i, "");
+    // Eliminar archivo de Supabase Storage
+    const { error: deleteError } = await supabase.storage
+      .from('tareas-pdf')
+      .remove([ruta]);
+    
+    if (deleteError) {
+      return res.status(500).json({ error: deleteError.message || "Error al eliminar en Storage" });
+    }
 
-    // Obtener SHA del archivo
-    const r = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${ruta}`,
-      { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } },
-    );
-    if (!r.ok) throw new Error("No se pudo obtener SHA del archivo");
-    const fileData = await r.json();
-    const sha = fileData.sha;
-    // Eliminar archivo
-    const delResp = await fetch(
-      `https://api.github.com/repos/${repo}/contents/${ruta}`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: `token ${process.env.GITHUB_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: "Eliminar PDF individual",
-          sha,
-          branch: "main",
-        }),
-      },
-    );
-    if (delResp.ok) {
-      if (especialidadId && ident) {
-        const { data: evData } = await supabase
+    // Actualizar metadatos: eliminar entrada de tareas
+    if (especialidadId && ident) {
+      const { data: evData } = await supabase
+        .from("evaluaciones")
+        .select("contenido_tareas")
+        .eq("especialidad_id", especialidadId)
+        .single();
+
+      const tareas = evData?.contenido_tareas || {};
+      if (tareas[ident]) {
+        delete tareas[ident];
+        await supabase
           .from("evaluaciones")
-          .select("contenido_tareas")
-          .eq("especialidad_id", especialidadId)
-          .single();
-
-        const tareas = evData?.contenido_tareas || {};
-        if (tareas[ident]) {
-          delete tareas[ident];
-          await supabase
-            .from("evaluaciones")
-            .upsert({
-              especialidad_id: especialidadId,
-              contenido_tareas: tareas,
-            });
-        }
+          .upsert({
+            especialidad_id: especialidadId,
+            contenido_tareas: tareas,
+          });
       }
-      res.status(200).json({ ok: true });
-    } else {
-      const err = await delResp.json();
-      res
-        .status(500)
+    }
+
+    res.status(200).json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+}
         .json({ error: err.message || "Error al eliminar en GitHub" });
     }
   } catch (e) {

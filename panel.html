@@ -15653,7 +15653,6 @@
 
         msg.innerHTML = '<span style="color:var(--accent-color)"><i class="fas fa-spinner fa-spin"></i> Preparando envío...</span>';
 
-        // Mostrar Barra de Progreso
         const progressContainer = document.getElementById('progressContainerTarea');
         const progressBar = document.getElementById('progressBarTarea');
         const progressText = document.getElementById('progressTextTarea');
@@ -15662,78 +15661,71 @@
         progressBar.style.width = '0%';
         progressText.innerText = '0%';
 
-        // Intentar obtener email robustamente
+        // Obtener email
         let email = null;
         if (typeof userData !== 'undefined' && userData) email = userData.email;
         else if (typeof auth !== 'undefined' && auth.currentUser) email = auth.currentUser.email;
         else if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) email = firebase.auth().currentUser.email;
-
         if (!email) email = localStorage.getItem('userEmail');
 
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = async () => {
-          const content = reader.result.split(',')[1];
-          const payload = JSON.stringify({
-            id,
-            visitanteId: currentUserId || localStorage.getItem('visitanteId'),
-            email: email,
-            contenido: content,
-            nombreArchivo: file.name
-          });
+        const visitanteId = currentUserId || localStorage.getItem('visitanteId');
 
-          // Usar XMLHttpRequest para tracking de progreso
-          const xhr = new XMLHttpRequest();
-          xhr.open('POST', '/api/formulario?action=subirTarea', true);
-          xhr.setRequestHeader('Content-Type', 'application/json');
+        // FormData para enviar archivo binario de manera segura
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('id', id);
+        formData.append('visitanteId', visitanteId);
+        formData.append('email', email);
 
-          xhr.upload.onprogress = function (e) {
-            if (e.lengthComputable) {
-              const percent = Math.round((e.loaded / e.total) * 100);
-              progressBar.style.width = percent + '%';
-              progressText.innerText = percent + '%';
-              if (percent < 100) {
-                msg.innerHTML = '<span style="color:var(--accent-color)">Subiendo... ' + percent + '%</span>';
-              } else {
-                msg.innerHTML = '<span style="color:var(--success-color)">Procesando...</span>';
-              }
-            }
-          };
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/formulario?action=subirTarea', true);
 
-          xhr.onload = function () {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              try {
-                const res = JSON.parse(xhr.responseText);
-                if (res.ok) {
-                  progressBar.style.width = '100%';
-                  progressText.innerText = '100%';
-                  msg.innerHTML = '<span style="color:var(--success-color)">✅ Tarea enviada correctamente.</span>';
-
-                  setTimeout(() => {
-                    document.getElementById('modalSubirTarea').style.display = 'none';
-                    // Refrescar tablas
-                    if (typeof window.cargarTareasExamenes === 'function') window.cargarTareasExamenes();
-                    if (typeof cargarTablaCertificacionesCorrecta === 'function') setTimeout(cargarTablaCertificacionesCorrecta, 1000);
-                  }, 1500);
-                } else {
-                  msg.innerHTML = `<span style="color:red">Error: ${res.error}</span>`;
-                  progressContainer.style.display = 'none';
-                }
-              } catch (e) {
-                msg.innerHTML = '<span style="color:red">Error procesando respuesta.</span>';
-              }
+        xhr.upload.onprogress = function (e) {
+          if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            progressBar.style.width = percent + '%';
+            progressText.innerText = percent + '%';
+            if (percent < 100) {
+              msg.innerHTML = '<span style="color:var(--accent-color)">Subiendo... ' + percent + '%</span>';
             } else {
-              msg.innerHTML = `<span style="color:red">Error del servidor: ${xhr.status}</span>`;
+              msg.innerHTML = '<span style="color:var(--success-color)">Procesando...</span>';
             }
-          };
-
-          xhr.onerror = function () {
-            msg.innerHTML = '<span style="color:red">Error de conexión.</span>';
-            progressContainer.style.display = 'none';
-          };
-
-          xhr.send(payload);
+          }
         };
+
+        xhr.onload = function () {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const res = JSON.parse(xhr.responseText);
+              if (res.ok) {
+                progressBar.style.width = '100%';
+                progressText.innerText = '100%';
+                msg.innerHTML = '<span style="color:var(--success-color)">✅ Tarea enviada correctamente.</span>';
+
+                setTimeout(() => {
+                  document.getElementById('modalSubirTarea').style.display = 'none';
+                  // Refrescar tablas
+                  if (typeof window.cargarTareasExamenes === 'function') window.cargarTareasExamenes();
+                  if (typeof cargarTablaCertificacionesCorrecta === 'function') setTimeout(cargarTablaCertificacionesCorrecta, 1000);
+                }, 1500);
+              } else {
+                msg.innerHTML = `<span style="color:red">Error: ${res.error}</span>`;
+                progressContainer.style.display = 'none';
+              }
+            } catch (e) {
+              msg.innerHTML = '<span style="color:red">Error procesando respuesta.</span>';
+            }
+          } else {
+            msg.innerHTML = `<span style="color:red">Error del servidor: ${xhr.status}</span>`;
+          }
+        };
+
+        xhr.onerror = function () {
+          msg.innerHTML = '<span style="color:red">Error de conexión.</span>';
+          progressContainer.style.display = 'none';
+        };
+
+        xhr.send(formData);
       }
 
       // --- LÓGICA INSTRUCTOR: TABS Y EVALUACIÓN ---
@@ -16895,12 +16887,12 @@
                     <a href="${f.url}" target="_blank" style="color:var(--accent-color);"><i class="fas fa-download"></i></a>
                   </td>
                   <td style="padding:10px; text-align:center;">
-                    <button onclick="eliminarPDFEspecifico('${f.ruta.replace(/'/g, '\'')}', this)" title="Eliminar PDF" style="background:none; border:none; color:var(--danger-color); cursor:pointer; font-size:16px;"><i class="fas fa-trash"></i></button>
+                    <button onclick="eliminarPDFEspecifico('${f.ruta.replace(/'/g, '\'')}', '${f.ident || ''}', '${f.especialidadId}', this)" title="Eliminar PDF" style="background:none; border:none; color:var(--danger-color); cursor:pointer; font-size:16px;"><i class="fas fa-trash"></i></button>
                   </td>
                 `;
             tbody.appendChild(tr);
             // Eliminar PDF específico
-            window.eliminarPDFEspecifico = async function (ruta, btn) {
+            window.eliminarPDFEspecifico = async function (ruta, ident, especialidadId, btn) {
               if (!window.isOwner) {
                 alert('❌ Solo el propietario puede eliminar archivos PDF.');
                 return;
@@ -16913,7 +16905,7 @@
                 const resp = await fetch('/api/formulario?action=eliminarTareasPDF', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ ruta })
+                  body: JSON.stringify({ ruta, ident, especialidadId })
                 });
                 const res = await resp.json();
                 if (resp.ok) {

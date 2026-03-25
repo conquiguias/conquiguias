@@ -4109,6 +4109,11 @@
 
       <!-- Feed de publicaciones -->
       <div id="feed" style="display: flex; flex-direction: column; gap: 20px;"></div>
+      <!-- Indicador de carga de categoría -->
+      <div id="categoryLoadingIndicator" class="loading-posts hidden" aria-live="polite">
+        <div class="loading" style="display: inline-block;"></div>
+        <p data-category-loading-text>Cargando publicaciones...</p>
+      </div>
       <!-- Indicador de carga para scroll infinito -->
       <div id="loadingPosts" class="loading-posts hidden">
         <div class="loading" style="display: inline-block;"></div>
@@ -8862,6 +8867,7 @@
       const uploadBtn = document.getElementById('uploadBtn');
       const countdownTimer = document.getElementById('countdownTimer');
       const feed = document.getElementById('feed');
+      const categoryLoadingIndicator = document.getElementById('categoryLoadingIndicator');
       let activeUploadTab = 'post';
 
       const DEFAULT_RADIO_PROFILE_IMAGE = 'https://dummyimage.com/300x300/1e293b/e2e8f0&text=Radio';
@@ -10520,6 +10526,22 @@
       const FEED_CATEGORY_TAGS   = Object.fromEntries(FEED_CATEGORIES.map(c => [c.key, c.tags]));
       const FEED_CATEGORY_LABELS = Object.fromEntries(FEED_CATEGORIES.map(c => [c.key, c.label]));
 
+      function setCategoryLoadingState(isLoading, categoryKey = activeFeedCategory) {
+        if (!categoryLoadingIndicator) return;
+
+        if (isLoading) {
+          const categoryLabel = FEED_CATEGORY_LABELS[categoryKey] || 'categoría';
+          const textEl = categoryLoadingIndicator.querySelector('[data-category-loading-text]');
+          if (textEl) {
+            textEl.textContent = `Cargando ${categoryLabel}...`;
+          }
+          categoryLoadingIndicator.classList.remove('hidden');
+          return;
+        }
+
+        categoryLoadingIndicator.classList.add('hidden');
+      }
+
       function normalizeTagValue(value) {
         return String(value || '')
           .toLowerCase()
@@ -10637,6 +10659,8 @@
           tabsContainer.querySelectorAll('.feed-category-tab').forEach(tab => {
             tab.classList.toggle('active', tab.dataset.category === category);
           });
+
+          setCategoryLoadingState(true, category);
 
           await loadPosts(true);
         });
@@ -11017,6 +11041,7 @@
           console.log('⏰ LoadPosts llamado muy pronto, ignorando...');
           return;
         }
+        setCategoryLoadingState(true, categoryAtRequest);
         agregarLogFirestore('loadPosts');
         postsLoading = true;
         lastLoadTime = now;
@@ -11253,6 +11278,7 @@
           }
         } finally {
           postsLoading = false;
+          setCategoryLoadingState(false);
           processQueuedCategoryReload();
         }
       }

@@ -72,6 +72,28 @@ function toAbsoluteUrl(rawUrl, origin) {
   }
 }
 
+function isDataImageUrl(value) {
+  return /^data:image\/[a-z0-9.+-]+(?:;charset=[^;,]+)?;base64,/i.test(String(value || "").trim());
+}
+
+function parseDataImageUrl(dataUrl) {
+  const value = String(dataUrl || "").trim();
+  const match = value.match(/^data:(image\/[a-z0-9.+-]+)(?:;charset=[^;,]+)?;base64,([a-z0-9+/=\r\n]+)$/i);
+  if (!match) return null;
+
+  const mimeType = match[1].toLowerCase();
+  const base64Payload = match[2].replace(/\s+/g, "");
+  if (!base64Payload) return null;
+
+  try {
+    const buffer = Buffer.from(base64Payload, "base64");
+    if (!buffer.length) return null;
+    return { mimeType, buffer };
+  } catch (_error) {
+    return null;
+  }
+}
+
 function isLikelyImageUrl(value) {
   const url = String(value || "").trim();
   if (!url) return false;
@@ -237,7 +259,8 @@ function resolveVideoPosterFromMediaUrl(post, origin) {
   return "";
 }
 
-function resolvePreviewImage(post, origin) {
+function resolvePreviewImage(post, origin, options = {}) {
+  const allowDataUri = options.allowDataUri === true;
   const coverCandidates = [
     post?.radiocover,
     post?.posterUrl,
@@ -251,6 +274,9 @@ function resolvePreviewImage(post, origin) {
   ];
 
   for (const candidate of coverCandidates) {
+    const raw = String(candidate || "").trim();
+    if (!raw) continue;
+    if (allowDataUri && isDataImageUrl(raw)) return raw;
     const abs = toAbsoluteUrl(candidate, origin);
     if (abs && !isLikelyAvatarImage(abs)) return abs;
   }
@@ -273,11 +299,44 @@ function resolvePreviewImage(post, origin) {
     normalizeProfilePhotoForPreview(post?.photoURL),
   ];
   for (const candidate of profileCandidates) {
+    const raw = String(candidate || "").trim();
+    if (!raw) continue;
+    if (allowDataUri && isDataImageUrl(raw)) return raw;
     const abs = toAbsoluteUrl(candidate, origin);
     if (abs) return abs;
   }
 
   return `${origin}/images/logo1.png`;
+}
+
+async function handleShareImage(req, res, postId) {
+  const origin = getOrigin(req);
+  let imageSource = `${origin}/images/logo1.png`;
+
+  if (postId) {
+    try {
+      const snap = await admin.firestore().collection("posts").doc(postId).get();
+      if (snap.exists) {
+        const post = snap.data() || {};
+        imageSource = resolvePreviewImage(post, origin, { allowDataUri: true });
+      }
+    } catch (_error) {
+      // fallback por defecto
+    }
+  }
+
+  if (isDataImageUrl(imageSource)) {
+    const parsed = parseDataImageUrl(imageSource);
+    if (parsed) {
+      res.setHeader("Content-Type", parsed.mimeType);
+      res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
+      return res.status(200).send(parsed.buffer);
+    }
+  }
+
+  const absolute = toAbsoluteUrl(imageSource, origin) || `${origin}/images/logo1.png`;
+  res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
+  return res.redirect(302, absolute);
 }
 
 async function handleSitemap(req, res) {
@@ -336,6 +395,10 @@ module.exports = async (req, res) => {
   const action = String(req.query?.action || "").trim().toLowerCase();
   const postId = String(req.query?.id || "").trim();
 
+  if (action === "image") {
+    return handleShareImage(req, res, postId);
+  }
+
   if (action === "sitemap" || (!action && !postId)) {
     return handleSitemap(req, res);
   }
@@ -351,6 +414,9 @@ module.exports = async (req, res) => {
   let ogType = "article";
   let authorName = "Conquiguias World";
   let publishedAt = "";
+  const shareImageUrl = postId
+    ? `${origin}/api/post-share?action=image&id=${encodedPostId}`
+    : `${origin}/images/logo1.png`;
 
   if (postId) {
     try {
@@ -386,7 +452,7 @@ module.exports = async (req, res) => {
 
   const escapedTitle = escapeHtml(title);
   const escapedDescription = escapeHtml(description);
-  const escapedImage = escapeHtml(imageUrl);
+  const escapedImage = escapeHtml(shareImageUrl);
   const escapedShareUrl = escapeHtml(shareUrl);
   const escapedViewUrl = escapeHtml(viewUrl);
   const escapedAuthor = escapeHtml(authorName);
@@ -396,7 +462,7 @@ module.exports = async (req, res) => {
     "@type": "SocialMediaPosting",
     headline: title,
     description,
-    image: imageUrl,
+    image: shareImageUrl,
     url: shareUrl,
     mainEntityOfPage: shareUrl,
     author: {

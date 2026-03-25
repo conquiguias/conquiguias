@@ -2246,6 +2246,19 @@
       box-shadow: 0 4px 12px var(--shadow-color);
     }
 
+    .feed-category-tab.loading {
+      opacity: 0.85;
+      cursor: wait;
+      pointer-events: none;
+      position: relative;
+    }
+
+    .feed-category-tab.loading::after {
+      content: ' · Cargando...';
+      font-size: 11px;
+      font-weight: 500;
+    }
+
     #floatingUploadBtn {
       flex-shrink: 0;
     }
@@ -10542,15 +10555,32 @@
       function setCategoryLoadingState(isLoading, categoryKey = activeFeedCategory) {
         if (!categoryLoadingIndicator) return;
 
+        const tabsContainer = document.getElementById('postCategoryTabs');
+        const tabs = tabsContainer ? Array.from(tabsContainer.querySelectorAll('.feed-category-tab')) : [];
+
         if (isLoading) {
           const categoryLabel = FEED_CATEGORY_LABELS[categoryKey] || 'categoría';
           const textEl = categoryLoadingIndicator.querySelector('[data-category-loading-text]');
           if (textEl) {
             textEl.textContent = `Cargando ${categoryLabel}...`;
           }
+
+          tabs.forEach((tab) => {
+            const isActiveTab = tab.dataset.category === categoryKey;
+            tab.classList.toggle('loading', isActiveTab);
+            tab.disabled = isActiveTab;
+            tab.setAttribute('aria-busy', isActiveTab ? 'true' : 'false');
+          });
+
           categoryLoadingIndicator.classList.remove('hidden');
           return;
         }
+
+        tabs.forEach((tab) => {
+          tab.classList.remove('loading');
+          tab.disabled = false;
+          tab.setAttribute('aria-busy', 'false');
+        });
 
         categoryLoadingIndicator.classList.add('hidden');
       }
@@ -10654,7 +10684,7 @@
 
         // Renderizar pestañas desde FEED_CATEGORIES
         tabsContainer.innerHTML = FEED_CATEGORIES.map(({ key, label }, i) =>
-          `<button class="feed-category-tab${i === 0 ? ' active' : ''}" data-category="${key}" type="button">${label}</button>`
+          `<button class="feed-category-tab${i === 0 ? ' active' : ''}" data-category="${key}" data-label="${label}" type="button">${label}</button>`
         ).join('');
 
         updateFeedSnapOffset();

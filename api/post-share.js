@@ -136,11 +136,12 @@ async function handleSitemap(req, res) {
 
 module.exports = async (req, res) => {
   const action = String(req.query?.action || "").trim().toLowerCase();
-  if (action === "sitemap") {
+  const postId = String(req.query?.id || "").trim();
+
+  if (action === "sitemap" || (!action && !postId)) {
     return handleSitemap(req, res);
   }
 
-  const postId = String(req.query?.id || "").trim();
   const origin = getOrigin(req);
   const encodedPostId = encodeURIComponent(postId);
   const viewUrl = postId ? `${origin}/post/${encodedPostId}` : `${origin}/post`;

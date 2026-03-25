@@ -63,7 +63,13 @@ function toAbsoluteUrl(rawUrl, origin) {
   if (/^https?:\/\//i.test(value)) return value;
   if (value.startsWith("//")) return `https:${value}`;
   if (value.startsWith("/")) return `${origin}${value}`;
-  return "";
+  try {
+    const parsed = new URL(value, `${origin}/`);
+    if (!/^https?:$/i.test(parsed.protocol)) return "";
+    return parsed.toString();
+  } catch (_error) {
+    return "";
+  }
 }
 
 function isLikelyImageUrl(value) {
@@ -123,6 +129,15 @@ function normalizeProfilePhotoForPreview(rawUrl) {
   return value;
 }
 
+function isLikelyAvatarImage(rawUrl) {
+  const value = String(rawUrl || "").trim().toLowerCase();
+  if (!value) return false;
+  if (/dummyimage\.com\/(?:32x32|40x40|45x45|48x48|64x64)/i.test(value)) return true;
+  if (/googleusercontent\.com\/a\//i.test(value) && /=s\d+-c/i.test(value)) return true;
+  if (/gravatar\.com/i.test(value) && /[?&]s=(?:32|40|45|48|64|80|96)(?:&|$)/i.test(value)) return true;
+  return false;
+}
+
 function extractImgurId(rawUrl) {
   const value = String(rawUrl || "").trim();
   if (!value) return "";
@@ -165,15 +180,15 @@ function resolveImgurVideoPoster(post, origin) {
     const absMp4 = toAbsoluteUrl(mp4Candidate, origin);
     if (!absMp4) continue;
     const imgurId = extractImgurId(absMp4);
-    if (imgurId) return `https://i.imgur.com/${imgurId}.jpg`;
+    if (imgurId) return `https://i.imgur.com/${imgurId}h.jpg`;
     if (/i\.imgur\.com\/[^/?#]+\.mp4(?:$|[?#])/i.test(absMp4)) {
-      return absMp4.replace(/\.mp4(?=$|[?#])/i, ".jpg");
+      return absMp4.replace(/\.mp4(?=$|[?#])/i, "h.jpg");
     }
   }
 
   const imgurId = String(post?.imgurData?.id || "").trim();
   if (/^[a-z0-9]+$/i.test(imgurId)) {
-    return `https://i.imgur.com/${imgurId}.jpg`;
+    return `https://i.imgur.com/${imgurId}h.jpg`;
   }
 
   return "";
@@ -194,7 +209,7 @@ function resolvePreviewImage(post, origin) {
 
   for (const candidate of coverCandidates) {
     const abs = toAbsoluteUrl(candidate, origin);
-    if (abs) return abs;
+    if (abs && !isLikelyAvatarImage(abs)) return abs;
   }
 
   const imgurPoster = resolveImgurVideoPoster(post, origin);

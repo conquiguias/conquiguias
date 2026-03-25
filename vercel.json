@@ -5,6 +5,10 @@
       "destination": "/panel.html"
     },
     {
+      "source": "/formulario",
+      "destination": "/formulario.html"
+    },
+    {
       "source": "/post/:id",
       "destination": "/post?id=:id"
     },

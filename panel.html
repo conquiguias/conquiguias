@@ -15108,7 +15108,7 @@
             const result = await response.json();
 
             if (response.ok && result.ok) {
-              const enlace = `${location.origin}/formulario.html?id=${encodeURIComponent(id)}`;
+              const enlace = `${location.origin}/formulario?id=${encodeURIComponent(id)}`;
               document.getElementById("mensajeInstructor").innerHTML = `
                 <div style="color: #155724; background: #d4edda; padding: 20px; border-radius: 10px; margin: 20px 0;">
                     <h3>✅ ¡Formulario Creado!</h3>
@@ -15142,7 +15142,7 @@
 
       // Función auxiliar para copiar enlace
       window.copiarEnlaceBtn = function (id, btn) {
-        const enlace = `${location.origin}/formulario.html?id=${id}`;
+        const enlace = `${location.origin}/formulario?id=${id}`;
         navigator.clipboard.writeText(enlace).then(() => {
           const originalHtml = btn.innerHTML;
           btn.innerHTML = '<i class="fas fa-check"></i> Copiado';
@@ -15193,7 +15193,7 @@
               <td>${(f.tarea && f.tarea.fechaFin) ? new Date(f.tarea.fechaFin).toLocaleString() : (f.fechaCierre ? new Date(f.fechaCierre).toLocaleString() : 'Sin límite')}</td>
               <td>${f.creado ? new Date(f.creado).toLocaleString() : '―'}</td>
               <td style="white-space: nowrap;">
-                <a href="formulario.html?id=${id}" target="_blank" style="text-decoration: none;">
+                <a href="/formulario?id=${id}" target="_blank" style="text-decoration: none;">
                   <button style="
                     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                     color: white;

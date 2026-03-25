@@ -2,6 +2,7 @@ User-agent: *
 Allow: /
 Disallow: /panel
 Disallow: /panel.html
+Disallow: /formulario
 Disallow: /formulario.html
 
 Sitemap: /sitemap.xml

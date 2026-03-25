@@ -6295,7 +6295,7 @@
 
           const hasRealSessionHint = hasPersistedAuthenticatedSessionHint();
           if (hasRealSessionHint && !shouldAllowExplicitGuestMode()) {
-            window.location.href = "index.html";
+            window.location.href = "/index";
             return;
           }
 
@@ -6304,7 +6304,7 @@
               await signInAnonymously(auth);
             } catch (anonError) {
               console.warn('[WARN] No se pudo iniciar sesión anónima en panel:', anonError);
-              window.location.href = "index.html";
+              window.location.href = "/index";
             }
           }
           return;
@@ -6349,12 +6349,12 @@
 
               // Cerrar sesión y redirigir
               await signOut(auth);
-              window.location.href = "index.html";
+              window.location.href = "/index";
             },
             () => {
               // Si cancela, igualmente redirigir al login
               signOut(auth).then(() => {
-                window.location.href = "index.html";
+                window.location.href = "/index";
               });
             }
           );
@@ -6655,11 +6655,11 @@
           try {
             await signOut(auth);
           } catch (_) { }
-          window.location.href = "index.html";
+          window.location.href = "/index";
           return;
         }
         await signOut(auth);
-        window.location.href = "index.html";
+        window.location.href = "/index";
       });
 
       ////////////////////////

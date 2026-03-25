@@ -22,6 +22,7 @@
   <script src="lib/lunaradio.min.js"></script>
   <script src="lib/rocket-loader.min.js" data-cf-settings="3bc5e4e5245e387f3290c38f-|49" defer></script>
   <title>Conquiguias World</title>
+  
   <script>
     // Globals initialized before modules
     window.isAdmin = false;
@@ -10460,6 +10461,7 @@
       let activeFeedCategory = 'recientes';
       let queuedCategoryReload = null;
       let liveStreamCache = { data: { live: false }, checkedAt: 0 };
+      let liveStreamRequestPromise = null;
       const LIVE_STREAM_CACHE_MS = 45000;
 
       // ─────────────────────────────────────────────────────────────
@@ -10837,28 +10839,109 @@
           return liveStreamCache.data || { live: false };
         }
 
-        try {
-          const res = await fetch('/api/social?action=check-stream', { cache: 'no-store' });
-          if (!res.ok) {
+        if (!forceRefresh && liveStreamRequestPromise) {
+          return liveStreamRequestPromise;
+        }
+
+        liveStreamRequestPromise = (async () => {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2800);
+
+          try {
+            const res = await fetch('/api/social?action=check-stream', {
+              cache: 'no-store',
+              signal: controller.signal
+            });
+
+            if (!res.ok) {
+              liveStreamCache = {
+                data: { live: false },
+                checkedAt: Date.now()
+              };
+              return { live: false };
+            }
+
+            const data = await res.json();
+            liveStreamCache = {
+              data: data || { live: false },
+              checkedAt: Date.now()
+            };
+            return liveStreamCache.data;
+          } catch (e) {
+            console.warn('[Live] No se pudo verificar stream:', e);
             liveStreamCache = {
               data: { live: false },
               checkedAt: Date.now()
             };
             return { live: false };
+          } finally {
+            clearTimeout(timeoutId);
+            liveStreamRequestPromise = null;
           }
-          const data = await res.json();
-          liveStreamCache = {
-            data: data || { live: false },
-            checkedAt: Date.now()
-          };
-          return liveStreamCache.data;
+        })();
+
+        return liveStreamRequestPromise;
+      }
+
+      async function renderLivePostIntoFeed(liveData, categoryAtRequest) {
+        if (!feed || categoryAtRequest !== activeFeedCategory) {
+          return false;
+        }
+
+        feed.querySelectorAll('.post-card.live-post').forEach((liveCard) => {
+          liveCard.remove();
+        });
+
+        if (!liveData?.live) {
+          updateFirstPostMarker();
+          return false;
+        }
+
+        try {
+          const liveDocRef = doc(db, "posts", LIVE_POST_ID);
+          const liveDocSnap = await getDoc(liveDocRef);
+          let livePost;
+
+          if (liveDocSnap.exists()) {
+            livePost = { ...liveDocSnap.data(), id: LIVE_POST_ID, isLive: true };
+          } else {
+            const op = liveData.ownerProfile || {};
+            livePost = {
+              id: LIVE_POST_ID,
+              userId: op.uid || '',
+              userEmail: op.email || '',
+              userName: op.name || 'Admin',
+              userPhoto: op.photo || '',
+              mediaType: 'video/url',
+              mediaUrl: LIVE_STREAM_URL,
+              description: '🔴 Transmisión en vivo',
+              timestamp: new Date().toISOString(),
+              reactions: { like: [], laugh: [], seven: [] },
+              comments: [],
+              shareCount: 0,
+              viewCount: 0,
+              status: 'approved',
+              isLive: true,
+              isSpecialLive: true,
+            };
+          }
+
+          if (!postMatchesActiveCategory(livePost)) {
+            updateFirstPostMarker();
+            return false;
+          }
+
+          displayPost(livePost, LIVE_POST_ID, feed);
+          const insertedLiveCard = feed.lastElementChild;
+          if (insertedLiveCard) {
+            feed.prepend(insertedLiveCard);
+          }
+          updateFirstPostMarker();
+          return true;
         } catch (e) {
-          console.warn('[Live] No se pudo verificar stream:', e);
-          liveStreamCache = {
-            data: { live: false },
-            checkedAt: Date.now()
-          };
-          return { live: false };
+          console.warn('[Live] Error cargando post en vivo directo:', e);
+          updateFirstPostMarker();
+          return false;
         }
       }
 
@@ -10895,8 +10978,7 @@
           if (loadingIndicator) loadingIndicator.classList.add('hidden');
           if (noMoreIndicator) noMoreIndicator.classList.add('hidden');
 
-          const liveData = await checkLiveStream(forceReload);
-          const isLiveActive = !!liveData?.live;
+          const liveCheckPromise = checkLiveStream(forceReload);
           const isCategoryMode = activeFeedCategory !== 'recientes';
           const currentQueryLimit = postsPerLoad;
           let querySnapshot = null;
@@ -10926,63 +11008,13 @@
           autoInitializedPlayerCount = 0;
           feed.innerHTML = '';
 
-          // 🔴 LIVE: Si hay transmisión activa, inyectar el post en vivo directamente por ID
-          // (no depender de la query paginada por posibles delays de propagación)
-          let livePostRendered = false;
-          if (isLiveActive) {
-            try {
-              const liveDocRef = doc(db, "posts", LIVE_POST_ID);
-              const liveDocSnap = await getDoc(liveDocRef);
-              if (liveDocSnap.exists()) {
-                const livePost = { ...liveDocSnap.data(), id: LIVE_POST_ID, isLive: true };
-                if (postMatchesActiveCategory(livePost)) {
-                  displayPost(livePost, LIVE_POST_ID);
-                  livePostRendered = true;
-                }
-              } else {
-                // Doc aún no existe, construir desde datos del API
-                const op = liveData.ownerProfile || {};
-                const liveFallbackPost = {
-                  id: LIVE_POST_ID,
-                  userId: op.uid || '',
-                  userEmail: op.email || '',
-                  userName: op.name || 'Admin',
-                  userPhoto: op.photo || '',
-                  mediaType: 'video/url',
-                  mediaUrl: LIVE_STREAM_URL,
-                  description: '🔴 Transmisión en vivo',
-                  timestamp: new Date().toISOString(),
-                  reactions: { like: [], laugh: [], seven: [] },
-                  comments: [],
-                  shareCount: 0,
-                  viewCount: 0,
-                  status: 'approved',
-                  isLive: true,
-                  isSpecialLive: true,
-                };
-                if (postMatchesActiveCategory(liveFallbackPost)) {
-                  displayPost(liveFallbackPost, LIVE_POST_ID);
-                  livePostRendered = true;
-                }
-              }
-            } catch (e) {
-              console.warn('[Live] Error cargando post en vivo directo:', e);
-            }
-          }
-
-          if ((!querySnapshot || querySnapshot.empty) && !isCategoryMode && !livePostRendered) {
-            renderEmptyFeedMessage();
-            hasMorePosts = false;
-            return;
-          }
-
           // Actualizar el último documento visible
           if (!isCategoryMode && querySnapshot && !querySnapshot.empty) {
             lastVisiblePost = querySnapshot.docs[querySnapshot.docs.length - 1];
           }
 
-          // Mostrar las publicaciones (siempre saltar LIVE_POST_ID, ya fue renderizado arriba)
-          let renderedPostsCount = livePostRendered ? 1 : 0;
+          // Mostrar publicaciones primero y resolver el stream en paralelo
+          let renderedPostsCount = 0;
           if (isCategoryMode) {
             categoryPosts.forEach((post) => {
               if (post.id === LIVE_POST_ID) return;
@@ -10999,7 +11031,10 @@
             });
           }
 
-          if (renderedPostsCount === 0) {
+          const liveData = await liveCheckPromise;
+          const livePostRendered = await renderLivePostIntoFeed(liveData, categoryAtRequest);
+
+          if (renderedPostsCount === 0 && !livePostRendered) {
             renderEmptyFeedMessage();
             hasMorePosts = false;
             return;

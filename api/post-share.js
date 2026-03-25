@@ -72,6 +72,57 @@ function isLikelyImageUrl(value) {
   return /\.(?:jpe?g|png|gif|webp|bmp|svg|avif)(?:$|[?#])/i.test(url);
 }
 
+function extractYouTubeVideoId(rawUrl) {
+  const value = String(rawUrl || "").trim();
+  if (!value) return "";
+
+  try {
+    const parsed = new URL(value);
+    const host = (parsed.hostname || "").toLowerCase();
+    let candidate = "";
+
+    if (host === "youtu.be") {
+      candidate = (parsed.pathname || "").split("/").filter(Boolean)[0] || "";
+    } else if (host.endsWith("youtube.com") || host.endsWith("youtube-nocookie.com")) {
+      candidate = parsed.searchParams.get("v") || "";
+      if (!candidate) {
+        const segments = (parsed.pathname || "").split("/").filter(Boolean);
+        const marker = segments.findIndex((seg) => ["embed", "shorts", "live", "v"].includes(seg));
+        if (marker >= 0 && segments[marker + 1]) {
+          candidate = segments[marker + 1];
+        }
+      }
+    }
+
+    candidate = String(candidate || "").trim();
+    if (!/^[a-zA-Z0-9_-]{10,15}$/.test(candidate)) return "";
+    return candidate;
+  } catch (_error) {
+    return "";
+  }
+}
+
+function getYouTubeThumbnail(rawUrl) {
+  const videoId = extractYouTubeVideoId(rawUrl);
+  if (!videoId) return "";
+  return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+}
+
+function normalizeProfilePhotoForPreview(rawUrl) {
+  const value = String(rawUrl || "").trim();
+  if (!value) return "";
+
+  if (/dummyimage\.com\/(?:40x40|45x45|64x64)/i.test(value)) {
+    return "";
+  }
+
+  if (/googleusercontent\.com/i.test(value) && /=s\d+-c/i.test(value)) {
+    return value.replace(/=s\d+-c/i, "=s1200-c");
+  }
+
+  return value;
+}
+
 function extractImgurId(rawUrl) {
   const value = String(rawUrl || "").trim();
   if (!value) return "";
@@ -149,10 +200,17 @@ function resolvePreviewImage(post, origin) {
   const imgurPoster = resolveImgurVideoPoster(post, origin);
   if (imgurPoster) return imgurPoster;
 
+  const youTubeThumb = toAbsoluteUrl(getYouTubeThumbnail(post?.mediaUrl), origin);
+  if (youTubeThumb) return youTubeThumb;
+
   const mediaUrl = toAbsoluteUrl(post?.mediaUrl, origin);
   if (mediaUrl && isLikelyImageUrl(mediaUrl)) return mediaUrl;
 
-  const profileCandidates = [post?.userPhoto, post?.coverimage, post?.photoURL];
+  const profileCandidates = [
+    normalizeProfilePhotoForPreview(post?.coverimage),
+    normalizeProfilePhotoForPreview(post?.userPhoto),
+    normalizeProfilePhotoForPreview(post?.photoURL),
+  ];
   for (const candidate of profileCandidates) {
     const abs = toAbsoluteUrl(candidate, origin);
     if (abs) return abs;
@@ -317,6 +375,10 @@ module.exports = async (req, res) => {
     <meta property="og:title" content="${escapedTitle}" />
     <meta property="og:description" content="${escapedDescription}" />
     <meta property="og:image" content="${escapedImage}" />
+    <meta property="og:image:secure_url" content="${escapedImage}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Vista previa de publicación" />
     <meta property="og:url" content="${escapedShareUrl}" />
     <meta property="og:type" content="${ogType}" />
     <meta property="article:author" content="${escapedAuthor}" />
@@ -326,17 +388,18 @@ module.exports = async (req, res) => {
     <meta name="twitter:title" content="${escapedTitle}" />
     <meta name="twitter:description" content="${escapedDescription}" />
     <meta name="twitter:image" content="${escapedImage}" />
+    <meta name="twitter:image:alt" content="Vista previa de publicación" />
 
     <link rel="canonical" href="${escapedShareUrl}" />
     <script type="application/ld+json">${structuredDataJson}</script>
     <script>
       (function () {
         var ua = (navigator.userAgent || "").toLowerCase();
-        var isBot = /bot|crawler|spider|facebookexternalhit|whatsapp|twitterbot|slackbot|discordbot|linkedinbot|telegrambot|googlebot|bingbot/.test(ua);
+        var isBot = /bot|crawler|spider|facebookexternalhit|whatsapp|twitterbot|slackbot|discordbot|linkedinbot|telegrambot|googlebot|bingbot|skypeuripreview|pinterest|vkshare|line\//.test(ua);
         if (!isBot) {
           setTimeout(function () {
             window.location.replace(${JSON.stringify(viewUrl)});
-          }, 180);
+          }, 900);
         }
       })();
     </script>

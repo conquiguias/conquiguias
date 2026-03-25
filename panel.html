@@ -2249,7 +2249,7 @@
       box-shadow: 0 4px 12px var(--shadow-color);
     }
 
-    .feed-category-tab.loading {
+    .feed-category-tab.is-loading {
       opacity: 0.85;
       cursor: wait;
       pointer-events: none;
@@ -2267,11 +2267,11 @@
       flex-shrink: 0;
     }
 
-    .feed-category-tab.loading .feed-category-spinner {
+    .feed-category-tab.is-loading .feed-category-spinner {
       display: inline-block;
     }
 
-    .feed-category-tab.loading .feed-category-label::after {
+    .feed-category-tab.is-loading .feed-category-label::after {
       content: ' Cargando...';
       font-size: 11px;
       font-weight: 500;
@@ -10596,7 +10596,7 @@
 
           tabs.forEach((tab) => {
             const isActiveTab = tab.dataset.category === categoryKey;
-            tab.classList.toggle('loading', isActiveTab);
+            tab.classList.toggle('is-loading', isActiveTab);
             tab.disabled = isActiveTab;
             tab.setAttribute('aria-busy', isActiveTab ? 'true' : 'false');
           });
@@ -10606,7 +10606,7 @@
         }
 
         tabs.forEach((tab) => {
-          tab.classList.remove('loading');
+          tab.classList.remove('is-loading');
           tab.disabled = false;
           tab.setAttribute('aria-busy', 'false');
         });

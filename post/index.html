@@ -958,7 +958,29 @@
       const stateEl = document.getElementById("state");
       const postRoot = document.getElementById("postRoot");
       const query = new URLSearchParams(window.location.search);
-      const rawPostId = String(query.get("id") || "").trim();
+
+      function getPostIdFromPathname(pathname) {
+        const parts = String(pathname || "")
+          .split("/")
+          .map((part) => part.trim())
+          .filter(Boolean);
+
+        const postIndex = parts.indexOf("post");
+        if (postIndex === -1) return "";
+
+        const candidate = parts[postIndex + 1] || "";
+        if (!candidate || /^index\.html?$/i.test(candidate)) return "";
+
+        try {
+          return decodeURIComponent(candidate).trim();
+        } catch (_error) {
+          return candidate.trim();
+        }
+      }
+
+      const rawPostId = String(
+        query.get("id") || getPostIdFromPathname(window.location.pathname) || "",
+      ).trim();
 
       let db;
       let auth;

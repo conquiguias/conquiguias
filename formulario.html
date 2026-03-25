@@ -709,21 +709,11 @@
         return (value || "").trim().toLowerCase();
       }
 
-      function normalizarEstadoAsistencias(rawState = {}, preferredActiveNum = null) {
+      function normalizarEstadoAsistencias(rawState = {}) {
         const state = {
           1: !!(rawState?.[1] ?? rawState?.["1"]),
           2: !!(rawState?.[2] ?? rawState?.["2"]),
         };
-
-        const preferred = Number(preferredActiveNum);
-        if ([1, 2].includes(preferred) && state[preferred]) {
-          state[preferred === 1 ? 2 : 1] = false;
-          return state;
-        }
-
-        if (state[1] && state[2]) {
-          state[1] = false;
-        }
 
         return state;
       }
@@ -881,10 +871,10 @@
         if (!isAdmin) return;
         const nuevoEstado = !estadoAsistencias[num];
         const estadoPrevio = { ...estadoAsistencias };
-        estadoAsistencias = normalizarEstadoAsistencias(
-          { ...estadoAsistencias, [num]: nuevoEstado },
-          num,
-        );
+        estadoAsistencias = normalizarEstadoAsistencias({
+          ...estadoAsistencias,
+          [num]: nuevoEstado,
+        });
 
         // UI Optimista
         actualizarUI();
@@ -906,10 +896,7 @@
 
           if (res.ok) {
             const data = await res.json();
-            estadoAsistencias = normalizarEstadoAsistencias(
-              data.asistenciasActivas,
-              num,
-            );
+            estadoAsistencias = normalizarEstadoAsistencias(data.asistenciasActivas);
             actualizarUI();
           } else {
             throw new Error("Falló actualización");

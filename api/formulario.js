@@ -67,21 +67,11 @@ function toBoolean(value) {
   return false;
 }
 
-function normalizeAsistenciasActivas(rawState = {}, preferredActiveNumber = null) {
+function normalizeAsistenciasActivas(rawState = {}) {
   const state = {
     1: toBoolean(rawState?.[1] ?? rawState?.["1"]),
     2: toBoolean(rawState?.[2] ?? rawState?.["2"]),
   };
-
-  const preferred = Number(preferredActiveNumber);
-  if ([1, 2].includes(preferred) && state[preferred]) {
-    state[preferred === 1 ? 2 : 1] = false;
-    return state;
-  }
-
-  if (state[1] && state[2]) {
-    state[1] = false;
-  }
 
   return state;
 }
@@ -650,10 +640,7 @@ async function handleActualizarEstadoAsistencia(req, res) {
 
   const estadoActual = normalizeAsistenciasActivas(nuevoData.asistenciasActivas);
   estadoActual[asistenciaNumero] = toBoolean(activo);
-  nuevoData.asistenciasActivas = normalizeAsistenciasActivas(
-    estadoActual,
-    asistenciaNumero,
-  );
+  nuevoData.asistenciasActivas = normalizeAsistenciasActivas(estadoActual);
 
   await supabase.from("formularios").update({ data: nuevoData }).eq("id", id);
   res

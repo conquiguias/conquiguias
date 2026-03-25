@@ -2232,6 +2232,9 @@
       font-size: 13px;
       font-weight: 600;
       transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .feed-category-tab:hover {
@@ -2253,10 +2256,36 @@
       position: relative;
     }
 
-    .feed-category-tab.loading::after {
-      content: ' · Cargando...';
+    .feed-category-spinner {
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: feedSpinnerRotate 0.8s linear infinite;
+      display: none;
+      flex-shrink: 0;
+    }
+
+    .feed-category-tab.loading .feed-category-spinner {
+      display: inline-block;
+    }
+
+    .feed-category-tab.loading .feed-category-label::after {
+      content: ' Cargando...';
       font-size: 11px;
       font-weight: 500;
+      opacity: 0.95;
+    }
+
+    @keyframes feedSpinnerRotate {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     #floatingUploadBtn {
@@ -10684,7 +10713,7 @@
 
         // Renderizar pestañas desde FEED_CATEGORIES
         tabsContainer.innerHTML = FEED_CATEGORIES.map(({ key, label }, i) =>
-          `<button class="feed-category-tab${i === 0 ? ' active' : ''}" data-category="${key}" data-label="${label}" type="button">${label}</button>`
+          `<button class="feed-category-tab${i === 0 ? ' active' : ''}" data-category="${key}" data-label="${label}" type="button"><span class="feed-category-label">${label}</span><span class="feed-category-spinner" aria-hidden="true"></span></button>`
         ).join('');
 
         updateFeedSnapOffset();

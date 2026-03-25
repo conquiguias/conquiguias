@@ -10978,10 +10978,32 @@
       async function loadPosts(forceReload = false) {
         const categoryAtRequest = activeFeedCategory;
         const loadToken = ++latestFeedLoadToken;
+        const isCategoryMode = categoryAtRequest !== 'recientes';
         const perfTrace = startFeedPerfTrace({
           category: categoryAtRequest,
           forceReload: !!forceReload,
         });
+
+        const processQueuedCategoryReload = () => {
+          if (!queuedCategoryReload) return;
+
+          const nextCategory = queuedCategoryReload;
+          queuedCategoryReload = null;
+          if (nextCategory !== activeFeedCategory) {
+            activeFeedCategory = nextCategory;
+            const tabsContainer = document.getElementById('postCategoryTabs');
+            if (tabsContainer) {
+              tabsContainer.querySelectorAll('.feed-category-tab').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.category === activeFeedCategory);
+              });
+            }
+          }
+
+          setTimeout(() => {
+            loadPosts(true);
+          }, 80);
+        };
+
         // 🔒 Protección contra llamadas simultáneas
         if (postsLoading) {
           if (forceReload) {
@@ -11013,7 +11035,6 @@
           if (noMoreIndicator) noMoreIndicator.classList.add('hidden');
 
           const liveCheckPromise = checkLiveStream(forceReload);
-          const isCategoryMode = activeFeedCategory !== 'recientes';
           const currentQueryLimit = postsPerLoad;
           const fastInitialLimit = isCategoryMode
             ? currentQueryLimit
@@ -11169,24 +11190,6 @@
             }, 500);
           }
 
-          postsLoading = false;
-          if (queuedCategoryReload) {
-            const nextCategory = queuedCategoryReload;
-            queuedCategoryReload = null;
-            if (nextCategory !== activeFeedCategory) {
-              activeFeedCategory = nextCategory;
-              const tabsContainer = document.getElementById('postCategoryTabs');
-              if (tabsContainer) {
-                tabsContainer.querySelectorAll('.feed-category-tab').forEach(tab => {
-                  tab.classList.toggle('active', tab.dataset.category === activeFeedCategory);
-                });
-              }
-            }
-            setTimeout(() => {
-              loadPosts(true);
-            }, 80);
-          }
-
         } catch (error) {
           console.error('❌ Error cargando publicaciones:', error);
 
@@ -11247,25 +11250,10 @@
               </button>
             </div>
             `;
-          } finally {
-            postsLoading = false;
-            if (queuedCategoryReload) {
-              const nextCategory = queuedCategoryReload;
-              queuedCategoryReload = null;
-              if (nextCategory !== activeFeedCategory) {
-                activeFeedCategory = nextCategory;
-                const tabsContainer = document.getElementById('postCategoryTabs');
-                if (tabsContainer) {
-                  tabsContainer.querySelectorAll('.feed-category-tab').forEach(tab => {
-                    tab.classList.toggle('active', tab.dataset.category === activeFeedCategory);
-                  });
-                }
-              }
-              setTimeout(() => {
-                loadPosts(true);
-              }, 80);
-            }
           }
+        } finally {
+          postsLoading = false;
+          processQueuedCategoryReload();
         }
       }
 

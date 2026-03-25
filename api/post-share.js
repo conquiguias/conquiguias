@@ -194,6 +194,49 @@ function resolveImgurVideoPoster(post, origin) {
   return "";
 }
 
+function getMediaUrlExtension(rawUrl) {
+  const value = String(rawUrl || "").trim();
+  if (!value) return "";
+  const regexExt = value.match(/\.([a-z0-9]{2,5})(?:$|[?#&])/i);
+  if (regexExt && regexExt[1]) return regexExt[1].toLowerCase();
+
+  try {
+    const parsed = new URL(value);
+    const fileName = (parsed.pathname || "").split("/").pop() || "";
+    if (!fileName.includes(".")) return "";
+    return String(fileName.split(".").pop() || "").trim().toLowerCase();
+  } catch (_error) {
+    return "";
+  }
+}
+
+function resolveVideoPosterFromMediaUrl(post, origin) {
+  const mediaUrl = toAbsoluteUrl(post?.mediaUrl, origin);
+  if (!mediaUrl) return "";
+
+  const mediaType = String(post?.mediaType || "").toLowerCase();
+  const ext = getMediaUrlExtension(mediaUrl);
+  const isLikelyVideo =
+    mediaType === "video/url" ||
+    mediaType.startsWith("video/") ||
+    ["mp4", "webm", "mov", "mkv", "m4v", "avi", "ts", "m3u8"].includes(ext);
+
+  if (!isLikelyVideo) return "";
+
+  const youTubeThumb = getYouTubeThumbnail(mediaUrl);
+  if (youTubeThumb) return youTubeThumb;
+
+  const imgurId = extractImgurId(mediaUrl);
+  if (imgurId) return `https://i.imgur.com/${imgurId}h.jpg`;
+
+  if (/\.mp4(?:$|[?#])/i.test(mediaUrl)) {
+    const jpgCandidate = mediaUrl.replace(/\.mp4(?=$|[?#])/i, "h.jpg");
+    return toAbsoluteUrl(jpgCandidate, origin) || "";
+  }
+
+  return "";
+}
+
 function resolvePreviewImage(post, origin) {
   const coverCandidates = [
     post?.radiocover,
@@ -214,6 +257,9 @@ function resolvePreviewImage(post, origin) {
 
   const imgurPoster = resolveImgurVideoPoster(post, origin);
   if (imgurPoster) return imgurPoster;
+
+  const mediaPoster = resolveVideoPosterFromMediaUrl(post, origin);
+  if (mediaPoster) return mediaPoster;
 
   const youTubeThumb = toAbsoluteUrl(getYouTubeThumbnail(post?.mediaUrl), origin);
   if (youTubeThumb) return youTubeThumb;
@@ -410,7 +456,7 @@ module.exports = async (req, res) => {
     <script>
       (function () {
         var ua = (navigator.userAgent || "").toLowerCase();
-        var isBot = /bot|crawler|spider|facebookexternalhit|whatsapp|twitterbot|slackbot|discordbot|linkedinbot|telegrambot|googlebot|bingbot|skypeuripreview|pinterest|vkshare|line\//.test(ua);
+        var isBot = /bot|crawler|spider|facebookexternalhit|whatsapp|twitterbot|slackbot|discordbot|linkedinbot|telegrambot|googlebot|bingbot|skypeuripreview|pinterest|vkshare|line/.test(ua);
         if (!isBot) {
           setTimeout(function () {
             window.location.replace(${JSON.stringify(viewUrl)});

@@ -1232,7 +1232,7 @@
       }
 
       function getSharedPostLink(id) {
-        const url = new URL("/post", window.location.origin);
+        const url = new URL("/api/post-share", window.location.origin);
         url.searchParams.set("id", id);
         return url.toString();
       }

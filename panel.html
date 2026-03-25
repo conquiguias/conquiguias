@@ -9238,7 +9238,7 @@
       function getSharedPostLink(postId) {
         const resolvedPostId = String(postId || '').trim();
         if (!resolvedPostId) return window.location.href;
-        const shareUrl = new URL('/post', window.location.origin);
+        const shareUrl = new URL('/api/post-share', window.location.origin);
         shareUrl.searchParams.set('id', resolvedPostId);
         return shareUrl.toString();
       }

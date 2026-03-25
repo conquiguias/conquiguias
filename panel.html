@@ -10462,7 +10462,36 @@
       let queuedCategoryReload = null;
       let liveStreamCache = { data: { live: false }, checkedAt: 0 };
       let liveStreamRequestPromise = null;
+      let latestFeedLoadToken = 0;
       const LIVE_STREAM_CACHE_MS = 45000;
+      const FAST_INITIAL_POSTS = 5;
+
+      let feedPerfTraceCounter = 0;
+      function startFeedPerfTrace(context = {}) {
+        const trace = {
+          id: ++feedPerfTraceCounter,
+          startedAt: performance.now(),
+          context,
+          firstPaintLogged: false,
+        };
+        console.log(`[PERF][Feed#${trace.id}] start`, context);
+        return trace;
+      }
+
+      function markFeedPerf(trace, milestone, extra = {}) {
+        if (!trace) return;
+        const elapsedMs = Math.round(performance.now() - trace.startedAt);
+        console.log(`[PERF][Feed#${trace.id}] ${milestone}: ${elapsedMs}ms`, extra);
+      }
+
+      function markFeedFirstPaint(trace, renderedPostsCount, livePostRendered) {
+        if (!trace || trace.firstPaintLogged) return;
+        trace.firstPaintLogged = true;
+        markFeedPerf(trace, 'first-paint', {
+          renderedPosts: renderedPostsCount,
+          livePostRendered: !!livePostRendered,
+        });
+      }
 
       // ─────────────────────────────────────────────────────────────
       // FUENTE ÚNICA DE VERDAD para las pestañas/etiquetas del feed.
@@ -10948,6 +10977,11 @@
       // 🔹 CARGA INICIAL DE PUBLICACIONES (Modificada para scroll infinito)
       async function loadPosts(forceReload = false) {
         const categoryAtRequest = activeFeedCategory;
+        const loadToken = ++latestFeedLoadToken;
+        const perfTrace = startFeedPerfTrace({
+          category: categoryAtRequest,
+          forceReload: !!forceReload,
+        });
         // 🔒 Protección contra llamadas simultáneas
         if (postsLoading) {
           if (forceReload) {
@@ -10981,21 +11015,47 @@
           const liveCheckPromise = checkLiveStream(forceReload);
           const isCategoryMode = activeFeedCategory !== 'recientes';
           const currentQueryLimit = postsPerLoad;
+          const fastInitialLimit = isCategoryMode
+            ? currentQueryLimit
+            : Math.max(1, Math.min(currentQueryLimit, FAST_INITIAL_POSTS));
           let querySnapshot = null;
           let categoryPosts = [];
+          let deferredRecentLoadPromise = null;
+          let deferredRecentLimit = 0;
 
           if (isCategoryMode) {
             categoryPosts = await fetchPostsForActiveCategory();
             console.log(`📊 Se encontraron ${categoryPosts.length} publicaciones para categoría ${activeFeedCategory}`);
+            markFeedPerf(perfTrace, 'category-query-ready', { posts: categoryPosts.length });
           } else {
             const q = query(
               collection(db, "posts"),
               where("status", "==", "approved"),
               orderBy("timestamp", "desc"),
-              limit(currentQueryLimit)
+              limit(fastInitialLimit)
             );
             querySnapshot = await getDocs(q);
-            console.log(`📊 Se encontraron ${querySnapshot.size} publicaciones aprobadas`);
+            console.log(`📊 Se encontraron ${querySnapshot.size} publicaciones aprobadas (rápido)`);
+            markFeedPerf(perfTrace, 'fast-query-ready', {
+              posts: querySnapshot.size,
+              fastInitialLimit,
+            });
+
+            if (
+              querySnapshot.size === fastInitialLimit &&
+              currentQueryLimit > fastInitialLimit &&
+              !querySnapshot.empty
+            ) {
+              deferredRecentLimit = currentQueryLimit - fastInitialLimit;
+              const deferredQuery = query(
+                collection(db, "posts"),
+                where("status", "==", "approved"),
+                orderBy("timestamp", "desc"),
+                startAfter(querySnapshot.docs[querySnapshot.docs.length - 1]),
+                limit(deferredRecentLimit)
+              );
+              deferredRecentLoadPromise = getDocs(deferredQuery);
+            }
           }
 
           // Limpiar feed solo en carga inicial
@@ -11033,12 +11093,16 @@
 
           const liveData = await liveCheckPromise;
           const livePostRendered = await renderLivePostIntoFeed(liveData, categoryAtRequest);
+          markFeedPerf(perfTrace, 'live-check-resolved', { live: !!liveData?.live });
 
           if (renderedPostsCount === 0 && !livePostRendered) {
             renderEmptyFeedMessage();
             hasMorePosts = false;
+            markFeedPerf(perfTrace, 'empty-feed');
             return;
           }
+
+          markFeedFirstPaint(perfTrace, renderedPostsCount, livePostRendered);
 
           updateFirstPostMarker();
 
@@ -11047,14 +11111,63 @@
           }, 100);
 
           // En categorías no usamos scroll infinito para evitar inconsistencias del filtro
-          if (isCategoryMode || (querySnapshot && querySnapshot.size < currentQueryLimit)) {
+          if (isCategoryMode || (querySnapshot && querySnapshot.size < fastInitialLimit)) {
             hasMorePosts = false;
           }
 
-          // 🔹 INICIALIZAR SCROLL INFINITO DESPUÉS DE LA PRIMERA CARGA 
-          setTimeout(() => {
-            initializeInfiniteScroll();
-          }, 500);
+          if (deferredRecentLoadPromise) {
+            deferredRecentLoadPromise
+              .then((deferredSnapshot) => {
+                if (loadToken !== latestFeedLoadToken || categoryAtRequest !== activeFeedCategory) {
+                  return;
+                }
+
+                let appendedCount = 0;
+                deferredSnapshot.forEach((doc) => {
+                  const post = { ...doc.data(), id: doc.id };
+                  if (doc.id === LIVE_POST_ID) return;
+                  if (!postMatchesActiveCategory(post)) return;
+                  displayPost(post, doc.id);
+                  appendedCount++;
+                });
+
+                if (!deferredSnapshot.empty) {
+                  lastVisiblePost = deferredSnapshot.docs[deferredSnapshot.docs.length - 1];
+                }
+
+                if (deferredSnapshot.size < deferredRecentLimit) {
+                  hasMorePosts = false;
+                }
+
+                updateFirstPostMarker();
+                markFeedPerf(perfTrace, 'deferred-batch-ready', {
+                  deferredDocs: deferredSnapshot.size,
+                  appendedCount,
+                });
+              })
+              .catch((deferredError) => {
+                console.warn('[Feed] Error en carga diferida inicial:', deferredError);
+                markFeedPerf(perfTrace, 'deferred-batch-error', {
+                  message: deferredError?.message || String(deferredError || ''),
+                });
+              })
+              .finally(() => {
+                if (loadToken !== latestFeedLoadToken || categoryAtRequest !== activeFeedCategory) {
+                  return;
+                }
+
+                setTimeout(() => {
+                  initializeInfiniteScroll();
+                  markFeedPerf(perfTrace, 'interactive-ready');
+                }, 250);
+              });
+          } else {
+            // 🔹 INICIALIZAR SCROLL INFINITO DESPUÉS DE LA PRIMERA CARGA
+            setTimeout(() => {
+              initializeInfiniteScroll();
+              markFeedPerf(perfTrace, 'interactive-ready');
+            }, 500);
+          }
 
           postsLoading = false;
           if (queuedCategoryReload) {
@@ -11117,9 +11230,13 @@
             }, 500);
 
             updateFirstPostMarker();
+            markFeedPerf(perfTrace, 'fallback-ready', { approvedCount });
 
           } catch (fallbackError) {
             console.error('[ERROR] Error en fallback:', fallbackError);
+            markFeedPerf(perfTrace, 'fallback-error', {
+              message: fallbackError?.message || String(fallbackError || ''),
+            });
             feed.innerHTML = `
             <div class="empty-feed">
               <h3><i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i> Error al cargar publicaciones</h3>

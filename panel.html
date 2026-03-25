@@ -6445,9 +6445,7 @@
           setupAdminEventListeners();
         }
 
-        if (window.canAccessInstructorPanel) {
-          if (typeof inicializarPanelInstructor === 'function') inicializarPanelInstructor();
-        }
+        // Inicialización de instructor bajo demanda (solo al abrir su menú)
 
         window.currentUserId = user.uid;
         currentUserId = user.uid;
@@ -16896,36 +16894,27 @@
         }
       }
 
-      // Ejecutar SOLO al cargar la página una vez (y configurar navegación)
+      // Configurar navegación bajo demanda (sin cargas automáticas al iniciar)
       window.addEventListener('load', () => {
-        // Carga inicial de datos (solo una vez)
-        setTimeout(cargarTablaCertificacionesCorrecta, 3000);
+        // Listener específico para Certificaciones
+        const menuCert = document.getElementById('menuCertificaciones');
+        if (menuCert) {
+          menuCert.addEventListener('click', () => {
+            setTimeout(cargarTablaCertificacionesCorrecta, 100);
+          });
+        }
 
-        // Configurar listeners para recarga bajo demanda (Click-to-Refresh)
-        const botones = document.querySelectorAll('button, a, div.menu-item, li');
-        botones.forEach(btn => {
-          const texto = btn.textContent ? btn.textContent.toLowerCase() : '';
-
-          // Listener para Certificaciones
-          if (texto.includes('certificaciones')) {
-            btn.addEventListener('click', () => {
-              setTimeout(cargarTablaCertificacionesCorrecta, 100);
-            });
-          }
-
-          // Listener para Tareas y Exámenes
-          if (texto.includes('tareas') || texto.includes('examenes') || texto.includes('exámenes')) {
-            btn.addEventListener('click', () => {
-              setTimeout(() => {
-                // Verificar si la función existe antes de llamarla
-                // Verificar si la función existe antes de llamarla
-                if (typeof window.cargarTareasExamenes === 'function') {
-                  window.cargarTareasExamenes();
-                }
-              }, 100);
-            });
-          }
-        });
+        // Listener específico para Tareas y Exámenes
+        const menuTareas = document.getElementById('menuTareasExamenes');
+        if (menuTareas) {
+          menuTareas.addEventListener('click', () => {
+            setTimeout(() => {
+              if (typeof window.cargarTareasExamenes === 'function') {
+                window.cargarTareasExamenes();
+              }
+            }, 100);
+          });
+        }
       });
 
       // Exponer globalmente

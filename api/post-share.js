@@ -59,22 +59,101 @@ function getOrigin(req) {
 function toAbsoluteUrl(rawUrl, origin) {
   const value = String(rawUrl || "").trim();
   if (!value) return "";
+  if (/^data:/i.test(value)) return "";
   if (/^https?:\/\//i.test(value)) return value;
+  if (value.startsWith("//")) return `https:${value}`;
   if (value.startsWith("/")) return `${origin}${value}`;
   return "";
 }
 
-function resolvePreviewImage(post, origin) {
-  const candidates = [
-    post?.thumbnailUrl,
-    post?.posterUrl,
-    post?.radiocover,
+function isLikelyImageUrl(value) {
+  const url = String(value || "").trim();
+  if (!url) return false;
+  return /\.(?:jpe?g|png|gif|webp|bmp|svg|avif)(?:$|[?#])/i.test(url);
+}
+
+function extractImgurId(rawUrl) {
+  const value = String(rawUrl || "").trim();
+  if (!value) return "";
+
+  try {
+    const parsed = new URL(value);
+    if (!/imgur\.com$/i.test(parsed.hostname)) return "";
+
+    const fileName = (parsed.pathname || "").split("/").filter(Boolean).pop() || "";
+    if (!fileName) return "";
+
+    const dotAt = fileName.lastIndexOf(".");
+    let imgurId = dotAt > 0 ? fileName.slice(0, dotAt) : fileName;
+
+    if (imgurId.length > 6 && /[sbtmlh]$/i.test(imgurId)) {
+      imgurId = imgurId.slice(0, -1);
+    }
+
+    if (!/^[a-z0-9]+$/i.test(imgurId)) return "";
+    return imgurId;
+  } catch (_error) {
+    return "";
+  }
+}
+
+function resolveImgurVideoPoster(post, origin) {
+  const directCandidates = [
     post?.imgurData?.thumbnail,
+    post?.imgurData?.thumb,
     post?.imgurData?.poster,
-    post?.userPhoto,
   ];
 
-  for (const candidate of candidates) {
+  for (const candidate of directCandidates) {
+    const abs = toAbsoluteUrl(candidate, origin);
+    if (abs) return abs;
+  }
+
+  const mp4Candidates = [post?.imgurData?.mp4, post?.mediaUrl];
+  for (const mp4Candidate of mp4Candidates) {
+    const absMp4 = toAbsoluteUrl(mp4Candidate, origin);
+    if (!absMp4) continue;
+    const imgurId = extractImgurId(absMp4);
+    if (imgurId) return `https://i.imgur.com/${imgurId}.jpg`;
+    if (/i\.imgur\.com\/[^/?#]+\.mp4(?:$|[?#])/i.test(absMp4)) {
+      return absMp4.replace(/\.mp4(?=$|[?#])/i, ".jpg");
+    }
+  }
+
+  const imgurId = String(post?.imgurData?.id || "").trim();
+  if (/^[a-z0-9]+$/i.test(imgurId)) {
+    return `https://i.imgur.com/${imgurId}.jpg`;
+  }
+
+  return "";
+}
+
+function resolvePreviewImage(post, origin) {
+  const coverCandidates = [
+    post?.radiocover,
+    post?.posterUrl,
+    post?.thumbnailUrl,
+    post?.thumbnail,
+    post?.thumbUrl,
+    post?.poster,
+    post?.imgurData?.thumbnail,
+    post?.imgurData?.thumb,
+    post?.imgurData?.poster,
+  ];
+
+  for (const candidate of coverCandidates) {
+    const abs = toAbsoluteUrl(candidate, origin);
+    if (abs) return abs;
+  }
+
+  const imgurPoster = resolveImgurVideoPoster(post, origin);
+  if (imgurPoster) return imgurPoster;
+
+  const mediaUrl = toAbsoluteUrl(post?.mediaUrl, origin);
+  if (mediaUrl && isLikelyImageUrl(mediaUrl)) return mediaUrl;
+
+  const profileCandidates = [post?.userPhoto, post?.coverimage, post?.photoURL];
+  for (const candidate of profileCandidates) {
     const abs = toAbsoluteUrl(candidate, origin);
     if (abs) return abs;
   }

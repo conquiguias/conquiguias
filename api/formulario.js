@@ -57,6 +57,35 @@ function getBearerToken(req) {
   return match ? match[1].trim() : "";
 }
 
+function toBoolean(value) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    return normalized === "true" || normalized === "1";
+  }
+  return false;
+}
+
+function normalizeAsistenciasActivas(rawState = {}, preferredActiveNumber = null) {
+  const state = {
+    1: toBoolean(rawState?.[1] ?? rawState?.["1"]),
+    2: toBoolean(rawState?.[2] ?? rawState?.["2"]),
+  };
+
+  const preferred = Number(preferredActiveNumber);
+  if ([1, 2].includes(preferred) && state[preferred]) {
+    state[preferred === 1 ? 2 : 1] = false;
+    return state;
+  }
+
+  if (state[1] && state[2]) {
+    state[1] = false;
+  }
+
+  return state;
+}
+
 async function verifyAuthenticatedUserFromBody(body = {}) {
   const token =
     getBearerToken({ headers: body?.__headers || {} }) ||
@@ -229,7 +258,7 @@ async function handleObtenerFormulario(req, res) {
     ...form,
     id, // Asegurar que el ID va
     estado,
-    asistenciasActivas: form.asistenciasActivas || { 1: false, 2: false },
+    asistenciasActivas: normalizeAsistenciasActivas(form.asistenciasActivas),
   });
 }
 
@@ -614,9 +643,17 @@ async function handleActualizarEstadoAsistencia(req, res) {
   if (!fData) return res.status(404).json({ error: "No encontrado" });
 
   const nuevoData = { ...fData.data };
-  if (!nuevoData.asistenciasActivas)
-    nuevoData.asistenciasActivas = { 1: false, 2: false };
-  nuevoData.asistenciasActivas[asistencia] = activo;
+  const asistenciaNumero = Number(asistencia);
+  if (![1, 2].includes(asistenciaNumero)) {
+    return res.status(400).json({ error: "Número de asistencia inválido" });
+  }
+
+  const estadoActual = normalizeAsistenciasActivas(nuevoData.asistenciasActivas);
+  estadoActual[asistenciaNumero] = toBoolean(activo);
+  nuevoData.asistenciasActivas = normalizeAsistenciasActivas(
+    estadoActual,
+    asistenciaNumero,
+  );
 
   await supabase.from("formularios").update({ data: nuevoData }).eq("id", id);
   res

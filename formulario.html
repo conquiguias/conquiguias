@@ -709,6 +709,25 @@
         return (value || "").trim().toLowerCase();
       }
 
+      function normalizarEstadoAsistencias(rawState = {}, preferredActiveNum = null) {
+        const state = {
+          1: !!(rawState?.[1] ?? rawState?.["1"]),
+          2: !!(rawState?.[2] ?? rawState?.["2"]),
+        };
+
+        const preferred = Number(preferredActiveNum);
+        if ([1, 2].includes(preferred) && state[preferred]) {
+          state[preferred === 1 ? 2 : 1] = false;
+          return state;
+        }
+
+        if (state[1] && state[2]) {
+          state[1] = false;
+        }
+
+        return state;
+      }
+
       // === INICIALIZACIÓN ===
       document.addEventListener("DOMContentLoaded", async () => {
         if (!currentIdFormulario) {
@@ -735,7 +754,7 @@
             data.titulo || "Formulario";
 
           // Actualizar estados
-          estadoAsistencias = data.asistenciasActivas || { 1: false, 2: false };
+          estadoAsistencias = normalizarEstadoAsistencias(data.asistenciasActivas);
           actualizarUI();
           cargarRespuestas();
         } catch (err) {
@@ -861,9 +880,14 @@
       async function toggleAsistencia(num) {
         if (!isAdmin) return;
         const nuevoEstado = !estadoAsistencias[num];
+        const estadoPrevio = { ...estadoAsistencias };
+        estadoAsistencias = normalizarEstadoAsistencias(
+          { ...estadoAsistencias, [num]: nuevoEstado },
+          num,
+        );
 
         // UI Optimista
-        actualizarBotonAdmin(num, nuevoEstado);
+        actualizarUI();
 
         try {
           const res = await fetch(
@@ -882,7 +906,10 @@
 
           if (res.ok) {
             const data = await res.json();
-            estadoAsistencias = data.asistenciasActivas;
+            estadoAsistencias = normalizarEstadoAsistencias(
+              data.asistenciasActivas,
+              num,
+            );
             actualizarUI();
           } else {
             throw new Error("Falló actualización");
@@ -891,7 +918,8 @@
           alert("Error al cambiar estado");
           console.error(e);
           // Revertir UI
-          actualizarBotonAdmin(num, !nuevoEstado);
+          estadoAsistencias = normalizarEstadoAsistencias(estadoPrevio);
+          actualizarUI();
         }
       }
 

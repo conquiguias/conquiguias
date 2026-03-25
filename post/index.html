@@ -4,6 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Post | Conquiguias World</title>
+    <meta name="description" content="Publicación de Conquiguias World." />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="theme-color" content="#0f172a" />
+    <link rel="canonical" href="/post" />
+    <meta property="og:site_name" content="Conquiguias World" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="Post | Conquiguias World" />
+    <meta property="og:description" content="Publicación de Conquiguias World." />
+    <meta property="og:url" content="/post" />
+    <meta property="og:image" content="/logo1.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Post | Conquiguias World" />
+    <meta name="twitter:description" content="Publicación de Conquiguias World." />
+    <meta name="twitter:image" content="/logo1.png" />
     
     <link
       rel="stylesheet"
@@ -1232,8 +1246,8 @@
       }
 
       function getSharedPostLink(id) {
-        const url = new URL("/api/post-share", window.location.origin);
-        url.searchParams.set("id", id);
+        const cleanId = encodeURIComponent(String(id || "").trim());
+        const url = new URL(`/share/${cleanId}`, window.location.origin);
         return url.toString();
       }
 

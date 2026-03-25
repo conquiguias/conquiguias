@@ -4,6 +4,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel | Conquiguias World</title>
+  <meta name="description" content="Panel de usuario de Conquiguias World para publicaciones, tareas, exámenes y certificaciones.">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="canonical" href="/panel.html">
+  <meta property="og:site_name" content="Conquiguias World">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Panel | Conquiguias World">
+  <meta property="og:description" content="Panel de usuario de Conquiguias World.">
+  <meta property="og:url" content="/panel.html">
+  <meta property="og:image" content="/logo1.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Panel | Conquiguias World">
+  <meta name="twitter:description" content="Panel de usuario de Conquiguias World.">
+  <meta name="twitter:image" content="/logo1.png">
   <link
     href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Great+Vibes&family=Montserrat:wght@300;500;700&display=swap"
     rel="stylesheet">
@@ -21,7 +36,6 @@
   <script src="lib/jquery-3.2.1.min.js"></script>
   <script src="lib/lunaradio.min.js"></script>
   <script src="lib/rocket-loader.min.js" data-cf-settings="3bc5e4e5245e387f3290c38f-|49" defer></script>
-  <title>Conquiguias World</title>
   
   <script>
     // Globals initialized before modules
@@ -9238,8 +9252,7 @@
       function getSharedPostLink(postId) {
         const resolvedPostId = String(postId || '').trim();
         if (!resolvedPostId) return window.location.href;
-        const shareUrl = new URL('/api/post-share', window.location.origin);
-        shareUrl.searchParams.set('id', resolvedPostId);
+        const shareUrl = new URL(`/share/${encodeURIComponent(resolvedPostId)}`, window.location.origin);
         return shareUrl.toString();
       }
 

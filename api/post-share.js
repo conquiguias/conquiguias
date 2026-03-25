@@ -29,6 +29,15 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function escapeXml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 function normalizeText(value, maxLen = 220) {
   const clean = String(value || "")
     .replace(/<[^>]*>/g, " ")
@@ -73,16 +82,76 @@ function resolvePreviewImage(post, origin) {
   return `${origin}/images/logo1.png`;
 }
 
+async function handleSitemap(req, res) {
+  const origin = getOrigin(req);
+  const urls = [
+    { loc: `${origin}/`, changefreq: "daily", priority: "1.0" },
+    { loc: `${origin}/post`, changefreq: "daily", priority: "0.8" },
+    { loc: `${origin}/sitemap.xml`, changefreq: "daily", priority: "0.5" },
+  ];
+
+  try {
+    const postsSnap = await admin
+      .firestore()
+      .collection("posts")
+      .where("status", "==", "approved")
+      .orderBy("timestamp", "desc")
+      .limit(1000)
+      .get();
+
+    postsSnap.forEach((docSnap) => {
+      const post = docSnap.data() || {};
+      const loc = `${origin}/share/${encodeURIComponent(docSnap.id)}`;
+      const rawDate = post.timestamp || post.creado || "";
+      let lastmod = "";
+      const parsed = new Date(rawDate);
+      if (!Number.isNaN(parsed.getTime())) {
+        lastmod = parsed.toISOString();
+      }
+
+      urls.push({
+        loc,
+        lastmod,
+        changefreq: "weekly",
+        priority: "0.7",
+      });
+    });
+  } catch (_error) {
+    // Mantener solo URLs estáticas si falla la lectura de posts
+  }
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls
+    .map((item) => {
+      const lastmodTag = item.lastmod
+        ? `    <lastmod>${escapeXml(item.lastmod)}</lastmod>\n`
+        : "";
+      return `  <url>\n    <loc>${escapeXml(item.loc)}</loc>\n${lastmodTag}    <changefreq>${escapeXml(item.changefreq)}</changefreq>\n    <priority>${escapeXml(item.priority)}</priority>\n  </url>`;
+    })
+    .join("\n")}\n</urlset>`;
+
+  res.setHeader("Content-Type", "application/xml; charset=utf-8");
+  res.setHeader("Cache-Control", "public, s-maxage=600, stale-while-revalidate=1200");
+  return res.status(200).send(xml);
+}
+
 module.exports = async (req, res) => {
+  const action = String(req.query?.action || "").trim().toLowerCase();
+  if (action === "sitemap") {
+    return handleSitemap(req, res);
+  }
+
   const postId = String(req.query?.id || "").trim();
   const origin = getOrigin(req);
-  const viewUrl = `${origin}/post?id=${encodeURIComponent(postId)}`;
-  const shareUrl = `${origin}/api/post-share?id=${encodeURIComponent(postId)}`;
+  const encodedPostId = encodeURIComponent(postId);
+  const viewUrl = postId ? `${origin}/post/${encodedPostId}` : `${origin}/post`;
+  const shareUrl = postId ? `${origin}/share/${encodedPostId}` : `${origin}/share`;
 
   let title = "Post | Conquiguias World";
   let description = "Mira esta publicación en Conquiguias World.";
   let imageUrl = `${origin}/images/logo1.png`;
   let ogType = "article";
+  let authorName = "Conquiguias World";
+  let publishedAt = "";
 
   if (postId) {
     try {
@@ -91,6 +160,7 @@ module.exports = async (req, res) => {
         const post = snap.data() || {};
         const author = normalizeText(post.userName || "Usuario", 60);
         const postDescription = normalizeText(post.description || "", 220);
+        const rawPublishedAt = post.timestamp || post.creado || "";
 
         title = postDescription
           ? `${author}: ${normalizeText(post.description, 90)}`
@@ -101,6 +171,11 @@ module.exports = async (req, res) => {
           "Mira esta publicación en Conquiguias World.";
 
         imageUrl = resolvePreviewImage(post, origin);
+        authorName = author || "Conquiguias World";
+        const parsedDate = new Date(rawPublishedAt);
+        if (!Number.isNaN(parsedDate.getTime())) {
+          publishedAt = parsedDate.toISOString();
+        }
         if (String(post?.mediaType || "").toLowerCase().startsWith("video/")) {
           ogType = "video.other";
         }
@@ -115,6 +190,36 @@ module.exports = async (req, res) => {
   const escapedImage = escapeHtml(imageUrl);
   const escapedShareUrl = escapeHtml(shareUrl);
   const escapedViewUrl = escapeHtml(viewUrl);
+  const escapedAuthor = escapeHtml(authorName);
+  const escapedPublishedAt = escapeHtml(publishedAt);
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "SocialMediaPosting",
+    headline: title,
+    description,
+    image: imageUrl,
+    url: shareUrl,
+    mainEntityOfPage: shareUrl,
+    author: {
+      "@type": "Person",
+      name: authorName,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "Conquiguias World",
+      logo: {
+        "@type": "ImageObject",
+        url: `${origin}/logo1.png`,
+      },
+    },
+  };
+
+  if (publishedAt) {
+    structuredData.datePublished = publishedAt;
+    structuredData.dateModified = publishedAt;
+  }
+
+  const structuredDataJson = JSON.stringify(structuredData).replace(/<\//g, "<\\/");
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
@@ -126,6 +231,7 @@ module.exports = async (req, res) => {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapedTitle}</title>
     <meta name="description" content="${escapedDescription}" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
 
     <meta property="og:site_name" content="Conquiguias World" />
     <meta property="og:title" content="${escapedTitle}" />
@@ -133,6 +239,8 @@ module.exports = async (req, res) => {
     <meta property="og:image" content="${escapedImage}" />
     <meta property="og:url" content="${escapedShareUrl}" />
     <meta property="og:type" content="${ogType}" />
+    <meta property="article:author" content="${escapedAuthor}" />
+    ${publishedAt ? `<meta property="article:published_time" content="${escapedPublishedAt}" />` : ""}
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapedTitle}" />
@@ -140,13 +248,42 @@ module.exports = async (req, res) => {
     <meta name="twitter:image" content="${escapedImage}" />
 
     <link rel="canonical" href="${escapedShareUrl}" />
-    <meta http-equiv="refresh" content="0;url=${escapedViewUrl}" />
+    <script type="application/ld+json">${structuredDataJson}</script>
     <script>
-      window.location.replace(${JSON.stringify(viewUrl)});
+      (function () {
+        var ua = (navigator.userAgent || "").toLowerCase();
+        var isBot = /bot|crawler|spider|facebookexternalhit|whatsapp|twitterbot|slackbot|discordbot|linkedinbot|telegrambot|googlebot|bingbot/.test(ua);
+        if (!isBot) {
+          setTimeout(function () {
+            window.location.replace(${JSON.stringify(viewUrl)});
+          }, 180);
+        }
+      })();
     </script>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
+      .wrap { max-width: 760px; margin: 32px auto; padding: 0 16px; }
+      .card { border: 1px solid #334155; border-radius: 12px; background: #1e293b; overflow: hidden; }
+      .cover { display: block; width: 100%; max-height: 380px; object-fit: cover; background: #111827; }
+      .content { padding: 16px; }
+      .title { font-size: 20px; margin: 0 0 10px; }
+      .desc { color: #cbd5e1; line-height: 1.45; margin: 0 0 14px; }
+      .meta { font-size: 12px; color: #94a3b8; margin-bottom: 12px; }
+      .btn { display: inline-block; text-decoration: none; background: #3b82f6; color: #fff; padding: 10px 14px; border-radius: 8px; }
+    </style>
   </head>
   <body>
-    <p>Redirigiendo a la publicación… <a href="${escapedViewUrl}">Abrir post</a></p>
+    <div class="wrap">
+      <div class="card">
+        <img class="cover" src="${escapedImage}" alt="Vista previa de publicación" />
+        <div class="content">
+          <h1 class="title">${escapedTitle}</h1>
+          <p class="desc">${escapedDescription}</p>
+          ${publishedAt ? `<div class="meta">Publicado: ${escapedPublishedAt}</div>` : ""}
+          <a class="btn" href="${escapedViewUrl}">Abrir publicación</a>
+        </div>
+      </div>
+    </div>
   </body>
 </html>`);
 };

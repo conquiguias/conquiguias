@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/post/:id",
+      "destination": "/post?id=:id"
+    },
+    {
+      "source": "/share/:id",
+      "destination": "/api/post-share?id=:id"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/post-share?action=sitemap"
+    }
+  ]
+}

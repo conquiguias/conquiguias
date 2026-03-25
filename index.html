@@ -296,7 +296,7 @@
             if (!redirectResult?.user) return;
 
             await syncSocialProfile(redirectResult.user);
-            window.location.href = "panel.html";
+            window.location.href = "/panel";
           } catch (error) {
             console.error("Error procesando login por redirección:", error);
             mostrarMensaje(
@@ -365,7 +365,7 @@
             console.log("✅ Bienvenido de nuevo");
             showLoader(loginBtn, "✅ Redirigiendo...");
             setTimeout(() => {
-              window.location.href = "panel.html";
+              window.location.href = "/panel";
             }, 1000);
           } catch (error) {
             hideLoader(loginBtn, "Entrar");
@@ -397,7 +397,7 @@
 
             showLoader(googleLoginBtn, "✅ Redirigiendo...");
             setTimeout(() => {
-              window.location.href = "panel.html";
+              window.location.href = "/panel";
             }, 700);
           } catch (error) {
             if (
@@ -994,7 +994,7 @@
             </button>
             <div class="guest-access-note">
               También puedes
-              <a href="panel.html?guest=1">ingresar como invitado</a>.
+              <a href="/panel?guest=1">ingresar como invitado</a>.
             </div>
           </form>
           <div class="forgot-password" onclick="showResetPassword()">

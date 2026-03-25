@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/panel",
+      "destination": "/panel.html"
+    },
+    {
       "source": "/post/:id",
       "destination": "/post?id=:id"
     },

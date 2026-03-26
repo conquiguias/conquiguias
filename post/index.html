@@ -1022,139 +1022,27 @@
       <div id="mobileTopAdSlot"></div>
     </aside>
 
+    <script src="/lib/responsive-ads.js"></script>
     <script>
-      (function initializeResponsiveAds() {
-        if (window.__responsiveAdsInitialized) return;
-        window.__responsiveAdsInitialized = true;
-
-        const desktopMinWidth = 1024;
-        const mobileMaxWidth = 1023;
-        const refreshMs = 60000;
-
-        const desktop = {
-          key: "8098debbdf01cc9dd68a416d4088bbab",
-          width: 160,
-          height: 600,
-          slot: document.getElementById("desktopRightAdSlot"),
-          shell: document.getElementById("desktopRightAdShell"),
-          failTimer: null,
-          blocked: false,
-        };
-
-        const mobile = {
-          key: "f1f67fc08c6c6b4dacd8faa8d73f0121",
-          width: 468,
-          height: 60,
-          slot: document.getElementById("mobileTopAdSlot"),
-          shell: document.getElementById("mobileTopAdShell"),
-          failTimer: null,
-          blocked: false,
-        };
-
-        if (!desktop.slot || !desktop.shell || !mobile.slot || !mobile.shell) return;
-
-        let refreshTimer = null;
-
-        function isDesktopResolution() {
-          return window.matchMedia(`(min-width: ${desktopMinWidth}px)`).matches;
-        }
-
-        function isMobileResolution() {
-          return window.matchMedia(`(max-width: ${mobileMaxWidth}px)`).matches;
-        }
-
-        function clearAd(ad) {
-          if (ad.failTimer) {
-            clearTimeout(ad.failTimer);
-            ad.failTimer = null;
-          }
-          ad.slot.innerHTML = "";
-        }
-
-        function renderFallback(ad) {
-          const fallbackWidth = ad.width;
-          const fallbackHeight = ad.height;
-          ad.slot.innerHTML =
-            `<a href="/" target="_blank" rel="noopener noreferrer" style="display:block; width:100%; max-width:${fallbackWidth}px; height:${fallbackHeight}px;"><img src="/logo1.png" alt="Conquiguias" style="width:100%; height:${fallbackHeight}px; object-fit:cover; display:block;"></a>`;
-        }
-
-        function mountAd(ad) {
-          const configScript = document.createElement("script");
-          configScript.text = `
-            atOptions = {
-              'key' : '${ad.key}',
-              'format' : 'iframe',
-              'height' : ${ad.height},
-              'width' : ${ad.width},
-              'params' : {}
-            };
-          `;
-          ad.slot.appendChild(configScript);
-
-          const invokeScript = document.createElement("script");
-          invokeScript.src = `https://www.highperformanceformat.com/${ad.key}/invoke.js?ts=${Date.now()}`;
-          invokeScript.async = true;
-          invokeScript.onerror = () => {
-            ad.blocked = true;
-            renderFallback(ad);
-          };
-          ad.slot.appendChild(invokeScript);
-
-          ad.failTimer = window.setTimeout(() => {
-            const iframe = ad.slot.querySelector("iframe");
-            if (!iframe) {
-              renderFallback(ad);
-            }
-          }, 12000);
-        }
-
-        function setVisible(ad, visible) {
-          ad.shell.hidden = !visible;
-          ad.shell.setAttribute("aria-hidden", visible ? "false" : "true");
-        }
-
-        function refreshAds() {
-          const showDesktop = isDesktopResolution();
-          const showMobile = isMobileResolution();
-
-          document.body.classList.toggle("has-mobile-top-ad", showMobile);
-
-          setVisible(desktop, showDesktop);
-          setVisible(mobile, showMobile);
-
-          if (showDesktop) {
-            clearAd(desktop);
-            if (desktop.blocked) {
-              renderFallback(desktop);
-            } else {
-              mountAd(desktop);
-            }
-          } else {
-            clearAd(desktop);
-          }
-
-          if (showMobile) {
-            clearAd(mobile);
-            if (mobile.blocked) {
-              renderFallback(mobile);
-            } else {
-              mountAd(mobile);
-            }
-          } else {
-            clearAd(mobile);
-          }
-        }
-
-        refreshAds();
-        refreshTimer = window.setInterval(refreshAds, refreshMs);
-
-        window.addEventListener("resize", refreshAds, { passive: true });
-        window.addEventListener("beforeunload", () => {
-          if (refreshTimer) clearInterval(refreshTimer);
-          if (desktop.failTimer) clearTimeout(desktop.failTimer);
-          if (mobile.failTimer) clearTimeout(mobile.failTimer);
+      if (typeof window.initResponsiveAds === "function") {
+        window.initResponsiveAds({
+          desktopShell: "#desktopRightAdShell",
+          desktopSlot: "#desktopRightAdSlot",
+          mobileShell: "#mobileTopAdShell",
+          mobileSlot: "#mobileTopAdSlot",
+          desktopKey: "8098debbdf01cc9dd68a416d4088bbab",
+          mobileKey: "f1f67fc08c6c6b4dacd8faa8d73f0121",
+          desktopWidth: 160,
+          desktopHeight: 600,
+          mobileWidth: 468,
+          mobileHeight: 60,
+          desktopMinWidth: 1024,
+          refreshMs: 60000,
+          bodyMobileClass: "has-mobile-top-ad",
+          fallbackHref: "/",
+          fallbackImage: "/logo1.png",
         });
-      })();
+      }
     </script>
 
     <script type="module">

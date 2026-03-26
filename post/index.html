@@ -995,6 +995,7 @@
 
         let failTimer = null;
         let refreshTimer = null;
+        let adBlockedOrFailed = false;
 
         function isDesktopResolution() {
           return window.matchMedia(`(min-width: ${desktopMinWidth}px)`).matches;
@@ -1013,6 +1014,13 @@
             '<a href="/" target="_blank" rel="noopener noreferrer" style="display:block; width:160px; height:600px;"><img src="/logo1.png" alt="Conquiguias" style="width:160px; height:600px; object-fit:cover; display:block;"></a>';
         }
 
+        function stopAutoRefresh() {
+          if (refreshTimer) {
+            clearInterval(refreshTimer);
+            refreshTimer = null;
+          }
+        }
+
         function mountAdScript() {
           const configScript = document.createElement("script");
           configScript.text = `
@@ -1029,7 +1037,11 @@
           const invokeScript = document.createElement("script");
           invokeScript.src = `https://www.highperformanceformat.com/${adKey}/invoke.js?ts=${Date.now()}`;
           invokeScript.async = true;
-          invokeScript.onerror = renderFallback;
+          invokeScript.onerror = () => {
+            adBlockedOrFailed = true;
+            stopAutoRefresh();
+            renderFallback();
+          };
           slot.appendChild(invokeScript);
 
           failTimer = window.setTimeout(() => {
@@ -1049,6 +1061,10 @@
 
           shell.setAttribute("aria-hidden", "false");
           clearSlot();
+          if (adBlockedOrFailed) {
+            renderFallback();
+            return;
+          }
           mountAdScript();
         }
 

@@ -626,16 +626,17 @@
         #desktopRightAdShell {
           position: fixed;
           right: 12px;
-          top: 50%;
-          transform: translateY(-50%);
+          top: 12px;
+          bottom: 12px;
           width: 160px;
-          height: 600px;
           overflow: hidden;
           border-radius: 10px;
           border: 1px solid var(--border-color);
           background: var(--bg-secondary);
           z-index: 1400;
-          display: block;
+          align-items: center;
+          justify-content: center;
+          display: flex;
         }
 
         #desktopRightAdSlot {
@@ -1197,17 +1198,21 @@
 
       function renderFallback() {
         slot.innerHTML =
-          '<a href="/" target="_blank" rel="noopener noreferrer" style="display:block; width:160px; height:600px;"><img src="/images/logo1.png" alt="Conquiguias" style="width:160px; height:600px; object-fit:cover; display:block;"></a>';
+          '<a href="/" target="_blank" rel="noopener noreferrer" style="display:block; width:160px; height:600px;"><img src="/logo1.png" alt="Conquiguias" style="width:160px; height:600px; object-fit:cover; display:block;"></a>';
       }
 
       function mountAdScript() {
-        window.atOptions = {
-          key: adKey,
-          format: "iframe",
-          height: adHeight,
-          width: adWidth,
-          params: {},
-        };
+        const configScript = document.createElement("script");
+        configScript.text = `
+          atOptions = {
+            'key' : '${adKey}',
+            'format' : 'iframe',
+            'height' : ${adHeight},
+            'width' : ${adWidth},
+            'params' : {}
+          };
+        `;
+        slot.appendChild(configScript);
 
         const invokeScript = document.createElement("script");
         invokeScript.src = `https://www.highperformanceformat.com/${adKey}/invoke.js?ts=${Date.now()}`;

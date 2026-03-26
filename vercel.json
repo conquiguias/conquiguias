@@ -1,9 +1,12 @@
 {
-  "rewrites": [
+  "redirects": [
     {
       "source": "/",
-      "destination": "/panel.html"
-    },
+      "destination": "/panel",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
     {
       "source": "/index",
       "destination": "/panel.html"

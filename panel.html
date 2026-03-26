@@ -385,6 +385,10 @@
       display: none;
     }
 
+    #mobileTopAdShell {
+      display: none;
+    }
+
     @media (min-width: 1024px) {
       body {
         padding-right: 184px;
@@ -4006,6 +4010,69 @@
       margin-bottom: 4px;
       color: var(--accent-color);
     }
+
+    @media (max-width: 1023px) {
+      #mobileTopAdShell {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 72px;
+        padding: 6px 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-primary);
+        border-bottom: 1px solid var(--border-color);
+        z-index: 2100;
+      }
+
+      #mobileTopAdSlot {
+        width: min(100%, 468px);
+        height: 60px;
+        overflow: hidden;
+      }
+
+      #mobileTopAdSlot iframe {
+        width: 100% !important;
+        max-width: 468px !important;
+        height: 60px !important;
+        border: 0 !important;
+        display: block;
+      }
+
+      body.has-mobile-top-ad {
+        padding-top: calc(76px + 72px);
+      }
+
+      body.has-mobile-top-ad #sidebar {
+        top: 72px;
+      }
+
+      body.has-mobile-top-ad #userHeader {
+        top: calc(64px + 72px);
+      }
+    }
+
+    @media (max-width: 767px) {
+      body.has-mobile-top-ad {
+        padding-top: calc(70px + 72px);
+      }
+
+      body.has-mobile-top-ad #userHeader {
+        top: calc(58px + 72px);
+      }
+    }
+
+    @media (max-width: 575px) {
+      body.has-mobile-top-ad {
+        padding-top: calc(66px + 72px);
+      }
+
+      body.has-mobile-top-ad #userHeader {
+        top: calc(54px + 72px);
+      }
+    }
   </style>
 </head>
 
@@ -4039,6 +4106,10 @@
 
   <aside id="desktopRightAdShell" aria-label="Publicidad lateral" aria-hidden="true">
     <div id="desktopRightAdSlot"></div>
+  </aside>
+
+  <aside id="mobileTopAdShell" aria-label="Publicidad superior" aria-hidden="true">
+    <div id="mobileTopAdSlot"></div>
   </aside>
 
   <!-- Contenido principal -->
@@ -17397,101 +17468,136 @@
     </script>
 
     <script>
-      (function initializeDesktopRightAd() {
-        if (window.__desktopRightAdInitialized) return;
-        window.__desktopRightAdInitialized = true;
+      (function initializeResponsiveAds() {
+        if (window.__responsiveAdsInitialized) return;
+        window.__responsiveAdsInitialized = true;
 
         const desktopMinWidth = 1024;
+        const mobileMaxWidth = 1023;
         const refreshMs = 60000;
-        const adKey = "8098debbdf01cc9dd68a416d4088bbab";
-        const adWidth = 160;
-        const adHeight = 600;
-        const slot = document.getElementById("desktopRightAdSlot");
-        const shell = document.getElementById("desktopRightAdShell");
-        if (!slot || !shell) return;
 
-        let failTimer = null;
+        const desktop = {
+          key: "8098debbdf01cc9dd68a416d4088bbab",
+          width: 160,
+          height: 600,
+          slot: document.getElementById("desktopRightAdSlot"),
+          shell: document.getElementById("desktopRightAdShell"),
+          failTimer: null,
+          blocked: false,
+        };
+
+        const mobile = {
+          key: "f1f67fc08c6c6b4dacd8faa8d73f0121",
+          width: 468,
+          height: 60,
+          slot: document.getElementById("mobileTopAdSlot"),
+          shell: document.getElementById("mobileTopAdShell"),
+          failTimer: null,
+          blocked: false,
+        };
+
+        if (!desktop.slot || !desktop.shell || !mobile.slot || !mobile.shell) return;
+
         let refreshTimer = null;
-        let adBlockedOrFailed = false;
 
         function isDesktopResolution() {
           return window.matchMedia(`(min-width: ${desktopMinWidth}px)`).matches;
         }
 
-        function clearSlot() {
-          if (failTimer) {
-            clearTimeout(failTimer);
-            failTimer = null;
+        function isMobileResolution() {
+          return window.matchMedia(`(max-width: ${mobileMaxWidth}px)`).matches;
+        }
+
+        function clearAd(ad) {
+          if (ad.failTimer) {
+            clearTimeout(ad.failTimer);
+            ad.failTimer = null;
           }
-          slot.innerHTML = "";
+          ad.slot.innerHTML = "";
         }
 
-        function renderFallback() {
-          slot.innerHTML =
-            '<a href="/" target="_blank" rel="noopener noreferrer" style="display:block; width:160px; height:600px;"><img src="/logo1.png" alt="Conquiguias" style="width:160px; height:600px; object-fit:cover; display:block;"></a>';
+        function renderFallback(ad) {
+          const fallbackWidth = ad.width;
+          const fallbackHeight = ad.height;
+          ad.slot.innerHTML =
+            `<a href="/" target="_blank" rel="noopener noreferrer" style="display:block; width:100%; max-width:${fallbackWidth}px; height:${fallbackHeight}px;"><img src="/logo1.png" alt="Conquiguias" style="width:100%; height:${fallbackHeight}px; object-fit:cover; display:block;"></a>`;
         }
 
-        function stopAutoRefresh() {
-          if (refreshTimer) {
-            clearInterval(refreshTimer);
-            refreshTimer = null;
-          }
-        }
-
-        function mountAdScript() {
+        function mountAd(ad) {
           const configScript = document.createElement("script");
           configScript.text = `
             atOptions = {
-              'key' : '${adKey}',
+              'key' : '${ad.key}',
               'format' : 'iframe',
-              'height' : ${adHeight},
-              'width' : ${adWidth},
+              'height' : ${ad.height},
+              'width' : ${ad.width},
               'params' : {}
             };
           `;
-          slot.appendChild(configScript);
+          ad.slot.appendChild(configScript);
 
           const invokeScript = document.createElement("script");
-          invokeScript.src = `https://www.highperformanceformat.com/${adKey}/invoke.js?ts=${Date.now()}`;
+          invokeScript.src = `https://www.highperformanceformat.com/${ad.key}/invoke.js?ts=${Date.now()}`;
           invokeScript.async = true;
           invokeScript.onerror = () => {
-            adBlockedOrFailed = true;
-            stopAutoRefresh();
-            renderFallback();
+            ad.blocked = true;
+            renderFallback(ad);
           };
-          slot.appendChild(invokeScript);
+          ad.slot.appendChild(invokeScript);
 
-          failTimer = window.setTimeout(() => {
-            const iframe = slot.querySelector("iframe");
+          ad.failTimer = window.setTimeout(() => {
+            const iframe = ad.slot.querySelector("iframe");
             if (!iframe) {
-              renderFallback();
+              renderFallback(ad);
             }
           }, 12000);
         }
 
-        function refreshAd() {
-          if (!isDesktopResolution()) {
-            shell.setAttribute("aria-hidden", "true");
-            clearSlot();
-            return;
-          }
-
-          shell.setAttribute("aria-hidden", "false");
-          clearSlot();
-          if (adBlockedOrFailed) {
-            renderFallback();
-            return;
-          }
-          mountAdScript();
+        function setVisible(ad, visible) {
+          ad.shell.hidden = !visible;
+          ad.shell.setAttribute("aria-hidden", visible ? "false" : "true");
         }
 
-        refreshAd();
-        refreshTimer = window.setInterval(refreshAd, refreshMs);
+        function refreshAds() {
+          const showDesktop = isDesktopResolution();
+          const showMobile = isMobileResolution();
 
-        window.addEventListener("resize", refreshAd, { passive: true });
+          document.body.classList.toggle("has-mobile-top-ad", showMobile);
+
+          setVisible(desktop, showDesktop);
+          setVisible(mobile, showMobile);
+
+          if (showDesktop) {
+            clearAd(desktop);
+            if (desktop.blocked) {
+              renderFallback(desktop);
+            } else {
+              mountAd(desktop);
+            }
+          } else {
+            clearAd(desktop);
+          }
+
+          if (showMobile) {
+            clearAd(mobile);
+            if (mobile.blocked) {
+              renderFallback(mobile);
+            } else {
+              mountAd(mobile);
+            }
+          } else {
+            clearAd(mobile);
+          }
+        }
+
+        refreshAds();
+        refreshTimer = window.setInterval(refreshAds, refreshMs);
+
+        window.addEventListener("resize", refreshAds, { passive: true });
         window.addEventListener("beforeunload", () => {
           if (refreshTimer) clearInterval(refreshTimer);
-          if (failTimer) clearTimeout(failTimer);
+          if (desktop.failTimer) clearTimeout(desktop.failTimer);
+          if (mobile.failTimer) clearTimeout(mobile.failTimer);
         });
       })();
     </script>

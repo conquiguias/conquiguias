@@ -10280,6 +10280,8 @@
 
           const formData = new FormData();
           formData.append('image', file);
+          formData.append('privacy', 'hidden');
+          formData.append('album', false);
 
           const response = await fetch('https://api.imgur.com/3/upload', {
             method: 'POST',

@@ -9,12 +9,12 @@
   <meta name="description" content="Panel de usuario de Conquiguias World para publicaciones, tareas, exámenes y certificaciones.">
   <meta name="robots" content="noindex, nofollow, noarchive">
   <meta name="theme-color" content="#0f172a">
-  <link rel="canonical" href="/panel">
+  <link rel="canonical" href="/index">
   <meta property="og:site_name" content="Conquiguias World">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Panel | Conquiguias World">
   <meta property="og:description" content="Panel de usuario de Conquiguias World.">
-  <meta property="og:url" content="/panel">
+  <meta property="og:url" content="/index">
   <meta property="og:image" content="/logo1.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Panel | Conquiguias World">
@@ -6452,7 +6452,7 @@
 
           const hasRealSessionHint = hasPersistedAuthenticatedSessionHint();
           if (hasRealSessionHint && !shouldAllowExplicitGuestMode()) {
-            window.location.href = "/index";
+            window.location.href = "/login";
             return;
           }
 
@@ -6461,7 +6461,7 @@
               await signInAnonymously(auth);
             } catch (anonError) {
               console.warn('[WARN] No se pudo iniciar sesión anónima en panel:', anonError);
-              window.location.href = "/index";
+              window.location.href = "/login";
             }
           }
           return;
@@ -6506,12 +6506,12 @@
 
               // Cerrar sesión y redirigir
               await signOut(auth);
-              window.location.href = "/index";
+              window.location.href = "/login";
             },
             () => {
               // Si cancela, igualmente redirigir al login
               signOut(auth).then(() => {
-                window.location.href = "/index";
+                window.location.href = "/login";
               });
             }
           );
@@ -6810,11 +6810,11 @@
           try {
             await signOut(auth);
           } catch (_) { }
-          window.location.href = "/index";
+          window.location.href = "/login";
           return;
         }
         await signOut(auth);
-        window.location.href = "/index";
+        window.location.href = "/login";
       });
 
       ////////////////////////

@@ -1,8 +1,28 @@
 {
   "rewrites": [
     {
+      "source": "/",
+      "destination": "/panel.html"
+    },
+    {
       "source": "/index",
+      "destination": "/panel.html"
+    },
+    {
+      "source": "/login",
       "destination": "/index.html"
+    },
+    {
+      "source": "/privacidad",
+      "destination": "/privacidad.html"
+    },
+    {
+      "source": "/terminos",
+      "destination": "/terminos.html"
+    },
+    {
+      "source": "/contacto",
+      "destination": "/contacto.html"
     },
     {
       "source": "/panel",

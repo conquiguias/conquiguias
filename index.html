@@ -7,14 +7,14 @@
     <meta name="description" content="ConquiGuías World: plataforma de especialidades, publicaciones, tareas, exámenes y certificaciones para conquistadores." />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="theme-color" content="#0f172a" />
-    <link rel="canonical" href="/index" />
+    <link rel="canonical" href="/login" />
 
     <meta property="og:locale" content="es_ES" />
     <meta property="og:site_name" content="Conquiguias World" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="ConquiGuías World - Acceso" />
     <meta property="og:description" content="Plataforma de especialidades, publicaciones, tareas, exámenes y certificaciones." />
-    <meta property="og:url" content="/" />
+    <meta property="og:url" content="/login" />
     <meta property="og:image" content="/logo1.png" />
 
     <meta name="twitter:card" content="summary_large_image" />
@@ -26,8 +26,8 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6829228334766526" crossorigin="anonymous"></script>
     <meta name="google-adsense-account" content="ca-pub-6829228334766526">
-    <meta name="monetag" content="6fbc26aa7d9e09db023cc6f16297ccda">
     <script type="module">
       // ==========================================
       // 1. FUNCIONES DE UTILIDAD (Deben estar al principio)
@@ -296,7 +296,7 @@
             if (!redirectResult?.user) return;
 
             await syncSocialProfile(redirectResult.user);
-            window.location.href = "/panel";
+            window.location.href = "/index";
           } catch (error) {
             console.error("Error procesando login por redirección:", error);
             mostrarMensaje(
@@ -365,7 +365,7 @@
             console.log("✅ Bienvenido de nuevo");
             showLoader(loginBtn, "✅ Redirigiendo...");
             setTimeout(() => {
-              window.location.href = "/panel";
+              window.location.href = "/index";
             }, 1000);
           } catch (error) {
             hideLoader(loginBtn, "Entrar");
@@ -397,7 +397,7 @@
 
             showLoader(googleLoginBtn, "✅ Redirigiendo...");
             setTimeout(() => {
-              window.location.href = "/panel";
+              window.location.href = "/index";
             }, 700);
           } catch (error) {
             if (
@@ -1176,6 +1176,14 @@
         </div>
       </div>
       <!-- Cierre auth-container -->
+
+      <footer style="margin: 16px auto 0; text-align: center; font-size: 0.9rem; color: #94a3b8;">
+        <a href="/privacidad" style="color: #93c5fd; text-decoration: none; margin: 0 8px;">Política de privacidad</a>
+        <span style="color: #64748b;">|</span>
+        <a href="/terminos" style="color: #93c5fd; text-decoration: none; margin: 0 8px;">Términos y condiciones</a>
+        <span style="color: #64748b;">|</span>
+        <a href="/contacto" style="color: #93c5fd; text-decoration: none; margin: 0 8px;">Contacto</a>
+      </footer>
     </div>
     <!-- Cierre main-wrapper -->
 

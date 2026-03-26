@@ -381,6 +381,44 @@
       background: var(--bg-primary);
     }
 
+    #desktopRightAdShell {
+      display: none;
+    }
+
+    @media (min-width: 1180px) {
+      #desktopRightAdShell {
+        position: fixed;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 160px;
+        height: 600px;
+        overflow: hidden;
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-secondary);
+        z-index: 1400;
+        display: block;
+      }
+
+      #desktopRightAdSlot {
+        width: 160px;
+        height: 600px;
+        overflow: hidden;
+      }
+
+      #desktopRightAdSlot iframe {
+        width: 160px !important;
+        height: 600px !important;
+        border: 0 !important;
+        display: block;
+      }
+
+      #mainContent {
+        padding-right: 200px;
+      }
+    }
+
     /* Cards (excepto certificaciones) */
     .card:not(.card-certificaciones) {
       background: var(--bg-card);
@@ -3997,6 +4035,10 @@
     <button id="menuAcerca"><i class="fas fa-circle-info" style="margin-right: 8px;"></i> Acerca de</button>
     <button id="logoutBtn"><i class="fas fa-sign-out-alt" style="margin-right: 8px;"></i> Cerrar sesión</button>
   </div>
+
+  <aside id="desktopRightAdShell" aria-label="Publicidad lateral" aria-hidden="true">
+    <div id="desktopRightAdSlot"></div>
+  </aside>
 
   <!-- Contenido principal -->
   <div id="mainContent">
@@ -17351,6 +17393,86 @@
       };
 
       window.cargarTablaCertificacionesCorrecta = cargarTablaCertificacionesCorrecta;
+    </script>
+
+    <script>
+      (function initializeDesktopRightAd() {
+        if (window.__desktopRightAdInitialized) return;
+        window.__desktopRightAdInitialized = true;
+
+        const desktopMinWidth = 1180;
+        const refreshMs = 60000;
+        const adKey = "8098debbdf01cc9dd68a416d4088bbab";
+        const adWidth = 160;
+        const adHeight = 600;
+        const slot = document.getElementById("desktopRightAdSlot");
+        const shell = document.getElementById("desktopRightAdShell");
+        if (!slot || !shell) return;
+
+        let failTimer = null;
+        let refreshTimer = null;
+
+        function isDesktopResolution() {
+          return window.matchMedia(`(min-width: ${desktopMinWidth}px)`).matches;
+        }
+
+        function clearSlot() {
+          if (failTimer) {
+            clearTimeout(failTimer);
+            failTimer = null;
+          }
+          slot.innerHTML = "";
+        }
+
+        function renderFallback() {
+          slot.innerHTML =
+            '<a href="/" target="_blank" rel="noopener noreferrer" style="display:block; width:160px; height:600px;"><img src="/images/logo1.png" alt="Conquiguias" style="width:160px; height:600px; object-fit:cover; display:block;"></a>';
+        }
+
+        function mountAdScript() {
+          window.atOptions = {
+            key: adKey,
+            format: "iframe",
+            height: adHeight,
+            width: adWidth,
+            params: {},
+          };
+
+          const invokeScript = document.createElement("script");
+          invokeScript.src = `https://www.highperformanceformat.com/${adKey}/invoke.js?ts=${Date.now()}`;
+          invokeScript.async = true;
+          invokeScript.onerror = renderFallback;
+          slot.appendChild(invokeScript);
+
+          failTimer = window.setTimeout(() => {
+            const iframe = slot.querySelector("iframe");
+            if (!iframe) {
+              renderFallback();
+            }
+          }, 12000);
+        }
+
+        function refreshAd() {
+          if (!isDesktopResolution()) {
+            shell.setAttribute("aria-hidden", "true");
+            clearSlot();
+            return;
+          }
+
+          shell.setAttribute("aria-hidden", "false");
+          clearSlot();
+          mountAdScript();
+        }
+
+        refreshAd();
+        refreshTimer = window.setInterval(refreshAd, refreshMs);
+
+        window.addEventListener("resize", refreshAd, { passive: true });
+        window.addEventListener("beforeunload", () => {
+          if (refreshTimer) clearInterval(refreshTimer);
+          if (failTimer) clearTimeout(failTimer);
+        });
+      })();
     </script>
 
 </body>

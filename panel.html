@@ -505,6 +505,42 @@
       transform: translateY(-2px);
     }
 
+    #deleteAccountBtn {
+      background: var(--danger-color);
+      color: #fff;
+      cursor: pointer;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      font-size: 15px;
+      margin-top: 10px;
+      width: 100%;
+      transition: background 0.3s, transform 0.2s;
+    }
+
+    #deleteAccountBtn:hover:not(:disabled) {
+      background: var(--danger-hover);
+      transform: translateY(-2px);
+    }
+
+    #deleteAccountBtn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .danger-zone-profile {
+      margin-top: 20px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .danger-zone-profile p {
+      margin: 0 0 10px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
     /* FIX SCROLL */
     #instructorSection,
     #main-content,
@@ -4467,6 +4503,13 @@
         </p>
 
         <button type="submit" class="saveBtn">Guardar cambios</button>
+
+        <div class="danger-zone-profile">
+          <p>Zona peligrosa: esta acción elimina tu cuenta y no se puede deshacer.</p>
+          <button type="button" id="deleteAccountBtn">
+            <i class="fas fa-trash-alt" style="margin-right: 8px;"></i>Eliminar mi cuenta
+          </button>
+        </div>
       </form>
     </div>
 
@@ -5995,6 +6038,7 @@
       const acercaSection = document.getElementById("acercaSection");
       const menuAdmin = document.getElementById("menuAdmin");
       const logoutBtn = document.getElementById("logoutBtn");
+      const deleteAccountBtn = document.getElementById("deleteAccountBtn");
       const editForm = document.getElementById("editForm");
       const fotoInput = document.getElementById("foto");
       const preview = document.getElementById("preview");
@@ -6451,19 +6495,11 @@
             return;
           }
 
-          const hasRealSessionHint = hasPersistedAuthenticatedSessionHint();
-          if (hasRealSessionHint && !shouldAllowExplicitGuestMode()) {
+          try {
+            await signInAnonymously(auth);
+          } catch (anonError) {
+            console.warn('[WARN] No se pudo iniciar sesión anónima en panel:', anonError);
             window.location.href = "/login";
-            return;
-          }
-
-          if (shouldAllowExplicitGuestMode() || !hasRealSessionHint) {
-            try {
-              await signInAnonymously(auth);
-            } catch (anonError) {
-              console.warn('[WARN] No se pudo iniciar sesión anónima en panel:', anonError);
-              window.location.href = "/login";
-            }
           }
           return;
         }
@@ -6580,6 +6616,10 @@
             fotoURL: currentPhotoURL,
             email: ''
           };
+          if (deleteAccountBtn) {
+            deleteAccountBtn.disabled = true;
+            deleteAccountBtn.title = 'Inicia sesión para eliminar tu cuenta';
+          }
           userData = window.userData;
           lastPostTime = null;
         } else {
@@ -6652,6 +6692,11 @@
             };
             userData = window.userData;
             lastPostTime = null;
+          }
+
+          if (deleteAccountBtn) {
+            deleteAccountBtn.disabled = false;
+            deleteAccountBtn.title = '';
           }
         }
 
@@ -6817,6 +6862,48 @@
         await signOut(auth);
         window.location.href = "/login";
       });
+
+      if (deleteAccountBtn) {
+        deleteAccountBtn.addEventListener("click", async () => {
+          if (!currentUserId || isGuestSession || !auth.currentUser) {
+            mostrarMensaje("info", "Sesión requerida", "Debes iniciar sesión con tu cuenta para poder eliminarla.");
+            return;
+          }
+
+          mostrarMensaje(
+            "confirm",
+            "Eliminar cuenta",
+            "Esta acción eliminará tu cuenta de forma permanente. ¿Deseas continuar?",
+            async () => {
+              const confirmationText = window.prompt('Para confirmar, escribe ELIMINAR');
+              if (String(confirmationText || '').trim().toUpperCase() !== 'ELIMINAR') {
+                mostrarMensaje("info", "Confirmación cancelada", "La cuenta no fue eliminada porque no se confirmó el texto requerido.");
+                return;
+              }
+
+              const originalText = deleteAccountBtn.innerHTML;
+              try {
+                deleteAccountBtn.disabled = true;
+                deleteAccountBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Eliminando...';
+
+                const idToken = await auth.currentUser.getIdToken(true);
+                await callAuthAPI("deleteCurrentUser", { idToken });
+
+                try {
+                  await signOut(auth);
+                } catch (_) { }
+
+                window.location.href = "/login";
+              } catch (error) {
+                console.error("Error eliminando cuenta:", error);
+                deleteAccountBtn.disabled = false;
+                deleteAccountBtn.innerHTML = originalText;
+                mostrarMensaje("error", "No se pudo eliminar", error?.message || "Inténtalo nuevamente más tarde.");
+              }
+            }
+          );
+        });
+      }
 
       ////////////////////////
       // 📁 ESPECIALIDADES STORAGE

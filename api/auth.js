@@ -290,6 +290,40 @@ module.exports = async (req, res) => {
       });
     }
 
+    // 🔹 ELIMINAR CUENTA ACTUAL
+    else if (action === "deleteCurrentUser") {
+      const { idToken } = data || {};
+
+      if (!idToken) {
+        return res
+          .status(400)
+          .json({ error: "Token de autenticación requerido" });
+      }
+
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      const uid = decodedToken.uid;
+
+      const userRecord = await admin.auth().getUser(uid);
+
+      await admin.firestore().collection("usuarios").doc(uid).delete().catch(() => {
+        // Si no existe el documento, continuar
+      });
+
+      try {
+        const bucket = admin.storage().bucket();
+        await bucket.deleteFiles({ prefix: `usuarios/${uid}/` });
+      } catch (_storageError) {
+        // Continuar aunque no se pueda limpiar Storage
+      }
+
+      await admin.auth().deleteUser(uid);
+
+      return res.status(200).json({
+        success: true,
+        message: `Cuenta eliminada correctamente (${userRecord.email || uid})`,
+      });
+    }
+
     // 🔹 VERIFICAR CONTRASEÑA ADMIN (Simulada/Hardcoded por solicitud)
     else if (action === "verifyAdminPassword") {
       const { password } = data;

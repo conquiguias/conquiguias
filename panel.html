@@ -2569,7 +2569,9 @@
       }
 
       #mobileMenuToggle {
-        display: inline-flex;
+        display: inline-flex !important;
+        visibility: visible;
+        opacity: 1;
         align-items: center;
         justify-content: space-between;
         width: 100%;
@@ -2581,6 +2583,8 @@
         color: var(--text-primary);
         font-size: 14px;
         font-weight: 700;
+        position: relative;
+        z-index: 1;
       }
 
       #mobileMenuToggle i {

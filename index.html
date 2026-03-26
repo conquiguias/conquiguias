@@ -885,6 +885,28 @@
         text-decoration: underline;
       }
 
+      .legal-links {
+        margin-top: 14px;
+        text-align: center;
+        font-size: 0.9rem;
+        color: #94a3b8;
+        line-height: 1.4;
+      }
+
+      .legal-links a {
+        color: #93c5fd;
+        text-decoration: none;
+        margin: 0 6px;
+      }
+
+      .legal-links a:hover {
+        text-decoration: underline;
+      }
+
+      .legal-links .sep {
+        color: #64748b;
+      }
+
       .hidden {
         display: none !important;
       }
@@ -1081,6 +1103,13 @@
           <div class="toggle" onclick="toggleForms()">
             ¿No tienes cuenta? Regístrate
           </div>
+          <div class="legal-links">
+            <a href="/privacidad">Política de privacidad</a>
+            <span class="sep">|</span>
+            <a href="/terminos">Términos y condiciones</a>
+            <span class="sep">|</span>
+            <a href="/contacto">Contacto</a>
+          </div>
         </div>
 
         <!-- Registro -->
@@ -1176,14 +1205,6 @@
         </div>
       </div>
       <!-- Cierre auth-container -->
-
-      <footer style="margin: 16px auto 0; text-align: center; font-size: 0.9rem; color: #94a3b8;">
-        <a href="/privacidad" style="color: #93c5fd; text-decoration: none; margin: 0 8px;">Política de privacidad</a>
-        <span style="color: #64748b;">|</span>
-        <a href="/terminos" style="color: #93c5fd; text-decoration: none; margin: 0 8px;">Términos y condiciones</a>
-        <span style="color: #64748b;">|</span>
-        <a href="/contacto" style="color: #93c5fd; text-decoration: none; margin: 0 8px;">Contacto</a>
-      </footer>
     </div>
     <!-- Cierre main-wrapper -->
 

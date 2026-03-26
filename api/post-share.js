@@ -343,7 +343,11 @@ async function handleSitemap(req, res) {
   const origin = getOrigin(req);
   const urls = [
     { loc: `${origin}/`, changefreq: "daily", priority: "1.0" },
+    { loc: `${origin}/login`, changefreq: "weekly", priority: "0.9" },
     { loc: `${origin}/post`, changefreq: "daily", priority: "0.8" },
+    { loc: `${origin}/privacidad`, changefreq: "monthly", priority: "0.6" },
+    { loc: `${origin}/terminos`, changefreq: "monthly", priority: "0.6" },
+    { loc: `${origin}/contacto`, changefreq: "monthly", priority: "0.6" },
     { loc: `${origin}/sitemap.xml`, changefreq: "daily", priority: "0.5" },
   ];
 

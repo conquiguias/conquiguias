@@ -16892,15 +16892,15 @@
         const modal = document.getElementById('modalExamenPlataforma');
         const p = preguntasExamen[preguntaActual];
         const isSmallScreen = window.matchMedia('(max-width: 767px)').matches;
-        const headerPadding = isSmallScreen ? '12px' : '20px';
-        const timerFontSize = isSmallScreen ? '16px' : '20px';
-        const contentPadding = isSmallScreen ? '14px 12px' : '28px 24px';
-        const questionFontSize = isSmallScreen ? '20px' : '30px';
-        const optionsGap = isSmallScreen ? '10px' : '15px';
-        const optionPadding = isSmallScreen ? '12px' : '18px';
-        const optionTextSize = isSmallScreen ? '15px' : '18px';
-        const optionMaxHeight = isSmallScreen ? '52vh' : '58vh';
-        const radioSize = isSmallScreen ? '18px' : '20px';
+        const headerPadding = isSmallScreen ? '10px 12px' : '16px 18px';
+        const timerFontSize = isSmallScreen ? '15px' : '19px';
+        const contentPadding = isSmallScreen ? '10px 10px 14px' : '16px 18px 20px';
+        const questionFontSize = isSmallScreen ? '18px' : '24px';
+        const optionsGap = isSmallScreen ? '8px' : '10px';
+        const optionPadding = isSmallScreen ? '9px 10px' : '11px 12px';
+        const optionTextSize = isSmallScreen ? '14px' : '16px';
+        const optionMaxHeight = isSmallScreen ? '56vh' : '60vh';
+        const radioSize = isSmallScreen ? '16px' : '18px';
 
         // Reiniciar timer
         clearInterval(timerInterval);
@@ -16912,15 +16912,15 @@
             <div id="timerExamen" style="font-size:${timerFontSize}; font-weight:bold; color:#10B981;">01:00</div>
           </div>
           <div style="flex:1; padding:${contentPadding}; display:flex; flex-direction:column; justify-content:flex-start; align-items:center; width:100%; overflow-y:auto; -webkit-overflow-scrolling:touch;">
-          <div style="max-width:800px; margin:0 auto; width:100%;">
+          <div style="max-width:${isSmallScreen ? '100%' : '980px'}; margin:0 auto; width:100%;">
             <h2 style="margin-bottom:16px; font-weight:normal; font-size:${questionFontSize}; line-height:1.35;">${p.text}</h2>
-            <div style="display:grid; gap:${optionsGap}; width:100%; max-height:${optionMaxHeight}; overflow-y:auto; padding-right:4px;">
+            <div style="display:grid; gap:${optionsGap}; width:100%; max-height:${optionMaxHeight}; overflow-y:auto; padding-right:${isSmallScreen ? '16px' : '20px'}; scrollbar-gutter: stable;">
                   ${p.options.map(opt => `
-                        <label style="background:rgba(255,255,255,0.05); padding:${optionPadding}; border-radius:8px; cursor:pointer; display:flex; align-items:flex-start; border:1px solid #333; transition:all 0.2s; width:100%; box-sizing:border-box;" onclick="seleccionarRespuestaPlataforma('${opt.id}', this)">
+                        <label style="background:rgba(255,255,255,0.05); padding:${optionPadding}; border-radius:8px; cursor:pointer; display:flex; align-items:flex-start; border:1px solid #333; transition:all 0.2s; width:100%; box-sizing:border-box; min-height:${isSmallScreen ? '44px' : '48px'};" onclick="seleccionarRespuestaPlataforma('${opt.id}', this)">
                           <div style="min-width:${isSmallScreen ? '20px' : '24px'}; margin-right:${isSmallScreen ? '10px' : '15px'};">
                     <input type="radio" name="opcion" value="${opt.id}" style="width:${radioSize}; height:${radioSize}; cursor:pointer;">
                           </div>
-                  <span style="font-size:${optionTextSize}; word-break: break-word; line-height:1.4;">${opt.text}</span>
+                  <span style="font-size:${optionTextSize}; word-break: break-word; line-height:1.35; display:block; flex:1;">${opt.text}</span>
                       </label>
                   `).join('')}
               </div>

@@ -6084,6 +6084,24 @@
       const totalEspecialidades = document.getElementById("totalEspecialidades");
       const especialidadesCompletadas = document.getElementById("especialidadesCompletadas");
 
+      function syncMobileLayoutOffset() {
+        if (!sidebar || !mobileMenuToggle) return;
+
+        if (!window.matchMedia('(max-width: 1023px)').matches) {
+          document.body.style.paddingTop = '';
+          return;
+        }
+
+        const sidebarStyles = window.getComputedStyle(sidebar);
+        const sidebarTop = Number.parseFloat(sidebarStyles.top || '0') || 0;
+        const toggleRect = mobileMenuToggle.getBoundingClientRect();
+        const toggleHeight = Math.max(44, Math.round(toggleRect.height || 44));
+        const extraGap = 10;
+        const targetPaddingTop = Math.round(sidebarTop + toggleHeight + extraGap);
+
+        document.body.style.paddingTop = `${targetPaddingTop}px`;
+      }
+
       function closeMobileSidebarMenu() {
         if (!window.matchMedia('(max-width: 1023px)').matches) return;
         if (!sidebar) return;
@@ -6092,6 +6110,8 @@
         if (mobileMenuToggle) {
           mobileMenuToggle.setAttribute('aria-expanded', 'false');
         }
+
+        window.requestAnimationFrame(syncMobileLayoutOffset);
       }
 
       function initializeMobileSidebarMenu() {
@@ -6118,6 +6138,7 @@
             adRect.height > 0;
 
           sidebar.style.top = adIsVisible ? `${Math.round(adRect.height)}px` : '';
+          syncMobileLayoutOffset();
         }
 
         function enforceMobileMenuToggleVisibility() {
@@ -6162,11 +6183,14 @@
         window.setTimeout(enforceMobileMenuToggleVisibility, 120);
         window.setTimeout(syncSidebarOffsetWithMobileTopAd, 260);
         window.setTimeout(syncSidebarOffsetWithMobileTopAd, 800);
+        window.setTimeout(syncMobileLayoutOffset, 260);
+        window.setTimeout(syncMobileLayoutOffset, 800);
 
         mobileMenuToggle.addEventListener('click', (event) => {
           event.stopPropagation();
           const isOpen = sidebar.classList.toggle('mobile-open');
           mobileMenuToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+          window.requestAnimationFrame(syncMobileLayoutOffset);
         });
 
         document.addEventListener('click', (event) => {
@@ -6198,9 +6222,13 @@
 
           enforceMobileMenuToggleVisibility();
           syncSidebarOffsetWithMobileTopAd();
+          syncMobileLayoutOffset();
         });
 
-        window.addEventListener('load', syncSidebarOffsetWithMobileTopAd);
+        window.addEventListener('load', () => {
+          syncSidebarOffsetWithMobileTopAd();
+          syncMobileLayoutOffset();
+        });
       }
 
       initializeMobileSidebarMenu();

@@ -6097,6 +6097,29 @@
       function initializeMobileSidebarMenu() {
         if (!sidebar || !mobileMenuToggle) return;
 
+        function syncSidebarOffsetWithMobileTopAd() {
+          if (!window.matchMedia('(max-width: 1023px)').matches) {
+            sidebar.style.top = '';
+            return;
+          }
+
+          const mobileAdShell = document.getElementById('mobileTopAdShell');
+          if (!mobileAdShell) {
+            sidebar.style.top = '';
+            return;
+          }
+
+          const adStyles = window.getComputedStyle(mobileAdShell);
+          const adRect = mobileAdShell.getBoundingClientRect();
+          const adIsVisible =
+            adStyles.display !== 'none' &&
+            adStyles.visibility !== 'hidden' &&
+            Number(adStyles.opacity || '1') > 0 &&
+            adRect.height > 0;
+
+          sidebar.style.top = adIsVisible ? `${Math.round(adRect.height)}px` : '';
+        }
+
         function enforceMobileMenuToggleVisibility() {
           if (!window.matchMedia('(max-width: 1023px)').matches) {
             mobileMenuToggle.style.display = '';
@@ -6130,11 +6153,15 @@
               button.style.gap = '8px';
             });
           }
+
+          syncSidebarOffsetWithMobileTopAd();
         }
 
         enforceMobileMenuToggleVisibility();
         window.requestAnimationFrame(enforceMobileMenuToggleVisibility);
         window.setTimeout(enforceMobileMenuToggleVisibility, 120);
+        window.setTimeout(syncSidebarOffsetWithMobileTopAd, 260);
+        window.setTimeout(syncSidebarOffsetWithMobileTopAd, 800);
 
         mobileMenuToggle.addEventListener('click', (event) => {
           event.stopPropagation();
@@ -6170,7 +6197,10 @@
           }
 
           enforceMobileMenuToggleVisibility();
+          syncSidebarOffsetWithMobileTopAd();
         });
+
+        window.addEventListener('load', syncSidebarOffsetWithMobileTopAd);
       }
 
       initializeMobileSidebarMenu();

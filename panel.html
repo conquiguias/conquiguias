@@ -2821,6 +2821,15 @@
       #sidebar {
         overflow: visible;
       }
+
+      #sidebar>#mobileMenuToggle {
+        display: inline-flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        min-height: 44px;
+        width: 100%;
+        pointer-events: auto;
+      }
     }
 
     /* ============================================
@@ -6088,6 +6097,45 @@
       function initializeMobileSidebarMenu() {
         if (!sidebar || !mobileMenuToggle) return;
 
+        function enforceMobileMenuToggleVisibility() {
+          if (!window.matchMedia('(max-width: 1023px)').matches) {
+            mobileMenuToggle.style.display = '';
+            mobileMenuToggle.style.visibility = '';
+            mobileMenuToggle.style.opacity = '';
+            mobileMenuToggle.style.minHeight = '';
+            return;
+          }
+
+          mobileMenuToggle.classList.remove('hidden');
+          mobileMenuToggle.style.setProperty('display', 'inline-flex', 'important');
+          mobileMenuToggle.style.setProperty('visibility', 'visible', 'important');
+          mobileMenuToggle.style.setProperty('opacity', '1', 'important');
+          mobileMenuToggle.style.minHeight = '44px';
+          mobileMenuToggle.style.width = '100%';
+
+          const computed = window.getComputedStyle(mobileMenuToggle);
+          const rect = mobileMenuToggle.getBoundingClientRect();
+          const stillHidden =
+            computed.display === 'none' ||
+            computed.visibility === 'hidden' ||
+            Number(computed.opacity) === 0 ||
+            rect.height < 20;
+
+          if (stillHidden) {
+            sidebar.classList.add('mobile-open');
+            const fallbackButtons = sidebar.querySelectorAll('button:not(#mobileMenuToggle)');
+            fallbackButtons.forEach((button) => {
+              button.style.setProperty('display', 'flex', 'important');
+              button.style.alignItems = 'center';
+              button.style.gap = '8px';
+            });
+          }
+        }
+
+        enforceMobileMenuToggleVisibility();
+        window.requestAnimationFrame(enforceMobileMenuToggleVisibility);
+        window.setTimeout(enforceMobileMenuToggleVisibility, 120);
+
         mobileMenuToggle.addEventListener('click', (event) => {
           event.stopPropagation();
           const isOpen = sidebar.classList.toggle('mobile-open');
@@ -6120,6 +6168,8 @@
             sidebar.classList.remove('mobile-open');
             mobileMenuToggle.setAttribute('aria-expanded', 'false');
           }
+
+          enforceMobileMenuToggleVisibility();
         });
       }
 

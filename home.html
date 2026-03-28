@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Conquiguias World | Plataforma educativa para Conquistadores</title>
+    <meta
+      name="description"
+      content="Conquiguias World es una plataforma educativa para Conquistadores: especialidades, recursos, publicaciones, seguimiento de progreso y apoyo a líderes e instructores."
+    />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href="/" />
+
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Conquiguias World" />
+    <meta property="og:title" content="Conquiguias World | Plataforma educativa para Conquistadores" />
+    <meta property="og:description" content="Especialidades, recursos, publicaciones y seguimiento educativo para clubes de Conquistadores." />
+    <meta property="og:url" content="/" />
+    <meta property="og:image" content="/images/logo1.png" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Conquiguias World | Plataforma educativa para Conquistadores" />
+    <meta name="twitter:description" content="Especialidades, recursos, publicaciones y seguimiento educativo para clubes de Conquistadores." />
+    <meta name="twitter:image" content="/images/logo1.png" />
+
+    <style>
+      :root {
+        --bg: #0f172a;
+        --bg-soft: #111827;
+        --card: #1e293b;
+        --text: #e2e8f0;
+        --muted: #94a3b8;
+        --accent: #3b82f6;
+        --accent-strong: #2563eb;
+        --border: #334155;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
+        color: var(--text);
+        line-height: 1.6;
+      }
+      .wrap {
+        width: min(1020px, 92%);
+        margin: 0 auto;
+      }
+      header {
+        border-bottom: 1px solid var(--border);
+        background: rgba(15, 23, 42, 0.7);
+        backdrop-filter: blur(6px);
+      }
+      .nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 0;
+      }
+      .brand {
+        font-weight: 700;
+        letter-spacing: 0.3px;
+      }
+      .links {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .btn {
+        display: inline-block;
+        border: 1px solid var(--border);
+        color: var(--text);
+        text-decoration: none;
+        padding: 8px 12px;
+        border-radius: 10px;
+      }
+      .btn.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      .btn.primary:hover {
+        background: var(--accent-strong);
+      }
+      .hero {
+        padding: 36px 0 20px;
+      }
+      h1 {
+        margin: 0 0 12px;
+        font-size: clamp(1.7rem, 4vw, 2.4rem);
+        line-height: 1.2;
+      }
+      .lead {
+        margin: 0;
+        color: var(--muted);
+        max-width: 820px;
+      }
+      section {
+        padding: 18px 0;
+      }
+      h2 {
+        margin: 0 0 8px;
+        font-size: 1.25rem;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px;
+      }
+      p,
+      li {
+        color: var(--muted);
+      }
+      footer {
+        border-top: 1px solid var(--border);
+        margin-top: 14px;
+      }
+      .foot {
+        padding: 18px 0 28px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .foot a {
+        color: var(--text);
+        text-decoration: none;
+      }
+      .foot a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap nav">
+        <div class="brand">Conquiguias World</div>
+        <nav class="links" aria-label="Navegación principal">
+          <a class="btn" href="/post">Publicaciones</a>
+          <a class="btn" href="/contacto">Contacto</a>
+          <a class="btn primary" href="/login">Ingresar</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="hero">
+        <h1>Formación y acompañamiento para clubes de Conquistadores</h1>
+        <p class="lead">
+          Conquiguias World reúne contenidos educativos, seguimiento de especialidades, recursos prácticos y publicaciones
+          para apoyar a conquistadores, instructores y directores en su crecimiento integral.
+        </p>
+      </section>
+
+      <section>
+        <h2>Qué ofrece la plataforma</h2>
+        <div class="grid">
+          <article class="card">
+            <h3>Especialidades</h3>
+            <p>Acceso ordenado a temas, recursos y rutas de aprendizaje en distintas áreas formativas.</p>
+          </article>
+          <article class="card">
+            <h3>Publicaciones</h3>
+            <p>Espacio para compartir materiales, ideas, experiencias y contenidos útiles para el club.</p>
+          </article>
+          <article class="card">
+            <h3>Seguimiento</h3>
+            <p>Herramientas para registrar avances, tareas y procesos educativos por usuario y por rol.</p>
+          </article>
+          <article class="card">
+            <h3>Comunidad</h3>
+            <p>Un entorno digital para fortalecer la colaboración entre líderes, instructores y jóvenes.</p>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2>Propósito</h2>
+        <p>
+          El propósito de Conquiguias World es facilitar una experiencia educativa organizada, segura y útil para el contexto
+          de los Conquistadores. La plataforma no reemplaza el acompañamiento presencial, sino que lo complementa con recursos
+          digitales y un sistema de gestión que simplifica la planificación y el seguimiento del aprendizaje.
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap foot">
+        <span>© 2026 Conquiguias World</span>
+        <nav class="links" aria-label="Navegación legal">
+          <a href="/privacidad">Privacidad</a>
+          <a href="/terminos">Términos</a>
+          <a href="/contacto">Contacto</a>
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -1,15 +1,8 @@
 {
-  "redirects": [
-    {
-      "source": "/",
-      "destination": "/home",
-      "permanent": false
-    }
-  ],
   "rewrites": [
     {
-      "source": "/home",
-      "destination": "/home.html"
+      "source": "/",
+      "destination": "/panel.html"
     },
     {
       "source": "/index",

@@ -1743,7 +1743,42 @@
           post.imgurData?.thumb,
           post.imgurData?.poster,
         ].filter((value) => typeof value === "string" && value.trim());
-        return candidates.length ? candidates[0].trim() : "";
+        if (candidates.length) return candidates[0].trim();
+
+        const imgurId = String(post?.imgurData?.id || "").trim();
+        if (/^[a-z0-9]+$/i.test(imgurId)) {
+          return `https://i.imgur.com/${imgurId}h.jpg`;
+        }
+
+        const mediaUrl = String(post?.mediaUrl || "").trim();
+        if (!mediaUrl) return "";
+
+        const youtubeId = extractYouTubeVideoId(mediaUrl);
+        if (youtubeId) {
+          return `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`;
+        }
+
+        try {
+          const parsed = new URL(mediaUrl, window.location.origin);
+          const host = (parsed.hostname || "").toLowerCase();
+          const pathname = parsed.pathname || "";
+          const fileName = pathname.split("/").pop() || "";
+          const dotAt = fileName.lastIndexOf(".");
+
+          if (host.endsWith("imgur.com") && dotAt > 0) {
+            let baseName = fileName.slice(0, dotAt);
+            if (baseName.length > 6 && /[sbtmlh]$/i.test(baseName)) {
+              baseName = baseName.slice(0, -1);
+            }
+            if (/^[a-z0-9]+$/i.test(baseName)) {
+              return `https://i.imgur.com/${baseName}h.jpg`;
+            }
+          }
+        } catch (_) {
+          // no-op fallback
+        }
+
+        return "";
       }
 
       function getAvailableClapprPlugins(mediaUrl = "") {

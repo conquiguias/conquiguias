@@ -81,6 +81,9 @@ export default async function handler(req, res) {
       case "save-paypal-donation":
         await handleSavePaypalDonation(req, res);
         break;
+      case "get-paypal-donations":
+        await handleGetPaypalDonations(req, res);
+        break;
       case "check-stream":
         await handleCheckStream(req, res);
         break;
@@ -568,6 +571,58 @@ async function handleSavePaypalDonation(req, res) {
     return res.status(error.statusCode || 500).json({
       success: false,
       error: error.message || "Error al guardar donación",
+    });
+  }
+}
+
+async function handleGetPaypalDonations(req, res) {
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
+  try {
+    await requireAdminOrOwner(req);
+
+    const rawLimit = Number.parseInt(String(req.query?.limit || "25"), 10);
+    const safeLimit = Number.isFinite(rawLimit)
+      ? Math.max(1, Math.min(rawLimit, 100))
+      : 25;
+
+    const db = admin.firestore();
+    const snapshot = await db
+      .collection("donaciones_paypal")
+      .orderBy("approvedAt", "desc")
+      .limit(safeLimit)
+      .get();
+
+    const donations = snapshot.docs.map((docSnap) => {
+      const data = docSnap.data() || {};
+      return {
+        id: docSnap.id,
+        subscriptionId: String(data.subscriptionId || docSnap.id || "").trim(),
+        planId: String(data.planId || "").trim(),
+        provider: String(data.provider || "paypal").trim(),
+        intent: String(data.intent || "subscription").trim(),
+        status: String(data.status || "approved").trim(),
+        donorUserId: String(data.donorUserId || "").trim(),
+        donorEmail: normalizeEmail(data.donorEmail || ""),
+        donorName: String(data.donorName || "").trim(),
+        isGuestSession: !!data.isGuestSession,
+        approvedAt: String(data.approvedAt || "").trim(),
+        updatedAt: data.updatedAt || null,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: donations.length,
+      donations,
+    });
+  } catch (error) {
+    console.error("Error obteniendo donaciones PayPal:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || "Error al obtener donaciones",
     });
   }
 }

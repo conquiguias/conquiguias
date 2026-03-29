@@ -5315,6 +5315,34 @@
       <div style="margin-top: 18px; max-width: 420px;">
         <div id="paypal-button-container-P-7W540688DB477645MNHEYVLI"></div>
       </div>
+
+      <div id="donacionesAdminPanel" class="hidden" style="margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom: 12px;">
+          <h3 style="margin:0; color: var(--text-primary);"><i class="fas fa-list" style="margin-right: 8px; color: var(--accent-color);"></i> Historial de donaciones</h3>
+          <button id="refreshDonacionesBtn" style="width:auto; margin-top:0; padding:8px 12px; font-size:13px;">
+            <i class="fas fa-rotate-right" style="margin-right: 6px;"></i> Actualizar
+          </button>
+        </div>
+        <div id="donacionesAdminStatus" style="margin-bottom: 10px; color: var(--text-secondary); font-size: 13px;">Cargando historial...</div>
+        <div style="overflow-x:auto; border:1px solid var(--border-color); border-radius:10px;">
+          <table style="width:100%; border-collapse: collapse;">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border-color); background: var(--bg-secondary);">
+                <th style="text-align:left; padding:8px;">Fecha</th>
+                <th style="text-align:left; padding:8px;">Nombre</th>
+                <th style="text-align:left; padding:8px;">Correo</th>
+                <th style="text-align:left; padding:8px;">Plan</th>
+                <th style="text-align:left; padding:8px;">Subscription ID</th>
+              </tr>
+            </thead>
+            <tbody id="donacionesAdminBody">
+              <tr>
+                <td colspan="5" style="padding:12px; text-align:center; color:var(--text-secondary);">Sin registros.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- 🔹 Visor PDF modal -->
@@ -6063,6 +6091,10 @@
       const acercaSection = document.getElementById("acercaSection");
       const donarSection = document.getElementById("donarSection");
       const menuAdmin = document.getElementById("menuAdmin");
+      const donacionesAdminPanel = document.getElementById("donacionesAdminPanel");
+      const donacionesAdminBody = document.getElementById("donacionesAdminBody");
+      const donacionesAdminStatus = document.getElementById("donacionesAdminStatus");
+      const refreshDonacionesBtn = document.getElementById("refreshDonacionesBtn");
       const logoutBtn = document.getElementById("logoutBtn");
       const deleteAccountBtn = document.getElementById("deleteAccountBtn");
       const editForm = document.getElementById("editForm");
@@ -6879,6 +6911,12 @@
         menuDonar.addEventListener("click", () => {
           mostrarSeccion(donarSection, menuDonar);
           initPaypalDonationButton();
+          loadPaypalDonationHistory();
+        });
+      }
+      if (refreshDonacionesBtn) {
+        refreshDonacionesBtn.addEventListener("click", () => {
+          loadPaypalDonationHistory(true);
         });
       }
 
@@ -7197,6 +7235,96 @@
 
       let paypalDonationInitialized = false;
       let paypalDonationInitAttempted = false;
+      let isLoadingDonationsHistory = false;
+
+      function formatDonationDate(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "—";
+        const parsed = new Date(raw);
+        if (Number.isNaN(parsed.getTime())) return raw;
+        return parsed.toLocaleString("es-ES", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit"
+        });
+      }
+
+      async function loadPaypalDonationHistory(forceReload = false) {
+        if (!donacionesAdminPanel || !donacionesAdminBody || !donacionesAdminStatus) {
+          return;
+        }
+
+        if (!window.canAccessAdminPanel) {
+          donacionesAdminPanel.classList.add("hidden");
+          return;
+        }
+
+        donacionesAdminPanel.classList.remove("hidden");
+
+        if (isLoadingDonationsHistory && !forceReload) {
+          return;
+        }
+
+        const authUser = auth?.currentUser || null;
+        const idToken = authUser ? await authUser.getIdToken(true) : "";
+        if (!idToken) {
+          donacionesAdminStatus.textContent = "Inicia sesión para ver el historial de donaciones.";
+          return;
+        }
+
+        isLoadingDonationsHistory = true;
+        donacionesAdminStatus.textContent = "Cargando historial...";
+
+        try {
+          const response = await fetch("/api/social?action=get-paypal-donations&limit=50", {
+            method: "GET",
+            headers: {
+              "Authorization": `Bearer ${idToken}`
+            }
+          });
+
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(payload.error || "No se pudo cargar el historial de donaciones");
+          }
+
+          const donations = Array.isArray(payload?.donations) ? payload.donations : [];
+
+          if (!donations.length) {
+            donacionesAdminBody.innerHTML = `
+              <tr>
+                <td colspan="5" style="padding:12px; text-align:center; color:var(--text-secondary);">Sin donaciones registradas.</td>
+              </tr>`;
+            donacionesAdminStatus.textContent = "No hay registros por el momento.";
+            return;
+          }
+
+          donacionesAdminBody.innerHTML = donations.map((item) => {
+            const approvedAt = formatDonationDate(item?.approvedAt);
+            const donorName = escapeHtml(String(item?.donorName || "Sin nombre"));
+            const donorEmail = escapeHtml(String(item?.donorEmail || "Sin correo"));
+            const planId = escapeHtml(String(item?.planId || "—"));
+            const subscriptionId = escapeHtml(String(item?.subscriptionId || item?.id || "—"));
+
+            return `<tr style="border-bottom:1px solid var(--border-color);">
+                <td style="padding:8px; white-space:nowrap;">${approvedAt}</td>
+                <td style="padding:8px;">${donorName}</td>
+                <td style="padding:8px;">${donorEmail}</td>
+                <td style="padding:8px;">${planId}</td>
+                <td style="padding:8px; font-family:monospace; font-size:12px;">${subscriptionId}</td>
+              </tr>`;
+          }).join("");
+
+          donacionesAdminStatus.textContent = `Mostrando ${donations.length} donaciones.`;
+        } catch (error) {
+          console.error("No se pudo cargar historial de donaciones:", error);
+          donacionesAdminStatus.textContent = error.message || "Error cargando historial de donaciones.";
+        } finally {
+          isLoadingDonationsHistory = false;
+        }
+      }
 
       async function savePaypalDonationRecord(subscriptionId, paypalPayload) {
         const normalizedSubscriptionId = String(subscriptionId || "").trim();

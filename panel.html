@@ -4154,14 +4154,15 @@
       Instructor</button>
     <button id="menuAdmin" class="hidden"><i class="fas fa-user-shield" style="margin-right: 8px;"></i> Admin</button>
     <button id="menuAcerca"><i class="fas fa-circle-info" style="margin-right: 8px;"></i> Acerca de</button>
+    <button id="menuDonar"><i class="fas fa-hand-holding-heart" style="margin-right: 8px;"></i> Donar</button>
     <button id="logoutBtn"><i class="fas fa-sign-out-alt" style="margin-right: 8px;"></i> Cerrar sesión</button>
   </div>
 
-  <aside id="desktopRightAdShell" aria-label="Publicidad lateral" aria-hidden="true">
+  <aside id="desktopRightAdShell" aria-label="Publicidad lateral" aria-hidden="true" hidden style="display: none !important;">
     <div id="desktopRightAdSlot"></div>
   </aside>
 
-  <aside id="mobileTopAdShell" aria-label="Publicidad superior" aria-hidden="true">
+  <aside id="mobileTopAdShell" aria-label="Publicidad superior" aria-hidden="true" hidden style="display: none !important;">
     <div id="mobileTopAdSlot"></div>
   </aside>
 
@@ -5308,6 +5309,14 @@
       </div>
     </div>
 
+    <div id="donarSection" class="card hidden">
+      <h2><i class="fas fa-hand-holding-heart" style="margin-right: 8px; color: var(--accent-color);"></i> Donar</h2>
+      <p style="margin-top: 8px; color: var(--text-secondary);">Tu apoyo nos ayuda a mantener y mejorar Conquiguias World.</p>
+      <div style="margin-top: 18px; max-width: 420px;">
+        <div id="paypal-button-container-P-7W540688DB477645MNHEYVLI"></div>
+      </div>
+    </div>
+
     <!-- 🔹 Visor PDF modal -->
     <div id="pdfViewerModal" class="hidden" style="display: none;">
       <div class="pdf-viewer-content">
@@ -6049,8 +6058,10 @@
       const menuCertificaciones = document.getElementById("menuCertificaciones");
       const menuGrabaciones = document.getElementById("menuGrabaciones");
       const menuAcerca = document.getElementById("menuAcerca");
+      const menuDonar = document.getElementById("menuDonar");
       const grabacionesSection = document.getElementById("grabacionesSection");
       const acercaSection = document.getElementById("acercaSection");
+      const donarSection = document.getElementById("donarSection");
       const menuAdmin = document.getElementById("menuAdmin");
       const logoutBtn = document.getElementById("logoutBtn");
       const deleteAccountBtn = document.getElementById("deleteAccountBtn");
@@ -6485,7 +6496,7 @@
       window.applyRoleBasedNavigation = applyRoleBasedNavigation;
 
       function applyGuestNavigationState(isGuest) {
-        const allowedMenuIds = new Set(['menuInicio', 'menuClubes', 'menuGrabaciones', 'menuAcerca']);
+        const allowedMenuIds = new Set(['menuInicio', 'menuClubes', 'menuGrabaciones', 'menuAcerca', 'menuDonar']);
         const guestLockTitle = 'Disponible solo con sesión iniciada';
         const headerUserPhotoEl = document.getElementById('headerUserPhoto');
         const headerUserNameEl = document.getElementById('headerUserName');
@@ -6542,7 +6553,7 @@
           if (section) section.classList.add('hidden');
         });
 
-        [menuPerfil, menuEspecialidades, menuCertificaciones, menuInstructorBtn, menuAdminBtn, menuAcerca].forEach((button) => {
+        [menuPerfil, menuEspecialidades, menuCertificaciones, menuInstructorBtn, menuAdminBtn, menuAcerca, menuDonar].forEach((button) => {
           if (button) button.classList.remove('active');
         });
 
@@ -6864,6 +6875,12 @@
       if (menuAcerca) {
         menuAcerca.addEventListener("click", () => mostrarSeccion(acercaSection, menuAcerca));
       }
+      if (menuDonar) {
+        menuDonar.addEventListener("click", () => {
+          mostrarSeccion(donarSection, menuDonar);
+          initPaypalDonationButton();
+        });
+      }
 
       // 🔹 Grabaciones de Especialidades
       if (menuGrabaciones) {
@@ -7178,6 +7195,130 @@
         especialidadSeleccionada = "";
       });
 
+      let paypalDonationInitialized = false;
+      let paypalDonationInitAttempted = false;
+
+      async function savePaypalDonationRecord(subscriptionId, paypalPayload) {
+        const normalizedSubscriptionId = String(subscriptionId || "").trim();
+        if (!normalizedSubscriptionId) {
+          throw new Error("Subscription ID inválido");
+        }
+
+        const authUser = auth?.currentUser || null;
+        const idToken = authUser ? await authUser.getIdToken(true) : "";
+        if (!idToken) {
+          throw new Error("No se pudo validar la sesión para registrar la donación");
+        }
+
+        const donorEmail = String(
+          window.userData?.email || authUser?.email || ""
+        ).trim().toLowerCase();
+        const donorName = String(
+          window.userData?.nombre || authUser?.displayName || ""
+        ).trim();
+
+        const response = await fetch("/api/social?action=save-paypal-donation", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${idToken}`
+          },
+          body: JSON.stringify({
+            idToken,
+            subscriptionId: normalizedSubscriptionId,
+            planId: "P-7W540688DB477645MNHEYVLI",
+            provider: "paypal",
+            intent: "subscription",
+            donorUserId: String(window.currentUserId || currentUserId || authUser?.uid || "").trim(),
+            donorEmail,
+            donorName,
+            isGuestSession: !!isGuestSession,
+            approvedAt: new Date().toISOString(),
+            payload: paypalPayload || null
+          })
+        });
+
+        if (!response.ok) {
+          const errorPayload = await response.json().catch(() => ({}));
+          throw new Error(errorPayload.error || "No se pudo guardar la donación");
+        }
+      }
+
+      function initPaypalDonationButton() {
+        if (paypalDonationInitialized || paypalDonationInitAttempted) return;
+
+        const containerId = "paypal-button-container-P-7W540688DB477645MNHEYVLI";
+        const containerSelector = `#${containerId}`;
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        const renderPaypalButton = () => {
+          if (!window.paypal || typeof window.paypal.Buttons !== "function") {
+            return;
+          }
+
+          paypalDonationInitAttempted = true;
+          window.paypal.Buttons({
+            style: {
+              shape: "pill",
+              color: "gold",
+              layout: "vertical",
+              label: "subscribe"
+            },
+            createSubscription: function (data, actions) {
+              return actions.subscription.create({
+                plan_id: "P-7W540688DB477645MNHEYVLI",
+                quantity: 1
+              });
+            },
+            onApprove: async function (data, actions) {
+              const subscriptionId = String(data?.subscriptionID || "").trim();
+              let savedInFirestore = false;
+
+              try {
+                await savePaypalDonationRecord(subscriptionId, data || null);
+                savedInFirestore = true;
+              } catch (saveError) {
+                console.error("No se pudo guardar la donación en Firestore:", saveError);
+              }
+
+              const successMessage = subscriptionId
+                ? `✅ ¡Gracias por tu apoyo!<br><br>Tu suscripción fue activada correctamente.${savedInFirestore ? "" : "<br><small>Se confirmará el registro en breve.</small>"}<br><small>ID: ${subscriptionId}</small>`
+                : "✅ ¡Gracias por tu apoyo! Tu suscripción fue activada correctamente.";
+              if (typeof mostrarMensaje === "function") {
+                mostrarMensaje("info", "Donación confirmada", successMessage);
+              } else {
+                alert(successMessage.replace(/<br>/g, "\n").replace(/<[^>]*>/g, ""));
+              }
+            }
+          }).render(containerSelector).then(() => {
+            paypalDonationInitialized = true;
+          }).catch((error) => {
+            paypalDonationInitAttempted = false;
+            console.error("No se pudo renderizar el botón de PayPal:", error);
+          });
+        };
+
+        if (window.paypal && typeof window.paypal.Buttons === "function") {
+          renderPaypalButton();
+          return;
+        }
+
+        const existingScript = document.getElementById("paypal-sdk-subscription");
+        if (existingScript) return;
+
+        const script = document.createElement("script");
+        script.id = "paypal-sdk-subscription";
+        script.src = "https://www.paypal.com/sdk/js?client-id=AQXqYVyDlLC-fpc20TdZ-0rX1S1MI-Suf_dkr-ds--LmeCjCZUzQ1VtnPQYaxB3odZa1RIa2W1TFPbph&vault=true&intent=subscription";
+        script.setAttribute("data-sdk-integration-source", "button-factory");
+        script.onload = renderPaypalButton;
+        script.onerror = function (error) {
+          paypalDonationInitAttempted = false;
+          console.error("No se pudo cargar el SDK de PayPal:", error);
+        };
+        document.head.appendChild(script);
+      }
+
       function mostrarSeccion(seccion, botonActivo) {
         pausarTodosLosVideos();
         const instructorSection = document.getElementById("instructorSection");
@@ -7189,10 +7330,10 @@
         }
 
         // Incluir tareasExamenesSection y menuTareasExamenes en las listas para limpiar
-        [inicioSection, perfilSection, especialidadesSection, clubesSection, certificacionesSection, adminSection, instructorSection, tareasExamenesSection, grabacionesSection, acercaSection].forEach(sec => {
+        [inicioSection, perfilSection, especialidadesSection, clubesSection, certificacionesSection, adminSection, instructorSection, tareasExamenesSection, grabacionesSection, acercaSection, donarSection].forEach(sec => {
           if (sec) sec.classList.add("hidden");
         });
-        [menuInicio, menuPerfil, menuEspecialidades, menuClubes, menuCertificaciones, menuAdmin, menuInstructor, menuTareasExamenes, menuGrabaciones, menuAcerca].forEach(btn => {
+        [menuInicio, menuPerfil, menuEspecialidades, menuClubes, menuCertificaciones, menuAdmin, menuInstructor, menuTareasExamenes, menuGrabaciones, menuAcerca, menuDonar].forEach(btn => {
           if (btn) btn.classList.remove("active");
         });
 
@@ -17699,29 +17840,6 @@
       };
 
       window.cargarTablaCertificacionesCorrecta = cargarTablaCertificacionesCorrecta;
-    </script>
-
-    <script src="/lib/responsive-ads.js"></script>
-    <script>
-      if (typeof window.initResponsiveAds === "function") {
-        window.initResponsiveAds({
-          desktopShell: "#desktopRightAdShell",
-          desktopSlot: "#desktopRightAdSlot",
-          mobileShell: "#mobileTopAdShell",
-          mobileSlot: "#mobileTopAdSlot",
-          desktopKey: "8098debbdf01cc9dd68a416d4088bbab",
-          mobileKey: "f1f67fc08c6c6b4dacd8faa8d73f0121",
-          desktopWidth: 160,
-          desktopHeight: 600,
-          mobileWidth: 468,
-          mobileHeight: 60,
-          desktopMinWidth: 1024,
-          refreshMs: 60000,
-          bodyMobileClass: "has-mobile-top-ad",
-          fallbackHref: "/",
-          fallbackImage: "/logo1.png",
-        });
-      }
     </script>
 
 </body>

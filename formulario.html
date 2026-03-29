@@ -538,11 +538,11 @@
   </head>
 
   <body>
-    <aside id="desktopRightAdShell" aria-label="Publicidad lateral" aria-hidden="true">
+    <aside id="desktopRightAdShell" aria-label="Publicidad lateral" aria-hidden="true" hidden style="display: none !important;">
       <div id="desktopRightAdSlot"></div>
     </aside>
 
-    <aside id="mobileTopAdShell" aria-label="Publicidad superior" aria-hidden="true">
+    <aside id="mobileTopAdShell" aria-label="Publicidad superior" aria-hidden="true" hidden style="display: none !important;">
       <div id="mobileTopAdSlot"></div>
     </aside>
 
@@ -1617,27 +1617,5 @@
       }
     </script>
 
-    <script src="/lib/responsive-ads.js"></script>
-    <script>
-      if (typeof window.initResponsiveAds === "function") {
-        window.initResponsiveAds({
-          desktopShell: "#desktopRightAdShell",
-          desktopSlot: "#desktopRightAdSlot",
-          mobileShell: "#mobileTopAdShell",
-          mobileSlot: "#mobileTopAdSlot",
-          desktopKey: "8098debbdf01cc9dd68a416d4088bbab",
-          mobileKey: "f1f67fc08c6c6b4dacd8faa8d73f0121",
-          desktopWidth: 160,
-          desktopHeight: 600,
-          mobileWidth: 468,
-          mobileHeight: 60,
-          desktopMinWidth: 1024,
-          refreshMs: 60000,
-          bodyMobileClass: "has-mobile-top-ad",
-          fallbackHref: "/",
-          fallbackImage: "/logo1.png",
-        });
-      }
-    </script>
   </body>
 </html>

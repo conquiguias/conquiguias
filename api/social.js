@@ -78,6 +78,9 @@ export default async function handler(req, res) {
       case "get-assignable-users":
         await handleGetAssignableUsers(req, res);
         break;
+      case "save-paypal-donation":
+        await handleSavePaypalDonation(req, res);
+        break;
       case "check-stream":
         await handleCheckStream(req, res);
         break;
@@ -499,6 +502,72 @@ async function handleGetAssignableUsers(req, res) {
     res.status(error.statusCode || 500).json({
       success: false,
       error: error.message || "Error al obtener usuarios asignables",
+    });
+  }
+}
+
+async function handleSavePaypalDonation(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
+  try {
+    const body = req.body || {};
+    const requester = await requireAuthenticated(req, body);
+
+    const subscriptionId = String(body.subscriptionId || "").trim();
+    const planId = String(body.planId || "").trim();
+    const provider = String(body.provider || "paypal").trim().toLowerCase();
+    const intent = String(body.intent || "subscription").trim().toLowerCase();
+
+    if (!subscriptionId) {
+      return res.status(400).json({ success: false, error: "subscriptionId es requerido" });
+    }
+
+    if (!planId) {
+      return res.status(400).json({ success: false, error: "planId es requerido" });
+    }
+
+    const donorEmail = normalizeEmail(body.donorEmail || requester.email || "");
+    const donorName = String(body.donorName || "").trim();
+    const donorUserId = String(body.donorUserId || requester.uid || "").trim();
+
+    const db = admin.firestore();
+    const donationRef = db.collection("donaciones_paypal").doc(subscriptionId);
+
+    await donationRef.set(
+      {
+        subscriptionId,
+        planId,
+        provider,
+        intent,
+        status: "approved",
+        donorUserId,
+        donorEmail,
+        donorName,
+        isGuestSession: !!body.isGuestSession,
+        approvedAt: body.approvedAt || new Date().toISOString(),
+        payload: body.payload || null,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        requestedBy: {
+          uid: requester.uid,
+          email: requester.email,
+        },
+      },
+      { merge: true },
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Donación guardada correctamente",
+      subscriptionId,
+    });
+  } catch (error) {
+    console.error("Error guardando donación PayPal:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || "Error al guardar donación",
     });
   }
 }

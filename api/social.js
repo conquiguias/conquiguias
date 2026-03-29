@@ -600,7 +600,7 @@ async function handleGetPaypalDonations(req, res) {
     // Si type=all o cualquier otra cosa, requerir admin y devolver todas
     if (type === "user") {
       // Usuario puede ver solo sus donaciones
-      query = query.where("requestedBy.uid", "==", userId);
+      query = query.where("donorUserId", "==", userId);
     } else {
       // Solo admin/owner puede ver todas
       await requireAdminOrOwner(req);

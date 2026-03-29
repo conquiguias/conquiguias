@@ -10394,8 +10394,8 @@
 
           const formData = new FormData();
           formData.append('image', file);
+          formData.append('type', 'file');
           formData.append('privacy', 'hidden');
-          formData.append('album', false);
 
           const response = await fetch('https://api.imgur.com/3/upload', {
             method: 'POST',
@@ -10406,8 +10406,14 @@
           });
 
           if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.data?.error || `Imgur API error: ${response.status}`);
+            const errorData = await response.json().catch(() => ({}));
+            const apiErrorMessage = String(errorData?.data?.error || '').trim();
+
+            if (response.status === 403 && /owner\s+of\s+the\s+album/i.test(apiErrorMessage)) {
+              throw new Error('Imgur rechazó la subida por configuración de álbum. Ya se corrigió el envío sin álbum; recarga la página e inténtalo de nuevo.');
+            }
+
+            throw new Error(apiErrorMessage || `Imgur API error: ${response.status}`);
           }
 
           const data = await response.json();

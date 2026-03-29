@@ -6613,7 +6613,18 @@
             await signInAnonymously(auth);
           } catch (anonError) {
             console.warn('[WARN] No se pudo iniciar sesión anónima en panel:', anonError);
-            window.location.href = "/login";
+            isGuestSession = true;
+            window.isOwner = false;
+            window.isAdmin = false;
+            window.isInstructorRole = false;
+            window.canAccessInstructorPanel = false;
+            window.canAccessAdminPanel = false;
+            window.canAccessEspecialidadesStorage = false;
+            window.allowedInstructorSpecialties = [];
+            isAdmin = false;
+            puedeEntrarEspecialidades = false;
+            applyRoleBasedNavigation();
+            applyGuestNavigationState(true);
           }
           return;
         }

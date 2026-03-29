@@ -591,24 +591,22 @@ async function handleGetPaypalDonations(req, res) {
       : 25;
 
     const db = admin.firestore();
-    let query = db
-      .collection("donaciones_paypal")
-      .orderBy("approvedAt", "desc")
-      .limit(safeLimit);
+    let query = db.collection("donaciones_paypal");
 
     // Si type=user, filtrar por usuario actual (sin requerir admin)
     // Si type=all o cualquier otra cosa, requerir admin y devolver todas
     if (type === "user") {
       // Usuario puede ver solo sus donaciones
-      query = query.where("donorUserId", "==", userId);
+      query = query.where("donorUserId", "==", userId).limit(safeLimit);
     } else {
       // Solo admin/owner puede ver todas
       await requireAdminOrOwner(req);
+      query = query.orderBy("approvedAt", "desc").limit(safeLimit);
     }
 
     const snapshot = await query.get();
 
-    const donations = snapshot.docs.map((docSnap) => {
+    let donations = snapshot.docs.map((docSnap) => {
       const data = docSnap.data() || {};
       return {
         id: docSnap.id,
@@ -625,6 +623,15 @@ async function handleGetPaypalDonations(req, res) {
         updatedAt: data.updatedAt || null,
       };
     });
+
+    // Si es el usuario filtrando sus donaciones, ordenar en cliente (para evitar índice compuesto)
+    if (type === "user") {
+      donations.sort((a, b) => {
+        const dateA = new Date(a.approvedAt || 0);
+        const dateB = new Date(b.approvedAt || 0);
+        return dateB.getTime() - dateA.getTime();
+      });
+    }
 
     return res.status(200).json({
       success: true,

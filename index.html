@@ -296,7 +296,7 @@
             if (!redirectResult?.user) return;
 
             await syncSocialProfile(redirectResult.user);
-            window.location.href = "/index";
+            window.location.href = "/";
           } catch (error) {
             console.error("Error procesando login por redirección:", error);
             mostrarMensaje(
@@ -365,7 +365,7 @@
             console.log("✅ Bienvenido de nuevo");
             showLoader(loginBtn, "✅ Redirigiendo...");
             setTimeout(() => {
-              window.location.href = "/index";
+              window.location.href = "/";
             }, 1000);
           } catch (error) {
             hideLoader(loginBtn, "Entrar");
@@ -397,7 +397,7 @@
 
             showLoader(googleLoginBtn, "✅ Redirigiendo...");
             setTimeout(() => {
-              window.location.href = "/index";
+              window.location.href = "/";
             }, 700);
           } catch (error) {
             if (

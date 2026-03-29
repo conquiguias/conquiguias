@@ -6666,14 +6666,14 @@
                 console.error("Error reenviando verificación:", error);
               }
 
-              // Cerrar sesión y redirigir
+              // Cerrar sesión y volver al panel principal
               await signOut(auth);
-              window.location.href = "/login";
+              window.location.href = "/";
             },
             () => {
-              // Si cancela, igualmente redirigir al login
+              // Si cancela, igualmente volver al panel principal
               signOut(auth).then(() => {
-                window.location.href = "/login";
+                window.location.href = "/";
               });
             }
           );

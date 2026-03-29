@@ -1,4 +1,16 @@
 {
+  "redirects": [
+    {
+      "source": "/panel",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/panel.html",
+      "destination": "/",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/",

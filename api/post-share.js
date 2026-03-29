@@ -454,9 +454,15 @@ module.exports = async (req, res) => {
     }
   }
 
+  const resolvedImageUrl = toAbsoluteUrl(imageUrl, origin);
+  const previewImageUrl =
+    resolvedImageUrl && !isDataImageUrl(resolvedImageUrl)
+      ? resolvedImageUrl
+      : shareImageUrl;
+
   const escapedTitle = escapeHtml(title);
   const escapedDescription = escapeHtml(description);
-  const escapedImage = escapeHtml(shareImageUrl);
+  const escapedImage = escapeHtml(previewImageUrl);
   const escapedShareUrl = escapeHtml(shareUrl);
   const escapedViewUrl = escapeHtml(viewUrl);
   const escapedAuthor = escapeHtml(authorName);
@@ -466,7 +472,7 @@ module.exports = async (req, res) => {
     "@type": "SocialMediaPosting",
     headline: title,
     description,
-    image: shareImageUrl,
+    image: previewImageUrl,
     url: shareUrl,
     mainEntityOfPage: shareUrl,
     author: {

@@ -1,60 +1,52 @@
 {
-  "redirects": [
+  "routes": [
     {
-      "source": "/panel",
-      "destination": "/",
-      "permanent": true
+      "src": "^/$",
+      "dest": "/panel.html"
     },
     {
-      "source": "/panel.html",
-      "destination": "/",
-      "permanent": true
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/",
-      "destination": "/panel.html"
+      "src": "^/panel$",
+      "dest": "/panel.html"
     },
     {
-      "source": "/index",
-      "destination": "/panel.html"
+      "src": "^/panel\\.html$",
+      "dest": "/panel.html"
     },
     {
-      "source": "/login",
-      "destination": "/index.html"
+      "src": "^/index$",
+      "dest": "/panel.html"
     },
     {
-      "source": "/privacidad",
-      "destination": "/privacidad.html"
+      "src": "^/login$",
+      "dest": "/index.html"
     },
     {
-      "source": "/terminos",
-      "destination": "/terminos.html"
+      "src": "^/privacidad$",
+      "dest": "/privacidad.html"
     },
     {
-      "source": "/contacto",
-      "destination": "/contacto.html"
+      "src": "^/terminos$",
+      "dest": "/terminos.html"
     },
     {
-      "source": "/panel",
-      "destination": "/panel.html"
+      "src": "^/contacto$",
+      "dest": "/contacto.html"
     },
     {
-      "source": "/formulario",
-      "destination": "/formulario.html"
+      "src": "^/formulario$",
+      "dest": "/formulario.html"
     },
     {
-      "source": "/post/:id",
-      "destination": "/post?id=:id"
+      "src": "^/post/([^/]+)$",
+      "dest": "/post?id=$1"
     },
     {
-      "source": "/share/:id",
-      "destination": "/api/post-share?id=:id"
+      "src": "^/share/([^/]+)$",
+      "dest": "/api/post-share?id=$1"
     },
     {
-      "source": "/sitemap.xml",
-      "destination": "/api/post-share?action=sitemap"
+      "src": "^/sitemap\\.xml$",
+      "dest": "/api/post-share?action=sitemap"
     }
   ]
 }

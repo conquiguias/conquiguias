@@ -581,7 +581,9 @@ async function handleGetPaypalDonations(req, res) {
   }
 
   try {
-    await requireAdminOrOwner(req);
+    const decodedToken = await requireAuthenticated(req);
+    const userId = decodedToken.uid;
+    const type = String(req.query?.type || "user").toLowerCase();
 
     const rawLimit = Number.parseInt(String(req.query?.limit || "25"), 10);
     const safeLimit = Number.isFinite(rawLimit)
@@ -589,11 +591,22 @@ async function handleGetPaypalDonations(req, res) {
       : 25;
 
     const db = admin.firestore();
-    const snapshot = await db
+    let query = db
       .collection("donaciones_paypal")
       .orderBy("approvedAt", "desc")
-      .limit(safeLimit)
-      .get();
+      .limit(safeLimit);
+
+    // Si type=user, filtrar por usuario actual (sin requerir admin)
+    // Si type=all o cualquier otra cosa, requerir admin y devolver todas
+    if (type === "user") {
+      // Usuario puede ver solo sus donaciones
+      query = query.where("requestedBy.uid", "==", userId);
+    } else {
+      // Solo admin/owner puede ver todas
+      await requireAdminOrOwner(req);
+    }
+
+    const snapshot = await query.get();
 
     const donations = snapshot.docs.map((docSnap) => {
       const data = docSnap.data() || {};

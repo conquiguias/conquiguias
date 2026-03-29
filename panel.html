@@ -5117,6 +5117,10 @@
           style="padding: 8px 16px; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;">
           Instructores
         </button>
+        <button id="adminTabDonaciones"
+          style="padding: 8px 16px; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;">
+          <i class="fas fa-hand-holding-heart" style="margin-right: 6px;"></i>Donaciones
+        </button>
       </div>
 
       <div id="adminModeracionView">
@@ -5211,6 +5215,37 @@
                 <tr>
                   <td colspan="5" style="padding:12px; text-align:center; color:var(--text-secondary);">Sin
                     asignaciones.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="adminDonacionesView" class="hidden">
+        <div style="background: var(--bg-secondary); padding: 16px; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 16px;">
+          <h4 style="margin: 0 0 12px 0;"><i class="fas fa-chart-pie" style="margin-right:8px; color: var(--accent-color);"></i> Donaciones totales</h4>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom: 12px;">
+            <p style="margin:0; color: var(--text-secondary);">Registro de todas las donaciones recibidas a través de PayPal.</p>
+            <button id="refreshAdminDonacionesBtn" style="width:auto; margin-top:0; padding:8px 12px; font-size:13px;">
+              <i class="fas fa-rotate-right" style="margin-right: 6px;"></i> Actualizar
+            </button>
+          </div>
+          <div id="adminDonacionesStatus" style="margin-bottom: 10px; color: var(--text-secondary); font-size: 13px;">Cargando historial...</div>
+          <div style="overflow-x:auto; border:1px solid var(--border-color); border-radius:10px;">
+            <table style="width:100%; border-collapse: collapse;">
+              <thead>
+                <tr style="border-bottom:1px solid var(--border-color); background: var(--bg-secondary);">
+                  <th style="text-align:left; padding:8px;">Fecha</th>
+                  <th style="text-align:left; padding:8px;">Donante</th>
+                  <th style="text-align:left; padding:8px;">Correo</th>
+                  <th style="text-align:left; padding:8px;">Plan</th>
+                  <th style="text-align:left; padding:8px;">ID Suscripción</th>
+                </tr>
+              </thead>
+              <tbody id="adminDonacionesBody">
+                <tr>
+                  <td colspan="5" style="padding:12px; text-align:center; color:var(--text-secondary);">Sin registros.</td>
                 </tr>
               </tbody>
             </table>
@@ -5316,28 +5351,26 @@
         <div id="paypal-button-container-P-7W540688DB477645MNHEYVLI"></div>
       </div>
 
-      <div id="donacionesAdminPanel" class="hidden" style="margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+      <div id="donacionesUserPanel" style="margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 16px;">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom: 12px;">
-          <h3 style="margin:0; color: var(--text-primary);"><i class="fas fa-list" style="margin-right: 8px; color: var(--accent-color);"></i> Historial de donaciones</h3>
-          <button id="refreshDonacionesBtn" style="width:auto; margin-top:0; padding:8px 12px; font-size:13px;">
+          <h3 style="margin:0; color: var(--text-primary);"><i class="fas fa-history" style="margin-right: 8px; color: var(--accent-color);"></i> Tu historial de donaciones</h3>
+          <button id="refreshUserDonacionesBtn" style="width:auto; margin-top:0; padding:8px 12px; font-size:13px;">
             <i class="fas fa-rotate-right" style="margin-right: 6px;"></i> Actualizar
           </button>
         </div>
-        <div id="donacionesAdminStatus" style="margin-bottom: 10px; color: var(--text-secondary); font-size: 13px;">Cargando historial...</div>
+        <div id="donacionesUserStatus" style="margin-bottom: 10px; color: var(--text-secondary); font-size: 13px;">Cargando historial...</div>
         <div style="overflow-x:auto; border:1px solid var(--border-color); border-radius:10px;">
           <table style="width:100%; border-collapse: collapse;">
             <thead>
               <tr style="border-bottom:1px solid var(--border-color); background: var(--bg-secondary);">
                 <th style="text-align:left; padding:8px;">Fecha</th>
-                <th style="text-align:left; padding:8px;">Nombre</th>
-                <th style="text-align:left; padding:8px;">Correo</th>
-                <th style="text-align:left; padding:8px;">Plan</th>
-                <th style="text-align:left; padding:8px;">Subscription ID</th>
+                <th style="text-align:left; padding:8px;">Estado</th>
+                <th style="text-align:left; padding:8px;">ID de Suscripción</th>
               </tr>
             </thead>
-            <tbody id="donacionesAdminBody">
+            <tbody id="donacionesUserBody">
               <tr>
-                <td colspan="5" style="padding:12px; text-align:center; color:var(--text-secondary);">Sin registros.</td>
+                <td colspan="3" style="padding:12px; text-align:center; color:var(--text-secondary);">Sin registros.</td>
               </tr>
             </tbody>
           </table>
@@ -6091,10 +6124,14 @@
       const acercaSection = document.getElementById("acercaSection");
       const donarSection = document.getElementById("donarSection");
       const menuAdmin = document.getElementById("menuAdmin");
-      const donacionesAdminPanel = document.getElementById("donacionesAdminPanel");
-      const donacionesAdminBody = document.getElementById("donacionesAdminBody");
-      const donacionesAdminStatus = document.getElementById("donacionesAdminStatus");
-      const refreshDonacionesBtn = document.getElementById("refreshDonacionesBtn");
+      const donacionesUserPanel = document.getElementById("donacionesUserPanel");
+      const donacionesUserBody = document.getElementById("donacionesUserBody");
+      const donacionesUserStatus = document.getElementById("donacionesUserStatus");
+      const refreshUserDonacionesBtn = document.getElementById("refreshUserDonacionesBtn");
+      const adminDonacionesView = document.getElementById("adminDonacionesView");
+      const adminDonacionesBody = document.getElementById("adminDonacionesBody");
+      const adminDonacionesStatus = document.getElementById("adminDonacionesStatus");
+      const refreshAdminDonacionesBtn = document.getElementById("refreshAdminDonacionesBtn");
       const logoutBtn = document.getElementById("logoutBtn");
       const deleteAccountBtn = document.getElementById("deleteAccountBtn");
       const editForm = document.getElementById("editForm");
@@ -6911,12 +6948,12 @@
         menuDonar.addEventListener("click", () => {
           mostrarSeccion(donarSection, menuDonar);
           initPaypalDonationButton();
-          loadPaypalDonationHistory();
+          loadUserDonationHistory();
         });
       }
-      if (refreshDonacionesBtn) {
-        refreshDonacionesBtn.addEventListener("click", () => {
-          loadPaypalDonationHistory(true);
+      if (refreshUserDonacionesBtn) {
+        refreshUserDonacionesBtn.addEventListener("click", () => {
+          loadUserDonationHistory(true);
         });
       }
 
@@ -7236,6 +7273,8 @@
       let paypalDonationInitialized = false;
       let paypalDonationInitAttempted = false;
       let isLoadingDonationsHistory = false;
+      let isLoadingUserDonationsHistory = false;
+      let isLoadingAdminDonationsHistory = false;
 
       function formatDonationDate(value) {
         const raw = String(value || "").trim();
@@ -7251,17 +7290,156 @@
         });
       }
 
-      async function loadPaypalDonationHistory(forceReload = false) {
-        if (!donacionesAdminPanel || !donacionesAdminBody || !donacionesAdminStatus) {
+      async function loadUserDonationHistory(forceReload = false) {
+        if (!donacionesUserPanel || !donacionesUserBody || !donacionesUserStatus) {
+          return;
+        }
+
+        donacionesUserPanel.classList.remove("hidden");
+
+        if (isLoadingUserDonationsHistory && !forceReload) {
+          return;
+        }
+
+        const authUser = auth?.currentUser || null;
+        const idToken = authUser ? await authUser.getIdToken(true) : "";
+        if (!idToken) {
+          donacionesUserStatus.textContent = "Inicia sesión para ver tu historial de donaciones.";
+          return;
+        }
+
+        isLoadingUserDonationsHistory = true;
+        donacionesUserStatus.textContent = "Cargando tu historial...";
+
+        try {
+          const response = await fetch("/api/social?action=get-paypal-donations&type=user&limit=50", {
+            method: "GET",
+            headers: {
+              "Authorization": `Bearer ${idToken}`
+            }
+          });
+
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(payload.error || "No se pudo cargar tu historial de donaciones");
+          }
+
+          const donations = Array.isArray(payload?.donations) ? payload.donations : [];
+
+          if (!donations.length) {
+            donacionesUserBody.innerHTML = `
+              <tr>
+                <td colspan="3" style="padding:12px; text-align:center; color:var(--text-secondary);">Aún no has realizado donaciones.</td>
+              </tr>`;
+            donacionesUserStatus.textContent = "No hay registros por el momento.";
+            return;
+          }
+
+          donacionesUserBody.innerHTML = donations.map((item) => {
+            const approvedAt = formatDonationDate(item?.approvedAt);
+            const status = escapeHtml(String(item?.status || "aprobada"));
+            const subscriptionId = escapeHtml(String(item?.subscriptionId || item?.id || "—"));
+
+            return `<tr style="border-bottom:1px solid var(--border-color);">
+                <td style="padding:8px; white-space:nowrap;">${approvedAt}</td>
+                <td style="padding:8px; text-transform:capitalize;">${status}</td>
+                <td style="padding:8px; font-family:monospace; font-size:12px;">${subscriptionId}</td>
+              </tr>`;
+          }).join("");
+
+          donacionesUserStatus.textContent = `Tienes ${donations.length} donación${donations.length !== 1 ? 'es' : ''}.`;
+        } catch (error) {
+          console.error("No se pudo cargar historial de donaciones del usuario:", error);
+          donacionesUserStatus.textContent = error.message || "Error cargando tu historial de donaciones.";
+        } finally {
+          isLoadingUserDonationsHistory = false;
+        }
+      }
+
+      async function loadAdminDonationHistory(forceReload = false) {
+        if (!adminDonacionesBody || !adminDonacionesStatus) {
           return;
         }
 
         if (!window.canAccessAdminPanel) {
-          donacionesAdminPanel.classList.add("hidden");
+          adminDonacionesView.classList.add("hidden");
           return;
         }
 
-        donacionesAdminPanel.classList.remove("hidden");
+        if (isLoadingAdminDonationsHistory && !forceReload) {
+          return;
+        }
+
+        const authUser = auth?.currentUser || null;
+        const idToken = authUser ? await authUser.getIdToken(true) : "";
+        if (!idToken) {
+          adminDonacionesStatus.textContent = "Inicia sesión para ver el historial de donaciones.";
+          return;
+        }
+
+        isLoadingAdminDonationsHistory = true;
+        adminDonacionesStatus.textContent = "Cargando historial...";
+
+        try {
+          const response = await fetch("/api/social?action=get-paypal-donations&limit=100", {
+            method: "GET",
+            headers: {
+              "Authorization": `Bearer ${idToken}`
+            }
+          });
+
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(payload.error || "No se pudo cargar el historial de donaciones");
+          }
+
+          const donations = Array.isArray(payload?.donations) ? payload.donations : [];
+
+          if (!donations.length) {
+            adminDonacionesBody.innerHTML = `
+              <tr>
+                <td colspan="5" style="padding:12px; text-align:center; color:var(--text-secondary);">Sin donaciones registradas.</td>
+              </tr>`;
+            adminDonacionesStatus.textContent = "No hay registros por el momento.";
+            return;
+          }
+
+          adminDonacionesBody.innerHTML = donations.map((item) => {
+            const approvedAt = formatDonationDate(item?.approvedAt);
+            const donorName = escapeHtml(String(item?.donorName || "Sin nombre"));
+            const donorEmail = escapeHtml(String(item?.donorEmail || "Sin correo"));
+            const planId = escapeHtml(String(item?.planId || "—"));
+            const subscriptionId = escapeHtml(String(item?.subscriptionId || item?.id || "—"));
+
+            return `<tr style="border-bottom:1px solid var(--border-color);">
+                <td style="padding:8px; white-space:nowrap;">${approvedAt}</td>
+                <td style="padding:8px;">${donorName}</td>
+                <td style="padding:8px;">${donorEmail}</td>
+                <td style="padding:8px;">${planId}</td>
+                <td style="padding:8px; font-family:monospace; font-size:12px;">${subscriptionId}</td>
+              </tr>`;
+          }).join("");
+
+          adminDonacionesStatus.textContent = `Mostrando ${donations.length} donaciones totales.`;
+        } catch (error) {
+          console.error("No se pudo cargar historial de donaciones para admin:", error);
+          adminDonacionesStatus.textContent = error.message || "Error cargando historial de donaciones.";
+        } finally {
+          isLoadingAdminDonationsHistory = false;
+        }
+      }
+
+      async function loadPaypalDonationHistory(forceReload = false) {
+        if (!donacionesUserPanel || !donacionesUserBody || !donacionesUserStatus) {
+          return;
+        }
+
+        if (!window.canAccessAdminPanel) {
+          donacionesUserPanel.classList.add("hidden");
+          return;
+        }
+
+        donacionesUserPanel.classList.remove("hidden");
 
         if (isLoadingDonationsHistory && !forceReload) {
           return;
@@ -7270,12 +7448,12 @@
         const authUser = auth?.currentUser || null;
         const idToken = authUser ? await authUser.getIdToken(true) : "";
         if (!idToken) {
-          donacionesAdminStatus.textContent = "Inicia sesión para ver el historial de donaciones.";
+          donacionesUserStatus.textContent = "Inicia sesión para ver el historial de donaciones.";
           return;
         }
 
         isLoadingDonationsHistory = true;
-        donacionesAdminStatus.textContent = "Cargando historial...";
+        donacionesUserStatus.textContent = "Cargando historial...";
 
         try {
           const response = await fetch("/api/social?action=get-paypal-donations&limit=50", {
@@ -7293,15 +7471,15 @@
           const donations = Array.isArray(payload?.donations) ? payload.donations : [];
 
           if (!donations.length) {
-            donacionesAdminBody.innerHTML = `
+            donacionesUserBody.innerHTML = `
               <tr>
-                <td colspan="5" style="padding:12px; text-align:center; color:var(--text-secondary);">Sin donaciones registradas.</td>
+                <td colspan="3" style="padding:12px; text-align:center; color:var(--text-secondary);">Sin donaciones registradas.</td>
               </tr>`;
-            donacionesAdminStatus.textContent = "No hay registros por el momento.";
+            donacionesUserStatus.textContent = "No hay registros por el momento.";
             return;
           }
 
-          donacionesAdminBody.innerHTML = donations.map((item) => {
+          donacionesUserBody.innerHTML = donations.map((item) => {
             const approvedAt = formatDonationDate(item?.approvedAt);
             const donorName = escapeHtml(String(item?.donorName || "Sin nombre"));
             const donorEmail = escapeHtml(String(item?.donorEmail || "Sin correo"));
@@ -7317,10 +7495,10 @@
               </tr>`;
           }).join("");
 
-          donacionesAdminStatus.textContent = `Mostrando ${donations.length} donaciones.`;
+          donacionesUserStatus.textContent = `Mostrando ${donations.length} donaciones.`;
         } catch (error) {
           console.error("No se pudo cargar historial de donaciones:", error);
-          donacionesAdminStatus.textContent = error.message || "Error cargando historial de donaciones.";
+          donacionesUserStatus.textContent = error.message || "Error cargando historial de donaciones.";
         } finally {
           isLoadingDonationsHistory = false;
         }
@@ -13924,30 +14102,44 @@
       function activarTabAdmin(tabName) {
         const tabPublicaciones = document.getElementById('adminTabPublicaciones');
         const tabInstructores = document.getElementById('adminTabInstructores');
+        const tabDonaciones = document.getElementById('adminTabDonaciones');
         const viewModeracion = document.getElementById('adminModeracionView');
         const viewInstructores = document.getElementById('adminInstructoresView');
+        const viewDonaciones = document.getElementById('adminDonacionesView');
 
-        if (!tabPublicaciones || !tabInstructores || !viewModeracion || !viewInstructores) return;
+        if (!tabPublicaciones || !tabInstructores || !tabDonaciones || !viewModeracion || !viewInstructores || !viewDonaciones) return;
 
         const isPublicaciones = tabName === 'publicaciones';
+        const isInstructores = tabName === 'instructores';
+        const isDonaciones = tabName === 'donaciones';
 
+        // Publicaciones
         tabPublicaciones.classList.toggle('active', isPublicaciones);
         tabPublicaciones.style.background = isPublicaciones ? 'var(--accent-color)' : 'transparent';
         tabPublicaciones.style.color = isPublicaciones ? 'white' : 'var(--text-primary)';
         tabPublicaciones.style.border = isPublicaciones ? 'none' : '1px solid var(--border-color)';
-
-        tabInstructores.classList.toggle('active', !isPublicaciones);
-        tabInstructores.style.background = !isPublicaciones ? 'var(--accent-color)' : 'transparent';
-        tabInstructores.style.color = !isPublicaciones ? 'white' : 'var(--text-primary)';
-        tabInstructores.style.border = !isPublicaciones ? 'none' : '1px solid var(--border-color)';
-
         viewModeracion.classList.toggle('hidden', !isPublicaciones);
-        viewInstructores.classList.toggle('hidden', isPublicaciones);
+
+        // Instructores
+        tabInstructores.classList.toggle('active', isInstructores);
+        tabInstructores.style.background = isInstructores ? 'var(--accent-color)' : 'transparent';
+        tabInstructores.style.color = isInstructores ? 'white' : 'var(--text-primary)';
+        tabInstructores.style.border = isInstructores ? 'none' : '1px solid var(--border-color)';
+        viewInstructores.classList.toggle('hidden', !isInstructores);
+
+        // Donaciones
+        tabDonaciones.classList.toggle('active', isDonaciones);
+        tabDonaciones.style.background = isDonaciones ? 'var(--accent-color)' : 'transparent';
+        tabDonaciones.style.color = isDonaciones ? 'white' : 'var(--text-primary)';
+        tabDonaciones.style.border = isDonaciones ? 'none' : '1px solid var(--border-color)';
+        viewDonaciones.classList.toggle('hidden', !isDonaciones);
 
         if (isPublicaciones) {
           loadPendingPosts();
-        } else {
+        } else if (isInstructores) {
           inicializarAdminInstructores();
+        } else if (isDonaciones) {
+          loadAdminDonationHistory();
         }
       }
 
@@ -13955,14 +14147,24 @@
         if (adminTabInitialized) return;
         const tabPublicaciones = document.getElementById('adminTabPublicaciones');
         const tabInstructores = document.getElementById('adminTabInstructores');
+        const tabDonaciones = document.getElementById('adminTabDonaciones');
         const searchInput = document.getElementById('adminInstructorSearch');
         const assignBtn = document.getElementById('btnAsignarInstructorEspecialidades');
+        const refreshAdminDonacionesBtn = document.getElementById('refreshAdminDonacionesBtn');
 
         if (tabPublicaciones) {
           tabPublicaciones.addEventListener('click', () => activarTabAdmin('publicaciones'));
         }
         if (tabInstructores) {
           tabInstructores.addEventListener('click', () => activarTabAdmin('instructores'));
+        }
+        if (tabDonaciones) {
+          tabDonaciones.addEventListener('click', () => activarTabAdmin('donaciones'));
+        }
+        if (refreshAdminDonacionesBtn) {
+          refreshAdminDonacionesBtn.addEventListener('click', () => {
+            loadAdminDonationHistory(true);
+          });
         }
         if (searchInput) {
           searchInput.addEventListener('input', () => {

@@ -261,6 +261,25 @@ function resolveVideoPosterFromMediaUrl(post, origin) {
 
 function resolvePreviewImage(post, origin, options = {}) {
   const allowDataUri = options.allowDataUri === true;
+  const mediaType = String(post?.mediaType || "").toLowerCase();
+  const mediaUrl = toAbsoluteUrl(post?.mediaUrl, origin);
+  const mediaExt = getMediaUrlExtension(mediaUrl);
+  const isLikelyVideoPost =
+    mediaType === "video/url" ||
+    mediaType.startsWith("video/") ||
+    ["mp4", "webm", "mov", "mkv", "m4v", "avi", "ts", "m3u8"].includes(mediaExt);
+
+  if (isLikelyVideoPost) {
+    const imgurPoster = resolveImgurVideoPoster(post, origin);
+    if (imgurPoster) return imgurPoster;
+
+    const mediaPoster = resolveVideoPosterFromMediaUrl(post, origin);
+    if (mediaPoster) return mediaPoster;
+
+    const youTubeThumb = toAbsoluteUrl(getYouTubeThumbnail(post?.mediaUrl), origin);
+    if (youTubeThumb) return youTubeThumb;
+  }
+
   const coverCandidates = [
     post?.radiocover,
     post?.posterUrl,
@@ -281,16 +300,6 @@ function resolvePreviewImage(post, origin, options = {}) {
     if (abs && !isLikelyAvatarImage(abs)) return abs;
   }
 
-  const imgurPoster = resolveImgurVideoPoster(post, origin);
-  if (imgurPoster) return imgurPoster;
-
-  const mediaPoster = resolveVideoPosterFromMediaUrl(post, origin);
-  if (mediaPoster) return mediaPoster;
-
-  const youTubeThumb = toAbsoluteUrl(getYouTubeThumbnail(post?.mediaUrl), origin);
-  if (youTubeThumb) return youTubeThumb;
-
-  const mediaUrl = toAbsoluteUrl(post?.mediaUrl, origin);
   if (mediaUrl && isLikelyImageUrl(mediaUrl)) return mediaUrl;
 
   const profileCandidates = [

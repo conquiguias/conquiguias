@@ -6487,7 +6487,7 @@
       let adminPendingPollTimer = null;
       let lastAdminPendingCount = null;
       let lastAdminPendingToastCount = null;
-      const ADMIN_PENDING_POLL_MS = 45000;
+      const ADMIN_PENDING_POLL_MS = 30 * 60 * 1000;
       let certificacionesCache = null;
       let certificacionesCacheTime = 0;
       const CACHE_DURATION = 5 * 60 * 1000;
@@ -6810,10 +6810,16 @@
           return;
         }
 
+        if (document.visibilityState !== 'visible') {
+          stopAdminPendingWatcher();
+          return;
+        }
+
         if (adminPendingPollTimer) return;
 
         refreshAdminPendingStatus({ notify: true });
         adminPendingPollTimer = setInterval(() => {
+          if (document.visibilityState !== 'visible') return;
           refreshAdminPendingStatus({ notify: true });
         }, ADMIN_PENDING_POLL_MS);
       }
@@ -18077,8 +18083,11 @@
         if (document.visibilityState === 'visible') {
           window.ensureTaskReminderPush?.(false);
           if (window.canAccessAdminPanel) {
+            startAdminPendingWatcher();
             refreshAdminPendingStatus({ notify: true });
           }
+        } else {
+          stopAdminPendingWatcher();
         }
       });
 

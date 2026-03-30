@@ -106,6 +106,9 @@ export default async function handler(req, res) {
       case "send-task-reminders":
         await handleSendTaskReminders(req, res);
         break;
+      case "send-test-notification":
+        await handleSendTestNotification(req, res);
+        break;
       case "check-stream":
         await handleCheckStream(req, res);
         break;
@@ -1096,6 +1099,118 @@ async function handleSendTaskReminders(req, res) {
     return res.status(error.statusCode || 500).json({
       success: false,
       error: error.message || "No se pudieron enviar recordatorios de tareas",
+    });
+  }
+}
+
+async function handleSendTestNotification(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
+  try {
+    const body = req.body || {};
+    const requester = await requireAuthenticated(req, body);
+    const db = admin.firestore();
+
+    const rawTargetEmail = normalizeEmail(body.targetEmail || requester.email || "");
+    if (!rawTargetEmail) {
+      return res.status(400).json({ success: false, error: "No se encontró correo destino" });
+    }
+
+    const isSelfTarget = rawTargetEmail === requester.email;
+    if (!isSelfTarget) {
+      await requireAdminOrOwner(req, body);
+    }
+
+    const title = String(body.title || "🔔 Notificación de prueba").trim().slice(0, 120);
+    const message = String(
+      body.message || "Push de prueba enviado correctamente desde Conquiguias World."
+    ).trim().slice(0, 300);
+    const targetUrl = String(body.url || "/panel").trim() || "/panel";
+
+    const tokenDocs = await getActiveTokenDocsForEmails(db, [rawTargetEmail]);
+    if (!tokenDocs.length) {
+      return res.status(200).json({
+        success: true,
+        sent: 0,
+        targetEmail: rawTargetEmail,
+        message: "No hay tokens push activos para este usuario",
+      });
+    }
+
+    const pushMessage = {
+      tokens: tokenDocs.map((entry) => entry.token),
+      notification: {
+        title,
+        body: message,
+      },
+      data: {
+        type: "test_notification",
+        url: targetUrl,
+        requestedBy: requester.email || "",
+      },
+      webpush: {
+        fcmOptions: {
+          link: `${APP_BASE_URL}${targetUrl.startsWith("/") ? targetUrl : `/${targetUrl}`}`,
+        },
+      },
+    };
+
+    const result = await admin.messaging().sendEachForMulticast(pushMessage);
+
+    const invalidDocIds = [];
+    result.responses.forEach((responseItem, index) => {
+      if (responseItem.success) return;
+      const code = String(responseItem.error?.code || "");
+      if (
+        code.includes("registration-token-not-registered") ||
+        code.includes("invalid-registration-token")
+      ) {
+        invalidDocIds.push(tokenDocs[index]?.docId);
+      }
+    });
+
+    if (invalidDocIds.length) {
+      await Promise.all(
+        invalidDocIds
+          .filter(Boolean)
+          .map((docId) =>
+            db.collection("notification_tokens").doc(docId).set(
+              {
+                enabled: false,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                disabledBy: "fcm-invalid-token",
+              },
+              { merge: true },
+            ),
+          ),
+      );
+    }
+
+    await db.collection("push_test_notifications").add({
+      targetEmail: rawTargetEmail,
+      title,
+      message,
+      url: targetUrl,
+      requestedBy: requester.email || "",
+      successCount: result.successCount,
+      failureCount: result.failureCount,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return res.status(200).json({
+      success: true,
+      targetEmail: rawTargetEmail,
+      sent: result.successCount,
+      failed: result.failureCount,
+      invalidTokensDisabled: invalidDocIds.length,
+    });
+  } catch (error) {
+    console.error("Error enviando notificación de prueba:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || "No se pudo enviar notificación de prueba",
     });
   }
 }

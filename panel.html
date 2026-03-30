@@ -6119,6 +6119,8 @@
         }
       }
 
+      window.ensureTaskReminderPush = ensureTaskReminderPush;
+
       async function callAuthAPI(action, data) {
         const response = await fetch('/api/auth.js', {
           method: 'POST',
@@ -6754,7 +6756,7 @@
         } else {
           applyGuestNavigationState(false);
           setTimeout(() => {
-            ensureTaskReminderPush(false);
+            window.ensureTaskReminderPush?.(false);
           }, 1200);
         }
 
@@ -16424,7 +16426,7 @@
       if (menuTareas) {
         menuTareas.addEventListener('click', () => {
           mostrarSeccion(sectionTareas, menuTareas);
-          ensureTaskReminderPush(true);
+          window.ensureTaskReminderPush?.(true);
           window.cargarTareasExamenes();
         });
       }
@@ -17762,7 +17764,7 @@
         const menuTareas = document.getElementById('menuTareasExamenes');
         if (menuTareas) {
           menuTareas.addEventListener('click', () => {
-            ensureTaskReminderPush(true);
+            window.ensureTaskReminderPush?.(true);
             setTimeout(() => {
               if (typeof window.cargarTareasExamenes === 'function') {
                 window.cargarTareasExamenes();

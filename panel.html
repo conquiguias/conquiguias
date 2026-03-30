@@ -6120,6 +6120,7 @@
       }
 
       window.ensureTaskReminderPush = ensureTaskReminderPush;
+      window.auth = auth;
 
       async function callAuthAPI(action, data) {
         const response = await fetch('/api/auth.js', {

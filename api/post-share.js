@@ -418,6 +418,20 @@ async function handleSitemap(req, res) {
 }
 
 module.exports = async (req, res) => {
+  // 🔐 Add security headers to all responses
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Strict-Transport-Security", "max-age=31536000");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  
+  // 🔐 CORS setup
+  setCORSHeaders(req, res);
+  
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+  
   const action = String(req.query?.action || "").trim().toLowerCase();
   const postId = String(req.query?.id || "").trim();
 

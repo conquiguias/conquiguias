@@ -22,6 +22,13 @@ if (!admin.apps.length) {
 }
 
 module.exports = async (req, res) => {
+  // 🔐 Add security headers to all responses
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Strict-Transport-Security", "max-age=31536000");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  
   // 🔐 CORS: Solo permitir nuestro dominio
   const allowedOrigin = process.env.APP_BASE_URL || "https://conquiguias.xyz";
   const origin = req.headers.origin || allowedOrigin;

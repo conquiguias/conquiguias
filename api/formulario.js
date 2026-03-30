@@ -120,7 +120,38 @@ const memoryCache = new Map();
 const CACHE_TTL = 60 * 1000; // 1 minuto por defecto para datos dinámicos
 const CACHE_TTL_STATIC = 5 * 60 * 1000; // 5 minutos para datos estáticos (imágenes, evaluaciones)
 
+// 🔐 Add security headers to all API responses
+function setSecurityHeaders(res) {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Strict-Transport-Security", "max-age=31536000");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+}
+
+// 🔐 Set CORS headers
+function setCORSHeaders(req, res) {
+  const allowedOrigin = process.env.APP_BASE_URL || "https://conquiguias.xyz";
+  const origin = req.headers.origin || allowedOrigin;
+  const isAllowed = origin === allowedOrigin || origin.endsWith(".vercel.app");
+  
+  if (isAllowed) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS,PATCH,DELETE,POST,PUT");
+  res.setHeader("Access-Control-Allow-Headers", "Authorization, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version");
+}
+
 module.exports = async function handler(req, res) {
+  // 🔐 Apply security headers and CORS
+  setSecurityHeaders(res);
+  setCORSHeaders(req, res);
+  
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+  
   const { action } = req.query;
   // Repositorio SOLO para datos binarios
   const repo = "conquiguias/conquiguias-data";

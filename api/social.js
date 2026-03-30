@@ -3,13 +3,18 @@ import admin from "firebase-admin";
 import { createClient } from "@supabase/supabase-js";
 
 const IMGUR_CLIENT_ID = process.env.IMGUR_CLIENT_ID;
-const OWNER_EMAIL = "kendall.torres.17@gmail.com";
-const ADMIN_EMAILS = [
-  OWNER_EMAIL,
-  "pruebaja@gmail.com",
-  "lunabecky026@gmail.com",
-  "ayurelihrdz@gmail.com",
-];
+
+// 🔐 Admin emails - ONLY from environment variables (NEVER hardcoded)
+const OWNER_EMAIL = (process.env.OWNER_EMAIL || '').trim().toLowerCase();
+const ADMIN_EMAILS_LIST = (process.env.ADMIN_EMAILS || '')
+  .split(',')
+  .map(e => e.trim().toLowerCase())
+  .filter(Boolean);
+
+// Combine and deduplicate
+const ADMIN_EMAILS = Array.from(new Set(
+  [OWNER_EMAIL, ...ADMIN_EMAILS_LIST].filter(Boolean)
+));
 
 if (!admin.apps.length) {
   const serviceAccount = {
@@ -31,11 +36,13 @@ if (!admin.apps.length) {
   });
 }
 
-const SUPABASE_URL =
-  process.env.SUPABASE_URL || "https://kjrnhggwqinegenvrtnr.supabase.co";
-const SUPABASE_KEY =
-  process.env.SUPABASE_KEY ||
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtqcm5oZ2d3cWluZWdlbnZydG5yIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTY2MDQ0NCwiZXhwIjoyMDg1MjM2NDQ0fQ.bmJvB2NpiBonpKpgPh85fFIadOnEh9fG7hlzJZFQNGs";
+// 🔐 Supabase credentials - ONLY from environment variables
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  throw new Error('ERROR: SUPABASE_URL y SUPABASE_KEY son requeridos en variables de entorno');
+}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -43,10 +50,28 @@ const TASK_REMINDER_WINDOW_MS = 24 * 60 * 60 * 1000;
 const TASK_REMINDER_KIND = "task_due_24h";
 const APP_BASE_URL = process.env.APP_BASE_URL || "https://conquiguias.xyz";
 
+// 🔐 Add security headers to all API responses
+function setSecurityHeaders(res) {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Strict-Transport-Security", "max-age=31536000");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+}
+
 export default async function handler(req, res) {
-  // Configurar CORS
-  res.setHeader("Access-Control-Allow-Credentials", true);
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  // 🔐 Apply security headers to all responses
+  setSecurityHeaders(res);
+  
+  // 🔐 CORS - Restrict to allowed origins only (NOT wildcard)
+  const allowedOrigin = process.env.APP_BASE_URL || "https://conquiguias.xyz";
+  const origin = req.headers.origin || allowedOrigin;
+  const isAllowed = origin === allowedOrigin || origin.endsWith(".vercel.app");
+  
+  if (isAllowed) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+  res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader(
     "Access-Control-Allow-Methods",
     "GET,OPTIONS,PATCH,DELETE,POST,PUT",

@@ -6046,6 +6046,10 @@
       import {
         getStorage, ref, uploadBytes, getDownloadURL, deleteObject, listAll, getMetadata
       } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-storage.js";
+      import {
+        setupTaskReminderPush,
+        disableTaskReminderPush,
+      } from "./lib/push-notifications.js";
 
       // 🔒 OBTENER CONFIGURACIÓN DE MANERA SEGURA
       const configResponse = await fetch('/api/auth', {
@@ -6089,6 +6093,49 @@
       }
 
       await configureAuthPersistence(auth);
+
+      let pushSetupInProgress = false;
+      let pushSetupDone = false;
+
+      async function ensureTaskReminderPush(forcePrompt = false) {
+        if (pushSetupDone && !forcePrompt) return;
+        if (pushSetupInProgress) return;
+        if (!auth?.currentUser || isGuestSession) return;
+
+        pushSetupInProgress = true;
+
+        try {
+          const result = await setupTaskReminderPush({
+            app,
+            auth,
+            forcePrompt,
+            onForegroundMessage: (payload) => {
+              const title = payload?.notification?.title || 'Recordatorio de tarea';
+              const body = payload?.notification?.body || 'Tienes una notificación nueva.';
+
+              if (document.visibilityState === 'visible') {
+                if (typeof mostrarMensaje === 'function') {
+                  mostrarMensaje('info', title, body);
+                }
+                return;
+              }
+
+              if (Notification.permission === 'granted') {
+                new Notification(title, { body });
+              }
+            },
+          });
+
+          pushSetupDone = !!result?.enabled;
+          if (!pushSetupDone && result?.reason === 'missing-vapid-key') {
+            console.warn('[WARN] Falta FIREBASE_WEB_PUSH_VAPID_KEY para notificaciones push.');
+          }
+        } catch (error) {
+          console.warn('[WARN] No se pudo inicializar notificaciones push:', error);
+        } finally {
+          pushSetupInProgress = false;
+        }
+      }
 
       async function callAuthAPI(action, data) {
         const response = await fetch('/api/auth.js', {
@@ -6724,6 +6771,9 @@
           applyGuestNavigationState(true);
         } else {
           applyGuestNavigationState(false);
+          setTimeout(() => {
+            ensureTaskReminderPush(false);
+          }, 1200);
         }
 
         // 🔒 VERIFICACIÓN DE CORREO ELECTRÓNICO
@@ -7071,11 +7121,13 @@
       logoutBtn.addEventListener("click", async () => {
         if (isGuestSession) {
           try {
+            await disableTaskReminderPush({ auth });
             await signOut(auth);
           } catch (_) { }
           window.location.href = "/login";
           return;
         }
+        await disableTaskReminderPush({ auth });
         await signOut(auth);
         window.location.href = "/login";
       });
@@ -16390,6 +16442,7 @@
       if (menuTareas) {
         menuTareas.addEventListener('click', () => {
           mostrarSeccion(sectionTareas, menuTareas);
+          ensureTaskReminderPush(true);
           window.cargarTareasExamenes();
         });
       }
@@ -17727,6 +17780,7 @@
         const menuTareas = document.getElementById('menuTareasExamenes');
         if (menuTareas) {
           menuTareas.addEventListener('click', () => {
+            ensureTaskReminderPush(true);
             setTimeout(() => {
               if (typeof window.cargarTareasExamenes === 'function') {
                 window.cargarTareasExamenes();

@@ -48,5 +48,11 @@
       "src": "^/sitemap\\.xml$",
       "dest": "/api/post-share?action=sitemap"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/social?action=send-task-reminders",
+      "schedule": "* * * * *"
+    }
   ]
 }

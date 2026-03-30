@@ -355,6 +355,10 @@ module.exports = async (req, res) => {
         appId:
           process.env.FIREBASE_APP_ID ||
           "1:785222651205:web:0486c50e9d8af6bf9b022c",
+        vapidKey:
+          process.env.FIREBASE_WEB_PUSH_VAPID_KEY ||
+          process.env.FIREBASE_VAPID_KEY ||
+          "",
       };
       return res.status(200).json(config);
     } else {

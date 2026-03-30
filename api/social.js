@@ -1,5 +1,6 @@
 // api/social.js - VERSIÓN OPTIMIZADA SIN SUBIDA DE ARCHIVOS
 import admin from "firebase-admin";
+import { createClient } from "@supabase/supabase-js";
 
 const IMGUR_CLIENT_ID = process.env.IMGUR_CLIENT_ID;
 const OWNER_EMAIL = "kendall.torres.17@gmail.com";
@@ -29,6 +30,18 @@ if (!admin.apps.length) {
     storageBucket: "conquiguias-world-85ccd.firebasestorage.app",
   });
 }
+
+const SUPABASE_URL =
+  process.env.SUPABASE_URL || "https://kjrnhggwqinegenvrtnr.supabase.co";
+const SUPABASE_KEY =
+  process.env.SUPABASE_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtqcm5oZ2d3cWluZWdlbnZydG5yIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTY2MDQ0NCwiZXhwIjoyMDg1MjM2NDQ0fQ.bmJvB2NpiBonpKpgPh85fFIadOnEh9fG7hlzJZFQNGs";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const TASK_REMINDER_WINDOW_MS = 24 * 60 * 60 * 1000;
+const TASK_REMINDER_KIND = "task_due_24h";
+const APP_BASE_URL = process.env.APP_BASE_URL || "https://conquiguias.xyz";
 
 export default async function handler(req, res) {
   // Configurar CORS
@@ -83,6 +96,15 @@ export default async function handler(req, res) {
         break;
       case "get-paypal-donations":
         await handleGetPaypalDonations(req, res);
+        break;
+      case "upsert-notification-token":
+        await handleUpsertNotificationToken(req, res);
+        break;
+      case "disable-notification-token":
+        await handleDisableNotificationToken(req, res);
+        break;
+      case "send-task-reminders":
+        await handleSendTaskReminders(req, res);
         break;
       case "check-stream":
         await handleCheckStream(req, res);
@@ -643,6 +665,437 @@ async function handleGetPaypalDonations(req, res) {
     return res.status(error.statusCode || 500).json({
       success: false,
       error: error.message || "Error al obtener donaciones",
+    });
+  }
+}
+
+function notificationTokenDocId(token) {
+  const normalizedToken = String(token || "").trim();
+  const encoded = Buffer.from(normalizedToken)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+  return `tok_${encoded.slice(0, 400)}`;
+}
+
+function reminderDocId(formId, email, kind = TASK_REMINDER_KIND) {
+  const base = `${String(formId || "").trim()}__${normalizeEmail(email)}__${kind}`;
+  return base.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 500);
+}
+
+function isCronSecretAuthorized(req) {
+  const cronSecret = String(process.env.CRON_SECRET || "").trim();
+  if (!cronSecret) return false;
+
+  const authHeader =
+    String(req.headers?.authorization || req.headers?.Authorization || "").trim();
+  if (!authHeader) return false;
+
+  return authHeader === `Bearer ${cronSecret}`;
+}
+
+async function resolveReminderJobAccess(req) {
+  if (isCronSecretAuthorized(req)) {
+    return { mode: "cron", actor: "vercel-cron" };
+  }
+
+  const actor = await requireAdminOrOwner(req);
+  return { mode: "admin", actor };
+}
+
+function normalizeTaskDeadline(formData = {}) {
+  const taskConfig = formData?.tarea || {};
+  return (
+    taskConfig?.fechaFin ||
+    formData?.fechaCierre ||
+    null
+  );
+}
+
+async function fetchPendingTaskReminders() {
+  const { data: forms, error: formsError } = await supabase
+    .from("formularios")
+    .select("id, data");
+
+  if (formsError) {
+    throw new Error(`No se pudieron leer formularios: ${formsError.message}`);
+  }
+
+  const { data: responsesRows, error: responsesError } = await supabase
+    .from("respuestas")
+    .select("especialidad_id, contenido_respuestas");
+
+  if (responsesError) {
+    throw new Error(`No se pudieron leer respuestas: ${responsesError.message}`);
+  }
+
+  const { data: evaluationsRows, error: evaluationsError } = await supabase
+    .from("evaluaciones")
+    .select("especialidad_id, contenido_tareas");
+
+  if (evaluationsError) {
+    throw new Error(`No se pudieron leer evaluaciones: ${evaluationsError.message}`);
+  }
+
+  const responsesByForm = new Map(
+    (responsesRows || []).map((item) => [item.especialidad_id, item]),
+  );
+  const evalByForm = new Map(
+    (evaluationsRows || []).map((item) => [item.especialidad_id, item]),
+  );
+
+  const now = Date.now();
+  const reminders = [];
+
+  for (const row of forms || []) {
+    const formId = String(row?.id || "").trim();
+    const formData = row?.data || {};
+    const taskConfig = formData?.tarea || null;
+    const taskIsActive = !!taskConfig?.activa;
+
+    if (!formId || !taskIsActive) continue;
+
+    const deadlineRaw = normalizeTaskDeadline(formData);
+    if (!deadlineRaw) continue;
+
+    const deadlineDate = new Date(deadlineRaw);
+    if (Number.isNaN(deadlineDate.getTime())) continue;
+
+    const msRemaining = deadlineDate.getTime() - now;
+    if (msRemaining <= 0 || msRemaining > TASK_REMINDER_WINDOW_MS) continue;
+
+    const responses =
+      responsesByForm.get(formId)?.contenido_respuestas || [];
+    const taskSubmissions =
+      evalByForm.get(formId)?.contenido_tareas || {};
+
+    const participants = new Map();
+
+    for (const record of Array.isArray(responses) ? responses : []) {
+      const email = normalizeEmail(record?.correo || "");
+      if (!email) continue;
+
+      const visitId = String(record?.visitanteId || "").trim();
+      const current = participants.get(email) || {
+        visitanteIds: new Set(),
+      };
+
+      if (visitId) current.visitanteIds.add(visitId);
+      participants.set(email, current);
+    }
+
+    for (const [email, participant] of participants.entries()) {
+      const alreadySubmittedByEmail = !!taskSubmissions[email];
+      const alreadySubmittedById = Array.from(participant.visitanteIds).some(
+        (id) => !!taskSubmissions[id],
+      );
+
+      if (alreadySubmittedByEmail || alreadySubmittedById) {
+        continue;
+      }
+
+      reminders.push({
+        kind: TASK_REMINDER_KIND,
+        formId,
+        title: String(formData?.titulo || formId).trim(),
+        email,
+        deadlineISO: deadlineDate.toISOString(),
+      });
+    }
+  }
+
+  return reminders;
+}
+
+async function getActiveTokenDocsForEmails(db, emails) {
+  const normalizedEmails = Array.from(
+    new Set((emails || []).map((item) => normalizeEmail(item)).filter(Boolean)),
+  );
+
+  if (!normalizedEmails.length) {
+    return [];
+  }
+
+  const results = [];
+  const chunkSize = 10;
+
+  for (let index = 0; index < normalizedEmails.length; index += chunkSize) {
+    const batch = normalizedEmails.slice(index, index + chunkSize);
+    const snap = await db
+      .collection("notification_tokens")
+      .where("email", "in", batch)
+      .get();
+
+    snap.forEach((docSnap) => {
+      const data = docSnap.data() || {};
+      if (data.enabled === false) return;
+      const token = String(data.token || "").trim();
+      const email = normalizeEmail(data.email || "");
+      if (!token || !email) return;
+      results.push({
+        docId: docSnap.id,
+        token,
+        email,
+      });
+    });
+  }
+
+  return results;
+}
+
+async function handleUpsertNotificationToken(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
+  try {
+    const body = req.body || {};
+    const requester = await requireAuthenticated(req, body);
+    const token = String(body.token || "").trim();
+
+    if (!token || token.length < 20) {
+      return res.status(400).json({ success: false, error: "Token inválido" });
+    }
+
+    const tokenDocId = notificationTokenDocId(token);
+    const db = admin.firestore();
+    const tokenRef = db.collection("notification_tokens").doc(tokenDocId);
+
+    await tokenRef.set(
+      {
+        token,
+        uid: requester.uid,
+        email: requester.email,
+        enabled: true,
+        permission: String(body.permission || "granted").trim(),
+        userAgent: String(body.userAgent || "").trim().slice(0, 500),
+        platform: String(body.platform || "web").trim().slice(0, 80),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+
+    return res.status(200).json({
+      success: true,
+      tokenDocId,
+    });
+  } catch (error) {
+    console.error("Error guardando token de notificación:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || "No se pudo guardar el token",
+    });
+  }
+}
+
+async function handleDisableNotificationToken(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
+  try {
+    const body = req.body || {};
+    const requester = await requireAuthenticated(req, body);
+    const token = String(body.token || "").trim();
+    const db = admin.firestore();
+
+    if (token) {
+      const docId = notificationTokenDocId(token);
+      await db.collection("notification_tokens").doc(docId).set(
+        {
+          enabled: false,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          disabledBy: requester.email,
+        },
+        { merge: true },
+      );
+    } else {
+      const snap = await db
+        .collection("notification_tokens")
+        .where("uid", "==", requester.uid)
+        .get();
+
+      const updates = snap.docs.map((docSnap) =>
+        docSnap.ref.set(
+          {
+            enabled: false,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            disabledBy: requester.email,
+          },
+          { merge: true },
+        ),
+      );
+      await Promise.all(updates);
+    }
+
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("Error desactivando token de notificación:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || "No se pudo desactivar el token",
+    });
+  }
+}
+
+async function handleSendTaskReminders(req, res) {
+  if (!["GET", "POST"].includes(req.method || "")) {
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
+  try {
+    const access = await resolveReminderJobAccess(req);
+    const db = admin.firestore();
+
+    const reminders = await fetchPendingTaskReminders();
+    if (!reminders.length) {
+      return res.status(200).json({
+        success: true,
+        mode: access.mode,
+        actor: access.actor,
+        scanned: 0,
+        sent: 0,
+        message: "No hay recordatorios pendientes en la ventana de 24h",
+      });
+    }
+
+    const alreadySent = new Set();
+    const uniqueEmails = new Set();
+    const remindersToSend = [];
+
+    for (const reminder of reminders) {
+      const sentRef = db
+        .collection("task_reminder_notifications")
+        .doc(reminderDocId(reminder.formId, reminder.email, reminder.kind));
+      const sentSnap = await sentRef.get();
+      if (sentSnap.exists) {
+        alreadySent.add(reminder.email);
+        continue;
+      }
+
+      uniqueEmails.add(reminder.email);
+      remindersToSend.push(reminder);
+    }
+
+    if (!remindersToSend.length) {
+      return res.status(200).json({
+        success: true,
+        mode: access.mode,
+        actor: access.actor,
+        scanned: reminders.length,
+        sent: 0,
+        skippedAlreadyNotified: reminders.length,
+      });
+    }
+
+    const tokenDocs = await getActiveTokenDocsForEmails(db, Array.from(uniqueEmails));
+    const tokensByEmail = new Map();
+    tokenDocs.forEach((entry) => {
+      const list = tokensByEmail.get(entry.email) || [];
+      list.push(entry);
+      tokensByEmail.set(entry.email, list);
+    });
+
+    let sentCount = 0;
+    let invalidTokenCount = 0;
+
+    for (const reminder of remindersToSend) {
+      const tokenEntries = tokensByEmail.get(reminder.email) || [];
+      if (!tokenEntries.length) continue;
+
+      const message = {
+        tokens: tokenEntries.map((entry) => entry.token),
+        notification: {
+          title: `⏰ Tarea por vencer: ${reminder.title}`,
+          body: "Tu tarea vence en menos de 24 horas. Entra ahora para enviarla.",
+        },
+        data: {
+          type: reminder.kind,
+          formId: reminder.formId,
+          title: reminder.title,
+          deadlineISO: reminder.deadlineISO,
+          url: "/panel",
+        },
+        webpush: {
+          fcmOptions: {
+            link: `${APP_BASE_URL}/panel`,
+          },
+        },
+      };
+
+      const result = await admin.messaging().sendEachForMulticast(message);
+      if (result.successCount > 0) {
+        sentCount += result.successCount;
+      }
+
+      const invalidDocIds = [];
+      result.responses.forEach((responseItem, index) => {
+        if (responseItem.success) return;
+        const code = String(responseItem.error?.code || "");
+        if (
+          code.includes("registration-token-not-registered") ||
+          code.includes("invalid-registration-token")
+        ) {
+          invalidDocIds.push(tokenEntries[index]?.docId);
+        }
+      });
+
+      if (invalidDocIds.length) {
+        invalidTokenCount += invalidDocIds.length;
+        await Promise.all(
+          invalidDocIds
+            .filter(Boolean)
+            .map((docId) =>
+              db.collection("notification_tokens").doc(docId).set(
+                {
+                  enabled: false,
+                  updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                  disabledBy: "fcm-invalid-token",
+                },
+                { merge: true },
+              ),
+            ),
+        );
+      }
+
+      const logRef = db
+        .collection("task_reminder_notifications")
+        .doc(reminderDocId(reminder.formId, reminder.email, reminder.kind));
+
+      await logRef.set(
+        {
+          kind: reminder.kind,
+          formId: reminder.formId,
+          email: reminder.email,
+          title: reminder.title,
+          deadlineISO: reminder.deadlineISO,
+          sentAt: admin.firestore.FieldValue.serverTimestamp(),
+          triggeredBy: access.actor,
+          triggeredMode: access.mode,
+          successCount: result.successCount,
+          failureCount: result.failureCount,
+        },
+        { merge: true },
+      );
+    }
+
+    return res.status(200).json({
+      success: true,
+      mode: access.mode,
+      actor: access.actor,
+      scanned: reminders.length,
+      queued: remindersToSend.length,
+      sent: sentCount,
+      invalidTokensDisabled: invalidTokenCount,
+      alreadyNotified: reminders.length - remindersToSend.length,
+    });
+  } catch (error) {
+    console.error("Error enviando recordatorios de tareas:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || "No se pudieron enviar recordatorios de tareas",
     });
   }
 }

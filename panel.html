@@ -384,32 +384,24 @@
     }
 
     #desktopRightAdShell {
-      display: none;
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
     }
 
     #mobileTopAdShell {
-      display: none;
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
     }
 
     @media (min-width: 1024px) {
       body {
-        padding-right: 184px;
+        padding-right: 0 !important;
       }
 
       #desktopRightAdShell {
-        position: fixed;
-        right: 12px;
-        top: 12px;
-        bottom: 12px;
-        width: 160px;
-        overflow: hidden;
-        border-radius: 10px;
-        border: 1px solid var(--border-color);
-        background: var(--bg-secondary);
-        z-index: 1400;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        display: none !important;
       }
 
       #desktopRightAdSlot {
@@ -4066,18 +4058,7 @@
 
     @media (max-width: 1023px) {
       #mobileTopAdShell {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 72px;
-        padding: 6px 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--bg-primary);
-        border-bottom: 1px solid var(--border-color);
-        z-index: 2100;
+        display: none !important;
       }
 
       #mobileTopAdSlot {
@@ -4095,35 +4076,35 @@
       }
 
       body.has-mobile-top-ad {
-        padding-top: calc(76px + 72px);
+        padding-top: 0 !important;
       }
 
       body.has-mobile-top-ad #sidebar {
-        top: 72px;
+        top: 0 !important;
       }
 
       body.has-mobile-top-ad #userHeader {
-        top: calc(64px + 72px);
+        top: 64px;
       }
     }
 
     @media (max-width: 767px) {
       body.has-mobile-top-ad {
-        padding-top: calc(70px + 72px);
+        padding-top: 0 !important;
       }
 
       body.has-mobile-top-ad #userHeader {
-        top: calc(58px + 72px);
+        top: 58px;
       }
     }
 
     @media (max-width: 575px) {
       body.has-mobile-top-ad {
-        padding-top: calc(66px + 72px);
+        padding-top: 0 !important;
       }
 
       body.has-mobile-top-ad #userHeader {
-        top: calc(54px + 72px);
+        top: 54px;
       }
     }
   </style>

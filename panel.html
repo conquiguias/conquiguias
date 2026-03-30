@@ -136,6 +136,107 @@
       font-weight: bold;
     }
 
+    #menuAdmin {
+      position: relative;
+      overflow: visible;
+    }
+
+    .menu-admin-notif-badge {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      min-width: 20px;
+      height: 20px;
+      padding: 0 6px;
+      border-radius: 999px;
+      background: #ef4444;
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 20px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+      pointer-events: none;
+      display: none;
+    }
+
+    #cornerToastHost {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 12000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+      max-width: min(360px, calc(100vw - 24px));
+    }
+
+    .corner-toast {
+      pointer-events: auto;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      background: color-mix(in srgb, var(--card-bg) 94%, #0ea5e9 6%);
+      color: var(--text-primary);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+      padding: 12px 14px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      cursor: pointer;
+      animation: toastSlideIn 220ms ease-out;
+    }
+
+    .corner-toast__icon {
+      color: #38bdf8;
+      margin-top: 2px;
+      font-size: 15px;
+      flex: 0 0 auto;
+    }
+
+    .corner-toast__title {
+      font-size: 14px;
+      font-weight: 700;
+      margin: 0 0 4px;
+    }
+
+    .corner-toast__message {
+      font-size: 13px;
+      line-height: 1.35;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .corner-toast__action {
+      font-size: 12px;
+      font-weight: 600;
+      color: #60a5fa;
+      margin-top: 6px;
+    }
+
+    .corner-toast__close {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 14px;
+      cursor: pointer;
+      margin-left: 4px;
+      line-height: 1;
+      flex: 0 0 auto;
+    }
+
+    @keyframes toastSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-6px) translateX(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) translateX(0);
+      }
+    }
+
     #sidebar #logoutBtn {
       margin-top: auto;
       background: var(--danger-color);
@@ -4134,7 +4235,7 @@
     <button id="menuPerfil"><i class="fas fa-user" style="margin-right: 8px;"></i> Perfil</button>
     <button id="menuInstructor" class="hidden"><i class="fas fa-chalkboard-teacher" style="margin-right: 8px;"></i>
       Instructor</button>
-    <button id="menuAdmin" class="hidden"><i class="fas fa-user-shield" style="margin-right: 8px;"></i> Admin</button>
+    <button id="menuAdmin" class="hidden"><i class="fas fa-user-shield" style="margin-right: 8px;"></i> Admin <span id="menuAdminPendingBadge" class="menu-admin-notif-badge" aria-live="polite"></span></button>
     <button id="menuAcerca"><i class="fas fa-circle-info" style="margin-right: 8px;"></i> Acerca de</button>
     <button id="menuDonar"><i class="fas fa-hand-holding-heart" style="margin-right: 8px;"></i> Donar</button>
     <button id="logoutBtn"><i class="fas fa-sign-out-alt" style="margin-right: 8px;"></i> Cerrar sesión</button>
@@ -6383,6 +6484,10 @@
       let postsLoading = false;
       let lastLoadTime = 0;
       let isGuestSession = false;
+      let adminPendingPollTimer = null;
+      let lastAdminPendingCount = null;
+      let lastAdminPendingToastCount = null;
+      const ADMIN_PENDING_POLL_MS = 45000;
       let certificacionesCache = null;
       let certificacionesCacheTime = 0;
       const CACHE_DURATION = 5 * 60 * 1000;
@@ -6580,6 +6685,139 @@
         alert('❌ La opción de Instructor solo está disponible desde computadora.');
       }
 
+      function ensureCornerToastHost() {
+        let host = document.getElementById('cornerToastHost');
+        if (host) return host;
+
+        host = document.createElement('div');
+        host.id = 'cornerToastHost';
+        document.body.appendChild(host);
+        return host;
+      }
+
+      function showCornerNotification({ title, message, actionText = 'Abrir', onClick = null, durationMs = 9000 } = {}) {
+        const host = ensureCornerToastHost();
+        const toast = document.createElement('div');
+        toast.className = 'corner-toast';
+        toast.setAttribute('role', 'alert');
+        toast.innerHTML = `
+          <i class="fas fa-bell corner-toast__icon" aria-hidden="true"></i>
+          <div style="flex:1 1 auto; min-width:0;">
+            <p class="corner-toast__title">${escapeHtml(title || 'Notificación')}</p>
+            <p class="corner-toast__message">${escapeHtml(message || '')}</p>
+            <div class="corner-toast__action">${escapeHtml(actionText)}</div>
+          </div>
+          <button type="button" class="corner-toast__close" aria-label="Cerrar notificación">×</button>
+        `;
+
+        const closeToast = () => {
+          if (!toast.parentNode) return;
+          toast.parentNode.removeChild(toast);
+        };
+
+        toast.querySelector('.corner-toast__close')?.addEventListener('click', (event) => {
+          event.stopPropagation();
+          closeToast();
+        });
+
+        if (typeof onClick === 'function') {
+          toast.addEventListener('click', () => {
+            onClick();
+            closeToast();
+          });
+        }
+
+        host.appendChild(toast);
+        window.setTimeout(closeToast, Math.max(3000, Number(durationMs) || 9000));
+      }
+
+      function updateAdminPendingBadge(count) {
+        const badge = document.getElementById('menuAdminPendingBadge');
+        if (!badge) return;
+
+        const safeCount = Math.max(0, Number(count) || 0);
+        if (!safeCount) {
+          badge.textContent = '';
+          badge.style.display = 'none';
+          return;
+        }
+
+        badge.textContent = safeCount > 99 ? '99+' : String(safeCount);
+        badge.style.display = 'inline-block';
+      }
+
+      function openAdminPublicacionesFromNotification() {
+        const menuAdminBtn = document.getElementById('menuAdmin');
+        const adminSection = document.getElementById('adminSection');
+        if (!menuAdminBtn || !adminSection || !window.canAccessAdminPanel) return;
+
+        mostrarSeccion(adminSection, menuAdminBtn);
+        setupAdminTabs();
+        activarTabAdmin('publicaciones');
+      }
+
+      async function fetchPendingPostsCount() {
+        const pendingQuery = query(collection(db, 'posts'), where('status', '==', 'pending'));
+        const snapshot = await getDocs(pendingQuery);
+        return snapshot.size;
+      }
+
+      async function refreshAdminPendingStatus({ notify = false } = {}) {
+        if (!window.canAccessAdminPanel || isGuestSession) {
+          updateAdminPendingBadge(0);
+          return;
+        }
+
+        try {
+          const pendingCount = await fetchPendingPostsCount();
+          updateAdminPendingBadge(pendingCount);
+
+          const previousCount = lastAdminPendingCount;
+          const shouldNotify = notify && pendingCount > 0 && (
+            previousCount === null ||
+            pendingCount > previousCount ||
+            previousCount === 0
+          ) && pendingCount !== lastAdminPendingToastCount;
+
+          if (shouldNotify) {
+            showCornerNotification({
+              title: 'Publicaciones pendientes',
+              message: `Tienes ${pendingCount} publicación${pendingCount === 1 ? '' : 'es'} pendiente${pendingCount === 1 ? '' : 's'} de aprobación.`,
+              actionText: 'Ir a Admin > Publicaciones',
+              onClick: () => openAdminPublicacionesFromNotification(),
+              durationMs: 10000,
+            });
+            lastAdminPendingToastCount = pendingCount;
+          }
+
+          lastAdminPendingCount = pendingCount;
+        } catch (error) {
+          console.warn('[WARN] No se pudo actualizar pendientes de admin:', error);
+        }
+      }
+
+      function stopAdminPendingWatcher() {
+        if (adminPendingPollTimer) {
+          clearInterval(adminPendingPollTimer);
+          adminPendingPollTimer = null;
+        }
+      }
+
+      function startAdminPendingWatcher() {
+        if (!window.canAccessAdminPanel || isGuestSession) {
+          stopAdminPendingWatcher();
+          updateAdminPendingBadge(0);
+          return;
+        }
+
+        if (adminPendingPollTimer) return;
+
+        refreshAdminPendingStatus({ notify: true });
+        adminPendingPollTimer = setInterval(() => {
+          refreshAdminPendingStatus({ notify: true });
+        }, ADMIN_PENDING_POLL_MS);
+      }
+
       function applyRoleBasedNavigation() {
         const menuAdminBtn = document.getElementById('menuAdmin');
         const menuInstructorBtn = document.getElementById('menuInstructor');
@@ -6591,6 +6829,12 @@
         const instructorBlockedOnMobile = isMobileInstructorAccessBlocked();
 
         if (menuAdminBtn) menuAdminBtn.classList.toggle('hidden', !window.canAccessAdminPanel);
+        if (!window.canAccessAdminPanel) {
+          updateAdminPendingBadge(0);
+          stopAdminPendingWatcher();
+        } else {
+          startAdminPendingWatcher();
+        }
         if (menuInstructorBtn) {
           const canShowInstructor = window.canAccessInstructorPanel;
           menuInstructorBtn.classList.toggle('hidden', !canShowInstructor);
@@ -14141,15 +14385,21 @@
       function setupAdminSection() {
         const menuAdmin = document.getElementById('menuAdmin');
         const adminSection = document.getElementById('adminSection');
+        if (!menuAdmin || !adminSection) return;
 
         if (window.canAccessAdminPanel) {
           menuAdmin.classList.remove('hidden');
+          refreshAdminPendingStatus({ notify: false });
 
-          menuAdmin.addEventListener('click', () => {
-            mostrarSeccion(adminSection, menuAdmin);
-            setupAdminTabs();
-            activarTabAdmin('publicaciones');
-          });
+          if (menuAdmin.dataset.adminBound !== '1') {
+            menuAdmin.dataset.adminBound = '1';
+            menuAdmin.addEventListener('click', () => {
+              mostrarSeccion(adminSection, menuAdmin);
+              setupAdminTabs();
+              activarTabAdmin('publicaciones');
+              refreshAdminPendingStatus({ notify: false });
+            });
+          }
         }
       }
 
@@ -14976,6 +15226,8 @@
           document.getElementById('pendingCount').innerText = pendingCount;
           document.getElementById('approvedCount').innerText = approvedCount;
           document.getElementById('rejectedCount').innerText = rejectedCount;
+          updateAdminPendingBadge(pendingCount);
+          lastAdminPendingCount = pendingCount;
 
           console.log('[INFO] Estadísticas actualizadas');
         } catch (error) {
@@ -17824,6 +18076,9 @@
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
           window.ensureTaskReminderPush?.(false);
+          if (window.canAccessAdminPanel) {
+            refreshAdminPendingStatus({ notify: true });
+          }
         }
       });
 

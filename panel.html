@@ -17777,7 +17777,28 @@
       }
 
       // Configurar navegación bajo demanda (sin cargas automáticas al iniciar)
+      function triggerPushSetupOnEntry() {
+        let attempts = 0;
+        const maxAttempts = 4;
+
+        const trySetup = () => {
+          attempts += 1;
+          window.ensureTaskReminderPush?.(false);
+
+          const permissionDefault = typeof Notification !== 'undefined' && Notification.permission === 'default';
+          const hasLoggedUser = !!window.auth?.currentUser;
+
+          if (attempts < maxAttempts && (!hasLoggedUser || permissionDefault)) {
+            setTimeout(trySetup, 1200);
+          }
+        };
+
+        setTimeout(trySetup, 600);
+      }
+
       window.addEventListener('load', () => {
+        triggerPushSetupOnEntry();
+
         // Listener específico para Certificaciones
         const menuCert = document.getElementById('menuCertificaciones');
         if (menuCert) {
@@ -17797,6 +17818,12 @@
               }
             }, 100);
           });
+        }
+      });
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          window.ensureTaskReminderPush?.(false);
         }
       });
 

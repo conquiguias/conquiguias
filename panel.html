@@ -7003,6 +7003,13 @@
         }, ADMIN_PENDING_POLL_MS);
       }
 
+      window.startTaskPendingWatcher = startTaskPendingWatcher;
+      window.stopTaskPendingWatcher = stopTaskPendingWatcher;
+      window.refreshTaskPendingBadge = refreshTaskPendingBadge;
+      window.startAdminPendingWatcher = startAdminPendingWatcher;
+      window.stopAdminPendingWatcher = stopAdminPendingWatcher;
+      window.refreshAdminPendingStatus = refreshAdminPendingStatus;
+
       function applyRoleBasedNavigation() {
         const menuAdminBtn = document.getElementById('menuAdmin');
         const menuInstructorBtn = document.getElementById('menuInstructor');
@@ -18279,15 +18286,15 @@
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
           window.ensureTaskReminderPush?.(false);
-          startTaskPendingWatcher();
-          refreshTaskPendingBadge();
+          window.startTaskPendingWatcher?.();
+          window.refreshTaskPendingBadge?.();
           if (window.canAccessAdminPanel) {
-            startAdminPendingWatcher();
-            refreshAdminPendingStatus({ notify: true });
+            window.startAdminPendingWatcher?.();
+            window.refreshAdminPendingStatus?.({ notify: true });
           }
         } else {
-          stopAdminPendingWatcher();
-          stopTaskPendingWatcher();
+          window.stopAdminPendingWatcher?.();
+          window.stopTaskPendingWatcher?.();
         }
       });
 

@@ -49,6 +49,43 @@ function normalizeEmail(value) {
     .toLowerCase();
 }
 
+const TASK_PDF_SIGNED_URL_TTL_SECONDS = 7 * 24 * 60 * 60;
+
+async function withFreshTaskSignedUrl(task) {
+  if (!task || typeof task !== "object") return task;
+
+  const normalizedTask = { ...task };
+  const storagePath = String(task.storagePath || "").trim();
+  if (!storagePath) return normalizedTask;
+
+  const { data: signedUrlData, error: signError } = await supabase.storage
+    .from("tareas-pdf")
+    .createSignedUrl(storagePath, TASK_PDF_SIGNED_URL_TTL_SECONDS);
+
+  if (signError) {
+    console.warn("[WARN] No se pudo refrescar signed URL de tarea:", {
+      storagePath,
+      message: signError.message,
+    });
+    normalizedTask.url = "";
+    return normalizedTask;
+  }
+
+  normalizedTask.url = signedUrlData?.signedUrl || "";
+  return normalizedTask;
+}
+
+async function withFreshTasksSignedUrls(tasksMap) {
+  const entries = Object.entries(tasksMap || {});
+  if (entries.length === 0) return {};
+
+  const refreshedEntries = await Promise.all(
+    entries.map(async ([ident, task]) => [ident, await withFreshTaskSignedUrl(task)]),
+  );
+
+  return Object.fromEntries(refreshedEntries);
+}
+
 function getAdminEmails() {
   return Array.from(
     new Set(ADMIN_EMAILS.map((email) => normalizeEmail(email)).filter(Boolean)),
@@ -333,7 +370,10 @@ async function handleListarEntregas(req, res) {
     .eq("especialidad_id", id)
     .single();
   if (error && error.code !== "PGRST116") throw error;
-  res.status(200).json(data?.contenido_tareas || {});
+  const tareasConUrlRefrescada = await withFreshTasksSignedUrls(
+    data?.contenido_tareas || {},
+  );
+  res.status(200).json(tareasConUrlRefrescada);
 }
 
 async function handleListarFormulariosPendientes(req, res) {
@@ -862,22 +902,26 @@ async function handleListarArchivosPDF(req, res, repo) {
   
   const pdfs = [];
   if (evalData) {
-    evalData.forEach((item) => {
+    for (const item of evalData) {
       const tareas = item.contenido_tareas || {};
-      Object.entries(tareas).forEach(([ident, tarea]) => {
-        if (tarea && tarea.storagePath && tarea.url) {
-          pdfs.push({
-            nombre: tarea.nombreArchivoOriginal || `${ident}.pdf`,
-            ruta: tarea.storagePath,
-            url: tarea.url, // Ya es una signed URL temporal
-            tamano: tarea.tamano || 0,
-            especialidadId: item.especialidad_id,
-            especialidadNombre: titulos[item.especialidad_id] || item.especialidad_id,
-            ident: ident,
-          });
-        }
-      });
-    });
+      const entries = Object.entries(tareas);
+      for (const [ident, tarea] of entries) {
+        if (!tarea || !tarea.storagePath) continue;
+
+        const tareaConUrlRefrescada = await withFreshTaskSignedUrl(tarea);
+        if (!tareaConUrlRefrescada?.url) continue;
+
+        pdfs.push({
+          nombre: tareaConUrlRefrescada.nombreArchivoOriginal || `${ident}.pdf`,
+          ruta: tareaConUrlRefrescada.storagePath,
+          url: tareaConUrlRefrescada.url,
+          tamano: tareaConUrlRefrescada.tamano || 0,
+          especialidadId: item.especialidad_id,
+          especialidadNombre: titulos[item.especialidad_id] || item.especialidad_id,
+          ident: ident,
+        });
+      }
+    }
   }
   res.status(200).json(pdfs);
 }

@@ -6120,7 +6120,32 @@
       }
 
       window.ensureTaskReminderPush = ensureTaskReminderPush;
-      window.auth = auth;
+
+      // Función segura para pruebas de notificación (solo expone lo necesario)
+      window.sendTestNotification = async function(title = 'Prueba push', message = 'Si ves esto, push funciona ✅', url = '/panel') {
+        if (!auth?.currentUser) {
+          throw new Error('No hay usuario logueado');
+        }
+        try {
+          const idToken = await auth.currentUser.getIdToken(true);
+          const resp = await fetch('/api/social?action=send-test-notification', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${idToken}`
+            },
+            body: JSON.stringify({ title, message, url })
+          });
+          const result = await resp.json();
+          if (!resp.ok) {
+            throw new Error(result.error || 'Error enviando notificación');
+          }
+          return result;
+        } catch (error) {
+          console.error('Error en sendTestNotification:', error);
+          throw error;
+        }
+      };
 
       async function callAuthAPI(action, data) {
         const response = await fetch('/api/auth.js', {

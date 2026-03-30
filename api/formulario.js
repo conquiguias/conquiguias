@@ -902,26 +902,22 @@ async function handleListarArchivosPDF(req, res, repo) {
   
   const pdfs = [];
   if (evalData) {
-    for (const item of evalData) {
+    evalData.forEach((item) => {
       const tareas = item.contenido_tareas || {};
-      const entries = Object.entries(tareas);
-      for (const [ident, tarea] of entries) {
-        if (!tarea || !tarea.storagePath) continue;
-
-        const tareaConUrlRefrescada = await withFreshTaskSignedUrl(tarea);
-        if (!tareaConUrlRefrescada?.url) continue;
-
-        pdfs.push({
-          nombre: tareaConUrlRefrescada.nombreArchivoOriginal || `${ident}.pdf`,
-          ruta: tareaConUrlRefrescada.storagePath,
-          url: tareaConUrlRefrescada.url,
-          tamano: tareaConUrlRefrescada.tamano || 0,
-          especialidadId: item.especialidad_id,
-          especialidadNombre: titulos[item.especialidad_id] || item.especialidad_id,
-          ident: ident,
-        });
-      }
-    }
+      Object.entries(tareas).forEach(([ident, tarea]) => {
+        if (tarea && tarea.storagePath && tarea.url) {
+          pdfs.push({
+            nombre: tarea.nombreArchivoOriginal || `${ident}.pdf`,
+            ruta: tarea.storagePath,
+            url: tarea.url,
+            tamano: tarea.tamano || 0,
+            especialidadId: item.especialidad_id,
+            especialidadNombre: titulos[item.especialidad_id] || item.especialidad_id,
+            ident: ident,
+          });
+        }
+      });
+    });
   }
   res.status(200).json(pdfs);
 }

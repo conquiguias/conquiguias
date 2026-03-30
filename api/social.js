@@ -49,6 +49,12 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const TASK_REMINDER_WINDOW_MS = 24 * 60 * 60 * 1000;
 const TASK_REMINDER_KIND = "task_due_24h";
 const APP_BASE_URL = process.env.APP_BASE_URL || "https://conquiguias.xyz";
+const REMINDER_TIMEZONE = String(
+  process.env.REMINDER_TIMEZONE || process.env.APP_TIMEZONE || "America/Santo_Domingo",
+).trim() || "America/Santo_Domingo";
+const REMINDER_HOUR_LOCAL = Number.isFinite(Number.parseInt(String(process.env.REMINDER_HOUR_LOCAL || "0"), 10))
+  ? Math.min(23, Math.max(0, Number.parseInt(String(process.env.REMINDER_HOUR_LOCAL || "0"), 10)))
+  : 0;
 
 // 🔐 Add security headers to all API responses
 function setSecurityHeaders(res) {
@@ -744,6 +750,30 @@ function normalizeTaskDeadline(formData = {}) {
   );
 }
 
+function getHourInTimeZone(date, timeZone) {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      hour: "2-digit",
+      hour12: false,
+    }).formatToParts(date);
+    const hourPart = parts.find((part) => part.type === "hour")?.value;
+    const parsed = Number.parseInt(String(hourPart || ""), 10);
+    if (Number.isFinite(parsed) && parsed >= 0 && parsed <= 23) {
+      return parsed;
+    }
+  } catch (_error) {
+    // Ignore invalid timezone and fallback to UTC
+  }
+
+  return date.getUTCHours();
+}
+
+function shouldRunTaskReminderCronNow(date = new Date()) {
+  const localHour = getHourInTimeZone(date, REMINDER_TIMEZONE);
+  return localHour === REMINDER_HOUR_LOCAL;
+}
+
 async function fetchPendingTaskReminders() {
   const { data: forms, error: formsError } = await supabase
     .from("formularios")
@@ -978,6 +1008,20 @@ async function handleSendTaskReminders(req, res) {
 
   try {
     const access = await resolveReminderJobAccess(req);
+
+    if (access.mode === "cron" && !shouldRunTaskReminderCronNow()) {
+      return res.status(200).json({
+        success: true,
+        mode: access.mode,
+        actor: access.actor,
+        sent: 0,
+        skippedBySchedule: true,
+        timezone: REMINDER_TIMEZONE,
+        targetHour: REMINDER_HOUR_LOCAL,
+        message: "Cron ejecutado fuera de la hora configurada para recordatorios",
+      });
+    }
+
     const db = admin.firestore();
 
     const reminders = await fetchPendingTaskReminders();

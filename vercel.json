@@ -52,7 +52,7 @@
   "crons": [
     {
       "path": "/api/social?action=send-task-reminders",
-      "schedule": "0 12 * * *"
+      "schedule": "0 4 * * *"
     }
   ]
 }

@@ -1,5 +1,18 @@
 const admin = require("firebase-admin");
 
+// 🔐 CORS helper
+function setCORSHeaders(req, res) {
+  const allowedOrigin = process.env.APP_BASE_URL || "https://conquiguias.xyz";
+  const origin = req.headers.origin || allowedOrigin;
+  const isAllowed = origin === allowedOrigin || origin.endsWith(".vercel.app");
+  
+  if (isAllowed) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS,PATCH,DELETE,POST,PUT");
+}
+
 if (!admin.apps.length) {
   const serviceAccount = {
     type: "service_account",

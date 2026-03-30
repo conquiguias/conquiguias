@@ -2,21 +2,27 @@ const { createClient } = require("@supabase/supabase-js");
 const admin = require("firebase-admin");
 const busboy = require("busboy");
 
-// Configuración Supabase
-const SUPABASE_URL =
-  process.env.SUPABASE_URL || "https://kjrnhggwqinegenvrtnr.supabase.co";
-const SUPABASE_KEY =
-  process.env.SUPABASE_KEY ||
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtqcm5oZ2d3cWluZWdlbnZydG5yIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTY2MDQ0NCwiZXhwIjoyMDg1MjM2NDQ0fQ.bmJvB2NpiBonpKpgPh85fFIadOnEh9fG7hlzJZFQNGs";
+// 🔐 Configuración Supabase - SOLO desde variables de entorno
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  throw new Error('ERROR: SUPABASE_URL y SUPABASE_KEY son requeridos en variables de entorno');
+}
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const OWNER_EMAIL = "kendall.torres.17@gmail.com";
-const ADMIN_EMAILS = [
-  OWNER_EMAIL,
-  "pruebaja@gmail.com",
-  "lunabecky026@gmail.com",
-  "ayurelihrdz@gmail.com",
-];
+// 🔐 Admin emails - cargar SOLO desde variables de entorno (nunca hardcoded)
+const OWNER_EMAIL = (process.env.OWNER_EMAIL || '').trim().toLowerCase();
+const ADMIN_EMAILS_LIST = (process.env.ADMIN_EMAILS || '')
+  .split(',')
+  .map(e => e.trim().toLowerCase())
+  .filter(Boolean);
+
+// Combinar y deduplicar
+const ADMIN_EMAILS = Array.from(new Set(
+  [OWNER_EMAIL, ...ADMIN_EMAILS_LIST].filter(Boolean)
+));
 
 if (!admin.apps.length) {
   const serviceAccount = {

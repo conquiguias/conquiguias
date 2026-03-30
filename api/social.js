@@ -50,8 +50,8 @@ const TASK_REMINDER_WINDOW_MS = 24 * 60 * 60 * 1000;
 const TASK_REMINDER_KIND = "task_due_24h";
 const APP_BASE_URL = process.env.APP_BASE_URL || "https://conquiguias.xyz";
 const REMINDER_TIMEZONE = String(
-  process.env.REMINDER_TIMEZONE || process.env.APP_TIMEZONE || "America/Santo_Domingo",
-).trim() || "America/Santo_Domingo";
+  process.env.REMINDER_TIMEZONE || process.env.APP_TIMEZONE || "America/Mexico_City",
+).trim() || "America/Mexico_City";
 const REMINDER_HOUR_LOCAL = Number.isFinite(Number.parseInt(String(process.env.REMINDER_HOUR_LOCAL || "0"), 10))
   ? Math.min(23, Math.max(0, Number.parseInt(String(process.env.REMINDER_HOUR_LOCAL || "0"), 10)))
   : 0;

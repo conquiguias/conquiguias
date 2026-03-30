@@ -134,6 +134,9 @@ export default async function handler(req, res) {
       case "send-test-notification":
         await handleSendTestNotification(req, res);
         break;
+      case "notify-post-approved":
+        await handleNotifyPostApproved(req, res);
+        break;
       case "check-stream":
         await handleCheckStream(req, res);
         break;
@@ -1236,6 +1239,142 @@ async function handleSendTestNotification(req, res) {
     return res.status(error.statusCode || 500).json({
       success: false,
       error: error.message || "No se pudo enviar notificación de prueba",
+    });
+  }
+}
+
+async function handleNotifyPostApproved(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
+  try {
+    const body = req.body || {};
+    const actorEmail = await requireAdminOrOwner(req, body);
+    const postId = String(body.postId || "").trim();
+
+    if (!postId) {
+      return res.status(400).json({ success: false, error: "postId requerido" });
+    }
+
+    const db = admin.firestore();
+    const postRef = db.collection("posts").doc(postId);
+    const postSnap = await postRef.get();
+
+    if (!postSnap.exists) {
+      return res.status(404).json({ success: false, error: "Publicación no encontrada" });
+    }
+
+    const postData = postSnap.data() || {};
+    const status = String(postData.status || "").trim().toLowerCase();
+    if (status !== "approved") {
+      return res.status(200).json({
+        success: true,
+        sent: 0,
+        postId,
+        message: "La publicación aún no está aprobada",
+      });
+    }
+
+    const targetEmail = normalizeEmail(postData.userEmail || "");
+    if (!targetEmail) {
+      return res.status(200).json({
+        success: true,
+        sent: 0,
+        postId,
+        message: "La publicación no tiene correo de autor",
+      });
+    }
+
+    const tokenDocs = await getActiveTokenDocsForEmails(db, [targetEmail]);
+    if (!tokenDocs.length) {
+      return res.status(200).json({
+        success: true,
+        sent: 0,
+        postId,
+        targetEmail,
+        message: "No hay tokens push activos para el autor",
+      });
+    }
+
+    const authorName = String(postData.userName || "").trim();
+    const title = "✅ Tu publicación fue aprobada";
+    const bodyMessage = authorName
+      ? `${authorName}, tu publicación ya está visible para todos.`
+      : "Tu publicación ya está visible para todos.";
+
+    const pushMessage = {
+      tokens: tokenDocs.map((entry) => entry.token),
+      notification: {
+        title,
+        body: bodyMessage,
+      },
+      data: {
+        type: "post_approved",
+        postId,
+        url: "/panel",
+      },
+      webpush: {
+        fcmOptions: {
+          link: `${APP_BASE_URL}/panel`,
+        },
+      },
+    };
+
+    const result = await admin.messaging().sendEachForMulticast(pushMessage);
+
+    const invalidDocIds = [];
+    result.responses.forEach((responseItem, index) => {
+      if (responseItem.success) return;
+      const code = String(responseItem.error?.code || "");
+      if (
+        code.includes("registration-token-not-registered") ||
+        code.includes("invalid-registration-token")
+      ) {
+        invalidDocIds.push(tokenDocs[index]?.docId);
+      }
+    });
+
+    if (invalidDocIds.length) {
+      await Promise.all(
+        invalidDocIds
+          .filter(Boolean)
+          .map((docId) =>
+            db.collection("notification_tokens").doc(docId).set(
+              {
+                enabled: false,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                disabledBy: "fcm-invalid-token",
+              },
+              { merge: true },
+            ),
+          ),
+      );
+    }
+
+    await db.collection("post_approval_notifications").add({
+      postId,
+      targetEmail,
+      triggeredBy: actorEmail,
+      successCount: result.successCount,
+      failureCount: result.failureCount,
+      invalidTokensDisabled: invalidDocIds.length,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return res.status(200).json({
+      success: true,
+      postId,
+      targetEmail,
+      sent: result.successCount,
+      failed: result.failureCount,
+      invalidTokensDisabled: invalidDocIds.length,
+    });
+  } catch (error) {
+    console.error("Error enviando notificación de aprobación:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || "No se pudo enviar notificación de aprobación",
     });
   }
 }

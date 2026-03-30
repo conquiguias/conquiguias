@@ -15297,15 +15297,22 @@
 
           // Notificar al backend (opcional)
           try {
-            await fetch(`/api/social?action=approve-post`, {
+            const idToken = auth.currentUser ? await auth.currentUser.getIdToken(true) : '';
+            const notifyResp = await fetch(`/api/social?action=notify-post-approved`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
+                ...(idToken ? { Authorization: `Bearer ${idToken}` } : {})
               },
-              body: JSON.stringify({ postId })
+              body: JSON.stringify({ postId, idToken })
             });
+
+            if (!notifyResp.ok) {
+              const notifyErr = await notifyResp.json().catch(() => ({}));
+              console.warn('⚠️ No se pudo enviar push de aprobación:', notifyErr?.error || notifyResp.statusText);
+            }
           } catch (apiError) {
-            console.warn('⚠️ No se pudo notificar al backend:', apiError);
+            console.warn('⚠️ No se pudo enviar notificación de aprobación:', apiError);
           }
 
           mostrarMensaje('success', '✅ Publicación aprobada', 'La publicación ahora es visible para todos los usuarios.');

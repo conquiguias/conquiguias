@@ -136,12 +136,14 @@
       font-weight: bold;
     }
 
-    #menuAdmin {
+    #menuAdmin,
+    #menuTareasExamenes {
       position: relative;
       overflow: visible;
     }
 
-    .menu-admin-notif-badge {
+    .menu-admin-notif-badge,
+    .menu-tareas-notif-badge {
       position: absolute;
       right: 10px;
       top: 50%;
@@ -165,7 +167,7 @@
       position: fixed;
       top: 20px;
       right: 20px;
-      z-index: 12000;
+      z-index: 16000;
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -177,7 +179,7 @@
       pointer-events: auto;
       border-radius: 12px;
       border: 1px solid var(--border-color);
-      background: color-mix(in srgb, var(--card-bg) 94%, #0ea5e9 6%);
+      background: var(--card-bg);
       color: var(--text-primary);
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
       padding: 12px 14px;
@@ -4227,7 +4229,7 @@
     <button id="menuClubes"><i class="fas fa-users" style="margin-right: 8px;"></i> Clubes</button>
     <button id="menuGrabaciones"><i class="fas fa-video" style="margin-right: 8px;"></i> Grabaciones de
       Especialidades</button>
-    <button id="menuTareasExamenes"><i class="fas fa-tasks" style="margin-right: 8px;"></i> Tareas y Exámenes</button>
+    <button id="menuTareasExamenes"><i class="fas fa-tasks" style="margin-right: 8px;"></i> Tareas y Exámenes <span id="menuTareasPendingBadge" class="menu-tareas-notif-badge" aria-live="polite"></span></button>
     <button id="menuCertificaciones"><i class="fas fa-certificate" style="margin-right: 8px;"></i>
       Certificaciones</button>
     <button id="menuEspecialidades"><i class="fas fa-folder-open" style="margin-right: 8px;"></i> Especialidades
@@ -6488,6 +6490,9 @@
       let lastAdminPendingCount = null;
       let lastAdminPendingToastCount = null;
       const ADMIN_PENDING_POLL_MS = 30 * 60 * 1000;
+      let taskPendingPollTimer = null;
+      let lastTaskPendingCount = null;
+      const TASK_PENDING_POLL_MS = 30 * 60 * 1000;
       let certificacionesCache = null;
       let certificacionesCacheTime = 0;
       const CACHE_DURATION = 5 * 60 * 1000;
@@ -6687,16 +6692,53 @@
 
       function ensureCornerToastHost() {
         let host = document.getElementById('cornerToastHost');
-        if (host) return host;
+        if (host) {
+          updateCornerToastHostPosition();
+          return host;
+        }
 
         host = document.createElement('div');
         host.id = 'cornerToastHost';
         document.body.appendChild(host);
+
+        if (!window.__cornerToastHostPositionBound) {
+          window.__cornerToastHostPositionBound = true;
+          window.addEventListener('resize', updateCornerToastHostPosition);
+          window.addEventListener('scroll', updateCornerToastHostPosition, { passive: true });
+        }
+
+        updateCornerToastHostPosition();
         return host;
+      }
+
+      function updateCornerToastHostPosition() {
+        const host = document.getElementById('cornerToastHost');
+        if (!host) return;
+
+        let top = 20;
+        const floatingUploadBtn = document.getElementById('floatingUploadBtn');
+        if (floatingUploadBtn) {
+          const styles = window.getComputedStyle(floatingUploadBtn);
+          const visible = styles.display !== 'none' && styles.visibility !== 'hidden' && styles.opacity !== '0';
+
+          if (visible) {
+            const rect = floatingUploadBtn.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0 && rect.top < 180) {
+              const safeTop = Math.round(rect.bottom + 14);
+              if (safeTop > top) {
+                top = safeTop;
+              }
+            }
+          }
+        }
+
+        host.style.top = `${top}px`;
+        host.style.right = '20px';
       }
 
       function showCornerNotification({ title, message, actionText = 'Abrir', onClick = null, durationMs = 9000 } = {}) {
         const host = ensureCornerToastHost();
+        updateCornerToastHostPosition();
         const toast = document.createElement('div');
         toast.className = 'corner-toast';
         toast.setAttribute('role', 'alert');
@@ -6744,6 +6786,141 @@
 
         badge.textContent = safeCount > 99 ? '99+' : String(safeCount);
         badge.style.display = 'inline-block';
+      }
+
+      function updateTaskPendingBadge(count) {
+        const badge = document.getElementById('menuTareasPendingBadge');
+        if (!badge) return;
+
+        const safeCount = Math.max(0, Number(count) || 0);
+        if (!safeCount) {
+          badge.textContent = '';
+          badge.style.display = 'none';
+          return;
+        }
+
+        badge.textContent = safeCount > 99 ? '99+' : String(safeCount);
+        badge.style.display = 'inline-block';
+      }
+
+      function resolveCurrentUserIdentity() {
+        const visitanteId = currentUserId
+          || auth?.currentUser?.uid
+          || localStorage.getItem('visitanteId')
+          || '';
+
+        const email = (typeof userData !== 'undefined' && userData?.email)
+          || auth?.currentUser?.email
+          || localStorage.getItem('userEmail')
+          || '';
+
+        return {
+          visitanteId: String(visitanteId || '').trim(),
+          email: String(email || '').trim().toLowerCase()
+        };
+      }
+
+      function normalizeEstadoUsuarioData(rawData) {
+        const source = Array.isArray(rawData) ? rawData : [];
+        const byId = new Map();
+
+        source.forEach((item) => {
+          const key = String(item?.id || '').trim();
+          if (!key) return;
+
+          if (!byId.has(key)) {
+            byId.set(key, item);
+            return;
+          }
+
+          const existing = byId.get(key);
+          const existingScore = (existing?.miTarea ? 1 : 0) + (existing?.miExamen ? 1 : 0) + (Array.isArray(existing?.asistencias) ? existing.asistencias.length : 0);
+          const incomingScore = (item?.miTarea ? 1 : 0) + (item?.miExamen ? 1 : 0) + (Array.isArray(item?.asistencias) ? item.asistencias.length : 0);
+          if (incomingScore >= existingScore) {
+            byId.set(key, item);
+          }
+        });
+
+        return Array.from(byId.values());
+      }
+
+      function countTaskSpecialtiesNotDelivered(rawData) {
+        const data = normalizeEstadoUsuarioData(rawData);
+        let count = 0;
+
+        data.forEach((item) => {
+          const tareaActiva = !!(item?.configTarea && item.configTarea.activa);
+          if (!tareaActiva) return;
+
+          const estadoTarea = String(item?.miTarea?.estado || '').trim().toLowerCase();
+          const yaEntregada = estadoTarea === 'entregado' || estadoTarea === 'calificado';
+          if (!yaEntregada) {
+            count += 1;
+          }
+        });
+
+        return count;
+      }
+
+      async function fetchTaskPendingCountForCurrentUser() {
+        const identity = resolveCurrentUserIdentity();
+        if (!identity.visitanteId || !identity.email) return 0;
+
+        const resp = await fetch('/api/formulario?action=obtenerEstadoUsuario', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ visitanteId: identity.visitanteId, email: identity.email })
+        });
+
+        if (!resp.ok) {
+          throw new Error('No se pudo cargar estado de tareas del usuario');
+        }
+
+        const data = await resp.json();
+        return countTaskSpecialtiesNotDelivered(data);
+      }
+
+      async function refreshTaskPendingBadge() {
+        if (isGuestSession) {
+          updateTaskPendingBadge(0);
+          return;
+        }
+
+        try {
+          const count = await fetchTaskPendingCountForCurrentUser();
+          updateTaskPendingBadge(count);
+          lastTaskPendingCount = count;
+        } catch (error) {
+          console.warn('[WARN] No se pudo actualizar burbuja de tareas:', error);
+        }
+      }
+
+      function stopTaskPendingWatcher() {
+        if (taskPendingPollTimer) {
+          clearInterval(taskPendingPollTimer);
+          taskPendingPollTimer = null;
+        }
+      }
+
+      function startTaskPendingWatcher() {
+        if (isGuestSession) {
+          stopTaskPendingWatcher();
+          updateTaskPendingBadge(0);
+          return;
+        }
+
+        if (document.visibilityState !== 'visible') {
+          stopTaskPendingWatcher();
+          return;
+        }
+
+        if (taskPendingPollTimer) return;
+
+        refreshTaskPendingBadge();
+        taskPendingPollTimer = setInterval(() => {
+          if (document.visibilityState !== 'visible') return;
+          refreshTaskPendingBadge();
+        }, TASK_PENDING_POLL_MS);
       }
 
       function openAdminPublicacionesFromNotification() {
@@ -6841,6 +7018,14 @@
         } else {
           startAdminPendingWatcher();
         }
+
+        if (isGuestSession) {
+          updateTaskPendingBadge(0);
+          stopTaskPendingWatcher();
+        } else {
+          startTaskPendingWatcher();
+        }
+
         if (menuInstructorBtn) {
           const canShowInstructor = window.canAccessInstructorPanel;
           menuInstructorBtn.classList.toggle('hidden', !canShowInstructor);
@@ -16779,6 +16964,9 @@
             body: JSON.stringify({ visitanteId: userId, email: email })
           });
           const data = await resp.json();
+          const userPendingTasksCount = countTaskSpecialtiesNotDelivered(data);
+          updateTaskPendingBadge(userPendingTasksCount);
+          lastTaskPendingCount = userPendingTasksCount;
 
           tbody.innerHTML = '';
           if (!data || data.length === 0) {
@@ -18082,12 +18270,15 @@
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
           window.ensureTaskReminderPush?.(false);
+          startTaskPendingWatcher();
+          refreshTaskPendingBadge();
           if (window.canAccessAdminPanel) {
             startAdminPendingWatcher();
             refreshAdminPendingStatus({ notify: true });
           }
         } else {
           stopAdminPendingWatcher();
+          stopTaskPendingWatcher();
         }
       });
 

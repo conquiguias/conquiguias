@@ -12784,7 +12784,7 @@
 
             player.on(Clappr.Events.PLAYER_PLAY, () => {
               pauseOtherPostMedia(containerId);
-              incrementPostViewCount(firestorePostId);
+              incrementPostViewCount(firestorePostId, post.mediaUrl || '');
             });
 
             if (Clappr.Events.PLAYER_READY) {
@@ -12893,7 +12893,7 @@
                 audioEl.dataset.cxPlayBound = '1';
                 audioEl.addEventListener('play', () => {
                   pauseOtherPostMedia(containerId);
-                  incrementPostViewCount(firestorePostId);
+                  incrementPostViewCount(firestorePostId, post.mediaUrl || '');
                 });
               });
             };
@@ -12908,7 +12908,7 @@
                 if (now - lastInteractionAt < 400) return;
                 lastInteractionAt = now;
                 pauseOtherPostMedia(containerId);
-                incrementPostViewCount(firestorePostId);
+                incrementPostViewCount(firestorePostId, post.mediaUrl || '');
               };
 
               container.addEventListener('click', onLunaInteraction);
@@ -14420,7 +14420,13 @@
         }
       }
 
-      async function incrementPostViewCount(postId) {
+      function getMediaViewIdentity(postId, mediaIdentity = '') {
+        const normalizedPostId = String(postId || '').trim();
+        const normalizedMedia = String(mediaIdentity || '').trim().toLowerCase();
+        return normalizedMedia ? `${normalizedPostId}::${normalizedMedia}` : normalizedPostId;
+      }
+
+      async function incrementPostViewCount(postId, mediaIdentity = '') {
         if (!postId) return;
         const uid = window.currentUserId;
         let viewerKey = uid || null;
@@ -14429,7 +14435,8 @@
           if (!anonId) { anonId = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('_cx_anon_id', anonId); }
           viewerKey = 'anon_' + anonId;
         }
-        const storageKey = `vv_${postId}_${viewerKey}`;
+        const viewIdentity = getMediaViewIdentity(postId, mediaIdentity);
+        const storageKey = `vv_${viewIdentity}_${viewerKey}`;
         const ONE_HOUR = 60 * 60 * 1000;
         const lastViewStr = localStorage.getItem(storageKey);
         if (lastViewStr) {
@@ -15206,7 +15213,7 @@
 
           player.on(Clappr.Events.PLAYER_PLAY, () => {
             pauseOtherPostMedia(containerId);
-            incrementPostViewCount(firestorePostId);
+            incrementPostViewCount(firestorePostId, post.mediaUrl || '');
           });
         } catch (_) {
           window._clapprPlayers[containerId] = null;
@@ -15276,7 +15283,7 @@
             audioEl.dataset.cxPlayBound = '1';
             audioEl.addEventListener('play', () => {
               pauseOtherPostMedia(containerId);
-              incrementPostViewCount(firestorePostId);
+              incrementPostViewCount(firestorePostId, post.mediaUrl || '');
             });
           });
         } catch (_) { }

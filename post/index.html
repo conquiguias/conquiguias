@@ -1276,7 +1276,17 @@
         return numericCount.toString();
       }
 
-      async function incrementPostViewCount(postId) {
+      function getMediaViewIdentity(postId, mediaIdentity = "") {
+        const normalizedPostId = String(postId || "").trim();
+        const normalizedMedia = String(mediaIdentity || "")
+          .trim()
+          .toLowerCase();
+        return normalizedMedia
+          ? `${normalizedPostId}::${normalizedMedia}`
+          : normalizedPostId;
+      }
+
+      async function incrementPostViewCount(postId, mediaIdentity = "") {
         if (!postId) return;
         const uid = currentUser?.uid || null;
         let viewerKey = uid || null;
@@ -1289,7 +1299,8 @@
           }
           viewerKey = "anon_" + anonId;
         }
-        const storageKey = `vv_${postId}_${viewerKey}`;
+        const viewIdentity = getMediaViewIdentity(postId, mediaIdentity);
+        const storageKey = `vv_${viewIdentity}_${viewerKey}`;
         const ONE_HOUR = 60 * 60 * 1000;
         const lastViewStr = localStorage.getItem(storageKey);
         if (lastViewStr) {
@@ -1910,7 +1921,7 @@
           } catch (_) {}
 
           window._postClapprPlayer.on(Clappr.Events.PLAYER_PLAY, () => {
-            incrementPostViewCount(post.id);
+            incrementPostViewCount(post.id, post.mediaUrl || "");
           });
 
           if (Clappr.Events.PLAYER_READY) {
@@ -2041,7 +2052,7 @@
           const now = Date.now();
           if (now - lastInteractionAt < 400) return;
           lastInteractionAt = now;
-          incrementPostViewCount(post.id);
+          incrementPostViewCount(post.id, post.mediaUrl || "");
         };
 
         if (container.dataset.cxLunaInteractionBound !== "1") {

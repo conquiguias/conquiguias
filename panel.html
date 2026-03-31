@@ -14861,7 +14861,12 @@
         if (!window.canAccessAdminPanel) return;
 
         const viewEstadisticas = document.getElementById('adminEstadisticasView');
-        if (!viewEstadisticas || viewEstadisticas.classList.contains('hidden')) return;
+        const isHidden = !viewEstadisticas || viewEstadisticas.classList.contains('hidden');
+        
+        if (isHidden) {
+          console.warn('[Analytics] Intento bloqueado: vista oculta', { element: !!viewEstadisticas, hasHiddenClass: viewEstadisticas?.classList.contains('hidden') });
+          return;
+        }
 
         const statusEl = document.getElementById('adminAnalyticsStatus');
         if (statusEl) statusEl.textContent = 'Cargando estadísticas...';

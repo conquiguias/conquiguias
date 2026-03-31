@@ -5366,7 +5366,7 @@
             </div>
           </div>
 
-          <div id="adminAnalyticsStatus" style="margin-bottom: 10px; color: var(--text-secondary); font-size: 13px;">Cargando estadísticas...</div>
+          <div id="adminAnalyticsStatus" style="margin-bottom: 10px; color: var(--text-secondary); font-size: 13px;">Las estadísticas se cargarán al abrir esta pestaña.</div>
 
           <div style="display:grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); gap:12px; margin-bottom: 12px;">
             <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; text-align:center;">
@@ -14757,7 +14757,38 @@
       let adminAnalyticsRows = [];
       let adminAnalyticsLoadedAt = 0;
       let adminAnalyticsCurrentRange = 'month';
+      let adminAnalyticsHasLoaded = false;
       const ADMIN_ANALYTICS_CACHE_MS = 2 * 60 * 1000;
+
+      function resetAdminAnalyticsCache({ resetView = false } = {}) {
+        adminAnalyticsRows = [];
+        adminAnalyticsLoadedAt = 0;
+        adminAnalyticsHasLoaded = false;
+
+        if (!resetView) return;
+
+        const totalVisitsEl = document.getElementById('analyticsTotalVisits');
+        const uniqueVisitsEl = document.getElementById('analyticsUniqueVisits');
+        const newRegEl = document.getElementById('analyticsNewRegistrations');
+        const regLabelEl = document.getElementById('analyticsRegistrationsLabel');
+        const statusEl = document.getElementById('adminAnalyticsStatus');
+        const historicalVisitsEl = document.getElementById('analyticsHistoricalVisits');
+        const historicalUniqueVisitsEl = document.getElementById('analyticsHistoricalUniqueVisits');
+        const historicalRegistrationsEl = document.getElementById('analyticsHistoricalRegistrations');
+        const tbody = document.getElementById('adminAnalyticsBody');
+
+        if (totalVisitsEl) totalVisitsEl.textContent = '0';
+        if (uniqueVisitsEl) uniqueVisitsEl.textContent = '0';
+        if (newRegEl) newRegEl.textContent = '0';
+        if (historicalVisitsEl) historicalVisitsEl.textContent = '0';
+        if (historicalUniqueVisitsEl) historicalUniqueVisitsEl.textContent = '0';
+        if (historicalRegistrationsEl) historicalRegistrationsEl.textContent = '0';
+        if (regLabelEl) regLabelEl.textContent = 'Registros nuevos';
+        if (statusEl) statusEl.textContent = 'Las estadísticas se cargarán al abrir esta pestaña.';
+        if (tbody) {
+          tbody.innerHTML = '<tr><td colspan="4" style="padding:12px; text-align:center; color:var(--text-secondary);">Sin registros.</td></tr>';
+        }
+      }
 
       function renderAdminAnalyticsRows(rows) {
         const tbody = document.getElementById('adminAnalyticsBody');
@@ -14868,9 +14899,11 @@
             adminAnalyticsLoadedAt = now;
           }
 
+          adminAnalyticsHasLoaded = true;
           applyAdminAnalyticsRange(adminAnalyticsCurrentRange || 'month');
         } catch (analyticsError) {
           console.error('[Analytics] Error cargando estadísticas:', analyticsError);
+          adminAnalyticsHasLoaded = false;
           if (statusEl) statusEl.textContent = 'No se pudieron cargar las estadísticas.';
           const tbody = document.getElementById('adminAnalyticsBody');
           if (tbody) {
@@ -14888,12 +14921,34 @@
 
         const range = resolveAdminAnalyticsRange(adminAnalyticsCurrentRange || 'month');
         const fileName = `estadisticas-${range.key}-${getAnalyticsDateKey(new Date())}.pdf`;
+        const pdfOrientation = range.key === 'all' ? 'landscape' : 'portrait';
+        const historicalVisits = sumField(adminAnalyticsRows, 'totalVisits');
+        const historicalUniqueVisits = sumField(adminAnalyticsRows, 'uniqueVisits');
+        const historicalRegistrations = sumField(adminAnalyticsRows, 'newRegistrations');
+
         const wrapper = document.createElement('div');
         wrapper.style.padding = '12px';
         wrapper.style.fontFamily = 'Arial, sans-serif';
         wrapper.innerHTML = `
           <h2 style="margin:0 0 6px 0;">Conquiguias World - Estadísticas</h2>
           <p style="margin:0 0 12px 0; color:#444;">Período: ${escapeHtml(range.label)} · Generado: ${new Date().toLocaleString('es-DO')}</p>
+          <div style="margin:0 0 12px 0; padding:10px; border:1px solid #d1d5db; border-radius:10px; background:#f8fafc;">
+            <div style="font-weight:700; font-size:14px; margin-bottom:8px;">Acumulado histórico (desde siempre)</div>
+            <div style="display:grid; grid-template-columns:repeat(3, minmax(120px, 1fr)); gap:8px;">
+              <div style="border:1px solid #e5e7eb; border-radius:8px; padding:8px; background:#ffffff;">
+                <div style="font-size:12px; color:#4b5563;">Visitas</div>
+                <div style="font-size:22px; font-weight:700; color:#111827;">${escapeHtml(formatReactionCount(historicalVisits))}</div>
+              </div>
+              <div style="border:1px solid #e5e7eb; border-radius:8px; padding:8px; background:#ffffff;">
+                <div style="font-size:12px; color:#4b5563;">Visitas únicas</div>
+                <div style="font-size:22px; font-weight:700; color:#111827;">${escapeHtml(formatReactionCount(historicalUniqueVisits))}</div>
+              </div>
+              <div style="border:1px solid #e5e7eb; border-radius:8px; padding:8px; background:#ffffff;">
+                <div style="font-size:12px; color:#4b5563;">Registros nuevos</div>
+                <div style="font-size:22px; font-weight:700; color:#111827;">${escapeHtml(formatReactionCount(historicalRegistrations))}</div>
+              </div>
+            </div>
+          </div>
         `;
         wrapper.appendChild(printable.cloneNode(true));
 
@@ -14903,7 +14958,7 @@
             filename: fileName,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: pdfOrientation },
             pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
           })
           .from(wrapper)
@@ -14985,6 +15040,10 @@
         tabEstadisticas.style.border = isEstadisticas ? 'none' : '1px solid var(--border-color)';
         viewEstadisticas.classList.toggle('hidden', !isEstadisticas);
 
+        if (!isEstadisticas) {
+          resetAdminAnalyticsCache({ resetView: true });
+        }
+
         if (isPublicaciones) {
           loadPendingPosts();
         } else if (isInstructores) {
@@ -14992,7 +15051,9 @@
         } else if (isDonaciones) {
           loadAdminDonationHistory();
         } else if (isEstadisticas) {
-          loadAdminPlatformAnalytics();
+          if (!adminAnalyticsHasLoaded) {
+            loadAdminPlatformAnalytics();
+          }
         }
       }
 
@@ -15028,12 +15089,18 @@
         }
         if (refreshAdminAnalyticsBtn) {
           refreshAdminAnalyticsBtn.addEventListener('click', () => {
+            resetAdminAnalyticsCache({ resetView: true });
             loadAdminPlatformAnalytics(true);
           });
         }
         if (adminAnalyticsRange) {
           adminAnalyticsRange.addEventListener('change', (event) => {
             adminAnalyticsCurrentRange = event.target?.value || 'month';
+            if (!adminAnalyticsHasLoaded) {
+              const statusEl = document.getElementById('adminAnalyticsStatus');
+              if (statusEl) statusEl.textContent = 'Abre esta pestaña para cargar estadísticas primero.';
+              return;
+            }
             applyAdminAnalyticsRange(adminAnalyticsCurrentRange);
           });
         }

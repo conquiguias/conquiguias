@@ -741,8 +741,7 @@ async function handleTrackPlatformVisit(req, res) {
     const db = admin.firestore();
     const dateKey = getAnalyticsDateKey(new Date());
     const summaryRef = db.collection("analytics_daily").doc(dateKey);
-    const uniqueDayRef = db.collection("analytics_daily_unique").doc(dateKey);
-    const uniqueVisitorRef = uniqueDayRef.collection("visitors").doc(visitorKey);
+    const uniqueVisitorRef = summaryRef.collection("visitors").doc(visitorKey);
 
     let countedUnique = false;
 
@@ -764,14 +763,6 @@ async function handleTrackPlatformVisit(req, res) {
       }
 
       transaction.set(summaryRef, summaryPayload, { merge: true });
-      transaction.set(
-        uniqueDayRef,
-        {
-          dateKey,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      );
     });
 
     return res.status(200).json({

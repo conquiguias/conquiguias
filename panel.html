@@ -14860,6 +14860,9 @@
       async function loadAdminPlatformAnalytics(forceReload = false) {
         if (!window.canAccessAdminPanel) return;
 
+        const viewEstadisticas = document.getElementById('adminEstadisticasView');
+        if (!viewEstadisticas || viewEstadisticas.classList.contains('hidden')) return;
+
         const statusEl = document.getElementById('adminAnalyticsStatus');
         if (statusEl) statusEl.textContent = 'Cargando estadísticas...';
 

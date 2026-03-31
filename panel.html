@@ -14686,25 +14686,18 @@
 
         try {
           const visitorKey = getAnalyticsVisitorKey(user);
-          const uniqueVisitStorageKey = `cx_unique_visit_last_${visitorKey}`;
-          const nowTs = Date.now();
-          const lastUniqueTs = parseInt(localStorage.getItem(uniqueVisitStorageKey) || '0', 10);
-          const shouldCountUnique = Number.isNaN(lastUniqueTs) || (nowTs - lastUniqueTs) >= (24 * 60 * 60 * 1000);
+          const response = await fetch('/api/social?action=track-platform-visit', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ visitorKey })
+          });
 
-          const dateKey = getAnalyticsDateKey(new Date());
-          const analyticsRef = doc(db, 'analytics_daily', dateKey);
-          const payload = {
-            dateKey,
-            totalVisits: increment(1),
-            updatedAt: new Date().toISOString()
-          };
-
-          if (shouldCountUnique) {
-            payload.uniqueVisits = increment(1);
-            localStorage.setItem(uniqueVisitStorageKey, String(nowTs));
+          if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            throw new Error(payload.error || 'No se pudo registrar la visita');
           }
-
-          await setDoc(analyticsRef, payload, { merge: true });
         } catch (analyticsError) {
           console.warn('[Analytics] No se pudo registrar visita:', analyticsError);
         }
@@ -14844,16 +14837,33 @@
           const canUseCache = !forceReload && adminAnalyticsRows.length && (now - adminAnalyticsLoadedAt) < ADMIN_ANALYTICS_CACHE_MS;
 
           if (!canUseCache) {
-            const snapshot = await getDocs(collection(db, 'analytics_daily'));
-            adminAnalyticsRows = snapshot.docs.map((docSnap) => {
-              const data = docSnap.data() || {};
-              return {
-                dateKey: String(data.dateKey || docSnap.id || '').trim(),
-                totalVisits: Number(data.totalVisits) || 0,
-                uniqueVisits: Number(data.uniqueVisits) || 0,
-                newRegistrations: Number(data.newRegistrations) || 0
-              };
-            }).filter((row) => !!row.dateKey);
+            const authUser = auth?.currentUser || null;
+            const idToken = authUser ? await authUser.getIdToken(true) : '';
+            if (!idToken) {
+              throw new Error('No se pudo validar la sesión para estadísticas.');
+            }
+
+            const res = await fetch('/api/social?action=get-platform-analytics', {
+              method: 'GET',
+              headers: {
+                Authorization: `Bearer ${idToken}`
+              }
+            });
+
+            if (!res.ok) {
+              const payload = await res.json().catch(() => ({}));
+              throw new Error(payload.error || 'No se pudieron cargar las estadísticas');
+            }
+
+            const payload = await res.json();
+            adminAnalyticsRows = Array.isArray(payload?.rows)
+              ? payload.rows.map((row) => ({
+                dateKey: String(row?.dateKey || '').trim(),
+                totalVisits: Number(row?.totalVisits) || 0,
+                uniqueVisits: Number(row?.uniqueVisits) || 0,
+                newRegistrations: Number(row?.newRegistrations) || 0
+              })).filter((row) => !!row.dateKey)
+              : [];
 
             adminAnalyticsLoadedAt = now;
           }

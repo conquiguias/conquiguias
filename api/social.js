@@ -128,6 +128,12 @@ export default async function handler(req, res) {
       case "get-paypal-donations":
         await handleGetPaypalDonations(req, res);
         break;
+      case "track-platform-visit":
+        await handleTrackPlatformVisit(req, res);
+        break;
+      case "get-platform-analytics":
+        await handleGetPlatformAnalytics(req, res);
+        break;
       case "upsert-notification-token":
         await handleUpsertNotificationToken(req, res);
         break;
@@ -702,6 +708,119 @@ async function handleGetPaypalDonations(req, res) {
     return res.status(error.statusCode || 500).json({
       success: false,
       error: error.message || "Error al obtener donaciones",
+    });
+  }
+}
+
+function getAnalyticsDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function sanitizeVisitorKey(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  const safe = raw.replace(/[^a-zA-Z0-9:_-]/g, "_");
+  return safe.slice(0, 180);
+}
+
+async function handleTrackPlatformVisit(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
+  try {
+    const body = req.body || {};
+    const visitorKey = sanitizeVisitorKey(body.visitorKey);
+    if (!visitorKey) {
+      return res.status(400).json({ success: false, error: "visitorKey es requerido" });
+    }
+
+    const db = admin.firestore();
+    const dateKey = getAnalyticsDateKey(new Date());
+    const summaryRef = db.collection("analytics_daily").doc(dateKey);
+    const uniqueDayRef = db.collection("analytics_daily_unique").doc(dateKey);
+    const uniqueVisitorRef = uniqueDayRef.collection("visitors").doc(visitorKey);
+
+    let countedUnique = false;
+
+    await db.runTransaction(async (transaction) => {
+      const uniqueVisitorSnap = await transaction.get(uniqueVisitorRef);
+      const summaryPayload = {
+        dateKey,
+        totalVisits: admin.firestore.FieldValue.increment(1),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+
+      if (!uniqueVisitorSnap.exists) {
+        countedUnique = true;
+        summaryPayload.uniqueVisits = admin.firestore.FieldValue.increment(1);
+        transaction.set(uniqueVisitorRef, {
+          visitorKey,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+
+      transaction.set(summaryRef, summaryPayload, { merge: true });
+      transaction.set(
+        uniqueDayRef,
+        {
+          dateKey,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+    });
+
+    return res.status(200).json({
+      success: true,
+      dateKey,
+      countedUnique,
+    });
+  } catch (error) {
+    console.error("Error registrando visita de plataforma:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || "No se pudo registrar la visita",
+    });
+  }
+}
+
+async function handleGetPlatformAnalytics(req, res) {
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
+  try {
+    await requireAdminOrOwner(req);
+
+    const db = admin.firestore();
+    const snapshot = await db.collection("analytics_daily").get();
+
+    const rows = snapshot.docs
+      .map((docSnap) => {
+        const data = docSnap.data() || {};
+        return {
+          dateKey: String(data.dateKey || docSnap.id || "").trim(),
+          totalVisits: Number(data.totalVisits) || 0,
+          uniqueVisits: Number(data.uniqueVisits) || 0,
+          newRegistrations: Number(data.newRegistrations) || 0,
+        };
+      })
+      .filter((row) => !!row.dateKey)
+      .sort((a, b) => String(a.dateKey || "").localeCompare(String(b.dateKey || "")));
+
+    return res.status(200).json({
+      success: true,
+      rows,
+    });
+  } catch (error) {
+    console.error("Error obteniendo analíticas de plataforma:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || "No se pudieron obtener las analíticas",
     });
   }
 }

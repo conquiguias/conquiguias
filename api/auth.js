@@ -21,6 +21,32 @@ if (!admin.apps.length) {
   });
 }
 
+function getDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+async function incrementDailyAnalytics(fieldName, amount = 1) {
+  const safeField = String(fieldName || "").trim();
+  if (!safeField) return;
+
+  const dateKey = getDateKey(new Date());
+  await admin
+    .firestore()
+    .collection("analytics_daily")
+    .doc(dateKey)
+    .set(
+      {
+        dateKey,
+        [safeField]: admin.firestore.FieldValue.increment(Number(amount) || 1),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+}
+
 module.exports = async (req, res) => {
   // 🔐 Add security headers to all responses
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -128,6 +154,8 @@ module.exports = async (req, res) => {
         emailVerificado: false,
         creado: admin.firestore.FieldValue.serverTimestamp(),
       });
+
+      await incrementDailyAnalytics("newRegistrations", 1);
 
       // Enviar verificación de email
       const verificationLink = await admin
@@ -244,6 +272,7 @@ module.exports = async (req, res) => {
           pais: "",
           creado: admin.firestore.FieldValue.serverTimestamp(),
         });
+        await incrementDailyAnalytics("newRegistrations", 1);
       } else {
         await userRef.set(
           {

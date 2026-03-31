@@ -5208,6 +5208,10 @@
           style="padding: 8px 16px; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;">
           <i class="fas fa-hand-holding-heart" style="margin-right: 6px;"></i>Donaciones
         </button>
+        <button id="adminTabEstadisticas"
+          style="padding: 8px 16px; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;">
+          <i class="fas fa-chart-line" style="margin-right: 6px;"></i>Estadísticas
+        </button>
       </div>
 
       <div id="adminModeracionView">
@@ -5333,6 +5337,70 @@
               <tbody id="adminDonacionesBody">
                 <tr>
                   <td colspan="5" style="padding:12px; text-align:center; color:var(--text-secondary);">Sin registros.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="adminEstadisticasView" class="hidden">
+        <div style="background: var(--bg-secondary); padding: 16px; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 16px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom: 12px;">
+            <h4 style="margin: 0;"><i class="fas fa-chart-line" style="margin-right:8px; color: var(--accent-color);"></i>Estadísticas de Plataforma</h4>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <select id="adminAnalyticsRange" style="padding:8px 10px; border-radius:6px; border:1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+                <option value="day">Hoy</option>
+                <option value="week">Últimos 7 días</option>
+                <option value="month" selected>Este mes</option>
+                <option value="year">Este año</option>
+                <option value="last-year">Año pasado</option>
+                <option value="all">Desde siempre</option>
+              </select>
+              <button id="refreshAdminAnalyticsBtn" style="width:auto; margin-top:0; padding:8px 12px; font-size:13px;">
+                <i class="fas fa-rotate-right" style="margin-right: 6px;"></i> Actualizar
+              </button>
+              <button id="exportAdminAnalyticsPdfBtn" style="width:auto; margin-top:0; padding:8px 12px; font-size:13px;">
+                <i class="fas fa-file-pdf" style="margin-right: 6px;"></i> Exportar PDF
+              </button>
+            </div>
+          </div>
+
+          <div id="adminAnalyticsStatus" style="margin-bottom: 10px; color: var(--text-secondary); font-size: 13px;">Cargando estadísticas...</div>
+
+          <div style="display:grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); gap:12px; margin-bottom: 12px;">
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; text-align:center;">
+              <div style="font-size: 24px; font-weight: 700;" id="analyticsTotalVisits">0</div>
+              <div style="font-size: 12px; color: var(--text-secondary);">Visitas</div>
+            </div>
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; text-align:center;">
+              <div style="font-size: 24px; font-weight: 700;" id="analyticsUniqueVisits">0</div>
+              <div style="font-size: 12px; color: var(--text-secondary);">Visitas únicas</div>
+            </div>
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; text-align:center;">
+              <div style="font-size: 24px; font-weight: 700;" id="analyticsNewRegistrations">0</div>
+              <div style="font-size: 12px; color: var(--text-secondary);" id="analyticsRegistrationsLabel">Registros nuevos</div>
+            </div>
+          </div>
+
+          <div id="adminAnalyticsPrintableArea" style="overflow-x:auto; border:1px solid var(--border-color); border-radius:10px;">
+            <div style="display:grid; grid-template-columns: repeat(3, minmax(120px, 1fr)); gap:8px; padding:10px; border-bottom:1px solid var(--border-color); background: var(--bg-card);">
+              <div style="font-size:12px; color: var(--text-secondary);">Acumulado histórico · Visitas: <strong id="analyticsHistoricalVisits">0</strong></div>
+              <div style="font-size:12px; color: var(--text-secondary);">Visitas únicas: <strong id="analyticsHistoricalUniqueVisits">0</strong></div>
+              <div style="font-size:12px; color: var(--text-secondary);">Registros nuevos: <strong id="analyticsHistoricalRegistrations">0</strong></div>
+            </div>
+            <table style="width:100%; border-collapse: collapse;">
+              <thead>
+                <tr style="border-bottom:1px solid var(--border-color); background: var(--bg-secondary);">
+                  <th style="text-align:left; padding:8px;">Fecha</th>
+                  <th style="text-align:right; padding:8px;">Visitas</th>
+                  <th style="text-align:right; padding:8px;">Visitas únicas</th>
+                  <th style="text-align:right; padding:8px;">Registros nuevos</th>
+                </tr>
+              </thead>
+              <tbody id="adminAnalyticsBody">
+                <tr>
+                  <td colspan="4" style="padding:12px; text-align:center; color:var(--text-secondary);">Sin registros.</td>
                 </tr>
               </tbody>
             </table>
@@ -7210,6 +7278,7 @@
           return;
         }
         isGuestSession = isAnonymousGuestUser(user);
+        trackPlatformVisit(user);
 
         if (isGuestSession) {
           window.isOwner = false;
@@ -14588,6 +14657,249 @@
 
       // 🔧 FUNCIONES DEL PANEL DE ADMINISTRACIÓN
 
+      function getAnalyticsDateKey(date = new Date()) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+
+      function getOrCreateAnalyticsAnonId() {
+        let anonId = localStorage.getItem('_cx_anon_id');
+        if (!anonId) {
+          anonId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+          localStorage.setItem('_cx_anon_id', anonId);
+        }
+        return anonId;
+      }
+
+      function getAnalyticsVisitorKey(user) {
+        if (user && !isAnonymousGuestUser(user) && user.uid) {
+          return `uid_${String(user.uid).trim()}`;
+        }
+        return `anon_${getOrCreateAnalyticsAnonId()}`;
+      }
+
+      async function trackPlatformVisit(user) {
+        if (window.__cxVisitTrackedInPage === true) return;
+        window.__cxVisitTrackedInPage = true;
+
+        try {
+          const visitorKey = getAnalyticsVisitorKey(user);
+          const uniqueVisitStorageKey = `cx_unique_visit_last_${visitorKey}`;
+          const nowTs = Date.now();
+          const lastUniqueTs = parseInt(localStorage.getItem(uniqueVisitStorageKey) || '0', 10);
+          const shouldCountUnique = Number.isNaN(lastUniqueTs) || (nowTs - lastUniqueTs) >= (24 * 60 * 60 * 1000);
+
+          const dateKey = getAnalyticsDateKey(new Date());
+          const analyticsRef = doc(db, 'analytics_daily', dateKey);
+          const payload = {
+            dateKey,
+            totalVisits: increment(1),
+            updatedAt: new Date().toISOString()
+          };
+
+          if (shouldCountUnique) {
+            payload.uniqueVisits = increment(1);
+            localStorage.setItem(uniqueVisitStorageKey, String(nowTs));
+          }
+
+          await setDoc(analyticsRef, payload, { merge: true });
+        } catch (analyticsError) {
+          console.warn('[Analytics] No se pudo registrar visita:', analyticsError);
+        }
+      }
+
+      function resolveAdminAnalyticsRange(rangeName) {
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        switch (rangeName) {
+          case 'day': {
+            return { key: 'day', label: 'Hoy', start: startOfToday, end: now };
+          }
+          case 'week': {
+            const start = new Date(startOfToday);
+            start.setDate(start.getDate() - 6);
+            return { key: 'week', label: 'Últimos 7 días', start, end: now };
+          }
+          case 'year': {
+            const start = new Date(now.getFullYear(), 0, 1);
+            return { key: 'year', label: 'Este año', start, end: now };
+          }
+          case 'last-year': {
+            const year = now.getFullYear() - 1;
+            const start = new Date(year, 0, 1);
+            const end = new Date(year, 11, 31, 23, 59, 59, 999);
+            return { key: 'last-year', label: 'Año pasado', start, end };
+          }
+          case 'all': {
+            return { key: 'all', label: 'Desde siempre', start: null, end: null };
+          }
+          case 'month':
+          default: {
+            const start = new Date(now.getFullYear(), now.getMonth(), 1);
+            return { key: 'month', label: 'Este mes', start, end: now };
+          }
+        }
+      }
+
+      function formatAdminAnalyticsDateLabel(dateKey) {
+        const parts = String(dateKey || '').split('-');
+        if (parts.length !== 3) return String(dateKey || '—');
+        const date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        if (Number.isNaN(date.getTime())) return String(dateKey || '—');
+        return date.toLocaleDateString('es-DO', {
+          weekday: 'short',
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        });
+      }
+
+      function sumField(rows, fieldName) {
+        return rows.reduce((acc, row) => acc + (Number(row?.[fieldName]) || 0), 0);
+      }
+
+      let adminAnalyticsRows = [];
+      let adminAnalyticsLoadedAt = 0;
+      let adminAnalyticsCurrentRange = 'month';
+      const ADMIN_ANALYTICS_CACHE_MS = 2 * 60 * 1000;
+
+      function renderAdminAnalyticsRows(rows) {
+        const tbody = document.getElementById('adminAnalyticsBody');
+        if (!tbody) return;
+
+        if (!rows.length) {
+          tbody.innerHTML = '<tr><td colspan="4" style="padding:12px; text-align:center; color:var(--text-secondary);">Sin registros para el período seleccionado.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = rows.map((row) => `
+          <tr style="border-bottom:1px solid var(--border-color);">
+            <td style="padding:8px;">${escapeHtml(formatAdminAnalyticsDateLabel(row.dateKey))}</td>
+            <td style="padding:8px; text-align:right;">${formatReactionCount(Number(row.totalVisits) || 0)}</td>
+            <td style="padding:8px; text-align:right;">${formatReactionCount(Number(row.uniqueVisits) || 0)}</td>
+            <td style="padding:8px; text-align:right;">${formatReactionCount(Number(row.newRegistrations) || 0)}</td>
+          </tr>
+        `).join('');
+      }
+
+      function applyAdminAnalyticsRange(rangeName) {
+        const range = resolveAdminAnalyticsRange(rangeName);
+        adminAnalyticsCurrentRange = range.key;
+
+        const historicalVisits = sumField(adminAnalyticsRows, 'totalVisits');
+        const historicalUniqueVisits = sumField(adminAnalyticsRows, 'uniqueVisits');
+        const historicalRegistrations = sumField(adminAnalyticsRows, 'newRegistrations');
+
+        const filteredRows = adminAnalyticsRows
+          .filter((row) => {
+            const rowDate = new Date(`${row.dateKey}T00:00:00`);
+            if (Number.isNaN(rowDate.getTime())) return false;
+            if (range.start && rowDate < range.start) return false;
+            if (range.end && rowDate > range.end) return false;
+            return true;
+          })
+          .sort((a, b) => String(b.dateKey || '').localeCompare(String(a.dateKey || '')));
+
+        const visits = sumField(filteredRows, 'totalVisits');
+        const uniqueVisits = sumField(filteredRows, 'uniqueVisits');
+        const newRegistrations = sumField(filteredRows, 'newRegistrations');
+
+        const thisMonthPrefix = getAnalyticsDateKey(new Date()).slice(0, 7);
+        const thisMonthRegistrations = adminAnalyticsRows
+          .filter((row) => String(row.dateKey || '').startsWith(thisMonthPrefix))
+          .reduce((acc, row) => acc + (Number(row.newRegistrations) || 0), 0);
+
+        const totalVisitsEl = document.getElementById('analyticsTotalVisits');
+        const uniqueVisitsEl = document.getElementById('analyticsUniqueVisits');
+        const newRegEl = document.getElementById('analyticsNewRegistrations');
+        const regLabelEl = document.getElementById('analyticsRegistrationsLabel');
+        const statusEl = document.getElementById('adminAnalyticsStatus');
+        const historicalVisitsEl = document.getElementById('analyticsHistoricalVisits');
+        const historicalUniqueVisitsEl = document.getElementById('analyticsHistoricalUniqueVisits');
+        const historicalRegistrationsEl = document.getElementById('analyticsHistoricalRegistrations');
+
+        if (totalVisitsEl) totalVisitsEl.textContent = formatReactionCount(visits);
+        if (uniqueVisitsEl) uniqueVisitsEl.textContent = formatReactionCount(uniqueVisits);
+        if (newRegEl) newRegEl.textContent = formatReactionCount(newRegistrations);
+        if (historicalVisitsEl) historicalVisitsEl.textContent = formatReactionCount(historicalVisits);
+        if (historicalUniqueVisitsEl) historicalUniqueVisitsEl.textContent = formatReactionCount(historicalUniqueVisits);
+        if (historicalRegistrationsEl) historicalRegistrationsEl.textContent = formatReactionCount(historicalRegistrations);
+        if (regLabelEl) regLabelEl.textContent = `Registros nuevos (${range.label}) · Mes actual: ${formatReactionCount(thisMonthRegistrations)}`;
+        if (statusEl) statusEl.textContent = `Período: ${range.label} · Días con datos: ${filteredRows.length}`;
+
+        renderAdminAnalyticsRows(filteredRows);
+      }
+
+      async function loadAdminPlatformAnalytics(forceReload = false) {
+        if (!window.canAccessAdminPanel) return;
+
+        const statusEl = document.getElementById('adminAnalyticsStatus');
+        if (statusEl) statusEl.textContent = 'Cargando estadísticas...';
+
+        try {
+          const now = Date.now();
+          const canUseCache = !forceReload && adminAnalyticsRows.length && (now - adminAnalyticsLoadedAt) < ADMIN_ANALYTICS_CACHE_MS;
+
+          if (!canUseCache) {
+            const snapshot = await getDocs(collection(db, 'analytics_daily'));
+            adminAnalyticsRows = snapshot.docs.map((docSnap) => {
+              const data = docSnap.data() || {};
+              return {
+                dateKey: String(data.dateKey || docSnap.id || '').trim(),
+                totalVisits: Number(data.totalVisits) || 0,
+                uniqueVisits: Number(data.uniqueVisits) || 0,
+                newRegistrations: Number(data.newRegistrations) || 0
+              };
+            }).filter((row) => !!row.dateKey);
+
+            adminAnalyticsLoadedAt = now;
+          }
+
+          applyAdminAnalyticsRange(adminAnalyticsCurrentRange || 'month');
+        } catch (analyticsError) {
+          console.error('[Analytics] Error cargando estadísticas:', analyticsError);
+          if (statusEl) statusEl.textContent = 'No se pudieron cargar las estadísticas.';
+          const tbody = document.getElementById('adminAnalyticsBody');
+          if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="4" style="padding:12px; text-align:center; color:var(--error-color);">Error cargando estadísticas.</td></tr>';
+          }
+        }
+      }
+
+      function exportAdminAnalyticsPdf() {
+        const printable = document.getElementById('adminAnalyticsPrintableArea');
+        if (!printable || typeof window.html2pdf !== 'function') {
+          mostrarMensaje('error', 'Error', 'No se pudo generar el PDF en este momento.');
+          return;
+        }
+
+        const range = resolveAdminAnalyticsRange(adminAnalyticsCurrentRange || 'month');
+        const fileName = `estadisticas-${range.key}-${getAnalyticsDateKey(new Date())}.pdf`;
+        const wrapper = document.createElement('div');
+        wrapper.style.padding = '12px';
+        wrapper.style.fontFamily = 'Arial, sans-serif';
+        wrapper.innerHTML = `
+          <h2 style="margin:0 0 6px 0;">Conquiguias World - Estadísticas</h2>
+          <p style="margin:0 0 12px 0; color:#444;">Período: ${escapeHtml(range.label)} · Generado: ${new Date().toLocaleString('es-DO')}</p>
+        `;
+        wrapper.appendChild(printable.cloneNode(true));
+
+        window.html2pdf()
+          .set({
+            margin: 8,
+            filename: fileName,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+          })
+          .from(wrapper)
+          .save();
+      }
+
       // Mostrar/ocultar sección Admin
       function setupAdminSection() {
         const menuAdmin = document.getElementById('menuAdmin');
@@ -14622,15 +14934,18 @@
         const tabPublicaciones = document.getElementById('adminTabPublicaciones');
         const tabInstructores = document.getElementById('adminTabInstructores');
         const tabDonaciones = document.getElementById('adminTabDonaciones');
+        const tabEstadisticas = document.getElementById('adminTabEstadisticas');
         const viewModeracion = document.getElementById('adminModeracionView');
         const viewInstructores = document.getElementById('adminInstructoresView');
         const viewDonaciones = document.getElementById('adminDonacionesView');
+        const viewEstadisticas = document.getElementById('adminEstadisticasView');
 
-        if (!tabPublicaciones || !tabInstructores || !tabDonaciones || !viewModeracion || !viewInstructores || !viewDonaciones) return;
+        if (!tabPublicaciones || !tabInstructores || !tabDonaciones || !tabEstadisticas || !viewModeracion || !viewInstructores || !viewDonaciones || !viewEstadisticas) return;
 
         const isPublicaciones = tabName === 'publicaciones';
         const isInstructores = tabName === 'instructores';
         const isDonaciones = tabName === 'donaciones';
+        const isEstadisticas = tabName === 'estadisticas';
 
         // Publicaciones
         tabPublicaciones.classList.toggle('active', isPublicaciones);
@@ -14653,12 +14968,21 @@
         tabDonaciones.style.border = isDonaciones ? 'none' : '1px solid var(--border-color)';
         viewDonaciones.classList.toggle('hidden', !isDonaciones);
 
+        // Estadísticas
+        tabEstadisticas.classList.toggle('active', isEstadisticas);
+        tabEstadisticas.style.background = isEstadisticas ? 'var(--accent-color)' : 'transparent';
+        tabEstadisticas.style.color = isEstadisticas ? 'white' : 'var(--text-primary)';
+        tabEstadisticas.style.border = isEstadisticas ? 'none' : '1px solid var(--border-color)';
+        viewEstadisticas.classList.toggle('hidden', !isEstadisticas);
+
         if (isPublicaciones) {
           loadPendingPosts();
         } else if (isInstructores) {
           inicializarAdminInstructores();
         } else if (isDonaciones) {
           loadAdminDonationHistory();
+        } else if (isEstadisticas) {
+          loadAdminPlatformAnalytics();
         }
       }
 
@@ -14667,9 +14991,13 @@
         const tabPublicaciones = document.getElementById('adminTabPublicaciones');
         const tabInstructores = document.getElementById('adminTabInstructores');
         const tabDonaciones = document.getElementById('adminTabDonaciones');
+        const tabEstadisticas = document.getElementById('adminTabEstadisticas');
         const searchInput = document.getElementById('adminInstructorSearch');
         const assignBtn = document.getElementById('btnAsignarInstructorEspecialidades');
         const refreshAdminDonacionesBtn = document.getElementById('refreshAdminDonacionesBtn');
+        const refreshAdminAnalyticsBtn = document.getElementById('refreshAdminAnalyticsBtn');
+        const exportAdminAnalyticsPdfBtn = document.getElementById('exportAdminAnalyticsPdfBtn');
+        const adminAnalyticsRange = document.getElementById('adminAnalyticsRange');
 
         if (tabPublicaciones) {
           tabPublicaciones.addEventListener('click', () => activarTabAdmin('publicaciones'));
@@ -14680,10 +15008,27 @@
         if (tabDonaciones) {
           tabDonaciones.addEventListener('click', () => activarTabAdmin('donaciones'));
         }
+        if (tabEstadisticas) {
+          tabEstadisticas.addEventListener('click', () => activarTabAdmin('estadisticas'));
+        }
         if (refreshAdminDonacionesBtn) {
           refreshAdminDonacionesBtn.addEventListener('click', () => {
             loadAdminDonationHistory(true);
           });
+        }
+        if (refreshAdminAnalyticsBtn) {
+          refreshAdminAnalyticsBtn.addEventListener('click', () => {
+            loadAdminPlatformAnalytics(true);
+          });
+        }
+        if (adminAnalyticsRange) {
+          adminAnalyticsRange.addEventListener('change', (event) => {
+            adminAnalyticsCurrentRange = event.target?.value || 'month';
+            applyAdminAnalyticsRange(adminAnalyticsCurrentRange);
+          });
+        }
+        if (exportAdminAnalyticsPdfBtn) {
+          exportAdminAnalyticsPdfBtn.addEventListener('click', exportAdminAnalyticsPdf);
         }
         if (searchInput) {
           searchInput.addEventListener('input', () => {

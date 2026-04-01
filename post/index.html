@@ -567,12 +567,66 @@
         overflow-wrap: anywhere;
       }
 
+      .post-description .wa-bold {
+        font-weight: 700;
+        font-size: calc(1em + 2px);
+      }
+
+      .post-description .wa-italic {
+        font-style: italic;
+      }
+
       .post-description .post-description-text.clamped {
         display: -webkit-box;
         -webkit-box-orient: vertical;
         -webkit-line-clamp: 3;
         line-clamp: 3;
         overflow: hidden;
+      }
+
+      .post-card.text-only-post .post-body-layout {
+        min-height: 250px;
+      }
+
+      .post-card.text-only-post .post-main-column {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .post-card.text-only-post .post-content {
+        display: none;
+      }
+
+      .post-card.text-only-post .post-description {
+        flex: 1;
+        min-height: 250px;
+        padding: 12px;
+      }
+
+      .post-card.text-only-post .post-description .post-description-text.clamped {
+        -webkit-line-clamp: 11;
+        line-clamp: 11;
+      }
+
+      @media (max-width: 767px) {
+        .post-card.text-only-post .post-description .post-description-text.clamped {
+          -webkit-line-clamp: 8;
+          line-clamp: 8;
+        }
+      }
+
+      @media (min-width: 768px) and (max-width: 1199px) {
+        .post-card.text-only-post .post-description .post-description-text.clamped {
+          -webkit-line-clamp: 10;
+          line-clamp: 10;
+        }
+      }
+
+      @media (min-width: 1200px) {
+        .post-card.text-only-post .post-description .post-description-text.clamped {
+          -webkit-line-clamp: 13;
+          line-clamp: 13;
+        }
       }
 
       .post-description .post-description-clamp-wrap {
@@ -2119,7 +2173,11 @@
 
       function formatRichText(text) {
         const escaped = escapeHtml(text);
-        const withMentions = escaped
+        const withWhatsappFormatting = escaped
+          .replace(/(^|[\s(])\*([^*\n]+?)\*(?=($|[\s).,!?;:]))/g, '$1<span class="wa-bold">$2</span>')
+          .replace(/(^|[\s(])_([^_\n]+?)_(?=($|[\s).,!?;:]))/g, '$1<span class="wa-italic">$2</span>');
+
+        const withMentions = withWhatsappFormatting
           .replace(
             /@([a-zA-Z0-9_]+)/g,
             '<span style="color: var(--accent-color); font-weight: bold;">@$1</span>',
@@ -2361,8 +2419,11 @@
         const isAudioMedia = shouldPreferLunaRadio(post);
         const isVideoMedia = !isAudioMedia && shouldUseClappr(post);
         const isImageMedia = !isAudioMedia && !isVideoMedia && String(post.mediaType || "").startsWith("image/");
+        const hasRenderableMedia = !!(post.mediaUrl && (isAudioMedia || isVideoMedia || isImageMedia));
 
-        const mediaHtml = isImageMedia
+        const mediaHtml = !hasRenderableMedia
+          ? ""
+          : isImageMedia
           ? `<div class="media-blur-shell">
              <img class="media-blur-bg-img" src="${escapeHtml(post.mediaUrl || "")}" alt="" aria-hidden="true" loading="lazy">
              <img class="media-front-media" src="${escapeHtml(post.mediaUrl || "")}" alt="Publicación" loading="lazy" onerror="this.closest('.media-blur-shell').style.display='none'">
@@ -2381,7 +2442,7 @@
 
         postRoot.innerHTML = `
         <div class="single-post-shell">
-          <article class="post-card${post.isLive ? " live-post" : ""}" data-postid="${post.id}">
+          <article class="post-card${post.isLive ? " live-post" : ""}${!hasRenderableMedia ? " text-only-post" : ""}" data-postid="${post.id}">
             <header class="post-header">
               <img src="${escapeHtml(post.userPhoto || "https://dummyimage.com/40x40/ccc/fff")}" class="post-user-img${post.isLive ? " live-border" : ""}" alt="Foto de perfil" onerror="this.src='https://dummyimage.com/40x40/ccc/fff'">
               <div style="min-width:0;">

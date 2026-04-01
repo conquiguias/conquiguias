@@ -3736,29 +3736,17 @@
     }
 
     .post-card.text-only-post .post-description .post-description-text.clamped {
-      -webkit-line-clamp: 11;
-      line-clamp: 11;
+      display: block;
+      -webkit-line-clamp: unset;
+      line-clamp: unset;
+      height: 100%;
+      max-height: 100%;
+      overflow: hidden;
     }
 
-    @media (max-width: 767px) {
-      .post-card.text-only-post .post-description .post-description-text.clamped {
-        -webkit-line-clamp: 8;
-        line-clamp: 8;
-      }
-    }
-
-    @media (min-width: 768px) and (max-width: 1199px) {
-      .post-card.text-only-post .post-description .post-description-text.clamped {
-        -webkit-line-clamp: 10;
-        line-clamp: 10;
-      }
-    }
-
-    @media (min-width: 1200px) {
-      .post-card.text-only-post .post-description .post-description-text.clamped {
-        -webkit-line-clamp: 13;
-        line-clamp: 13;
-      }
+    .post-card.text-only-post .post-description .post-description-clamp-wrap {
+      height: 100%;
+      overflow: hidden;
     }
 
     .post-description .post-description-clamp-wrap {

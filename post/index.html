@@ -2501,12 +2501,13 @@
           }, 250);
         }
 
-        postRoot.querySelectorAll("button[data-read-toggle-postid]").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const encodedId = btn.getAttribute("data-read-toggle-postid") || "";
-            if (!encodedId) return;
-            toggleReadMore(decodeURIComponent(encodedId));
-          });
+        // Use event delegation for read more/less buttons
+        postRoot.addEventListener("click", (event) => {
+          const btn = event.target.closest("button[data-read-toggle-postid]");
+          if (!btn) return;
+          const encodedId = btn.getAttribute("data-read-toggle-postid") || "";
+          if (!encodedId) return;
+          toggleReadMore(decodeURIComponent(encodedId));
         });
 
         requestAnimationFrame(() => applyReadMoreOverflowState(postRoot));

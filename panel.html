@@ -3718,12 +3718,26 @@
       overflow-wrap: anywhere;
     }
 
+    .post-description .wa-bold {
+      font-weight: 700;
+      font-size: calc(1em + 2px);
+    }
+
+    .post-description .wa-italic {
+      font-style: italic;
+    }
+
     .post-description .post-description-text.clamped {
       display: -webkit-box;
       -webkit-box-orient: vertical;
       -webkit-line-clamp: 3;
       line-clamp: 3;
       overflow: hidden;
+    }
+
+    .post-card.text-only-post .post-description .post-description-text.clamped {
+      -webkit-line-clamp: 11;
+      line-clamp: 11;
     }
 
     .post-description .post-description-clamp-wrap {
@@ -13206,7 +13220,11 @@
       function formatRichText(text) {
         const escaped = escapeHtml(text);
 
-        const withMentions = escaped
+        const withWhatsappFormatting = escaped
+          .replace(/(^|[\s(])\*([^*\n]+?)\*(?=($|[\s).,!?;:]))/g, '$1<span class="wa-bold">$2</span>')
+          .replace(/(^|[\s(])_([^_\n]+?)_(?=($|[\s).,!?;:]))/g, '$1<span class="wa-italic">$2</span>');
+
+        const withMentions = withWhatsappFormatting
           .replace(/@([a-zA-Z0-9_]+)/g, '<span style="color: var(--accent-color); font-weight: bold;">@$1</span>')
           .replace(/#([a-zA-Z0-9_]+)/g, '<span style="color: var(--success-color); font-weight: bold;">#$1</span>');
 

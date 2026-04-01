@@ -558,6 +558,7 @@
         color: var(--text-primary);
         font-size: 14px;
         line-height: 1.45;
+        overflow: visible;
       }
 
       .post-description .post-description-text {
@@ -673,7 +674,7 @@
         position: relative;
         flex: 1;
         min-height: 0;
-        overflow: hidden;
+        overflow: visible;
       }
 
       .post-main-column {
@@ -681,6 +682,9 @@
         min-width: 0;
         overflow-y: auto;
         overflow-x: hidden;
+        display: flex;
+        flex-direction: column;
+        flex: 0 1 auto;
       }
 
       .post-sidebar-column {

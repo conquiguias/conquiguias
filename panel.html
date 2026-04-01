@@ -1609,6 +1609,7 @@
     .post-card.text-only-post .post-main-column {
       display: flex;
       flex-direction: column;
+      min-height: 0;
     }
 
     .post-card.text-only-post .post-content {
@@ -1616,9 +1617,11 @@
     }
 
     .post-card.text-only-post .post-description {
-      flex: 1;
+      flex: 0 0 250px;
+      height: 250px;
       min-height: 250px;
       padding: 12px;
+      overflow: hidden;
     }
 
     .post-main-column {

@@ -1621,10 +1621,14 @@
       height: 250px;
       min-height: 250px;
       padding: 12px;
-      overflow-y: auto;
-      overflow-x: hidden;
+      overflow: hidden;
       scrollbar-width: thin;
       scrollbar-color: var(--accent-color) rgba(255, 255, 255, 0.08);
+    }
+
+    .post-card.text-only-post .post-description.is-expanded {
+      overflow-y: auto;
+      overflow-x: hidden;
     }
 
     .post-card.text-only-post .post-description::-webkit-scrollbar {
@@ -13197,7 +13201,10 @@
         });
 
         queuePostImgurImages(postElement);
-        requestAnimationFrame(() => applyReadMoreOverflowState(postElement));
+        requestAnimationFrame(() => {
+          applyReadMoreOverflowState(postElement);
+          syncTextOnlyDescriptionState(postElement);
+        });
 
         if (feedDestino === feed) {
           updateFirstPostMarker();
@@ -13247,6 +13254,19 @@
 
           if (!isOverflowing) {
             textEl.classList.remove('clamped');
+          }
+        });
+      }
+
+      function syncTextOnlyDescriptionState(scope = document) {
+        const root = scope instanceof Element || scope instanceof Document ? scope : document;
+        root.querySelectorAll('.post-card.text-only-post .post-description').forEach((descriptionElement) => {
+          const postId = (descriptionElement.id || '').replace('post-description-', '');
+          const isExpanded = !!(postId && postReadMoreExpanded.has(String(postId)));
+          descriptionElement.classList.toggle('is-expanded', isExpanded);
+
+          if (!isExpanded) {
+            descriptionElement.scrollTop = 0;
           }
         });
       }
@@ -13305,7 +13325,10 @@
         }
 
         descriptionElement.innerHTML = formatPostDescription(fullText, normalizedPostId);
-        requestAnimationFrame(() => applyReadMoreOverflowState(descriptionElement));
+        requestAnimationFrame(() => {
+          applyReadMoreOverflowState(descriptionElement);
+          syncTextOnlyDescriptionState(descriptionElement);
+        });
       }
       window.toggleReadMore = toggleReadMore;
 

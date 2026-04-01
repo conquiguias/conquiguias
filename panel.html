@@ -13260,7 +13260,17 @@
 
       function syncTextOnlyDescriptionState(scope = document) {
         const root = scope instanceof Element || scope instanceof Document ? scope : document;
+        const descriptionElements = [];
+
+        if (root instanceof Element && root.matches('.post-card.text-only-post .post-description')) {
+          descriptionElements.push(root);
+        }
+
         root.querySelectorAll('.post-card.text-only-post .post-description').forEach((descriptionElement) => {
+          descriptionElements.push(descriptionElement);
+        });
+
+        descriptionElements.forEach((descriptionElement) => {
           const postId = (descriptionElement.id || '').replace('post-description-', '');
           const isExpanded = !!(postId && postReadMoreExpanded.has(String(postId)));
           descriptionElement.classList.toggle('is-expanded', isExpanded);

@@ -12336,6 +12336,9 @@
 
         const postTags = getPostTagSet(post);
         const normalizedPostKind = getNormalizedPostKind(post);
+        const normalizedMediaType = canonicalizeTag(String(post?.mediaType || ''));
+        const normalizedDescription = normalizeTagValue(String(post?.description || ''));
+        const activeCategoryCanonical = canonicalizeTag(activeFeedCategory);
 
         if (normalizedPostKind && allowedCanonicalTags.has(normalizedPostKind)) {
           return true;
@@ -12343,6 +12346,36 @@
 
         for (const tag of postTags) {
           if (allowedCanonicalTags.has(tag)) return true;
+        }
+
+        if (activeCategoryCanonical && normalizedPostKind.includes(activeCategoryCanonical)) {
+          return true;
+        }
+
+        if (activeFeedCategory === 'radio') {
+          if (normalizedPostKind === 'radio') return true;
+          if (normalizedMediaType === 'audiourl' || normalizedMediaType.startsWith('audio')) return true;
+          if (normalizedDescription.includes('#radio')) return true;
+        }
+
+        if (activeFeedCategory === 'television') {
+          if (normalizedPostKind === 'tv' || normalizedPostKind === 'television') return true;
+          if (normalizedDescription.includes('#television') || normalizedDescription.includes('#tv')) return true;
+          if (normalizedMediaType === 'videourl') {
+            const tags = Array.from(postTags);
+            if (tags.includes('tv') || tags.includes('television') || tags.includes('tele')) {
+              return true;
+            }
+          }
+        }
+
+        if (activeFeedCategory === 'musica') {
+          if (normalizedPostKind === 'musica' || normalizedPostKind === 'music') return true;
+          if (normalizedMediaType === 'audiourl' || normalizedMediaType.startsWith('audio')) {
+            if (normalizedDescription.includes('#musica') || normalizedDescription.includes('#musicaadventista') || normalizedDescription.includes('#music')) {
+              return true;
+            }
+          }
         }
 
         return false;

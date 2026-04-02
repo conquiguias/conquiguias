@@ -17579,10 +17579,10 @@
                     estadoTareaHtml = '<span style="color:#EF4444; font-weight:500;">Cerrado</span>';
                     botonTarea = `<button disabled style="opacity:0.6; cursor:not-allowed; background:#4B5563; color:white; border:none; padding:6px 12px; border-radius:4px;">Expirado</button>`;
                   } else if (faltanAsistencias) {
-                    estadoTareaHtml = '<span style="color:#F59E0B; font-weight:500;">Pendiente (tarea devuelta, enviar de nuevo)</span>';
+                    estadoTareaHtml = '<span style="color:#F59E0B; font-weight:600;"><i class="fas fa-undo-alt" style="margin-right:4px;"></i>Pendiente (tarea devuelta, enviar de nuevo)</span>';
                     botonTarea = `<button disabled style="opacity:0.6; cursor:not-allowed; background:#4B5563; color:white; border:none; padding:4px 8px; border-radius:4px;">Bloqueado</button>`;
                   } else {
-                    estadoTareaHtml = '<span style="color:#F59E0B; font-weight:500;">Pendiente (tarea devuelta, enviar de nuevo)</span>';
+                    estadoTareaHtml = '<span style="color:#F59E0B; font-weight:600;"><i class="fas fa-undo-alt" style="margin-right:4px;"></i>Pendiente (tarea devuelta, enviar de nuevo)</span>';
                     const detalleSafe = (item.configTarea.detalle || '').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
                     botonTarea = `<button onclick="abrirModalSubirTarea('${item.id}', '${item.titulo}', '${detalleSafe}')" style="background:var(--accent-color); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; transition:transform 0.2s;">Entregar</button>`;
                   }
@@ -18151,9 +18151,9 @@
 
       function renderTablaEntregas() {
         const container = document.getElementById('listaEntregasContainer');
-        // Filtramos solo entregados o calificados
+        // Filtramos entregados, calificados o devueltos
         const entregas = Object.entries(entregasCurrentForm)
-          .filter(([k, v]) => v.estado === 'entregado' || v.estado === 'calificado')
+          .filter(([k, v]) => v.estado === 'entregado' || v.estado === 'calificado' || v.estado === 'devuelta')
           .sort(([, a], [, b]) => new Date(b?.fecha || 0).getTime() - new Date(a?.fecha || 0).getTime());
 
         if (entregas.length === 0) {
@@ -18176,11 +18176,15 @@
       `;
 
         entregas.forEach(([vid, data]) => {
+          const estadoTexto = data.estado === 'devuelta'
+          ? '↩ Pendiente (tarea devuelta, enviar de nuevo)'
+          : data.estado;
+
           html += `
               <tr style="border-bottom:1px solid var(--border-color);">
                   <td style="padding:12px;">${vid}</td>
                   <td style="padding:12px;">${new Date(data.fecha).toLocaleString()}</td>
-                  <td style="padding:12px;">${data.estado}</td>
+              <td style="padding:12px;">${estadoTexto}</td>
                   <td style="padding:12px; text-align:center;">
                       <span id="nota-display-${vid}" style="display:inline-block; min-width:50px; padding:6px 12px; background:rgba(59,130,246,0.1); border-radius:4px; font-weight:600; color:var(--text-primary);">
                           ${data.nota || '—'}
@@ -18682,7 +18686,7 @@
                   estadoTarea = 'En Revisión';
                   colorTarea = 'var(--warning-color)';
                 } else if (item.miTarea.estado === 'devuelta') {
-                  estadoTarea = 'Pendiente (tarea devuelta, enviar de nuevo)';
+                  estadoTarea = '↩ Pendiente (tarea devuelta, enviar de nuevo)';
                   colorTarea = 'var(--warning-color)';
                 } else {
                   estadoTarea = 'Pendiente';
@@ -19183,7 +19187,12 @@
       `;
 
         entregas.forEach(([uid, datos]) => {
-          const colorEstado = datos.estado === 'calificado' ? '#10B981' : '#F59E0B';
+          const colorEstado = datos.estado === 'calificado'
+            ? '#10B981'
+            : (datos.estado === 'devuelta' ? '#f59e0b' : '#F59E0B');
+          const estadoTexto = datos.estado === 'devuelta'
+            ? '↩ Pendiente (tarea devuelta, enviar de nuevo)'
+            : datos.estado;
           const targetEmail = window.resolveTargetEmail(uid, datos);
           const currentUserEmail = String((window.userData?.email || (typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.email : '') || '')).trim().toLowerCase();
           const isRestrictedTarget = window.isRestrictedEvaluationTarget(targetEmail, currentUserEmail);
@@ -19199,7 +19208,7 @@
               <tr style="border-bottom:1px solid var(--border-color);">
                   <td style="padding:10px;">${datos.email || uid}</td> <!-- Mostrar email si existe -->
                   <td style="padding:10px; font-size:13px;">${new Date(datos.fecha).toLocaleDateString()}</td>
-                  <td style="padding:10px; text-align:center;"><span style="color:${colorEstado}; font-weight:bold;">${datos.estado}</span></td>
+                  <td style="padding:10px; text-align:center;"><span style="color:${colorEstado}; font-weight:bold;">${estadoTexto}</span></td>
                   <td style="padding:10px; text-align:center; font-weight:bold;">${datos.nota || '-'}</td>
                   <td style="padding:10px; text-align:right;">
                       <button onclick='abrirEvaluador("${uid}")' ${canEvaluateTarget ? '' : 'disabled'} title="${evalButtonTitle}" style="${evalButtonStyle}">

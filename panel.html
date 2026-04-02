@@ -17574,6 +17574,18 @@
                   const color = nota >= 7 ? '#10B981' : '#EF4444';
                   estadoTareaHtml = `<span style="color:${color}; font-weight:bold;">Nota: ${item.miTarea.nota}</span>`;
                   botonTarea = '<button disabled style="opacity:0.6; background:#4B5563; color:white; border:none; padding:4px 8px; border-radius:4px;">Calificado</button>';
+                } else if (item.miTarea.estado === 'devuelta') {
+                  if (isClosed) {
+                    estadoTareaHtml = '<span style="color:#EF4444; font-weight:500;">Cerrado</span>';
+                    botonTarea = `<button disabled style="opacity:0.6; cursor:not-allowed; background:#4B5563; color:white; border:none; padding:6px 12px; border-radius:4px;">Expirado</button>`;
+                  } else if (faltanAsistencias) {
+                    estadoTareaHtml = '<span style="color:#F59E0B; font-weight:500;">Pendiente (tarea devuelta, enviar de nuevo)</span>';
+                    botonTarea = `<button disabled style="opacity:0.6; cursor:not-allowed; background:#4B5563; color:white; border:none; padding:4px 8px; border-radius:4px;">Bloqueado</button>`;
+                  } else {
+                    estadoTareaHtml = '<span style="color:#F59E0B; font-weight:500;">Pendiente (tarea devuelta, enviar de nuevo)</span>';
+                    const detalleSafe = (item.configTarea.detalle || '').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
+                    botonTarea = `<button onclick="abrirModalSubirTarea('${item.id}', '${item.titulo}', '${detalleSafe}')" style="background:var(--accent-color); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; transition:transform 0.2s;">Entregar</button>`;
+                  }
                 }
               } else {
                 if (isClosed) {
@@ -18669,6 +18681,9 @@
                 } else if (item.miTarea.estado === 'entregado') {
                   estadoTarea = 'En Revisión';
                   colorTarea = 'var(--warning-color)';
+                } else if (item.miTarea.estado === 'devuelta') {
+                  estadoTarea = 'Pendiente (tarea devuelta, enviar de nuevo)';
+                  colorTarea = 'var(--warning-color)';
                 } else {
                   estadoTarea = 'Pendiente';
                   colorTarea = 'var(--text-secondary)';
@@ -19306,7 +19321,14 @@
           }
 
           if (currentEntregasData?.[evalId]) {
-            delete currentEntregasData[evalId];
+            currentEntregasData[evalId] = {
+              ...currentEntregasData[evalId],
+              estado: 'devuelta',
+              nota: null,
+              url: '',
+              storagePath: '',
+              fechaDevuelta: new Date().toISOString(),
+            };
           }
 
           alert('✅ Tarea devuelta correctamente. El usuario ya puede volver a enviarla.');

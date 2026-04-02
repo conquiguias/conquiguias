@@ -1109,7 +1109,8 @@ async function handleEliminarTareasPDF(req, res, repo) {
       }
     }
 
-    // Actualizar metadatos: eliminar entrada de tareas
+    // Actualizar metadatos: marcar como devuelta para que el alumno vea
+    // "Pendiente (tarea devuelta, enviar de nuevo)" y pueda reenviar.
     if (normalizedEspecialidadId && normalizedIdent) {
       const { data: evData } = await supabase
         .from("evaluaciones")
@@ -1118,15 +1119,31 @@ async function handleEliminarTareasPDF(req, res, repo) {
         .single();
 
       const tareas = evData?.contenido_tareas || {};
-      if (tareas[normalizedIdent]) {
-        delete tareas[normalizedIdent];
-        await supabase
-          .from("evaluaciones")
-          .upsert({
-            especialidad_id: normalizedEspecialidadId,
-            contenido_tareas: tareas,
-          });
-      }
+      const prevTask =
+        tareas[normalizedIdent] && typeof tareas[normalizedIdent] === "object"
+          ? tareas[normalizedIdent]
+          : {};
+      const inferredEmail =
+        normalizeEmail(prevTask.email || "") ||
+        (normalizedIdent.includes("@") ? normalizedIdent : "");
+
+      tareas[normalizedIdent] = {
+        ...prevTask,
+        estado: "devuelta",
+        nota: null,
+        url: "",
+        storagePath: "",
+        fechaDevuelta: new Date().toISOString(),
+        fecha: prevTask?.fecha || new Date().toISOString(),
+        email: inferredEmail || prevTask.email || null,
+      };
+
+      await supabase
+        .from("evaluaciones")
+        .upsert({
+          especialidad_id: normalizedEspecialidadId,
+          contenido_tareas: tareas,
+        });
     }
 
     res.status(200).json({ ok: true });

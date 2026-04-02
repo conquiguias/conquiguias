@@ -2372,8 +2372,8 @@
     }
 
     .status-admin {
-      background: #facc15;
-      color: #1f2937 !important;
+      background: #38bdf8;
+      color: #ffffff !important;
       border: none;
       font-weight: 700;
     }
@@ -3374,8 +3374,8 @@
     }
 
     .status-admin {
-      background: #facc15;
-      color: #1f2937 !important;
+      background: #38bdf8;
+      color: #ffffff !important;
       border: none;
       font-weight: 700;
     }
@@ -6676,6 +6676,7 @@
       let certificacionesCacheTime = 0;
       const CACHE_DURATION = 5 * 60 * 1000;
       let instructorAssignmentsConfig = {};
+      const postAuthorMetaCache = new Map();
 
       window.isOwner = false;
       window.isInstructorRole = false;
@@ -6723,8 +6724,69 @@
       function hasInstructorBadge(post) {
         if (post?.userIsInstructor) return true;
         const email = normalizeEmail(post?.userEmail || '');
+        if (isOwnerEmail(email)) return true;
         const userId = String(post?.userId || '').trim();
         return !!getInstructorAssignmentForUser(userId, email);
+      }
+
+      function getPostAuthorCacheKey(post) {
+        const userId = String(post?.userId || '').trim();
+        const email = normalizeEmail(post?.userEmail || '');
+        if (userId) return `uid:${userId}`;
+        if (email) return `email:${email}`;
+        return '';
+      }
+
+      async function getPostAuthorProfileMeta(post) {
+        const cacheKey = getPostAuthorCacheKey(post);
+        if (!cacheKey) return null;
+        if (postAuthorMetaCache.has(cacheKey)) {
+          return postAuthorMetaCache.get(cacheKey) || null;
+        }
+
+        let profileMeta = null;
+        const userId = String(post?.userId || '').trim();
+        if (userId) {
+          try {
+            const userSnap = await getDoc(doc(db, 'usuarios', userId));
+            if (userSnap.exists()) {
+              const userData = userSnap.data() || {};
+              profileMeta = {
+                edad: parseNumericAge(userData?.edad),
+              };
+            }
+          } catch (_) {
+            profileMeta = null;
+          }
+        }
+
+        postAuthorMetaCache.set(cacheKey, profileMeta);
+        return profileMeta;
+      }
+
+      async function enrichPostRoleMetadata(post) {
+        if (!post || typeof post !== 'object') return post;
+
+        const email = normalizeEmail(post?.userEmail || '');
+        const isOwnerRole = !!post?.userIsOwner || isOwnerEmail(email);
+        const inferredInstructor = isOwnerRole || !!getInstructorAssignmentForUser(String(post?.userId || '').trim(), email);
+        const inferredAdmin = isOwnerRole || isAdminEmail(email);
+
+        const profileMeta = await getPostAuthorProfileMeta(post);
+        const mergedAge = post?.userEdad ?? post?.userAge ?? post?.edad ?? profileMeta?.edad;
+
+        return {
+          ...post,
+          userIsOwner: post?.userIsOwner ?? isOwnerRole,
+          userIsAdmin: post?.userIsAdmin ?? inferredAdmin,
+          userIsInstructor: post?.userIsInstructor ?? inferredInstructor,
+          userEdad: parseNumericAge(mergedAge),
+        };
+      }
+
+      async function enrichPostsRoleMetadata(posts = []) {
+        const normalizedList = Array.isArray(posts) ? posts : [];
+        return Promise.all(normalizedList.map((item) => enrichPostRoleMetadata(item)));
       }
 
       function isAlwaysLiveChannelPost(post) {
@@ -6772,7 +6834,7 @@
         const currentUserAge = parseNumericAge(window.userData?.edad);
         const isOwnerRole = isOwnerEmail(currentUserEmail);
         const isAdminRole = isOwnerRole || isAdminEmail(currentUserEmail);
-        const isInstructorRole = !!window.isInstructorRole || !!getInstructorAssignmentForUser(window.currentUserId, currentUserEmail);
+        const isInstructorRole = isOwnerRole || !!window.isInstructorRole || !!getInstructorAssignmentForUser(window.currentUserId, currentUserEmail);
         const isPremiumRole = !!window.isPremiumDonor || isOwnerRole;
 
         return {
@@ -7583,7 +7645,7 @@
           isAdmin = window.isAdmin;
 
           const instructorAssignment = await loadMyInstructorAssignment();
-          window.isInstructorRole = !!instructorAssignment;
+          window.isInstructorRole = window.isOwner || !!instructorAssignment;
           window.allowedInstructorSpecialties = instructorAssignment?.especialidades || [];
           await refreshCurrentUserPremiumStatus();
 
@@ -12472,12 +12534,16 @@
           lastVisiblePost = querySnapshot.docs[querySnapshot.docs.length - 1];
 
           // Mostrar las nuevas publicaciones
-          querySnapshot.forEach((doc) => {
-            const post = { ...doc.data(), id: doc.id };
-            if (doc.id === LIVE_POST_ID && !isLiveActive) return;
-            if (doc.id === LIVE_POST_ID) post.isLive = true;
+          const incomingPosts = querySnapshot.docs.map((docSnap) => {
+            const post = { ...docSnap.data(), id: docSnap.id };
+            if (docSnap.id === LIVE_POST_ID) post.isLive = true;
+            return post;
+          });
+          const enrichedIncomingPosts = await enrichPostsRoleMetadata(incomingPosts);
+          enrichedIncomingPosts.forEach((post) => {
+            if (post.id === LIVE_POST_ID && !isLiveActive) return;
             if (!postMatchesActiveCategory(post)) return;
-            displayPost(post, doc.id);
+            displayPost(post, post.id);
           });
 
           updateFirstPostMarker();
@@ -12786,17 +12852,19 @@
           // Mostrar publicaciones primero y resolver el stream en paralelo
           let renderedPostsCount = 0;
           if (isCategoryMode) {
-            categoryPosts.forEach((post) => {
+            const enrichedCategoryPosts = await enrichPostsRoleMetadata(categoryPosts);
+            enrichedCategoryPosts.forEach((post) => {
               if (post.id === LIVE_POST_ID) return;
               displayPost(post, post.id);
               renderedPostsCount++;
             });
           } else {
-            querySnapshot.forEach((doc) => {
-              const post = { ...doc.data(), id: doc.id };
-              if (doc.id === LIVE_POST_ID) return; // ya renderizado arriba
+            const recentPosts = querySnapshot.docs.map((docSnap) => ({ ...docSnap.data(), id: docSnap.id }));
+            const enrichedRecentPosts = await enrichPostsRoleMetadata(recentPosts);
+            enrichedRecentPosts.forEach((post) => {
+              if (post.id === LIVE_POST_ID) return; // ya renderizado arriba
               if (!postMatchesActiveCategory(post)) return;
-              displayPost(post, doc.id);
+              displayPost(post, post.id);
               renderedPostsCount++;
             });
           }
@@ -12827,17 +12895,18 @@
 
           if (deferredRecentLoadPromise) {
             deferredRecentLoadPromise
-              .then((deferredSnapshot) => {
+              .then(async (deferredSnapshot) => {
                 if (loadToken !== latestFeedLoadToken || categoryAtRequest !== activeFeedCategory) {
                   return;
                 }
 
                 let appendedCount = 0;
-                deferredSnapshot.forEach((doc) => {
-                  const post = { ...doc.data(), id: doc.id };
-                  if (doc.id === LIVE_POST_ID) return;
+                const deferredPosts = deferredSnapshot.docs.map((docSnap) => ({ ...docSnap.data(), id: docSnap.id }));
+                const enrichedDeferredPosts = await enrichPostsRoleMetadata(deferredPosts);
+                enrichedDeferredPosts.forEach((post) => {
+                  if (post.id === LIVE_POST_ID) return;
                   if (!postMatchesActiveCategory(post)) return;
-                  displayPost(post, doc.id);
+                  displayPost(post, post.id);
                   appendedCount++;
                 });
 
@@ -12905,14 +12974,18 @@
 
             // Filtrar manualmente las aprobadas
             let approvedCount = 0;
-            querySnapshot.forEach((doc) => {
-              const post = doc.data();
-              if (doc.id === LIVE_POST_ID && !isLiveActive) return;
+            const fallbackPosts = querySnapshot.docs.map((docSnap) => ({ ...docSnap.data(), id: docSnap.id, isLive: docSnap.id === LIVE_POST_ID }));
+            const enrichedFallbackPosts = await enrichPostsRoleMetadata(fallbackPosts);
+            enrichedFallbackPosts.forEach((post) => {
+              if (post.id === LIVE_POST_ID && !isLiveActive) return;
               if (post.status === 'approved') {
                 if (!postMatchesActiveCategory(post)) return;
-                displayPost({ ...post, id: doc.id, isLive: doc.id === LIVE_POST_ID }, doc.id);
+                displayPost(post, post.id);
                 approvedCount++;
-                lastVisiblePost = doc;
+                const originalDoc = querySnapshot.docs.find((item) => item.id === post.id);
+                if (originalDoc) {
+                  lastVisiblePost = originalDoc;
+                }
               }
             });
 
@@ -16119,8 +16192,10 @@
           let approvedCount = 0;
           let rejectedCount = 0;
 
-          snapshot.forEach((doc) => {
-            const post = doc.data();
+          const rawPosts = snapshot.docs.map((docSnap) => ({ ...docSnap.data(), id: docSnap.id }));
+          const enrichedPosts = await enrichPostsRoleMetadata(rawPosts);
+
+          enrichedPosts.forEach(post => {
             switch (post.status) {
               case 'pending':
                 pendingCount++;
@@ -16128,10 +16203,10 @@
               case 'approved':
                 approvedCount++;
                 break;
-              case 'rejected':
+                displayPost(post, 'grab-' + post.id, grabFeed);
                 rejectedCount++;
                 break;
-              default:
+                console.error(`[Grabaciones] ❌ Error renderizando post ${post.id}:`, renderErr);
                 // Consider missing status as 'approved' for backwards compatibility
                 if (!post.status) approvedCount++;
             }

@@ -232,8 +232,8 @@
       }
 
       .status-admin {
-        background: #facc15;
-        color: #1f2937;
+        background: #38bdf8;
+        color: #fff;
         font-size: 11px;
         font-weight: 700;
         padding: 2px 9px;
@@ -1141,6 +1141,7 @@
       let currentUser = null;
       let currentUserProfile = null;
       let currentPost = null;
+      const postAuthorMetaCache = new Map();
       let isGuest = true;
       const postReadMoreCache = new Map();
       const postReadMoreExpanded = new Set();
@@ -1300,7 +1301,7 @@
           .toLowerCase();
         const isOwnerRole = !!post?.userIsOwner || isOwnerEmail(email);
         const isAdminRole = !!post?.userIsAdmin || isAdminEmail(email) || isOwnerRole;
-        const isInstructorRole = !!post?.userIsInstructor;
+        const isInstructorRole = !!post?.userIsInstructor || isOwnerRole;
         const isPremiumRole = !!post?.userIsPremium || isOwnerRole;
         const ageBadge = resolveCadetBadgeFromAge(post?.userEdad ?? post?.userAge ?? post?.edad);
         const isLiveRole = forceLive || !!post?.isLive || isAlwaysLiveChannelPost(post);
@@ -1328,6 +1329,60 @@
         }
 
         return badges.length ? `<span class="post-role-badges">${badges.join("")}</span>` : "";
+      }
+
+      function getPostAuthorCacheKey(post) {
+        const userId = String(post?.userId || "").trim();
+        const email = String(post?.userEmail || "").trim().toLowerCase();
+        if (userId) return `uid:${userId}`;
+        if (email) return `email:${email}`;
+        return "";
+      }
+
+      async function getPostAuthorProfileMeta(post) {
+        const cacheKey = getPostAuthorCacheKey(post);
+        if (!cacheKey) return null;
+        if (postAuthorMetaCache.has(cacheKey)) {
+          return postAuthorMetaCache.get(cacheKey) || null;
+        }
+
+        let profileMeta = null;
+        const userId = String(post?.userId || "").trim();
+        if (userId) {
+          try {
+            const userSnap = await getDoc(doc(db, "usuarios", userId));
+            if (userSnap.exists()) {
+              const userData = userSnap.data() || {};
+              profileMeta = {
+                edad: parseNumericAge(userData?.edad),
+              };
+            }
+          } catch (_) {
+            profileMeta = null;
+          }
+        }
+
+        postAuthorMetaCache.set(cacheKey, profileMeta);
+        return profileMeta;
+      }
+
+      async function enrichPostRoleMetadata(post) {
+        if (!post || typeof post !== "object") return post;
+
+        const email = String(post?.userEmail || "").trim().toLowerCase();
+        const isOwnerRole = !!post?.userIsOwner || isOwnerEmail(email);
+        const isAdminRole = !!post?.userIsAdmin || isAdminEmail(email) || isOwnerRole;
+
+        const profileMeta = await getPostAuthorProfileMeta(post);
+        const mergedAge = post?.userEdad ?? post?.userAge ?? post?.edad ?? profileMeta?.edad;
+
+        return {
+          ...post,
+          userIsOwner: post?.userIsOwner ?? isOwnerRole,
+          userIsAdmin: post?.userIsAdmin ?? isAdminRole,
+          userIsInstructor: post?.userIsInstructor ?? isOwnerRole,
+          userEdad: parseNumericAge(mergedAge),
+        };
       }
 
       async function checkLiveStream() {
@@ -2753,7 +2808,7 @@
         }
 
         await updateDoc(postRef, { reactions });
-        currentPost = { ...data, id: snap.id, reactions };
+        currentPost = await enrichPostRoleMetadata({ ...data, id: snap.id, reactions });
         renderPost(currentPost);
       }
 
@@ -2778,7 +2833,7 @@
         });
 
         await updateDoc(postRef, { comments });
-        currentPost = { ...data, id: snap.id, comments };
+        currentPost = await enrichPostRoleMetadata({ ...data, id: snap.id, comments });
         renderPost(currentPost);
 
         const commentsSide = document.getElementById(
@@ -2807,7 +2862,7 @@
           (comment) => comment?.id !== commentId,
         );
         await updateDoc(postRef, { comments: updatedComments });
-        currentPost = { ...data, id: snap.id, comments: updatedComments };
+        currentPost = await enrichPostRoleMetadata({ ...data, id: snap.id, comments: updatedComments });
         renderPost(currentPost);
 
         const commentsSide = document.getElementById(
@@ -2845,7 +2900,7 @@
           return;
         }
 
-        currentPost = { ...data, id: snap.id };
+        currentPost = await enrichPostRoleMetadata({ ...data, id: snap.id });
         renderPost(currentPost);
       }
 

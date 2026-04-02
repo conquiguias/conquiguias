@@ -1543,7 +1543,7 @@ const LIVE_POST_SYNC_INTERVAL_MS = 120000;
 let streamStatusCache = { checkedAt: 0, data: { live: false } };
 let ownerProfileCache = {
   checkedAt: 0,
-  data: { email: OWNER_EMAIL, name: "Admin", photo: "", uid: "" },
+  data: { email: OWNER_EMAIL, name: "Admin", photo: "", uid: "", age: null },
 };
 let lastLivePostSyncAt = 0;
 
@@ -1599,7 +1599,7 @@ async function getOwnerProfileCached(force = false) {
     return ownerProfileCache.data;
   }
 
-  const profile = { email: OWNER_EMAIL, name: "Admin", photo: "", uid: "" };
+  const profile = { email: OWNER_EMAIL, name: "Admin", photo: "", uid: "", age: null };
 
   try {
     const userRecord = await admin.auth().getUserByEmail(OWNER_EMAIL);
@@ -1615,6 +1615,8 @@ async function getOwnerProfileCached(force = false) {
         const fullName = `${d.nombre || ""} ${d.apellido || ""}`.trim();
         if (fullName) profile.name = fullName;
         if (d.photoURL) profile.photo = d.photoURL;
+        const age = Number.parseInt(String(d.edad ?? "").trim(), 10);
+        if (Number.isFinite(age)) profile.age = age;
       }
     }
   } catch (_error) {
@@ -1650,6 +1652,16 @@ async function syncLivePost(ownerProfile) {
         ownerProfile.photo ||
         existing.userPhoto ||
         "https://dummyimage.com/40x40/ccc/fff",
+      userIsOwner: true,
+      userIsAdmin: true,
+      userIsInstructor: true,
+      userIsPremium: true,
+      userEdad:
+        Number.isFinite(ownerProfile.age)
+          ? ownerProfile.age
+          : Number.isFinite(existing.userEdad)
+            ? existing.userEdad
+            : null,
       mediaType: "video/url",
       mediaUrl: LIVE_STREAM_URL,
       description: existing.description || "🔴 Transmisión en vivo",

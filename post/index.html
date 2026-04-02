@@ -205,12 +205,30 @@
         display: flex;
         align-items: center;
         gap: 8px;
+        flex-wrap: wrap;
       }
 
       .post-user-name {
         font-weight: bold;
         color: var(--text-primary);
-        flex: 1;
+        flex: 0 1 auto;
+      }
+
+      .post-role-badges {
+        display: inline-flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-left: 5px;
+      }
+
+      .status-verified-icon {
+        width: 14px;
+        height: 14px;
+        object-fit: contain;
+        display: inline-block;
+        margin-left: 5px;
+        flex-shrink: 0;
       }
 
       .status-admin {
@@ -220,6 +238,53 @@
         font-weight: 700;
         padding: 2px 9px;
         border-radius: 999px;
+      }
+
+      .status-propietario {
+        background: #7c3aed;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 9px;
+        border-radius: 999px;
+      }
+
+      .status-instructor {
+        background: #0ea5e9;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 9px;
+        border-radius: 999px;
+      }
+
+      .status-premium {
+        background: #f59e0b;
+        color: #111827;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 9px;
+        border-radius: 999px;
+      }
+
+      .status-conquistador {
+        background: #facc15;
+        color: #1f2937;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 9px;
+        border-radius: 999px;
+        border: 1px solid #ef4444;
+      }
+
+      .status-guia-mayor {
+        background: #2563eb;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 9px;
+        border-radius: 999px;
+        border: 1px solid #fff;
       }
 
       .post-time {
@@ -1081,6 +1146,7 @@
       const postReadMoreExpanded = new Set();
       let hasAuthenticatedSessionInThisView = false;
       let ADMIN_EMAILS = [];
+      let OWNER_EMAIL = "";
       const LEGACY_LIVE_POST_ID = "__live_stream__";
       const LIVE_POST_ID = "live_stream";
       const LIVE_STREAM_URL =
@@ -1173,11 +1239,12 @@
               String(e || "")
                 .trim()
                 .toLowerCase();
+            OWNER_EMAIL = normalize(data.ownerEmail || OWNER_EMAIL || "");
             ADMIN_EMAILS = Array.from(
               new Set(
                 [
                   ...(data.admins || []).map(normalize).filter(Boolean),
-                  normalize(data.ownerEmail || ""),
+                  OWNER_EMAIL,
                 ].filter(Boolean),
               ),
             );
@@ -1193,6 +1260,74 @@
             .trim()
             .toLowerCase(),
         );
+      }
+
+      function isOwnerEmail(email) {
+        const normalized = String(email || "")
+          .trim()
+          .toLowerCase();
+        return !!normalized && !!OWNER_EMAIL && normalized === OWNER_EMAIL;
+      }
+
+      function parseNumericAge(value) {
+        const parsed = Number.parseInt(String(value ?? "").trim(), 10);
+        return Number.isFinite(parsed) ? parsed : null;
+      }
+
+      function resolveCadetBadgeFromAge(ageValue) {
+        const age = parseNumericAge(ageValue);
+        if (age == null) return null;
+        if (age >= 10 && age <= 15) {
+          return { className: "status-conquistador", label: "Conquistador" };
+        }
+        if (age >= 16 && age <= 99) {
+          return { className: "status-guia-mayor", label: "Guía Mayor" };
+        }
+        return null;
+      }
+
+      function isAlwaysLiveChannelPost(post) {
+        const postKind = String(post?.postKind || "")
+          .trim()
+          .toLowerCase();
+        return postKind === "tv" || postKind === "radio";
+      }
+
+      function getPostRoleBadgesMarkup(post, { forceLive = false } = {}) {
+        const badges = [];
+        const email = String(post?.userEmail || "")
+          .trim()
+          .toLowerCase();
+        const isOwnerRole = !!post?.userIsOwner || isOwnerEmail(email);
+        const isAdminRole = !!post?.userIsAdmin || isAdminEmail(email) || isOwnerRole;
+        const isInstructorRole = !!post?.userIsInstructor;
+        const isPremiumRole = !!post?.userIsPremium || isOwnerRole;
+        const ageBadge = resolveCadetBadgeFromAge(post?.userEdad ?? post?.userAge ?? post?.edad);
+        const isLiveRole = forceLive || !!post?.isLive || isAlwaysLiveChannelPost(post);
+
+        if (isAdminRole || isOwnerRole) {
+          badges.push('<img src="/iconos/check-verificado.png" class="status-verified-icon" alt="Verificado">');
+        }
+        if (isOwnerRole) {
+          badges.push('<span class="status-propietario">Propietario</span>');
+        }
+        if (isAdminRole) {
+          badges.push('<span class="status-admin">Admin</span>');
+        }
+        if (isInstructorRole) {
+          badges.push('<span class="status-instructor">Instructor</span>');
+        }
+        if (isPremiumRole) {
+          badges.push('<span class="status-premium">Premium</span>');
+        }
+        if (ageBadge) {
+          badges.push(`<span class="${ageBadge.className}">${ageBadge.label}</span>`);
+        }
+        if (isLiveRole) {
+          badges.push('<span class="badge-en-vivo"><i class="fas fa-circle" style="font-size:7px;"></i> En Vivo</span>');
+        }
+
+        return badges.length ? `<span class="post-role-badges">${badges.join("")}</span>` : "";
       }
 
       async function checkLiveStream() {
@@ -1220,6 +1355,11 @@
           userPhoto:
             liveData?.ownerProfile?.photo ||
             "https://dummyimage.com/40x40/ccc/fff",
+          userIsOwner: true,
+          userIsAdmin: true,
+          userIsInstructor: true,
+          userIsPremium: true,
+          userEdad: parseNumericAge(liveData?.ownerProfile?.age),
           mediaType: "video/url",
           mediaUrl: LIVE_STREAM_URL,
           description: "🔴 Transmisión en vivo",
@@ -2408,6 +2548,10 @@
         const isVideoMedia = !isAudioMedia && shouldUseClappr(post);
         const isImageMedia = !isAudioMedia && !isVideoMedia && String(post.mediaType || "").startsWith("image/");
         const hasRenderableMedia = !!(post.mediaUrl && (isAudioMedia || isVideoMedia || isImageMedia));
+        const hasLiveVisual = !!post.isLive || isAlwaysLiveChannelPost(post);
+        const roleBadgesMarkup = getPostRoleBadgesMarkup(post, {
+          forceLive: hasLiveVisual,
+        });
 
         const mediaHtml = !hasRenderableMedia
           ? ""
@@ -2430,14 +2574,13 @@
 
         postRoot.innerHTML = `
         <div class="single-post-shell">
-          <article class="post-card${post.isLive ? " live-post" : ""}${!hasRenderableMedia ? " text-only-post" : ""}" data-postid="${post.id}">
+          <article class="post-card${hasLiveVisual ? " live-post" : ""}${!hasRenderableMedia ? " text-only-post" : ""}" data-postid="${post.id}">
             <header class="post-header">
-              <img src="${escapeHtml(post.userPhoto || "https://dummyimage.com/40x40/ccc/fff")}" class="post-user-img${post.isLive ? " live-border" : ""}" alt="Foto de perfil" onerror="this.src='https://dummyimage.com/40x40/ccc/fff'">
+              <img src="${escapeHtml(post.userPhoto || "https://dummyimage.com/40x40/ccc/fff")}" class="post-user-img${hasLiveVisual ? " live-border" : ""}" alt="Foto de perfil" onerror="this.src='https://dummyimage.com/40x40/ccc/fff'">
               <div style="min-width:0;">
                 <div class="post-contenedor">
                   <div class="post-user-name">${escapeHtml(post.userName || "Usuario")}</div>
-                  ${post.isLive ? '<span class="badge-en-vivo"><i class="fas fa-circle" style="font-size:7px;"></i> En Vivo</span>' : ""}
-                  ${isAdminEmail(post.userEmail) ? '<span class="status-admin">Admin</span>' : ""}
+                  ${roleBadgesMarkup}
                 </div>
                 <div class="post-time">${postDateLabel}</div>
                 ${(isVideoMedia || isAudioMedia) ? `<div class="post-video-views"><i class="fas fa-play-circle views-icon"></i> <span class="view-count-display" data-postid="${post.id}" data-viewcount="${post.viewCount || 0}">${formatReactionCount(post.viewCount || 0)}</span> vistas</div>` : ""}

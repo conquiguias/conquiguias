@@ -1392,8 +1392,25 @@
     .post-user-name {
       font-weight: bold;
       color: var(--text-primary);
-      flex: 1;
+      flex: 0 1 auto;
       min-width: 0;
+    }
+
+    .post-role-badges {
+      display: inline-flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-left: 5px;
+    }
+
+    .status-verified-icon {
+      width: 14px;
+      height: 14px;
+      object-fit: contain;
+      display: inline-block;
+      margin-left: 5px;
+      flex-shrink: 0;
     }
 
     .post-header-meta {
@@ -2358,6 +2375,41 @@
       background: #facc15;
       color: #1f2937 !important;
       border: none;
+      font-weight: 700;
+    }
+
+    .status-propietario {
+      background: #7c3aed;
+      color: #fff !important;
+      border: none;
+      font-weight: 700;
+    }
+
+    .status-instructor {
+      background: #0ea5e9;
+      color: #fff !important;
+      border: none;
+      font-weight: 700;
+    }
+
+    .status-premium {
+      background: #f59e0b;
+      color: #111827 !important;
+      border: none;
+      font-weight: 700;
+    }
+
+    .status-conquistador {
+      background: #facc15;
+      color: #1f2937 !important;
+      border: 1px solid #ef4444;
+      font-weight: 700;
+    }
+
+    .status-guia-mayor {
+      background: #2563eb;
+      color: #fff !important;
+      border: 1px solid #ffffff;
       font-weight: 700;
     }
 
@@ -6631,6 +6683,7 @@
       window.canAccessAdminPanel = false;
       window.canAccessEspecialidadesStorage = false;
       window.allowedInstructorSpecialties = [];
+      window.isPremiumDonor = false;
 
       function normalizeEmail(email) {
         return (email || '').trim().toLowerCase();
@@ -6643,6 +6696,121 @@
           ? window.ADMIN_EMAILS.map(normalizeEmail).filter(Boolean)
           : [];
         return adminList.includes(normalizedEmail);
+      }
+
+      function parseNumericAge(value) {
+        const parsed = Number.parseInt(String(value ?? '').trim(), 10);
+        return Number.isFinite(parsed) ? parsed : null;
+      }
+
+      function resolveCadetBadgeFromAge(ageValue) {
+        const age = parseNumericAge(ageValue);
+        if (age == null) return null;
+        if (age >= 10 && age <= 15) {
+          return { className: 'status-conquistador', label: 'Conquistador' };
+        }
+        if (age >= 16 && age <= 99) {
+          return { className: 'status-guia-mayor', label: 'Guía Mayor' };
+        }
+        return null;
+      }
+
+      function isOwnerEmail(email) {
+        const normalized = normalizeEmail(email);
+        return !!normalized && !!OWNER_EMAIL && normalized === OWNER_EMAIL;
+      }
+
+      function hasInstructorBadge(post) {
+        if (post?.userIsInstructor) return true;
+        const email = normalizeEmail(post?.userEmail || '');
+        const userId = String(post?.userId || '').trim();
+        return !!getInstructorAssignmentForUser(userId, email);
+      }
+
+      function isAlwaysLiveChannelPost(post) {
+        const postKind = String(post?.postKind || '').trim().toLowerCase();
+        return postKind === 'tv' || postKind === 'radio';
+      }
+
+      function getPostRoleBadgesMarkup(post, { forceLive = false } = {}) {
+        const badges = [];
+        const email = normalizeEmail(post?.userEmail || '');
+        const isOwnerRole = !!post?.userIsOwner || isOwnerEmail(email);
+        const isAdminRole = !!post?.userIsAdmin || isAdminEmail(email) || isOwnerRole;
+        const isInstructorRole = hasInstructorBadge(post);
+        const isPremiumRole = !!post?.userIsPremium || isOwnerRole;
+        const ageBadge = resolveCadetBadgeFromAge(post?.userEdad ?? post?.userAge ?? post?.edad);
+        const isLiveRole = forceLive || !!post?.isLive || isAlwaysLiveChannelPost(post);
+
+        if (isAdminRole || isOwnerRole) {
+          badges.push('<img src="/iconos/check-verificado.png" class="status-verified-icon" alt="Verificado">');
+        }
+        if (isOwnerRole) {
+          badges.push('<span class="status-propietario post-status-indicator">Propietario</span>');
+        }
+        if (isAdminRole) {
+          badges.push('<span class="status-admin post-status-indicator">Admin</span>');
+        }
+        if (isInstructorRole) {
+          badges.push('<span class="status-instructor post-status-indicator">Instructor</span>');
+        }
+        if (isPremiumRole) {
+          badges.push('<span class="status-premium post-status-indicator">Premium</span>');
+        }
+        if (ageBadge) {
+          badges.push(`<span class="${ageBadge.className} post-status-indicator">${ageBadge.label}</span>`);
+        }
+        if (isLiveRole) {
+          badges.push('<span class="badge-en-vivo"><i class="fas fa-circle" style="font-size:7px;"></i> En Vivo</span>');
+        }
+
+        return badges.length ? `<span class="post-role-badges">${badges.join('')}</span>` : '';
+      }
+
+      function buildCurrentUserRoleSnapshot() {
+        const currentUserEmail = normalizeEmail(window.userData?.email || auth?.currentUser?.email || '');
+        const currentUserAge = parseNumericAge(window.userData?.edad);
+        const isOwnerRole = isOwnerEmail(currentUserEmail);
+        const isAdminRole = isOwnerRole || isAdminEmail(currentUserEmail);
+        const isInstructorRole = !!window.isInstructorRole || !!getInstructorAssignmentForUser(window.currentUserId, currentUserEmail);
+        const isPremiumRole = !!window.isPremiumDonor || isOwnerRole;
+
+        return {
+          userIsOwner: isOwnerRole,
+          userIsAdmin: isAdminRole,
+          userIsInstructor: isInstructorRole,
+          userIsPremium: isPremiumRole,
+          userEdad: currentUserAge,
+        };
+      }
+
+      async function refreshCurrentUserPremiumStatus() {
+        const authUser = auth?.currentUser || null;
+        const idToken = authUser ? await authUser.getIdToken(true) : '';
+        if (!idToken) {
+          window.isPremiumDonor = false;
+          return false;
+        }
+
+        try {
+          const response = await fetch('/api/social?action=get-paypal-donations&type=user&limit=1', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${idToken}`
+            }
+          });
+          if (!response.ok) {
+            window.isPremiumDonor = false;
+            return false;
+          }
+          const payload = await response.json().catch(() => ({}));
+          const donations = Array.isArray(payload?.donations) ? payload.donations : [];
+          window.isPremiumDonor = donations.length > 0;
+          return window.isPremiumDonor;
+        } catch (_) {
+          window.isPremiumDonor = false;
+          return false;
+        }
       }
 
       window.resolveTargetEmail = function (targetId, targetData) {
@@ -7417,6 +7585,7 @@
           const instructorAssignment = await loadMyInstructorAssignment();
           window.isInstructorRole = !!instructorAssignment;
           window.allowedInstructorSpecialties = instructorAssignment?.especialidades || [];
+          await refreshCurrentUserPremiumStatus();
 
           window.canAccessAdminPanel = window.isAdmin || window.isOwner;
           window.canAccessInstructorPanel = window.isOwner || window.isInstructorRole;
@@ -8180,6 +8349,8 @@
           const errorPayload = await response.json().catch(() => ({}));
           throw new Error(errorPayload.error || "No se pudo guardar la donación");
         }
+
+        window.isPremiumDonor = true;
       }
 
       function initPaypalDonationButton() {
@@ -11668,6 +11839,7 @@
               userApellido: userData.apellido || '',
               userPhoto: userData.fotoURL || 'https://dummyimage.com/40x40/ccc/fff&text=User',
               userEmail: userData.email || '',
+              ...buildCurrentUserRoleSnapshot(),
               mediaUrl: streamUrl,
               mediaType: 'audio/url',
               description: description || (publishMode === 'musica' ? '#musica' : '#radio'),
@@ -11744,6 +11916,7 @@
               userApellido: userData.apellido || '',
               userPhoto: userData.fotoURL || 'https://dummyimage.com/40x40/ccc/fff&text=User',
               userEmail: userData.email || '',
+              ...buildCurrentUserRoleSnapshot(),
               mediaUrl: tvUrl,
               mediaType: inferUrlMediaType(tvUrl),
               description: description || (tvMode === 'video' ? '#video' : '#television'),
@@ -11847,6 +12020,7 @@
             userApellido: userData.apellido || '',
             userPhoto: userData.fotoURL || 'https://dummyimage.com/40x40/ccc/fff&text=User',
             userEmail: userData.email || '',
+            ...buildCurrentUserRoleSnapshot(),
             mediaUrl: mediaData.url || '',
             mediaType: file ? file.type : 'text/plain',
             description: descriptionToPublish,
@@ -12450,6 +12624,11 @@
               userEmail: op.email || '',
               userName: op.name || 'Admin',
               userPhoto: op.photo || '',
+              userIsOwner: true,
+              userIsAdmin: true,
+              userIsInstructor: true,
+              userIsPremium: true,
+              userEdad: parseNumericAge(op.age),
               mediaType: 'video/url',
               mediaUrl: LIVE_STREAM_URL,
               description: '🔴 Transmisión en vivo',
@@ -12799,7 +12978,8 @@
         const { currentUserId, isAdmin } = window;
         const postElement = document.createElement('div');
         postElement.className = 'post-card';
-        if (post.isLive) postElement.classList.add('live-post');
+        const hasLiveVisual = !!post.isLive || isAlwaysLiveChannelPost(post);
+        if (hasLiveVisual) postElement.classList.add('live-post');
         const renderPostId = postId;
         const firestorePostId = post.id || postId;
         const isAudioMedia = shouldPreferLunaRadio(post);
@@ -12858,6 +13038,7 @@
         const shareCount = getPostShareCount(post);
         const viewCount = getPostViewCount(post);
         const esVideo = isAudioMedia || isVideoMedia;
+        const roleBadgesMarkup = getPostRoleBadgesMarkup(post, { forceLive: hasLiveVisual });
 
         function renderPlaybackError(containerId, errorLike = '', providerLabel = 'Reproductor') {
           // Dejar que Clappr maneje nativo el error, sin inyectar contenedor personalizado
@@ -13083,13 +13264,12 @@
 
         postElement.innerHTML = `
             <div class="post-header">
-              <img src="${post.userPhoto}" alt="Foto de perfil" class="post-user-img${post.isLive ? ' live-border' : ''}"
+              <img src="${post.userPhoto}" alt="Foto de perfil" class="post-user-img${hasLiveVisual ? ' live-border' : ''}"
                 onerror="this.src='https://dummyimage.com/40x40/ccc/fff'">
               <div class="post-header-meta">
                 <div class="post-contenedor">
                   <div class="post-user-name">${nombreCompleto}</div>
-                  ${post.isLive ? '<span class="badge-en-vivo"><i class="fas fa-circle" style="font-size:7px;"></i> En Vivo</span>' : ''}
-                  ${isAdminEmail(post.userEmail) ? '<span class="status-admin post-status-indicator">Admin</span>' : ''}
+                  ${roleBadgesMarkup}
                 </div>
                 <div class="post-time">
                   ${postDateLabel}

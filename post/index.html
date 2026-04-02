@@ -232,8 +232,8 @@
       }
 
       .status-admin {
-        background: #38bdf8;
-        color: #fff;
+        background: #facc15;
+        color: #1f2937;
         font-size: 11px;
         font-weight: 700;
         padding: 2px 9px;
@@ -241,7 +241,7 @@
       }
 
       .status-propietario {
-        background: #7c3aed;
+        background: #0369a1;
         color: #fff;
         font-size: 11px;
         font-weight: 700;
@@ -250,7 +250,7 @@
       }
 
       .status-instructor {
-        background: #0ea5e9;
+        background: #16a34a;
         color: #fff;
         font-size: 11px;
         font-weight: 700;
@@ -1107,6 +1107,11 @@
         getDoc,
         updateDoc,
         increment,
+        collection,
+        query,
+        where,
+        getDocs,
+        limit,
       } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
       const stateEl = document.getElementById("state");
@@ -1359,6 +1364,30 @@
             }
           } catch (_) {
             profileMeta = null;
+          }
+        }
+
+        if (!profileMeta) {
+          const email = String(post?.userEmail || "")
+            .trim()
+            .toLowerCase();
+          if (email) {
+            try {
+              const usersByEmailQuery = query(
+                collection(db, "usuarios"),
+                where("email", "==", email),
+                limit(1),
+              );
+              const usersByEmailSnap = await getDocs(usersByEmailQuery);
+              if (!usersByEmailSnap.empty) {
+                const userData = usersByEmailSnap.docs[0].data() || {};
+                profileMeta = {
+                  edad: parseNumericAge(userData?.edad),
+                };
+              }
+            } catch (_) {
+              profileMeta = null;
+            }
           }
         }
 

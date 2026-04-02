@@ -2372,21 +2372,21 @@
     }
 
     .status-admin {
-      background: #38bdf8;
-      color: #ffffff !important;
+      background: #facc15;
+      color: #1f2937 !important;
       border: none;
       font-weight: 700;
     }
 
     .status-propietario {
-      background: #7c3aed;
+      background: #0369a1;
       color: #fff !important;
       border: none;
       font-weight: 700;
     }
 
     .status-instructor {
-      background: #0ea5e9;
+      background: #16a34a;
       color: #fff !important;
       border: none;
       font-weight: 700;
@@ -3374,8 +3374,8 @@
     }
 
     .status-admin {
-      background: #38bdf8;
-      color: #ffffff !important;
+      background: #facc15;
+      color: #1f2937 !important;
       border: none;
       font-weight: 700;
     }
@@ -6757,6 +6757,28 @@
             }
           } catch (_) {
             profileMeta = null;
+          }
+        }
+
+        if (!profileMeta) {
+          const email = normalizeEmail(post?.userEmail || '');
+          if (email) {
+            try {
+              const usersByEmailQuery = query(
+                collection(db, 'usuarios'),
+                where('email', '==', email),
+                limit(1)
+              );
+              const usersByEmailSnap = await getDocs(usersByEmailQuery);
+              if (!usersByEmailSnap.empty) {
+                const userData = usersByEmailSnap.docs[0].data() || {};
+                profileMeta = {
+                  edad: parseNumericAge(userData?.edad),
+                };
+              }
+            } catch (_) {
+              profileMeta = null;
+            }
           }
         }
 

@@ -12016,7 +12016,7 @@
               ...buildCurrentUserRoleSnapshot(),
               mediaUrl: tvUrl,
               mediaType: inferUrlMediaType(tvUrl),
-              description: description || (tvMode === 'video' ? '#video' : '#television'),
+              description: description || '#television',
               timestamp: new Date().toISOString(),
               imgurData: { id: null, deletehash: null },
               reactions: { like: [], laugh: [], seven: [] },
@@ -12027,7 +12027,7 @@
               postKind: tvMode,
               posterUrl: coverImage,
               thumbnailUrl: '',
-              tags: [tvMode === 'video' ? 'video' : 'television']
+              tags: ['television']
             };
 
             await addDoc(collection(db, 'posts'), postData);
@@ -12254,7 +12254,7 @@
         { key: 'conquis',          label: 'Conquis',          tags: ['conquis', 'conqui', 'conquistadores', 'conquistador'] },
         { key: 'panoleta',         label: 'Pañoleta',         tags: ['panoleta', 'pañoleta', 'panuelo', 'pañuelo'] },
         { key: 'post-adventistas', label: 'Post Adventistas', tags: ['postadventistas', 'post-adventistas', 'post adventistas', 'adventistas', 'adventista'] },
-        { key: 'television',       label: 'Televisión',       tags: ['television', 'tv', 'tele', 'video'] },
+        { key: 'television',       label: 'Televisión',       tags: ['television', 'tv', 'tele'] },
         { key: 'radio',            label: 'Radio',            tags: ['radio'] },
         { key: 'musica',           label: 'Música',           tags: ['musica', 'música', 'music', 'musica cristiana', 'musica adventista'] },
         { key: 'podcast',          label: 'Podcast',          tags: ['podcast', 'potcast', 'pod cast'] },
@@ -12383,7 +12383,7 @@
             }
           }
           if ((String(post?.posterUrl || '').trim() || String(post?.thumbnailUrl || '').trim()) &&
-              (normalizedDescription.includes('#television') || normalizedDescription.includes('#tv') || normalizedPostKind === 'video')) {
+              (normalizedDescription.includes('#television') || normalizedDescription.includes('#tv'))) {
             return true;
           }
         }

@@ -1280,11 +1280,16 @@
         return Number.isFinite(parsed) ? parsed : null;
       }
 
-      function resolveCadetBadgeFromAge(ageValue) {
+      function resolveCadetBadgeFromAge(ageValue, sexoValue = "") {
         const age = parseNumericAge(ageValue);
+        const sexo = String(sexoValue || "").trim().toLowerCase();
+        const isFemale = sexo === "femenino" || sexo === "f";
         if (age == null) return null;
         if (age >= 10 && age <= 15) {
-          return { className: "status-conquistador", label: "Conquistador" };
+          return {
+            className: "status-conquistador",
+            label: isFemale ? "Conquistadora" : "Conquistador",
+          };
         }
         if (age >= 16 && age <= 99) {
           return { className: "status-guia-mayor", label: "Guía Mayor" };
@@ -1308,7 +1313,10 @@
         const isAdminRole = !!post?.userIsAdmin || isAdminEmail(email) || isOwnerRole;
         const isInstructorRole = !!post?.userIsInstructor || isOwnerRole;
         const isPremiumRole = !!post?.userIsPremium || isOwnerRole;
-        const ageBadge = resolveCadetBadgeFromAge(post?.userEdad ?? post?.userAge ?? post?.edad);
+        const ageBadge = resolveCadetBadgeFromAge(
+          post?.userEdad ?? post?.userAge ?? post?.edad,
+          post?.userSexo ?? post?.sexo,
+        );
         const isLiveRole = forceLive || !!post?.isLive || isAlwaysLiveChannelPost(post);
 
         if (isAdminRole || isOwnerRole) {
@@ -1360,6 +1368,7 @@
               const userData = userSnap.data() || {};
               profileMeta = {
                 edad: parseNumericAge(userData?.edad),
+                sexo: String(userData?.sexo || "").trim(),
               };
             }
           } catch (_) {
@@ -1383,6 +1392,7 @@
                 const userData = usersByEmailSnap.docs[0].data() || {};
                 profileMeta = {
                   edad: parseNumericAge(userData?.edad),
+                  sexo: String(userData?.sexo || "").trim(),
                 };
               }
             } catch (_) {
@@ -1403,7 +1413,8 @@
         const isAdminRole = !!post?.userIsAdmin || isAdminEmail(email) || isOwnerRole;
 
         const profileMeta = await getPostAuthorProfileMeta(post);
-        const mergedAge = post?.userEdad ?? post?.userAge ?? post?.edad ?? profileMeta?.edad;
+        const mergedAge = profileMeta?.edad ?? post?.userEdad ?? post?.userAge ?? post?.edad;
+        const mergedSexo = profileMeta?.sexo || post?.userSexo || post?.sexo || "";
 
         return {
           ...post,
@@ -1411,6 +1422,7 @@
           userIsAdmin: post?.userIsAdmin ?? isAdminRole,
           userIsInstructor: post?.userIsInstructor ?? isOwnerRole,
           userEdad: parseNumericAge(mergedAge),
+          userSexo: String(mergedSexo || "").trim(),
         };
       }
 

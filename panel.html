@@ -18176,6 +18176,14 @@
       `;
 
         entregas.forEach(([vid, data]) => {
+          const isReturned = String(data?.estado || '').toLowerCase() === 'devuelta';
+          const canOpenEvaluator = !isReturned;
+          const evalBtnStyle = canOpenEvaluator
+            ? 'background:var(--accent-color); color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;'
+            : 'background:#475569; color:#cbd5e1; border:none; padding:8px 15px; border-radius:4px; cursor:not-allowed; opacity:0.7;';
+          const evalBtnTitle = canOpenEvaluator
+            ? 'Ver PDF'
+            : 'Tarea devuelta: esperando reenvío del alumno';
           const estadoTexto = data.estado === 'devuelta'
           ? '↩ Pendiente (tarea devuelta, enviar de nuevo)'
           : data.estado;
@@ -18191,8 +18199,8 @@
                       </span>
                   </td>
                   <td style="padding:12px; text-align:center;">
-                      <button onclick='abrirEvaluador("${vid}", ${JSON.stringify(data).replace(/'/g, "&#39;")})' 
-                              style="background:var(--accent-color); color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;">
+                      <button onclick='abrirEvaluador("${vid}", ${JSON.stringify(data).replace(/'/g, "&#39;")})' ${canOpenEvaluator ? '' : 'disabled'} title="${evalBtnTitle}"
+                          style="${evalBtnStyle}">
                           <i class="fas fa-eye"></i> Ver PDF
                       </button>
                   </td>
@@ -18269,6 +18277,10 @@
       window.abrirEvaluador = function (vid, data) {
         console.log("Opening evaluator for:", vid);
         const targetData = data || (typeof currentEntregasData !== 'undefined' ? currentEntregasData?.[vid] : null) || window.datosEntregasGlobal?.[vid] || null;
+        if (targetData && String(targetData.estado || '').toLowerCase() === 'devuelta') {
+          alert('ℹ️ Esta tarea fue devuelta. Espera a que el alumno la reenvíe para evaluarla.');
+          return;
+        }
         const targetEmail = window.resolveTargetEmail(vid, targetData);
         const currentUserEmail = String((window.userData?.email || (typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.email : '') || '')).trim().toLowerCase();
         const isRestrictedTarget = window.isRestrictedEvaluationTarget(targetEmail, currentUserEmail);
@@ -19197,13 +19209,15 @@
           const currentUserEmail = String((window.userData?.email || (typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.email : '') || '')).trim().toLowerCase();
           const isRestrictedTarget = window.isRestrictedEvaluationTarget(targetEmail, currentUserEmail);
           const isSelfTarget = window.isSelfEvaluationTarget(uid, targetEmail);
-          const canEvaluateTarget = !!window.isOwner || (!isSelfTarget && !isRestrictedTarget);
+          const canEvaluateTarget = String(datos?.estado || '').toLowerCase() !== 'devuelta' && (!!window.isOwner || (!isSelfTarget && !isRestrictedTarget));
           const evalButtonStyle = canEvaluateTarget
             ? 'background:var(--accent-color); color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;'
             : 'background:#475569; color:#cbd5e1; border:none; padding:5px 10px; border-radius:4px; cursor:not-allowed; opacity:0.7;';
-          const evalButtonTitle = canEvaluateTarget
-            ? 'Evaluar entrega'
-            : 'Solo el propietario puede calificar a admins o evaluarse a sí mismo';
+          const evalButtonTitle = String(datos?.estado || '').toLowerCase() === 'devuelta'
+            ? 'Tarea devuelta: esperando reenvío del alumno'
+            : (canEvaluateTarget
+              ? 'Evaluar entrega'
+              : 'Solo el propietario puede calificar a admins o evaluarse a sí mismo');
           html += `
               <tr style="border-bottom:1px solid var(--border-color);">
                   <td style="padding:10px;">${datos.email || uid}</td> <!-- Mostrar email si existe -->

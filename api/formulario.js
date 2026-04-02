@@ -426,11 +426,15 @@ async function handleListarFormulariosPendientes(req, res) {
 
       Object.values(tareas).forEach((t) => {
         if (t) {
+          const estado = String(t.estado || "").trim().toLowerCase();
+          if (estado === "devuelta") {
+            return;
+          }
+
           total++;
-          if (t.estado === "calificado") {
+          if (estado === "calificado") {
             calificadas++;
-          } else {
-            // Asumimos que si no está calificado, está pendiente (entregado)
+          } else if (estado === "entregado") {
             count++;
           }
         }

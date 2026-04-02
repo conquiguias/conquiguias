@@ -5616,6 +5616,11 @@
               style="color:var(--accent-color)"></b></span>
         </div>
         <div style="display:flex; align-items:center; gap:10px;">
+          <button onclick="devolverTareaActual()"
+            style="background:var(--danger-color); color:white; border:none; padding:10px 16px; border-radius:6px; cursor:pointer; font-weight:bold; transition:transform 0.2s;">
+            <i class="fas fa-undo"></i> Devolver
+          </button>
+
           <input type="number" id="inputNotaIndividual" placeholder="Nota (0-10)" min="0" max="10" step="0.1"
             style="width:100px; padding:10px; border-radius:6px; border:1px solid #475569; background:#0f172a; color:white; font-size:16px; font-weight:bold;">
 
@@ -19250,6 +19255,76 @@
           }
         } catch (e) {
           alert("Error de conexión: " + (e?.message || 'desconocido'));
+        }
+      };
+
+      window.devolverTareaActual = async function () {
+        const formId = String(currentEvaluandoFormId || '').trim();
+        const evalId = String(window.currentEvaluandoId || '').trim();
+
+        if (!formId || !evalId) {
+          alert('❌ No se pudo identificar la entrega actual.');
+          return;
+        }
+
+        const entregaActual = currentEntregasData?.[evalId] || null;
+        if (!entregaActual) {
+          alert('❌ No se encontró la entrega para devolver.');
+          return;
+        }
+
+        const emailAlumno = String(entregaActual.email || evalId);
+        const confirmar = confirm(`⚠️ Vas a devolver la tarea de ${emailAlumno}.\n\nEsta acción eliminará el archivo y su registro para que pueda volver a enviarla.\n\n¿Deseas continuar?`);
+        if (!confirmar) return;
+
+        const btnDevolver = Array.from(document.querySelectorAll('#panelCalificacionIndividual button'))
+          .find((btn) => (btn.textContent || '').includes('Devolver'));
+
+        const originalHtml = btnDevolver ? btnDevolver.innerHTML : '';
+        if (btnDevolver) {
+          btnDevolver.disabled = true;
+          btnDevolver.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Devolviendo...';
+        }
+
+        try {
+          const requesterEmail = String((window.userData?.email || (typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.email : '') || '')).trim().toLowerCase();
+
+          const resp = await fetch('/api/formulario?action=eliminarTareasPDF', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ruta: entregaActual.storagePath || '',
+              ident: evalId,
+              especialidadId: formId,
+              requesterEmail,
+            })
+          });
+
+          const payload = await resp.json().catch(() => ({}));
+          if (!resp.ok) {
+            throw new Error(payload.error || resp.statusText || 'No se pudo devolver la tarea');
+          }
+
+          if (currentEntregasData?.[evalId]) {
+            delete currentEntregasData[evalId];
+          }
+
+          alert('✅ Tarea devuelta correctamente. El usuario ya puede volver a enviarla.');
+          cerrarCalificador();
+
+          const tituloHeader = document.querySelector('#listaEntregasContainer h4');
+          const titulo = tituloHeader ? tituloHeader.textContent.replace('Entregas: ', '') : '';
+          renderTablaEntregasDetalle(titulo);
+          if (typeof cargarTablaEspecialidadesParaEvaluar === 'function') {
+            cargarTablaEspecialidadesParaEvaluar();
+          }
+        } catch (e) {
+          alert('❌ Error al devolver la tarea: ' + (e?.message || 'desconocido'));
+        } finally {
+          if (btnDevolver) {
+            btnDevolver.disabled = false;
+            btnDevolver.innerHTML = originalHtml;
+          }
         }
       };
 

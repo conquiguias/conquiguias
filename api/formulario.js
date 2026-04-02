@@ -1078,36 +1078,52 @@ async function handleEliminarTodasTareasPDF(req, res, repo) {
 
 async function handleEliminarTareasPDF(req, res, repo) {
   const { ruta, ident, especialidadId } = req.body;
-  if (!ruta || typeof ruta !== "string") {
-    res.status(400).json({ error: "Ruta de archivo requerida" });
-    return;
+  const requesterEmail = normalizeEmail(
+    req.body?.requesterEmail || req.body?.adminEmail || "",
+  );
+  const adminEmails = getAdminEmails();
+  if (!requesterEmail || !adminEmails.includes(requesterEmail)) {
+    return res.status(403).json({ error: "No autorizado" });
+  }
+
+  const normalizedRuta = String(ruta || "").trim();
+  const normalizedIdent = String(ident || "").trim();
+  const normalizedEspecialidadId = String(especialidadId || "").trim();
+
+  if (!normalizedRuta && (!normalizedIdent || !normalizedEspecialidadId)) {
+    return res.status(400).json({
+      error:
+        "Se requiere ruta o combinación especialidadId+ident para eliminar la entrega",
+    });
   }
 
   try {
-    // Eliminar archivo de Supabase Storage
-    const { error: deleteError } = await supabase.storage
-      .from('tareas-pdf')
-      .remove([ruta]);
-    
-    if (deleteError) {
-      return res.status(500).json({ error: deleteError.message || "Error al eliminar en Storage" });
+    // Eliminar archivo de Supabase Storage (si se indicó ruta)
+    if (normalizedRuta) {
+      const { error: deleteError } = await supabase.storage
+        .from('tareas-pdf')
+        .remove([normalizedRuta]);
+
+      if (deleteError) {
+        return res.status(500).json({ error: deleteError.message || "Error al eliminar en Storage" });
+      }
     }
 
     // Actualizar metadatos: eliminar entrada de tareas
-    if (especialidadId && ident) {
+    if (normalizedEspecialidadId && normalizedIdent) {
       const { data: evData } = await supabase
         .from("evaluaciones")
         .select("contenido_tareas")
-        .eq("especialidad_id", especialidadId)
+        .eq("especialidad_id", normalizedEspecialidadId)
         .single();
 
       const tareas = evData?.contenido_tareas || {};
-      if (tareas[ident]) {
-        delete tareas[ident];
+      if (tareas[normalizedIdent]) {
+        delete tareas[normalizedIdent];
         await supabase
           .from("evaluaciones")
           .upsert({
-            especialidad_id: especialidadId,
+            especialidad_id: normalizedEspecialidadId,
             contenido_tareas: tareas,
           });
       }

@@ -3853,6 +3853,11 @@
       font-style: italic;
     }
 
+    .post-description .wa-strike {
+      text-decoration: line-through;
+      text-decoration-thickness: 2px;
+    }
+
     .post-description .post-description-text.clamped {
       display: -webkit-box;
       -webkit-box-orient: vertical;
@@ -4521,7 +4526,7 @@
               </div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <small style="color: var(--text-primary); opacity: 0.9; font-size: 12px;">
-                  Presiona Enter para saltos de línea • *negrita* y _cursiva_ • Los enlaces se abrirán en nueva pestaña
+                  Presiona Enter para saltos de línea • *negrita* • _cursiva_ • ~tachado~ • Los enlaces se abrirán en nueva pestaña
                 </small>
                 <small id="charCount" style="color: var(--text-secondary); font-size: 12px;">
                   0/10000
@@ -13837,7 +13842,8 @@
 
         const withWhatsappFormatting = escaped
           .replace(/(^|[\s(])\*([^*\n]+?)\*(?=($|[\s).,!?;:]))/g, '$1<span class="wa-bold">$2</span>')
-          .replace(/(^|[\s(])_([^_\n]+?)_(?=($|[\s).,!?;:]))/g, '$1<span class="wa-italic">$2</span>');
+          .replace(/(^|[\s(])_([^_\n]+?)_(?=($|[\s).,!?;:]))/g, '$1<span class="wa-italic">$2</span>')
+          .replace(/(^|[\s(])~([^~\n]+?)~(?=($|[\s).,!?;:]))/g, '$1<span class="wa-strike">$2</span>');
 
         const withMentions = withWhatsappFormatting
           .replace(/@([a-zA-Z0-9_]+)/g, '<span style="color: var(--accent-color); font-weight: bold;">@$1</span>')
@@ -13904,7 +13910,9 @@
 
         const raw = String(value || '');
         if (!raw.trim()) {
-          postDescriptionOverlay.innerHTML = `<span class="description-overlay-placeholder">¿Qué quieres compartir? Puedes usar:\n• Saltos de línea (Enter)\n• Enlaces (se detectarán automáticamente)\n• Negrita *texto*\n• Cursiva _texto_\n• Menciones @usuario\n• Hashtags #tema</span>`;
+          postDescriptionOverlay.scrollTop = 0;
+          postDescriptionOverlay.scrollLeft = 0;
+          postDescriptionOverlay.innerHTML = `<span class="description-overlay-placeholder">¿Qué quieres compartir? Puedes usar:\n• Saltos de línea (Enter)\n• Enlaces (se detectarán automáticamente)\n• Negrita *texto*\n• Cursiva _texto_\n• Tachado ~texto~\n• Menciones @usuario\n• Hashtags #tema</span>`;
           return;
         }
 

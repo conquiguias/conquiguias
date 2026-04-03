@@ -12024,7 +12024,7 @@
               viewCount: 0,
               comments: [],
               status: isAdmin ? 'approved' : 'pending',
-              postKind: tvMode,
+              postKind: 'tv',
               posterUrl: coverImage,
               thumbnailUrl: '',
               tags: ['television']
@@ -12349,7 +12349,6 @@
 
         const postTags = getPostTagSet(post);
         const normalizedPostKind = getNormalizedPostKind(post);
-        const normalizedMediaType = canonicalizeTag(String(post?.mediaType || ''));
         const normalizedDescription = normalizeTagValue(String(post?.description || ''));
         const activeCategoryCanonical = canonicalizeTag(activeFeedCategory);
 
@@ -12367,21 +12366,13 @@
 
         if (activeFeedCategory === 'radio') {
           if (normalizedPostKind === 'radio') return true;
-          if (normalizedMediaType === 'audiourl' || normalizedMediaType.startsWith('audio')) return true;
           if (String(post?.radioname || '').trim() || String(post?.radiocover || '').trim()) return true;
           if (normalizedDescription.includes('#radio')) return true;
         }
 
         if (activeFeedCategory === 'television') {
-          if (normalizedPostKind === 'tv' || normalizedPostKind === 'television' || normalizedPostKind === 'video') return true;
-          if (normalizedMediaType.startsWith('video')) return true;
+          if (normalizedPostKind === 'tv' || normalizedPostKind === 'television') return true;
           if (normalizedDescription.includes('#television') || normalizedDescription.includes('#tv')) return true;
-          if (normalizedMediaType === 'videourl') {
-            const tags = Array.from(postTags);
-            if (tags.includes('tv') || tags.includes('television') || tags.includes('tele')) {
-              return true;
-            }
-          }
           if ((String(post?.posterUrl || '').trim() || String(post?.thumbnailUrl || '').trim()) &&
               (normalizedDescription.includes('#television') || normalizedDescription.includes('#tv'))) {
             return true;
@@ -14441,8 +14432,8 @@
               Object.assign(updates, {
                 mediaUrl: nextUrl,
                 mediaType: inferUrlMediaType(nextUrl),
-                postKind: nextMode,
-                tags: [nextMode === 'video' ? 'video' : 'television'],
+                postKind: 'tv',
+                tags: ['television'],
                 posterUrl: coverImage,
                 thumbnailUrl: '',
               });

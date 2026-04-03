@@ -3782,42 +3782,33 @@
       box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
     }
 
-    #postDescriptionOverlay {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      pointer-events: none;
-      padding: 12px;
-      color: var(--text-primary);
-      font-family: inherit;
-      font-size: 14px;
-      line-height: 1.4;
-      white-space: pre-wrap;
-      word-break: break-word;
-      overflow: auto;
-    }
-
-    #postDescription {
-      position: relative;
-      z-index: 2;
+    #postDescriptionEditor {
       width: 100%;
       min-height: 120px;
+      max-height: 320px;
+      overflow: auto;
       resize: vertical;
       padding: 12px;
       margin-bottom: 0;
       border: none;
       border-radius: 0;
       background: transparent;
-      color: transparent;
+      color: var(--text-primary);
       caret-color: var(--text-primary);
       font-family: inherit;
       font-size: 14px;
       line-height: 1.4;
       outline: none;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
 
-    #postDescription::placeholder {
-      color: transparent;
+    #postDescriptionEditor:empty::before {
+      content: attr(data-placeholder);
+      color: var(--text-primary);
+      opacity: 0.8;
+      white-space: pre-line;
+      pointer-events: none;
     }
 
     .description-overlay-placeholder {
@@ -4593,8 +4584,15 @@
               </div>
 
               <div class="description-editor-shell">
-                <div id="postDescriptionOverlay" aria-hidden="true"></div>
-                <textarea id="postDescription" maxlength="10000" placeholder=""></textarea>
+                <div id="postDescriptionEditor" contenteditable="true" data-placeholder="¿Qué quieres compartir? Puedes usar:
+• Saltos de línea (Enter)
+• Enlaces (se detectarán automáticamente)
+• Negrita *texto*
+• Cursiva _texto_
+• Tachado ~texto~
+• Menciones @usuario
+• Hashtags #tema"></div>
+                <textarea id="postDescription" maxlength="10000" placeholder="" style="display:none;" aria-hidden="true"></textarea>
               </div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <small style="color: var(--text-primary); opacity: 0.9; font-size: 12px;">
@@ -10706,8 +10704,8 @@
       // 🔹 RED SOCIAL - Variables globales
       const uploadContainer = document.getElementById('uploadContainer');
       const fileInput = document.getElementById('fileInput');
+      const postDescriptionEditor = document.getElementById('postDescriptionEditor');
       const postDescription = document.getElementById('postDescription');
-      const postDescriptionOverlay = document.getElementById('postDescriptionOverlay');
       const previewContainer = document.getElementById('previewContainer');
       const uploadProgress = document.getElementById('uploadProgress');
       const progressBar = document.getElementById('progressBar');
@@ -14055,26 +14053,88 @@
         return formatRichText(text);
       }
 
-      function updateDescriptionLivePreview(value = postDescription?.value || '') {
-        if (!postDescriptionOverlay) return;
+      let composerFormattingInProgress = false;
 
-        const raw = String(value || '');
-        if (!raw.trim()) {
-          postDescriptionOverlay.scrollTop = 0;
-          postDescriptionOverlay.scrollLeft = 0;
-          postDescriptionOverlay.innerHTML = `<span class="description-overlay-placeholder">¿Qué quieres compartir? Puedes usar:\n• Saltos de línea (Enter)\n• Enlaces (se detectarán automáticamente)\n• Negrita *texto*\n• Cursiva _texto_\n• Tachado ~texto~\n• Menciones @usuario\n• Hashtags #tema</span>`;
-          return;
+      function getCaretOffsetWithin(element) {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) return 0;
+        const range = selection.getRangeAt(0);
+        if (!element.contains(range.endContainer)) return 0;
+
+        const preCaretRange = range.cloneRange();
+        preCaretRange.selectNodeContents(element);
+        preCaretRange.setEnd(range.endContainer, range.endOffset);
+        return preCaretRange.toString().length;
+      }
+
+      function setCaretOffsetWithin(element, offset) {
+        const selection = window.getSelection();
+        if (!selection) return;
+
+        const range = document.createRange();
+        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null);
+        let currentLength = 0;
+        let currentNode = null;
+
+        while ((currentNode = walker.nextNode())) {
+          const nextLength = currentLength + currentNode.nodeValue.length;
+          if (offset <= nextLength) {
+            range.setStart(currentNode, Math.max(0, offset - currentLength));
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            return;
+          }
+          currentLength = nextLength;
         }
 
-        postDescriptionOverlay.innerHTML = formatRichText(raw);
+        range.selectNodeContents(element);
+        range.collapse(false);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+
+      function getComposerRawText() {
+        if (!postDescriptionEditor) return '';
+        const text = String(postDescriptionEditor.innerText || '')
+          .replace(/\u00a0/g, ' ')
+          .replace(/\r/g, '');
+        return text === '\n' ? '' : text;
+      }
+
+      function updateDescriptionLivePreview(value = postDescription?.value || '') {
+        if (!postDescriptionEditor || !postDescription) return;
+
+        const sourceText = typeof value === 'string' ? value : getComposerRawText();
+        const clippedText = sourceText.length > 10000 ? sourceText.slice(0, 10000) : sourceText;
+        postDescription.value = clippedText;
+
+        if (composerFormattingInProgress) return;
+
+        const preserveCaret = document.activeElement === postDescriptionEditor;
+        const caretOffset = preserveCaret ? getCaretOffsetWithin(postDescriptionEditor) : 0;
+
+        composerFormattingInProgress = true;
+        if (!clippedText.trim()) {
+          postDescriptionEditor.innerHTML = '';
+        } else {
+          postDescriptionEditor.innerHTML = formatRichText(clippedText);
+        }
+        composerFormattingInProgress = false;
+
+        if (preserveCaret) {
+          setCaretOffsetWithin(postDescriptionEditor, Math.min(caretOffset, clippedText.length));
+        }
       }
 
       // Contador de caracteres mejorado para el textarea
-      postDescription.addEventListener('input', function () {
+      postDescriptionEditor?.addEventListener('input', function () {
+        if (composerFormattingInProgress) return;
+
+        updateDescriptionLivePreview();
         const MAX_DESCRIPTION_LENGTH = 10000;
-        const currentLength = this.value.length;
+        const currentLength = postDescription.value.length;
         const charCount = document.getElementById('charCount');
-        updateDescriptionLivePreview(this.value);
 
         if (charCount) {
           // Actualizar contador
@@ -14112,15 +14172,8 @@
 
         // Limitar longitud en tiempo real (opcional)
         if (currentLength > MAX_DESCRIPTION_LENGTH) {
-          this.value = this.value.substring(0, MAX_DESCRIPTION_LENGTH);
-          updateDescriptionLivePreview(this.value);
+          updateDescriptionLivePreview(postDescription.value.substring(0, MAX_DESCRIPTION_LENGTH));
         }
-      });
-
-      postDescription.addEventListener('scroll', function () {
-        if (!postDescriptionOverlay) return;
-        postDescriptionOverlay.scrollTop = postDescription.scrollTop;
-        postDescriptionOverlay.scrollLeft = postDescription.scrollLeft;
       });
 
       updateDescriptionLivePreview();

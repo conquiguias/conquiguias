@@ -12977,6 +12977,14 @@
           return;
         }
         setCategoryLoadingState(true, categoryAtRequest);
+        if (isCategoryMode && shouldDebugCategory(categoryAtRequest)) {
+          resetCategoryDebugLogs();
+          console.log('[CategoryDebug] render-cycle-start', {
+            category: categoryAtRequest,
+            forceReload: !!forceReload,
+            loadToken,
+          });
+        }
         agregarLogFirestore('loadPosts');
         postsLoading = true;
         lastLoadTime = now;
@@ -13058,11 +13066,35 @@
           let renderedPostsCount = 0;
           if (isCategoryMode) {
             const enrichedCategoryPosts = await enrichPostsRoleMetadata(categoryPosts);
+            let renderFailures = 0;
+            const failedIds = [];
             enrichedCategoryPosts.forEach((post) => {
               if (post.id === LIVE_POST_ID) return;
-              displayPost(post, post.id);
-              renderedPostsCount++;
+              try {
+                displayPost(post, post.id);
+                renderedPostsCount++;
+              } catch (renderError) {
+                renderFailures++;
+                if (failedIds.length < 10) failedIds.push(post?.id || 'sin-id');
+                console.error('[CategoryDebug] render-post-error', {
+                  category: categoryAtRequest,
+                  postId: post?.id || '',
+                  message: renderError?.message || String(renderError || ''),
+                  postKind: String(post?.postKind || ''),
+                  mediaType: String(post?.mediaType || ''),
+                });
+              }
             });
+
+            if (shouldDebugCategory(categoryAtRequest)) {
+              console.log('[CategoryDebug] render-category-summary', {
+                category: categoryAtRequest,
+                matchedByFilter: enrichedCategoryPosts.length,
+                renderedPostsCount,
+                renderFailures,
+                failedIds,
+              });
+            }
           } else {
             const recentPosts = querySnapshot.docs.map((docSnap) => ({ ...docSnap.data(), id: docSnap.id }));
             const enrichedRecentPosts = await enrichPostsRoleMetadata(recentPosts);

@@ -12557,6 +12557,11 @@
             tab.classList.toggle('active', tab.dataset.category === category);
           });
 
+          const mainContent = document.getElementById('mainContent');
+          if (mainContent) {
+            mainContent.scrollTop = 0;
+          }
+
           setCategoryLoadingState(true, category);
 
           await loadPosts(true);
@@ -12993,6 +12998,14 @@
         try {
           console.log('📥 Cargando publicaciones aprobadas...');
           console.log('🔍 Firestore Read - loadPosts iniciado');
+
+          if (isCategoryMode) {
+            const mainContent = document.getElementById('mainContent');
+            if (mainContent) {
+              mainContent.scrollTop = 0;
+            }
+          }
+
           // Reiniciar variables de paginación
           lastVisiblePost = null;
           hasMorePosts = true;

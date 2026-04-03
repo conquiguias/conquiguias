@@ -12264,6 +12264,24 @@
       // Mapas derivados — NO edites estos directamente, edita FEED_CATEGORIES.
       const FEED_CATEGORY_TAGS   = Object.fromEntries(FEED_CATEGORIES.map(c => [c.key, c.tags]));
       const FEED_CATEGORY_LABELS = Object.fromEntries(FEED_CATEGORIES.map(c => [c.key, c.label]));
+      const CATEGORY_DEBUG_TARGETS = new Set(['radio', 'television']);
+      const CATEGORY_DEBUG_LOG_LIMIT = 180;
+      let categoryDebugLogCount = 0;
+
+      function shouldDebugCategory(category = activeFeedCategory) {
+        return CATEGORY_DEBUG_TARGETS.has(String(category || '').trim().toLowerCase());
+      }
+
+      function resetCategoryDebugLogs() {
+        categoryDebugLogCount = 0;
+      }
+
+      function logCategoryFilterDecision(payload) {
+        if (!shouldDebugCategory(payload?.category)) return;
+        if (categoryDebugLogCount >= CATEGORY_DEBUG_LOG_LIMIT) return;
+        categoryDebugLogCount += 1;
+        console.log('[CategoryDebug]', payload);
+      }
 
       function setCategoryLoadingState(isLoading, categoryKey = activeFeedCategory) {
         if (!categoryLoadingIndicator) return;
@@ -12344,6 +12362,7 @@
       function postMatchesActiveCategory(post) {
         if (activeFeedCategory === 'recientes') return true;
 
+        const categoryForDebug = activeFeedCategory;
         const allowedCanonicalTags = getCategoryCanonicalTags(activeFeedCategory);
         if (allowedCanonicalTags.size === 0) return true;
 
@@ -12353,40 +12372,93 @@
         const activeCategoryCanonical = canonicalizeTag(activeFeedCategory);
 
         if (normalizedPostKind && allowedCanonicalTags.has(normalizedPostKind)) {
+          logCategoryFilterDecision({
+            category: categoryForDebug,
+            matched: true,
+            reason: 'postKind-in-allowed-tags',
+            id: post?.id || '',
+            postKind: normalizedPostKind,
+            tags: Array.from(postTags),
+            description: String(post?.description || '').slice(0, 80)
+          });
           return true;
         }
 
         for (const tag of postTags) {
-          if (allowedCanonicalTags.has(tag)) return true;
+          if (allowedCanonicalTags.has(tag)) {
+            logCategoryFilterDecision({
+              category: categoryForDebug,
+              matched: true,
+              reason: 'post-tag-in-allowed-tags',
+              id: post?.id || '',
+              postKind: normalizedPostKind,
+              tags: Array.from(postTags),
+              description: String(post?.description || '').slice(0, 80)
+            });
+            return true;
+          }
         }
 
         if (activeCategoryCanonical && normalizedPostKind.includes(activeCategoryCanonical)) {
+          logCategoryFilterDecision({
+            category: categoryForDebug,
+            matched: true,
+            reason: 'postKind-includes-category-slug',
+            id: post?.id || '',
+            postKind: normalizedPostKind,
+            tags: Array.from(postTags),
+            description: String(post?.description || '').slice(0, 80)
+          });
           return true;
         }
 
         if (activeFeedCategory === 'radio') {
-          if (normalizedPostKind === 'radio') return true;
-          if (String(post?.radioname || '').trim() || String(post?.radiocover || '').trim()) return true;
-          if (normalizedDescription.includes('#radio')) return true;
+          if (normalizedPostKind === 'radio') {
+            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'radio-postKind-radio', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80) });
+            return true;
+          }
+          if (String(post?.radioname || '').trim() || String(post?.radiocover || '').trim()) {
+            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'radio-legacy-fields', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80) });
+            return true;
+          }
+          if (normalizedDescription.includes('#radio')) {
+            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'radio-hashtag', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80) });
+            return true;
+          }
         }
 
         if (activeFeedCategory === 'television') {
-          if (normalizedPostKind === 'tv' || normalizedPostKind === 'television') return true;
-          if (normalizedDescription.includes('#television') || normalizedDescription.includes('#tv')) return true;
+          if (normalizedPostKind === 'tv' || normalizedPostKind === 'television') {
+            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'tv-postKind-tv-television', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80) });
+            return true;
+          }
+          if (normalizedDescription.includes('#television') || normalizedDescription.includes('#tv')) {
+            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'tv-hashtag', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80) });
+            return true;
+          }
           if ((String(post?.posterUrl || '').trim() || String(post?.thumbnailUrl || '').trim()) &&
               (normalizedDescription.includes('#television') || normalizedDescription.includes('#tv'))) {
+            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'tv-cover-and-hashtag', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80) });
             return true;
           }
         }
 
         if (activeFeedCategory === 'musica') {
           if (normalizedPostKind === 'musica' || normalizedPostKind === 'music') return true;
-          if (normalizedMediaType === 'audiourl' || normalizedMediaType.startsWith('audio')) {
-            if (normalizedDescription.includes('#musica') || normalizedDescription.includes('#musicaadventista') || normalizedDescription.includes('#music')) {
-              return true;
-            }
+          if (normalizedDescription.includes('#musica') || normalizedDescription.includes('#musicaadventista') || normalizedDescription.includes('#music')) {
+            return true;
           }
         }
+
+        logCategoryFilterDecision({
+          category: categoryForDebug,
+          matched: false,
+          reason: 'no-category-match',
+          id: post?.id || '',
+          postKind: normalizedPostKind,
+          tags: Array.from(postTags),
+          description: String(post?.description || '').slice(0, 80)
+        });
 
         return false;
       }
@@ -12463,6 +12535,15 @@
         const maxBatches = 10;
         let cursor = null;
 
+        if (shouldDebugCategory(activeFeedCategory)) {
+          console.log('[CategoryDebug] fetch-start', {
+            category: activeFeedCategory,
+            batchSize,
+            maxBatches,
+            postsPerLoad
+          });
+        }
+
         for (let batchIndex = 0; batchIndex < maxBatches; batchIndex++) {
           let q = query(
             collection(db, "posts"),
@@ -12484,16 +12565,37 @@
           const snap = await getDocs(q);
           if (snap.empty) break;
 
+          let matchedInBatch = 0;
+
           snap.forEach((docSnap) => {
             const post = { ...docSnap.data(), id: docSnap.id };
             if (postMatchesActiveCategory(post)) {
               matchedPosts.push(post);
+              matchedInBatch += 1;
             }
           });
+
+          if (shouldDebugCategory(activeFeedCategory)) {
+            console.log('[CategoryDebug] fetch-batch', {
+              category: activeFeedCategory,
+              batchIndex,
+              scanned: snap.size,
+              matchedInBatch,
+              matchedTotal: matchedPosts.length,
+              cursor: snap.docs[snap.docs.length - 1]?.id || ''
+            });
+          }
 
           cursor = snap.docs[snap.docs.length - 1];
           if (matchedPosts.length >= postsPerLoad) break;
           if (snap.size < batchSize) break;
+        }
+
+        if (shouldDebugCategory(activeFeedCategory)) {
+          console.log('[CategoryDebug] fetch-end', {
+            category: activeFeedCategory,
+            matchedTotal: matchedPosts.length
+          });
         }
 
         return matchedPosts;

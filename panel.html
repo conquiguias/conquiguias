@@ -13986,12 +13986,61 @@
         return formatRichText(text);
       }
 
+      function serializeEditorNodeToMarkers(node) {
+        if (!node) return '';
+
+        if (node.nodeType === Node.TEXT_NODE) {
+          return String(node.nodeValue || '').replace(/\u00a0/g, ' ');
+        }
+
+        if (node.nodeType !== Node.ELEMENT_NODE) {
+          return '';
+        }
+
+        const element = node;
+        const tag = element.tagName;
+
+        if (tag === 'BR') {
+          return '\n';
+        }
+
+        const inner = Array.from(element.childNodes)
+          .map((child) => serializeEditorNodeToMarkers(child))
+          .join('');
+
+        if (tag === 'B' || tag === 'STRONG') {
+          return `*${inner}*`;
+        }
+
+        if (tag === 'I' || tag === 'EM') {
+          return `_${inner}_`;
+        }
+
+        if (tag === 'S' || tag === 'STRIKE' || tag === 'DEL') {
+          return `~${inner}~`;
+        }
+
+        if (tag === 'CODE') {
+          return `\`${inner.replace(/\n/g, ' ')}\``;
+        }
+
+        if (tag === 'DIV' || tag === 'P') {
+          return `${inner}\n`;
+        }
+
+        return inner;
+      }
+
       function getEditableTextValue(editorEl) {
         if (!editorEl) return '';
-        const text = String(editorEl.innerText || '')
-          .replace(/\u00a0/g, ' ')
+
+        let text = Array.from(editorEl.childNodes)
+          .map((node) => serializeEditorNodeToMarkers(node))
+          .join('')
           .replace(/\r/g, '');
-        return text === '\n' ? '' : text;
+
+        text = text.replace(/\n{3,}/g, '\n\n').replace(/\n$/, '');
+        return text;
       }
 
       function setEditorCaretToEnd(editorEl) {

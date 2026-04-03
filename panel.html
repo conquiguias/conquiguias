@@ -12342,12 +12342,36 @@
       }
 
       function getNormalizedPostKind(post) {
-        return canonicalizeTag(post?.postKind || post?.kind || post?.type || '');
+        return canonicalizeTag(
+          post?.postKind ||
+          post?.kind ||
+          post?.type ||
+          post?.category ||
+          post?.categoria ||
+          post?.postCategory ||
+          post?.feedCategory ||
+          post?.channelType ||
+          post?.contentCategory ||
+          ''
+        );
       }
 
       function getPostTagSet(post) {
         const descriptionTags = extractPostHashtags(post?.description || '');
-        const extraTags = [post?.tags, post?.hashtags, post?.etiquetas]
+        const extraTags = [
+          post?.tags,
+          post?.hashtags,
+          post?.etiquetas,
+          post?.category,
+          post?.categoria,
+          post?.postCategory,
+          post?.feedCategory,
+          post?.channelType,
+          post?.contentCategory,
+          post?.kind,
+          post?.type,
+          post?.postKind,
+        ]
           .flatMap((value) => {
             if (Array.isArray(value)) return value;
             if (typeof value === 'string') return value.split(/[\s,;|]+/);
@@ -12370,6 +12394,17 @@
         const normalizedPostKind = getNormalizedPostKind(post);
         const normalizedDescription = normalizeTagValue(String(post?.description || ''));
         const activeCategoryCanonical = canonicalizeTag(activeFeedCategory);
+        const debugRawFields = {
+          category: String(post?.category || '').trim(),
+          categoria: String(post?.categoria || '').trim(),
+          postCategory: String(post?.postCategory || '').trim(),
+          feedCategory: String(post?.feedCategory || '').trim(),
+          channelType: String(post?.channelType || '').trim(),
+          contentCategory: String(post?.contentCategory || '').trim(),
+          type: String(post?.type || '').trim(),
+          kind: String(post?.kind || '').trim(),
+          postKind: String(post?.postKind || '').trim(),
+        };
 
         if (normalizedPostKind && allowedCanonicalTags.has(normalizedPostKind)) {
           logCategoryFilterDecision({
@@ -12379,7 +12414,8 @@
             id: post?.id || '',
             postKind: normalizedPostKind,
             tags: Array.from(postTags),
-            description: String(post?.description || '').slice(0, 80)
+            description: String(post?.description || '').slice(0, 80),
+            raw: debugRawFields,
           });
           return true;
         }
@@ -12393,7 +12429,8 @@
               id: post?.id || '',
               postKind: normalizedPostKind,
               tags: Array.from(postTags),
-              description: String(post?.description || '').slice(0, 80)
+              description: String(post?.description || '').slice(0, 80),
+              raw: debugRawFields,
             });
             return true;
           }
@@ -12407,38 +12444,39 @@
             id: post?.id || '',
             postKind: normalizedPostKind,
             tags: Array.from(postTags),
-            description: String(post?.description || '').slice(0, 80)
+            description: String(post?.description || '').slice(0, 80),
+            raw: debugRawFields,
           });
           return true;
         }
 
         if (activeFeedCategory === 'radio') {
           if (normalizedPostKind === 'radio') {
-            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'radio-postKind-radio', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80) });
+            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'radio-postKind-radio', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80), raw: debugRawFields });
             return true;
           }
           if (String(post?.radioname || '').trim() || String(post?.radiocover || '').trim()) {
-            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'radio-legacy-fields', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80) });
+            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'radio-legacy-fields', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80), raw: debugRawFields });
             return true;
           }
           if (normalizedDescription.includes('#radio')) {
-            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'radio-hashtag', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80) });
+            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'radio-hashtag', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80), raw: debugRawFields });
             return true;
           }
         }
 
         if (activeFeedCategory === 'television') {
           if (normalizedPostKind === 'tv' || normalizedPostKind === 'television') {
-            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'tv-postKind-tv-television', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80) });
+            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'tv-postKind-tv-television', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80), raw: debugRawFields });
             return true;
           }
           if (normalizedDescription.includes('#television') || normalizedDescription.includes('#tv')) {
-            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'tv-hashtag', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80) });
+            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'tv-hashtag', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80), raw: debugRawFields });
             return true;
           }
           if ((String(post?.posterUrl || '').trim() || String(post?.thumbnailUrl || '').trim()) &&
               (normalizedDescription.includes('#television') || normalizedDescription.includes('#tv'))) {
-            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'tv-cover-and-hashtag', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80) });
+            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'tv-cover-and-hashtag', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80), raw: debugRawFields });
             return true;
           }
         }
@@ -12457,7 +12495,8 @@
           id: post?.id || '',
           postKind: normalizedPostKind,
           tags: Array.from(postTags),
-          description: String(post?.description || '').slice(0, 80)
+          description: String(post?.description || '').slice(0, 80),
+          raw: debugRawFields,
         });
 
         return false;

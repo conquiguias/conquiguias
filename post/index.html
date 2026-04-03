@@ -2462,9 +2462,9 @@
         });
 
         work = work
-          .replace(/(^|[\s(])\*([^*\n]+?)\*(?=($|[\s).,!?;:]))/g, '$1<span class="wa-bold">$2</span>')
-          .replace(/(^|[\s(])_([^_\n]+?)_(?=($|[\s).,!?;:]))/g, '$1<span class="wa-italic">$2</span>')
-          .replace(/(^|[\s(])~([^~\n]+?)~(?=($|[\s).,!?;:]))/g, '$1<span class="wa-strike">$2</span>');
+          .replace(/\*([^*\n]+?)\*/g, '<span class="wa-bold">$1</span>')
+          .replace(/_([^_\n]+?)_/g, '<span class="wa-italic">$1</span>')
+          .replace(/~([^~\n]+?)~/g, '<span class="wa-strike">$1</span>');
 
         work = work
           .replace(

@@ -641,6 +641,53 @@
         font-style: italic;
       }
 
+      .post-description .wa-strike {
+        text-decoration: line-through;
+        text-decoration-thickness: 2px;
+      }
+
+      .post-description .wa-code-inline {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 0.92em;
+        padding: 0.1em 0.35em;
+        border-radius: 4px;
+        background: rgba(148, 163, 184, 0.16);
+        color: var(--text-primary);
+      }
+
+      .post-description .wa-code-block {
+        margin: 8px 0;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background: rgba(15, 23, 42, 0.55);
+        color: var(--text-primary);
+        overflow-x: auto;
+        white-space: pre;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 0.9em;
+        line-height: 1.4;
+      }
+
+      .post-description .wa-quote {
+        margin: 6px 0;
+        padding: 4px 0 4px 10px;
+        border-left: 3px solid var(--accent-color);
+        color: var(--text-primary);
+        opacity: 0.95;
+      }
+
+      .post-description .wa-list-ul,
+      .post-description .wa-list-ol {
+        margin: 6px 0;
+        padding-left: 20px;
+      }
+
+      .post-description .wa-list-ul li,
+      .post-description .wa-list-ol li {
+        margin: 2px 0;
+      }
+
       .post-description .post-description-text.clamped {
         display: -webkit-box;
         -webkit-box-orient: vertical;
@@ -2397,11 +2444,29 @@
 
       function formatRichText(text) {
         const escaped = escapeHtml(text);
-        const withWhatsappFormatting = escaped
-          .replace(/(^|[\s(])\*([^*\n]+?)\*(?=($|[\s).,!?;:]))/g, '$1<span class="wa-bold">$2</span>')
-          .replace(/(^|[\s(])_([^_\n]+?)_(?=($|[\s).,!?;:]))/g, '$1<span class="wa-italic">$2</span>');
+        const tokens = [];
+        const stashToken = (html) => {
+          const token = `@@CX_TOKEN_${tokens.length}@@`;
+          tokens.push(html);
+          return token;
+        };
 
-        const withMentions = withWhatsappFormatting
+        let work = escaped;
+
+        work = work.replace(/```([\s\S]*?)```/g, (_, code) => {
+          return stashToken(`<pre class="wa-code-block"><code>${code}</code></pre>`);
+        });
+
+        work = work.replace(/`([^`\n]+?)`/g, (_, code) => {
+          return stashToken(`<code class="wa-code-inline">${code}</code>`);
+        });
+
+        work = work
+          .replace(/(^|[\s(])\*([^*\n]+?)\*(?=($|[\s).,!?;:]))/g, '$1<span class="wa-bold">$2</span>')
+          .replace(/(^|[\s(])_([^_\n]+?)_(?=($|[\s).,!?;:]))/g, '$1<span class="wa-italic">$2</span>')
+          .replace(/(^|[\s(])~([^~\n]+?)~(?=($|[\s).,!?;:]))/g, '$1<span class="wa-strike">$2</span>');
+
+        work = work
           .replace(
             /@([a-zA-Z0-9_]+)/g,
             '<span style="color: var(--accent-color); font-weight: bold;">@$1</span>',
@@ -2412,30 +2477,86 @@
           );
 
         const linkRegex = /(^|[\s(])((?:https?:\/\/|www\.)[^\s<]+)/gi;
-        const withLinks = withMentions.replace(
-          linkRegex,
-          (match, prefix = "", rawUrl = "") => {
-            let cleanUrl = rawUrl;
-            let trailing = "";
+        work = work.replace(linkRegex, (match, prefix = "", rawUrl = "") => {
+          let cleanUrl = rawUrl;
+          let trailing = "";
 
-            while (/[.,!?;:)]$/.test(cleanUrl)) {
-              trailing = cleanUrl.slice(-1) + trailing;
-              cleanUrl = cleanUrl.slice(0, -1);
+          while (/[.,!?;:)]$/.test(cleanUrl)) {
+            trailing = cleanUrl.slice(-1) + trailing;
+            cleanUrl = cleanUrl.slice(0, -1);
+          }
+
+          if (!cleanUrl) return match;
+
+          const href = cleanUrl.startsWith("www.") ? `https://${cleanUrl}` : cleanUrl;
+          const displayUrl = cleanUrl.length > 45 ? `${cleanUrl.slice(0, 42)}...` : cleanUrl;
+
+          return `${prefix}<a href="${href}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-color); text-decoration: underline;" title="${href}">🔗 ${displayUrl}</a>${trailing}`;
+        });
+
+        const lines = work.split("\n");
+        const htmlLines = [];
+        let inUnorderedList = false;
+        let inOrderedList = false;
+
+        const closeLists = () => {
+          if (inUnorderedList) {
+            htmlLines.push('</ul>');
+            inUnorderedList = false;
+          }
+          if (inOrderedList) {
+            htmlLines.push('</ol>');
+            inOrderedList = false;
+          }
+        };
+
+        for (const line of lines) {
+          const bulletMatch = line.match(/^\s*[-*]\s+(.+)$/);
+          const orderedMatch = line.match(/^\s*\d+\.\s+(.+)$/);
+          const quoteMatch = line.match(/^\s*&gt;\s?(.+)$/);
+
+          if (bulletMatch) {
+            if (inOrderedList) {
+              htmlLines.push('</ol>');
+              inOrderedList = false;
             }
+            if (!inUnorderedList) {
+              htmlLines.push('<ul class="wa-list-ul">');
+              inUnorderedList = true;
+            }
+            htmlLines.push(`<li>${bulletMatch[1]}</li>`);
+            continue;
+          }
 
-            if (!cleanUrl) return match;
+          if (orderedMatch) {
+            if (inUnorderedList) {
+              htmlLines.push('</ul>');
+              inUnorderedList = false;
+            }
+            if (!inOrderedList) {
+              htmlLines.push('<ol class="wa-list-ol">');
+              inOrderedList = true;
+            }
+            htmlLines.push(`<li>${orderedMatch[1]}</li>`);
+            continue;
+          }
 
-            const href = cleanUrl.startsWith("www.")
-              ? `https://${cleanUrl}`
-              : cleanUrl;
-            const displayUrl =
-              cleanUrl.length > 45 ? `${cleanUrl.slice(0, 42)}...` : cleanUrl;
+          closeLists();
 
-            return `${prefix}<a href="${href}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-color); text-decoration: underline;" title="${href}">🔗 ${displayUrl}</a>${trailing}`;
-          },
-        );
+          if (quoteMatch) {
+            htmlLines.push(`<blockquote class="wa-quote">${quoteMatch[1]}</blockquote>`);
+          } else if (line.trim() === "") {
+            htmlLines.push('<br>');
+          } else {
+            htmlLines.push(`${line}<br>`);
+          }
+        }
 
-        return withLinks.replace(/\n/g, "<br>");
+        closeLists();
+
+        let result = htmlLines.join("");
+        result = result.replace(/@@CX_TOKEN_(\d+)@@/g, (_, idx) => tokens[Number(idx)] || '');
+        return result;
       }
 
       function formatPostDescription(text, postId) {

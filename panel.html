@@ -2095,17 +2095,47 @@
       margin-top: 6px;
     }
 
+    .edit-description-editor-shell {
+      position: relative;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      background: var(--bg-primary);
+      overflow: hidden;
+    }
+
+    #editPostOverlay {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      padding: 10px;
+      color: var(--text-primary);
+      font-size: 14px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow: auto;
+    }
+
     .edit-post-textarea {
       width: 100%;
       min-height: 170px;
       resize: vertical;
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-      background: var(--bg-primary);
-      color: var(--text-primary);
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      color: transparent;
+      caret-color: var(--text-primary);
       padding: 10px;
       font-size: 14px;
       line-height: 1.4;
+      position: relative;
+      z-index: 2;
+      outline: none;
+    }
+
+    .edit-post-textarea::placeholder {
+      color: transparent;
     }
 
     .edit-post-footer {
@@ -3844,18 +3874,60 @@
       overflow-wrap: anywhere;
     }
 
-    .post-description .wa-bold {
+    .wa-bold {
       font-weight: 700;
       font-size: calc(1em + 2px);
     }
 
-    .post-description .wa-italic {
+    .wa-italic {
       font-style: italic;
     }
 
-    .post-description .wa-strike {
+    .wa-strike {
       text-decoration: line-through;
       text-decoration-thickness: 2px;
+    }
+
+    .wa-code-inline {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.92em;
+      padding: 0.1em 0.35em;
+      border-radius: 4px;
+      background: rgba(148, 163, 184, 0.16);
+      color: var(--text-primary);
+    }
+
+    .wa-code-block {
+      margin: 8px 0;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: rgba(15, 23, 42, 0.55);
+      color: var(--text-primary);
+      overflow-x: auto;
+      white-space: pre;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.9em;
+      line-height: 1.4;
+    }
+
+    .wa-quote {
+      margin: 6px 0;
+      padding: 4px 0 4px 10px;
+      border-left: 3px solid var(--accent-color);
+      color: var(--text-primary);
+      opacity: 0.95;
+    }
+
+    .wa-list-ul,
+    .wa-list-ol {
+      margin: 6px 0;
+      padding-left: 20px;
+    }
+
+    .wa-list-ul li,
+    .wa-list-ol li {
+      margin: 2px 0;
     }
 
     .post-description .post-description-text.clamped {
@@ -4526,7 +4598,7 @@
               </div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <small style="color: var(--text-primary); opacity: 0.9; font-size: 12px;">
-                  Presiona Enter para saltos de línea • *negrita* • _cursiva_ • ~tachado~ • Los enlaces se abrirán en nueva pestaña
+                  *negrita* • _cursiva_ • ~tachado~ • `código` • ```bloque``` • - lista • 1. lista • > cita
                 </small>
                 <small id="charCount" style="color: var(--text-secondary); font-size: 12px;">
                   0/10000
@@ -13839,18 +13911,34 @@
 
       function formatRichText(text) {
         const escaped = escapeHtml(text);
+        const tokens = [];
+        const stashToken = (html) => {
+          const token = `@@CX_TOKEN_${tokens.length}@@`;
+          tokens.push(html);
+          return token;
+        };
 
-        const withWhatsappFormatting = escaped
+        let work = escaped;
+
+        work = work.replace(/```([\s\S]*?)```/g, (_, code) => {
+          return stashToken(`<pre class="wa-code-block"><code>${code}</code></pre>`);
+        });
+
+        work = work.replace(/`([^`\n]+?)`/g, (_, code) => {
+          return stashToken(`<code class="wa-code-inline">${code}</code>`);
+        });
+
+        work = work
           .replace(/(^|[\s(])\*([^*\n]+?)\*(?=($|[\s).,!?;:]))/g, '$1<span class="wa-bold">$2</span>')
           .replace(/(^|[\s(])_([^_\n]+?)_(?=($|[\s).,!?;:]))/g, '$1<span class="wa-italic">$2</span>')
           .replace(/(^|[\s(])~([^~\n]+?)~(?=($|[\s).,!?;:]))/g, '$1<span class="wa-strike">$2</span>');
 
-        const withMentions = withWhatsappFormatting
+        work = work
           .replace(/@([a-zA-Z0-9_]+)/g, '<span style="color: var(--accent-color); font-weight: bold;">@$1</span>')
           .replace(/#([a-zA-Z0-9_]+)/g, '<span style="color: var(--success-color); font-weight: bold;">#$1</span>');
 
         const linkRegex = /(^|[\s(])((?:https?:\/\/|www\.)[^\s<]+)/gi;
-        const withLinks = withMentions.replace(linkRegex, (match, prefix = '', rawUrl = '') => {
+        work = work.replace(linkRegex, (match, prefix = '', rawUrl = '') => {
           let cleanUrl = rawUrl;
           let trailing = '';
 
@@ -13867,7 +13955,69 @@
           return `${prefix}<a href="${href}" target="_blank" rel="noopener noreferrer" title="${href}">🔗 ${displayUrl}</a>${trailing}`;
         });
 
-        return withLinks.replace(/\n/g, '<br>');
+        const lines = work.split('\n');
+        const htmlLines = [];
+        let inUnorderedList = false;
+        let inOrderedList = false;
+
+        const closeLists = () => {
+          if (inUnorderedList) {
+            htmlLines.push('</ul>');
+            inUnorderedList = false;
+          }
+          if (inOrderedList) {
+            htmlLines.push('</ol>');
+            inOrderedList = false;
+          }
+        };
+
+        for (const line of lines) {
+          const bulletMatch = line.match(/^\s*[-*]\s+(.+)$/);
+          const orderedMatch = line.match(/^\s*\d+\.\s+(.+)$/);
+          const quoteMatch = line.match(/^\s*&gt;\s?(.+)$/);
+
+          if (bulletMatch) {
+            if (inOrderedList) {
+              htmlLines.push('</ol>');
+              inOrderedList = false;
+            }
+            if (!inUnorderedList) {
+              htmlLines.push('<ul class="wa-list-ul">');
+              inUnorderedList = true;
+            }
+            htmlLines.push(`<li>${bulletMatch[1]}</li>`);
+            continue;
+          }
+
+          if (orderedMatch) {
+            if (inUnorderedList) {
+              htmlLines.push('</ul>');
+              inUnorderedList = false;
+            }
+            if (!inOrderedList) {
+              htmlLines.push('<ol class="wa-list-ol">');
+              inOrderedList = true;
+            }
+            htmlLines.push(`<li>${orderedMatch[1]}</li>`);
+            continue;
+          }
+
+          closeLists();
+
+          if (quoteMatch) {
+            htmlLines.push(`<blockquote class="wa-quote">${quoteMatch[1]}</blockquote>`);
+          } else if (line.trim() === '') {
+            htmlLines.push('<br>');
+          } else {
+            htmlLines.push(`${line}<br>`);
+          }
+        }
+
+        closeLists();
+
+        let result = htmlLines.join('');
+        result = result.replace(/@@CX_TOKEN_(\d+)@@/g, (_, idx) => tokens[Number(idx)] || '');
+        return result;
       }
 
       // 🔹 Función auxiliar para escapar HTML (seguridad)
@@ -14538,7 +14688,10 @@
                                         <div class="edit-post-note">Puedes cambiar el tipo, el enlace y la portada de TV o Video.</div>
                                       </div>
 
-                                      <textarea id="editPostTextarea" class="edit-post-textarea" maxlength="10000" placeholder="Escribe la descripción..."></textarea>
+                                      <div class="edit-description-editor-shell">
+                                        <div id="editPostOverlay" aria-hidden="true"></div>
+                                        <textarea id="editPostTextarea" class="edit-post-textarea" maxlength="10000" placeholder=""></textarea>
+                                      </div>
                                       <div class="edit-post-footer">
                                         <span id="editPostCounter" class="edit-post-counter">0/10000</span>
                                         <div class="edit-post-actions">
@@ -14553,6 +14706,7 @@
         document.body.appendChild(modal);
 
         const textarea = modal.querySelector('#editPostTextarea');
+        const editPostOverlay = modal.querySelector('#editPostOverlay');
         const counter = modal.querySelector('#editPostCounter');
         const radioModeSelect = modal.querySelector('#editPostRadioMode');
         const tvModeSelect = modal.querySelector('#editPostTvMode');
@@ -14562,12 +14716,31 @@
         const radioProfilePreview = modal.querySelector('#editPostRadioProfilePreview');
         const radioCoverPreview = modal.querySelector('#editPostRadioCoverPreview');
         const tvCoverPreview = modal.querySelector('#editPostTvCoverPreview');
+        const updateEditPostOverlay = (value = textarea?.value || '') => {
+          if (!editPostOverlay) return;
+          const raw = String(value || '');
+          if (!raw.trim()) {
+            editPostOverlay.innerHTML = '<span class="description-overlay-placeholder">Escribe la descripción...</span>';
+            editPostOverlay.scrollTop = 0;
+            editPostOverlay.scrollLeft = 0;
+            return;
+          }
+          editPostOverlay.innerHTML = formatRichText(raw);
+        };
+
         const updateCounter = () => {
           if (!textarea || !counter) return;
           counter.textContent = `${textarea.value.length}/10000`;
+          updateEditPostOverlay(textarea.value);
         };
 
         textarea?.addEventListener('input', updateCounter);
+        textarea?.addEventListener('scroll', () => {
+          if (!editPostOverlay) return;
+          editPostOverlay.scrollTop = textarea.scrollTop;
+          editPostOverlay.scrollLeft = textarea.scrollLeft;
+        });
+        updateEditPostOverlay();
 
         const closeModal = () => {
           modal.style.display = 'none';
@@ -14575,7 +14748,10 @@
           const radioUrlInput = modal.querySelector('#editPostRadioUrlInput');
           const tvUrlInput = modal.querySelector('#editPostTvUrlInput');
 
-          if (textarea) textarea.value = '';
+          if (textarea) {
+            textarea.value = '';
+            updateEditPostOverlay('');
+          }
           if (radioNameInput) radioNameInput.value = '';
           if (radioUrlInput) radioUrlInput.value = '';
           if (tvUrlInput) tvUrlInput.value = '';
@@ -14768,6 +14944,7 @@
         };
         textarea.value = currentDescription || '';
         counter.textContent = `${textarea.value.length}/10000`;
+        textarea.dispatchEvent(new Event('input'));
         applyEditPostModalState(modal, editingPostContext);
         modal.style.display = 'flex';
         setTimeout(() => {

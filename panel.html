@@ -14102,10 +14102,11 @@
         return text === '\n' ? '' : text;
       }
 
-      function updateDescriptionLivePreview(value = postDescription?.value || '') {
+      function updateDescriptionLivePreview(value) {
         if (!postDescriptionEditor || !postDescription) return;
 
-        const sourceText = typeof value === 'string' ? value : getComposerRawText();
+        const hasExplicitValue = typeof value === 'string';
+        const sourceText = hasExplicitValue ? value : getComposerRawText();
         const clippedText = sourceText.length > 10000 ? sourceText.slice(0, 10000) : sourceText;
         postDescription.value = clippedText;
 

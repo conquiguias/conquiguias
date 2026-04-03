@@ -2103,15 +2103,14 @@
       overflow: hidden;
     }
 
-    #editPostTextarea {
+    #editPostEditor {
       width: 100%;
       min-height: 170px;
       max-height: 260px;
-      resize: vertical;
       border: none;
       border-radius: 0;
       background: transparent;
-      color: transparent;
+      color: var(--text-primary);
       caret-color: var(--text-primary);
       padding: 10px;
       font-size: 14px;
@@ -2119,28 +2118,17 @@
       outline: none;
       white-space: pre-wrap;
       word-break: break-word;
-      position: relative;
-      z-index: 2;
       overflow: auto;
     }
 
-    #editPostTextarea::placeholder {
-      color: transparent;
-      opacity: 0;
+    #editPostEditor:empty:before {
+      content: attr(data-placeholder);
+      color: var(--text-secondary);
+      opacity: 0.9;
     }
 
-    .edit-description-overlay {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      pointer-events: none;
-      padding: 10px;
-      color: var(--text-primary);
-      font-size: 14px;
-      line-height: 1.4;
-      white-space: pre-wrap;
-      word-break: break-word;
-      overflow: hidden;
+    .edit-post-textarea {
+      display: none;
     }
 
     .edit-post-footer {
@@ -3787,17 +3775,16 @@
       box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
     }
 
-    #postDescription {
+    #postDescriptionEditor {
       width: 100%;
       min-height: 120px;
       max-height: 220px;
-      resize: vertical;
       padding: 12px;
       margin-bottom: 0;
       border: none;
       border-radius: 0;
       background: transparent;
-      color: transparent;
+      color: var(--text-primary);
       caret-color: var(--text-primary);
       font-family: inherit;
       font-size: 14px;
@@ -3805,35 +3792,13 @@
       outline: none;
       white-space: pre-wrap;
       word-break: break-word;
-      position: relative;
-      z-index: 2;
       overflow: auto;
     }
 
-    #postDescription::placeholder {
-      color: transparent;
-      opacity: 0;
-    }
-
-    .description-editor-overlay {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      pointer-events: none;
-      padding: 12px;
-      color: var(--text-primary);
-      font-family: inherit;
-      font-size: 14px;
-      line-height: 1.4;
-      white-space: pre-wrap;
-      word-break: break-word;
-      overflow: hidden;
-    }
-
-    .description-overlay-placeholder {
-      color: var(--text-primary);
-      opacity: 0.8;
-      white-space: pre-line;
+    #postDescriptionEditor:empty:before {
+      content: attr(data-placeholder);
+      color: var(--text-secondary);
+      opacity: 0.9;
     }
 
     .post-description {
@@ -4034,50 +3999,6 @@
       padding: 15px;
       margin: 10px 0;
       position: relative;
-    }
-
-    .question-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      color: var(--text-primary);
-    }
-
-    .question-type {
-      padding: 5px 10px;
-      border-radius: 15px;
-      font-size: 12px;
-      font-weight: bold;
-    }
-
-    .multiple-choice {
-      background: rgba(59, 130, 246, 0.2);
-      color: #93c5fd;
-    }
-
-    .true-false {
-      background: rgba(168, 85, 247, 0.2);
-      color: #d8b4fe;
-    }
-
-    .option-item {
-      display: flex;
-      align-items: center;
-      margin: 8px 0;
-      padding: 8px;
-      background: var(--bg-secondary);
-      border-radius: 5px;
-    }
-
-    .option-item input[type="text"] {
-      flex: 1;
-      margin: 0 10px;
-      padding: 8px;
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      background: var(--bg-primary);
-      color: var(--text-primary);
     }
 
     .option-item input[type="radio"] {
@@ -4603,8 +4524,8 @@
               </div>
 
               <div class="description-editor-shell">
-                <div id="postDescriptionOverlay" class="description-editor-overlay" aria-hidden="true"></div>
-                <textarea id="postDescription" maxlength="10000" placeholder="¿Qué quieres compartir?"></textarea>
+                <div id="postDescriptionEditor" contenteditable="true" data-placeholder="Escribe como WhatsApp..."></div>
+                <textarea id="postDescription" maxlength="10000" placeholder="" style="display:none;" aria-hidden="true"></textarea>
               </div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <small style="color: var(--text-primary); opacity: 0.9; font-size: 12px;">
@@ -10716,8 +10637,8 @@
       // 🔹 RED SOCIAL - Variables globales
       const uploadContainer = document.getElementById('uploadContainer');
       const fileInput = document.getElementById('fileInput');
+      const postDescriptionEditor = document.getElementById('postDescriptionEditor');
       const postDescription = document.getElementById('postDescription');
-      const postDescriptionOverlay = document.getElementById('postDescriptionOverlay');
       const previewContainer = document.getElementById('previewContainer');
       const uploadProgress = document.getElementById('uploadProgress');
       const progressBar = document.getElementById('progressBar');
@@ -14065,15 +13986,91 @@
         return formatRichText(text);
       }
 
+      function getEditableTextValue(editorEl) {
+        if (!editorEl) return '';
+        const text = String(editorEl.innerText || '')
+          .replace(/\u00a0/g, ' ')
+          .replace(/\r/g, '');
+        return text === '\n' ? '' : text;
+      }
+
+      function setEditorCaretToEnd(editorEl) {
+        if (!editorEl) return;
+        const selection = window.getSelection();
+        if (!selection) return;
+        const range = document.createRange();
+        range.selectNodeContents(editorEl);
+        range.collapse(false);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+
+      function formatNearCursor(editorEl) {
+        if (!editorEl) return;
+        const selection = window.getSelection();
+        if (!selection || !selection.rangeCount) return;
+
+        const range = selection.getRangeAt(0);
+        const node = range.startContainer;
+        if (!node || node.nodeType !== Node.TEXT_NODE) return;
+
+        const text = node.nodeValue || '';
+        const cursorPos = range.startOffset;
+
+        const patterns = [
+          { regex: /\*(.*?)\*/, tag: 'b' },
+          { regex: /_(.*?)_/, tag: 'i' },
+          { regex: /~(.*?)~/, tag: 's' },
+          { regex: /`(.*?)`/, tag: 'code' }
+        ];
+
+        for (const pattern of patterns) {
+          pattern.regex.lastIndex = 0;
+          let match;
+          while ((match = pattern.regex.exec(text)) !== null) {
+            const start = match.index;
+            const end = start + match[0].length;
+
+            if (cursorPos >= end) {
+              const before = text.slice(0, start);
+              const inside = match[1];
+              const after = text.slice(end);
+              const parent = node.parentNode;
+              if (!parent) return;
+
+              const beforeNode = document.createTextNode(before);
+              const formatNode = document.createElement(pattern.tag);
+              formatNode.textContent = inside;
+              const afterNode = document.createTextNode(after);
+
+              parent.replaceChild(afterNode, node);
+              parent.insertBefore(formatNode, afterNode);
+              parent.insertBefore(beforeNode, formatNode);
+
+              const spaceNode = document.createTextNode(' ');
+              parent.insertBefore(spaceNode, afterNode);
+
+              const newRange = document.createRange();
+              newRange.setStart(spaceNode, 1);
+              newRange.collapse(true);
+              selection.removeAllRanges();
+              selection.addRange(newRange);
+              return;
+            }
+          }
+        }
+      }
+
       function updateDescriptionLivePreview(value) {
-        if (!postDescription) return;
+        if (!postDescriptionEditor || !postDescription) return;
 
         if (typeof value === 'string') {
-          postDescription.value = value.slice(0, 10000);
+          postDescriptionEditor.textContent = value.slice(0, 10000);
         }
 
         const MAX_DESCRIPTION_LENGTH = 10000;
-        const currentLength = postDescription.value.length;
+        const currentText = getEditableTextValue(postDescriptionEditor);
+        const currentLength = currentText.length;
         const charCount = document.getElementById('charCount');
 
         if (charCount) {
@@ -14112,30 +14109,21 @@
 
         // Limitar longitud en tiempo real (opcional)
         if (currentLength > MAX_DESCRIPTION_LENGTH) {
-          postDescription.value = postDescription.value.substring(0, MAX_DESCRIPTION_LENGTH);
+          postDescriptionEditor.textContent = currentText.substring(0, MAX_DESCRIPTION_LENGTH);
         }
 
-        if (postDescriptionOverlay) {
-          const raw = postDescription.value.trim();
-          if (!raw) {
-            postDescriptionOverlay.innerHTML = '<span class="description-overlay-placeholder">¿Qué quieres compartir?</span>';
-            postDescriptionOverlay.scrollTop = 0;
-            postDescriptionOverlay.scrollLeft = 0;
-          } else {
-            postDescriptionOverlay.innerHTML = formatRichText(postDescription.value);
-          }
-        }
+        postDescription.value = getEditableTextValue(postDescriptionEditor).substring(0, MAX_DESCRIPTION_LENGTH);
       }
 
-      // Contador de caracteres mejorado para el textarea
-      postDescription?.addEventListener('input', function () {
+      // Contador de caracteres mejorado para el editor
+      postDescriptionEditor?.addEventListener('input', function () {
         updateDescriptionLivePreview();
       });
 
-      postDescription?.addEventListener('scroll', function () {
-        if (!postDescriptionOverlay) return;
-        postDescriptionOverlay.scrollTop = postDescription.scrollTop;
-        postDescriptionOverlay.scrollLeft = postDescription.scrollLeft;
+      postDescriptionEditor?.addEventListener('keyup', function (e) {
+        if (["Shift", "Control", "Alt", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
+        formatNearCursor(postDescriptionEditor);
+        updateDescriptionLivePreview();
       });
 
       updateDescriptionLivePreview();
@@ -14704,8 +14692,8 @@
                                       </div>
 
                                       <div class="edit-description-editor-shell">
-                                        <div id="editPostOverlay" class="edit-description-overlay" aria-hidden="true"></div>
-                                        <textarea id="editPostTextarea" maxlength="10000" class="edit-post-textarea" placeholder="Escribe la descripción..."></textarea>
+                                        <div id="editPostEditor" contenteditable="true" data-placeholder="Escribe la descripción..."></div>
+                                        <textarea id="editPostTextarea" maxlength="10000" class="edit-post-textarea" placeholder="" style="display:none;" aria-hidden="true"></textarea>
                                       </div>
                                       <div class="edit-post-footer">
                                         <span id="editPostCounter" class="edit-post-counter">0/10000</span>
@@ -14720,8 +14708,8 @@
 
         document.body.appendChild(modal);
 
+        const editPostEditor = modal.querySelector('#editPostEditor');
         const textarea = modal.querySelector('#editPostTextarea');
-        const editOverlay = modal.querySelector('#editPostOverlay');
         const counter = modal.querySelector('#editPostCounter');
         const radioModeSelect = modal.querySelector('#editPostRadioMode');
         const tvModeSelect = modal.querySelector('#editPostTvMode');
@@ -14732,29 +14720,17 @@
         const radioCoverPreview = modal.querySelector('#editPostRadioCoverPreview');
         const tvCoverPreview = modal.querySelector('#editPostTvCoverPreview');
         const updateCounter = () => {
-          if (!textarea || !counter) return;
-          if (textarea.value.length > 10000) {
-            textarea.value = textarea.value.substring(0, 10000);
-          }
-          counter.textContent = `${textarea.value.length}/10000`;
-
-          if (editOverlay) {
-            const raw = textarea.value.trim();
-            if (!raw) {
-              editOverlay.innerHTML = '<span class="description-overlay-placeholder">Escribe la descripción...</span>';
-              editOverlay.scrollTop = 0;
-              editOverlay.scrollLeft = 0;
-            } else {
-              editOverlay.innerHTML = formatRichText(textarea.value);
-            }
-          }
+          if (!editPostEditor || !textarea || !counter) return;
+          const rawText = getEditableTextValue(editPostEditor).substring(0, 10000);
+          textarea.value = rawText;
+          counter.textContent = `${rawText.length}/10000`;
         };
 
-        textarea?.addEventListener('input', updateCounter);
-        textarea?.addEventListener('scroll', () => {
-          if (!editOverlay) return;
-          editOverlay.scrollTop = textarea.scrollTop;
-          editOverlay.scrollLeft = textarea.scrollLeft;
+        editPostEditor?.addEventListener('input', updateCounter);
+        editPostEditor?.addEventListener('keyup', function (e) {
+          if (["Shift", "Control", "Alt", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
+          formatNearCursor(editPostEditor);
+          updateCounter();
         });
         updateCounter();
 
@@ -14764,6 +14740,7 @@
           const radioUrlInput = modal.querySelector('#editPostRadioUrlInput');
           const tvUrlInput = modal.querySelector('#editPostTvUrlInput');
 
+          if (editPostEditor) editPostEditor.textContent = '';
           if (textarea) textarea.value = '';
           updateCounter();
           if (radioNameInput) radioNameInput.value = '';
@@ -14946,9 +14923,10 @@
 
       function openEditPostModal({ postId, renderId, currentDescription, postData }) {
         const modal = ensureEditPostModal();
+        const editPostEditor = modal.querySelector('#editPostEditor');
         const textarea = modal.querySelector('#editPostTextarea');
         const counter = modal.querySelector('#editPostCounter');
-        if (!textarea || !counter) return;
+        if (!editPostEditor || !textarea || !counter) return;
 
         editingPostContext = {
           postId,
@@ -14957,13 +14935,13 @@
           editMode: getEditablePostMode(postData || {})
         };
         textarea.value = currentDescription || '';
-        textarea.dispatchEvent(new Event('input'));
+        editPostEditor.textContent = currentDescription || '';
+        editPostEditor.dispatchEvent(new Event('input'));
         applyEditPostModalState(modal, editingPostContext);
         modal.style.display = 'flex';
         setTimeout(() => {
-          textarea.focus();
-          textarea.selectionStart = textarea.value.length;
-          textarea.selectionEnd = textarea.value.length;
+          editPostEditor.focus();
+          setEditorCaretToEnd(editPostEditor);
         }, 10);
       }
 

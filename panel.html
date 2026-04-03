@@ -12607,7 +12607,6 @@
           const enrichedIncomingPosts = await enrichPostsRoleMetadata(incomingPosts);
           enrichedIncomingPosts.forEach((post) => {
             if (post.id === LIVE_POST_ID && !isLiveActive) return;
-            if (!postMatchesActiveCategory(post)) return;
             displayPost(post, post.id);
           });
 
@@ -12928,7 +12927,6 @@
             const enrichedRecentPosts = await enrichPostsRoleMetadata(recentPosts);
             enrichedRecentPosts.forEach((post) => {
               if (post.id === LIVE_POST_ID) return; // ya renderizado arriba
-              if (!postMatchesActiveCategory(post)) return;
               displayPost(post, post.id);
               renderedPostsCount++;
             });
@@ -12970,7 +12968,6 @@
                 const enrichedDeferredPosts = await enrichPostsRoleMetadata(deferredPosts);
                 enrichedDeferredPosts.forEach((post) => {
                   if (post.id === LIVE_POST_ID) return;
-                  if (!postMatchesActiveCategory(post)) return;
                   displayPost(post, post.id);
                   appendedCount++;
                 });

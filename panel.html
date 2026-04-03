@@ -3775,6 +3775,31 @@
       box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
     }
 
+    .editor-toolbar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .editor-tool-btn {
+      border: 1px solid var(--border-color);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      min-width: 30px;
+      line-height: 1;
+    }
+
+    .editor-tool-btn:hover {
+      border-color: var(--accent-color);
+      color: var(--accent-color);
+    }
+
     #postDescriptionEditor {
       width: 100%;
       min-height: 120px;
@@ -4523,6 +4548,14 @@
                 </div>
               </div>
 
+              <div id="postEditorToolbar" class="editor-toolbar" aria-label="Herramientas de formato">
+                <button type="button" class="editor-tool-btn" data-editor-cmd="bold" title="Negrita">B</button>
+                <button type="button" class="editor-tool-btn" data-editor-cmd="italic" title="Cursiva">I</button>
+                <button type="button" class="editor-tool-btn" data-editor-cmd="strike" title="Tachado">S</button>
+                <button type="button" class="editor-tool-btn" data-editor-cmd="code" title="Código">&lt;/&gt;</button>
+                <button type="button" class="editor-tool-btn" data-editor-cmd="list" title="Lista">•</button>
+                <button type="button" class="editor-tool-btn" data-editor-cmd="quote" title="Cita">❝</button>
+              </div>
               <div class="description-editor-shell">
                 <div id="postDescriptionEditor" contenteditable="true" data-placeholder="Escribe..."></div>
                 <textarea id="postDescription" maxlength="10000" placeholder="" style="display:none;" aria-hidden="true"></textarea>
@@ -10637,6 +10670,7 @@
       // 🔹 RED SOCIAL - Variables globales
       const uploadContainer = document.getElementById('uploadContainer');
       const fileInput = document.getElementById('fileInput');
+      const postEditorToolbar = document.getElementById('postEditorToolbar');
       const postDescriptionEditor = document.getElementById('postDescriptionEditor');
       const postDescription = document.getElementById('postDescription');
       const previewContainer = document.getElementById('previewContainer');
@@ -14008,6 +14042,37 @@
           .map((child) => serializeEditorNodeToMarkers(child))
           .join('');
 
+        if (tag === 'UL') {
+          const listItems = Array.from(element.children)
+            .filter((child) => child.tagName === 'LI')
+            .map((li) => `- ${serializeEditorNodeToMarkers(li).replace(/\n+$/g, '').trim()}`)
+            .join('\n');
+          return listItems ? `${listItems}\n` : '';
+        }
+
+        if (tag === 'OL') {
+          const listItems = Array.from(element.children)
+            .filter((child) => child.tagName === 'LI')
+            .map((li, index) => `${index + 1}. ${serializeEditorNodeToMarkers(li).replace(/\n+$/g, '').trim()}`)
+            .join('\n');
+          return listItems ? `${listItems}\n` : '';
+        }
+
+        if (tag === 'LI') {
+          return inner.replace(/\n+$/g, '').trim();
+        }
+
+        if (tag === 'BLOCKQUOTE') {
+          const quoteLines = inner
+            .replace(/\n+$/g, '')
+            .split('\n')
+            .map((line) => line.trim())
+            .filter((line) => line.length > 0)
+            .map((line) => `> ${line}`)
+            .join('\n');
+          return quoteLines ? `${quoteLines}\n` : '';
+        }
+
         if (tag === 'B' || tag === 'STRONG') {
           return `*${inner}*`;
         }
@@ -14110,6 +14175,99 @@
         }
       }
 
+      function ensureEditorSelection(editorEl) {
+        const selection = window.getSelection();
+        if (!selection) return null;
+
+        if (!selection.rangeCount || !editorEl.contains(selection.anchorNode)) {
+          setEditorCaretToEnd(editorEl);
+        }
+
+        return window.getSelection();
+      }
+
+      function applyCodeFormat(editorEl) {
+        const selection = ensureEditorSelection(editorEl);
+        if (!selection || !selection.rangeCount) return;
+
+        const range = selection.getRangeAt(0);
+        if (!editorEl.contains(range.commonAncestorContainer)) return;
+
+        const codeNode = document.createElement('code');
+
+        if (range.collapsed) {
+          codeNode.textContent = 'código';
+          range.insertNode(codeNode);
+
+          const newRange = document.createRange();
+          newRange.setStart(codeNode.firstChild, codeNode.textContent.length);
+          newRange.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(newRange);
+          return;
+        }
+
+        codeNode.textContent = range.toString();
+        range.deleteContents();
+        range.insertNode(codeNode);
+
+        const newRange = document.createRange();
+        newRange.setStartAfter(codeNode);
+        newRange.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+      }
+
+      function applyToolbarCommand(editorEl, command) {
+        if (!editorEl || !command) return;
+
+        const selection = ensureEditorSelection(editorEl);
+        if (!selection) return;
+
+        if (command === 'code') {
+          applyCodeFormat(editorEl);
+          return;
+        }
+
+        if (command === 'list') {
+          document.execCommand('insertUnorderedList', false);
+          return;
+        }
+
+        if (command === 'quote') {
+          document.execCommand('formatBlock', false, 'blockquote');
+          return;
+        }
+
+        const commandMap = {
+          bold: 'bold',
+          italic: 'italic',
+          strike: 'strikeThrough'
+        };
+
+        const nativeCommand = commandMap[command];
+        if (!nativeCommand) return;
+
+        document.execCommand(nativeCommand, false);
+      }
+
+      function bindEditorToolbar(toolbarEl, editorEl, syncFn) {
+        if (!toolbarEl || !editorEl || typeof syncFn !== 'function') return;
+
+        toolbarEl.querySelectorAll('[data-editor-cmd]').forEach((btn) => {
+          btn.addEventListener('mousedown', (event) => {
+            event.preventDefault();
+          });
+
+          btn.addEventListener('click', () => {
+            const cmd = btn.getAttribute('data-editor-cmd');
+            applyToolbarCommand(editorEl, cmd);
+            syncFn();
+            editorEl.focus();
+          });
+        });
+      }
+
       function updateDescriptionLivePreview(value) {
         if (!postDescriptionEditor || !postDescription) return;
 
@@ -14174,6 +14332,8 @@
         formatNearCursor(postDescriptionEditor);
         updateDescriptionLivePreview();
       });
+
+      bindEditorToolbar(postEditorToolbar, postDescriptionEditor, updateDescriptionLivePreview);
 
       updateDescriptionLivePreview();
 
@@ -14740,6 +14900,14 @@
                                         <div class="edit-post-note">Puedes cambiar el tipo, el enlace y la portada de TV o Video.</div>
                                       </div>
 
+                                      <div id="editPostToolbar" class="editor-toolbar" aria-label="Herramientas de formato">
+                                        <button type="button" class="editor-tool-btn" data-editor-cmd="bold" title="Negrita">B</button>
+                                        <button type="button" class="editor-tool-btn" data-editor-cmd="italic" title="Cursiva">I</button>
+                                        <button type="button" class="editor-tool-btn" data-editor-cmd="strike" title="Tachado">S</button>
+                                        <button type="button" class="editor-tool-btn" data-editor-cmd="code" title="Código">&lt;/&gt;</button>
+                                        <button type="button" class="editor-tool-btn" data-editor-cmd="list" title="Lista">•</button>
+                                        <button type="button" class="editor-tool-btn" data-editor-cmd="quote" title="Cita">❝</button>
+                                      </div>
                                       <div class="edit-description-editor-shell">
                                         <div id="editPostEditor" contenteditable="true" data-placeholder="Escribe la descripción..."></div>
                                         <textarea id="editPostTextarea" maxlength="10000" class="edit-post-textarea" placeholder="" style="display:none;" aria-hidden="true"></textarea>
@@ -14758,6 +14926,7 @@
         document.body.appendChild(modal);
 
         const editPostEditor = modal.querySelector('#editPostEditor');
+        const editPostToolbar = modal.querySelector('#editPostToolbar');
         const textarea = modal.querySelector('#editPostTextarea');
         const counter = modal.querySelector('#editPostCounter');
         const radioModeSelect = modal.querySelector('#editPostRadioMode');
@@ -14781,6 +14950,7 @@
           formatNearCursor(editPostEditor);
           updateCounter();
         });
+        bindEditorToolbar(editPostToolbar, editPostEditor, updateCounter);
         updateCounter();
 
         const closeModal = () => {

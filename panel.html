@@ -2111,7 +2111,7 @@
       border: none;
       border-radius: 0;
       background: transparent;
-      color: var(--text-primary);
+      color: transparent;
       caret-color: var(--text-primary);
       padding: 10px;
       font-size: 14px;
@@ -2119,11 +2119,28 @@
       outline: none;
       white-space: pre-wrap;
       word-break: break-word;
+      position: relative;
+      z-index: 2;
+      overflow: auto;
     }
 
     #editPostTextarea::placeholder {
+      color: transparent;
+      opacity: 0;
+    }
+
+    .edit-description-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      padding: 10px;
       color: var(--text-primary);
-      opacity: 0.75;
+      font-size: 14px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow: hidden;
     }
 
     .edit-post-footer {
@@ -3780,7 +3797,7 @@
       border: none;
       border-radius: 0;
       background: transparent;
-      color: var(--text-primary);
+      color: transparent;
       caret-color: var(--text-primary);
       font-family: inherit;
       font-size: 14px;
@@ -3788,34 +3805,35 @@
       outline: none;
       white-space: pre-wrap;
       word-break: break-word;
+      position: relative;
+      z-index: 2;
+      overflow: auto;
     }
 
     #postDescription::placeholder {
+      color: transparent;
+      opacity: 0;
+    }
+
+    .description-editor-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      padding: 12px;
       color: var(--text-primary);
-      opacity: 0.75;
+      font-family: inherit;
+      font-size: 14px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow: hidden;
     }
 
     .description-overlay-placeholder {
       color: var(--text-primary);
       opacity: 0.8;
       white-space: pre-line;
-    }
-
-    .description-live-preview {
-      margin-top: 8px;
-      padding: 10px 12px;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      background: color-mix(in srgb, var(--bg-secondary) 88%, transparent);
-      color: var(--text-primary);
-      font-size: 13px;
-      line-height: 1.45;
-      word-break: break-word;
-      white-space: normal;
-    }
-
-    .description-live-preview.is-empty {
-      display: none;
     }
 
     .post-description {
@@ -4585,9 +4603,9 @@
               </div>
 
               <div class="description-editor-shell">
+                <div id="postDescriptionOverlay" class="description-editor-overlay" aria-hidden="true"></div>
                 <textarea id="postDescription" maxlength="10000" placeholder="¿Qué quieres compartir?"></textarea>
               </div>
-              <div id="descriptionLivePreview" class="description-live-preview is-empty" aria-live="polite"></div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <small style="color: var(--text-primary); opacity: 0.9; font-size: 12px;">
                   *negrita* • _cursiva_ • ~tachado~ • `código` • ```bloque``` • - lista • 1. lista • > cita
@@ -10699,7 +10717,7 @@
       const uploadContainer = document.getElementById('uploadContainer');
       const fileInput = document.getElementById('fileInput');
       const postDescription = document.getElementById('postDescription');
-      const descriptionLivePreview = document.getElementById('descriptionLivePreview');
+      const postDescriptionOverlay = document.getElementById('postDescriptionOverlay');
       const previewContainer = document.getElementById('previewContainer');
       const uploadProgress = document.getElementById('uploadProgress');
       const progressBar = document.getElementById('progressBar');
@@ -14097,25 +14115,14 @@
           postDescription.value = postDescription.value.substring(0, MAX_DESCRIPTION_LENGTH);
         }
 
-        if (descriptionLivePreview) {
+        if (postDescriptionOverlay) {
           const raw = postDescription.value.trim();
           if (!raw) {
-            descriptionLivePreview.innerHTML = '';
-            descriptionLivePreview.classList.add('is-empty');
+            postDescriptionOverlay.innerHTML = '<span class="description-overlay-placeholder">¿Qué quieres compartir?</span>';
+            postDescriptionOverlay.scrollTop = 0;
+            postDescriptionOverlay.scrollLeft = 0;
           } else {
-            descriptionLivePreview.innerHTML = formatRichText(postDescription.value);
-            descriptionLivePreview.classList.remove('is-empty');
-          }
-        }
-
-        if (descriptionLivePreview) {
-          const raw = postDescription.value.trim();
-          if (!raw) {
-            descriptionLivePreview.innerHTML = '';
-            descriptionLivePreview.classList.add('is-empty');
-          } else {
-            descriptionLivePreview.innerHTML = formatRichText(postDescription.value);
-            descriptionLivePreview.classList.remove('is-empty');
+            postDescriptionOverlay.innerHTML = formatRichText(postDescription.value);
           }
         }
       }
@@ -14123,6 +14130,12 @@
       // Contador de caracteres mejorado para el textarea
       postDescription?.addEventListener('input', function () {
         updateDescriptionLivePreview();
+      });
+
+      postDescription?.addEventListener('scroll', function () {
+        if (!postDescriptionOverlay) return;
+        postDescriptionOverlay.scrollTop = postDescription.scrollTop;
+        postDescriptionOverlay.scrollLeft = postDescription.scrollLeft;
       });
 
       updateDescriptionLivePreview();
@@ -14691,9 +14704,9 @@
                                       </div>
 
                                       <div class="edit-description-editor-shell">
+                                        <div id="editPostOverlay" class="edit-description-overlay" aria-hidden="true"></div>
                                         <textarea id="editPostTextarea" maxlength="10000" class="edit-post-textarea" placeholder="Escribe la descripción..."></textarea>
                                       </div>
-                                      <div id="editDescriptionLivePreview" class="description-live-preview is-empty" aria-live="polite"></div>
                                       <div class="edit-post-footer">
                                         <span id="editPostCounter" class="edit-post-counter">0/10000</span>
                                         <div class="edit-post-actions">
@@ -14708,7 +14721,7 @@
         document.body.appendChild(modal);
 
         const textarea = modal.querySelector('#editPostTextarea');
-        const livePreview = modal.querySelector('#editDescriptionLivePreview');
+        const editOverlay = modal.querySelector('#editPostOverlay');
         const counter = modal.querySelector('#editPostCounter');
         const radioModeSelect = modal.querySelector('#editPostRadioMode');
         const tvModeSelect = modal.querySelector('#editPostTvMode');
@@ -14725,19 +14738,24 @@
           }
           counter.textContent = `${textarea.value.length}/10000`;
 
-          if (livePreview) {
+          if (editOverlay) {
             const raw = textarea.value.trim();
             if (!raw) {
-              livePreview.innerHTML = '';
-              livePreview.classList.add('is-empty');
+              editOverlay.innerHTML = '<span class="description-overlay-placeholder">Escribe la descripción...</span>';
+              editOverlay.scrollTop = 0;
+              editOverlay.scrollLeft = 0;
             } else {
-              livePreview.innerHTML = formatRichText(textarea.value);
-              livePreview.classList.remove('is-empty');
+              editOverlay.innerHTML = formatRichText(textarea.value);
             }
           }
         };
 
         textarea?.addEventListener('input', updateCounter);
+        textarea?.addEventListener('scroll', () => {
+          if (!editOverlay) return;
+          editOverlay.scrollTop = textarea.scrollTop;
+          editOverlay.scrollLeft = textarea.scrollLeft;
+        });
         updateCounter();
 
         const closeModal = () => {

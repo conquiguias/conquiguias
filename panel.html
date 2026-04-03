@@ -2103,11 +2103,10 @@
       overflow: hidden;
     }
 
-    #editPostEditor {
+    #editPostTextarea {
       width: 100%;
       min-height: 170px;
-      max-height: 380px;
-      overflow: auto;
+      max-height: 260px;
       resize: vertical;
       border: none;
       border-radius: 0;
@@ -2122,12 +2121,9 @@
       word-break: break-word;
     }
 
-    #editPostEditor:empty::before {
-      content: attr(data-placeholder);
+    #editPostTextarea::placeholder {
       color: var(--text-primary);
-      opacity: 0.8;
-      white-space: pre-line;
-      pointer-events: none;
+      opacity: 0.75;
     }
 
     .edit-post-footer {
@@ -3774,11 +3770,10 @@
       box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
     }
 
-    #postDescriptionEditor {
+    #postDescription {
       width: 100%;
       min-height: 120px;
-      max-height: 320px;
-      overflow: auto;
+      max-height: 220px;
       resize: vertical;
       padding: 12px;
       margin-bottom: 0;
@@ -3795,12 +3790,9 @@
       word-break: break-word;
     }
 
-    #postDescriptionEditor:empty::before {
-      content: attr(data-placeholder);
+    #postDescription::placeholder {
       color: var(--text-primary);
-      opacity: 0.8;
-      white-space: pre-line;
-      pointer-events: none;
+      opacity: 0.75;
     }
 
     .description-overlay-placeholder {
@@ -4576,15 +4568,7 @@
               </div>
 
               <div class="description-editor-shell">
-                <div id="postDescriptionEditor" contenteditable="true" data-placeholder="¿Qué quieres compartir? Puedes usar:
-• Saltos de línea (Enter)
-• Enlaces (se detectarán automáticamente)
-• Negrita *texto*
-• Cursiva _texto_
-• Tachado ~texto~
-• Menciones @usuario
-• Hashtags #tema"></div>
-                <textarea id="postDescription" maxlength="10000" placeholder="" style="display:none;" aria-hidden="true"></textarea>
+                <textarea id="postDescription" maxlength="10000" placeholder="¿Qué quieres compartir?"></textarea>
               </div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <small style="color: var(--text-primary); opacity: 0.9; font-size: 12px;">
@@ -10696,7 +10680,6 @@
       // 🔹 RED SOCIAL - Variables globales
       const uploadContainer = document.getElementById('uploadContainer');
       const fileInput = document.getElementById('fileInput');
-      const postDescriptionEditor = document.getElementById('postDescriptionEditor');
       const postDescription = document.getElementById('postDescription');
       const previewContainer = document.getElementById('previewContainer');
       const uploadProgress = document.getElementById('uploadProgress');
@@ -14045,120 +14028,13 @@
         return formatRichText(text);
       }
 
-      let composerFormattingInProgress = false;
-
-      function getComposerNodeTextLength(node) {
-        if (!node) return 0;
-        if (node.nodeType === Node.TEXT_NODE) {
-          return node.nodeValue?.length || 0;
-        }
-        if (node.nodeType === Node.ELEMENT_NODE && node.nodeName === 'BR') {
-          return 1;
-        }
-        return 0;
-      }
-
-      function getCaretOffsetWithin(element) {
-        const selection = window.getSelection();
-        if (!selection || selection.rangeCount === 0) return 0;
-        const range = selection.getRangeAt(0);
-        if (!element.contains(range.endContainer)) return 0;
-
-        let offset = 0;
-        const walker = document.createTreeWalker(element, NodeFilter.SHOW_ALL, null);
-        let currentNode = null;
-
-        while ((currentNode = walker.nextNode())) {
-          if (currentNode === range.endContainer) {
-            if (currentNode.nodeType === Node.TEXT_NODE) {
-              offset += range.endOffset;
-            } else {
-              for (let i = 0; i < range.endOffset; i += 1) {
-                offset += getComposerNodeTextLength(currentNode.childNodes[i]);
-              }
-            }
-            break;
-          }
-
-          offset += getComposerNodeTextLength(currentNode);
-        }
-
-        return offset;
-      }
-
-      function setCaretOffsetWithin(element, offset) {
-        const selection = window.getSelection();
-        if (!selection) return;
-
-        const range = document.createRange();
-        const walker = document.createTreeWalker(element, NodeFilter.SHOW_ALL, null);
-        let currentLength = 0;
-        let currentNode = null;
-
-        while ((currentNode = walker.nextNode())) {
-          const currentNodeLength = getComposerNodeTextLength(currentNode);
-          if (currentNodeLength <= 0) continue;
-
-          const nextLength = currentLength + currentNodeLength;
-          if (offset <= nextLength) {
-            if (currentNode.nodeType === Node.TEXT_NODE) {
-              range.setStart(currentNode, Math.max(0, offset - currentLength));
-            } else {
-              range.setStartAfter(currentNode);
-            }
-            range.collapse(true);
-            selection.removeAllRanges();
-            selection.addRange(range);
-            return;
-          }
-          currentLength = nextLength;
-        }
-
-        range.selectNodeContents(element);
-        range.collapse(false);
-        selection.removeAllRanges();
-        selection.addRange(range);
-      }
-
-      function getComposerRawText() {
-        if (!postDescriptionEditor) return '';
-        const text = String(postDescriptionEditor.innerText || '')
-          .replace(/\u00a0/g, ' ')
-          .replace(/\r/g, '');
-        return text === '\n' ? '' : text;
-      }
-
       function updateDescriptionLivePreview(value) {
-        if (!postDescriptionEditor || !postDescription) return;
+        if (!postDescription) return;
 
-        const hasExplicitValue = typeof value === 'string';
-        const sourceText = hasExplicitValue ? value : getComposerRawText();
-        const clippedText = sourceText.length > 10000 ? sourceText.slice(0, 10000) : sourceText;
-        postDescription.value = clippedText;
-
-        if (composerFormattingInProgress) return;
-
-        const preserveCaret = document.activeElement === postDescriptionEditor;
-        const caretOffset = preserveCaret ? getCaretOffsetWithin(postDescriptionEditor) : 0;
-
-        composerFormattingInProgress = true;
-        if (!clippedText.trim()) {
-          postDescriptionEditor.innerHTML = '';
-        } else {
-          postDescriptionEditor.innerHTML = formatRichText(clippedText);
+        if (typeof value === 'string') {
+          postDescription.value = value.slice(0, 10000);
         }
-        composerFormattingInProgress = false;
 
-        if (preserveCaret) {
-          setCaretOffsetWithin(postDescriptionEditor, Math.min(caretOffset, clippedText.length));
-        }
-      }
-
-      // Contador de caracteres mejorado para el textarea
-      postDescriptionEditor?.addEventListener('input', function () {
-        if (composerFormattingInProgress) return;
-
-        updateDescriptionLivePreview();
         const MAX_DESCRIPTION_LENGTH = 10000;
         const currentLength = postDescription.value.length;
         const charCount = document.getElementById('charCount');
@@ -14199,8 +14075,13 @@
 
         // Limitar longitud en tiempo real (opcional)
         if (currentLength > MAX_DESCRIPTION_LENGTH) {
-          updateDescriptionLivePreview(postDescription.value.substring(0, MAX_DESCRIPTION_LENGTH));
+          postDescription.value = postDescription.value.substring(0, MAX_DESCRIPTION_LENGTH);
         }
+      }
+
+      // Contador de caracteres mejorado para el textarea
+      postDescription?.addEventListener('input', function () {
+        updateDescriptionLivePreview();
       });
 
       updateDescriptionLivePreview();
@@ -14769,8 +14650,7 @@
                                       </div>
 
                                       <div class="edit-description-editor-shell">
-                                        <div id="editPostEditor" contenteditable="true" data-placeholder="Escribe la descripción..."></div>
-                                        <textarea id="editPostTextarea" maxlength="10000" placeholder="" style="display:none;" aria-hidden="true"></textarea>
+                                        <textarea id="editPostTextarea" maxlength="10000" class="edit-post-textarea" placeholder="Escribe la descripción..."></textarea>
                                       </div>
                                       <div class="edit-post-footer">
                                         <span id="editPostCounter" class="edit-post-counter">0/10000</span>
@@ -14786,7 +14666,6 @@
         document.body.appendChild(modal);
 
         const textarea = modal.querySelector('#editPostTextarea');
-        const editPostEditor = modal.querySelector('#editPostEditor');
         const counter = modal.querySelector('#editPostCounter');
         const radioModeSelect = modal.querySelector('#editPostRadioMode');
         const tvModeSelect = modal.querySelector('#editPostTvMode');
@@ -14796,53 +14675,15 @@
         const radioProfilePreview = modal.querySelector('#editPostRadioProfilePreview');
         const radioCoverPreview = modal.querySelector('#editPostRadioCoverPreview');
         const tvCoverPreview = modal.querySelector('#editPostTvCoverPreview');
-        let editFormattingInProgress = false;
-
-        const getEditPostRawText = () => {
-          if (!editPostEditor) return '';
-          const text = String(editPostEditor.innerText || '')
-            .replace(/\u00a0/g, ' ')
-            .replace(/\r/g, '');
-          return text === '\n' ? '' : text;
-        };
-
-        const updateEditPostEditor = (value) => {
-          if (!editPostEditor || !textarea) return;
-
-          const hasExplicitValue = typeof value === 'string';
-          const sourceText = hasExplicitValue ? value : getEditPostRawText();
-          const clippedText = sourceText.length > 10000 ? sourceText.slice(0, 10000) : sourceText;
-          textarea.value = clippedText;
-
-          if (editFormattingInProgress) return;
-
-          const preserveCaret = document.activeElement === editPostEditor;
-          const caretOffset = preserveCaret ? getCaretOffsetWithin(editPostEditor) : 0;
-
-          editFormattingInProgress = true;
-          if (!clippedText.trim()) {
-            editPostEditor.innerHTML = '';
-          } else {
-            editPostEditor.innerHTML = formatRichText(clippedText);
-          }
-          editFormattingInProgress = false;
-
-          if (preserveCaret) {
-            setCaretOffsetWithin(editPostEditor, Math.min(caretOffset, clippedText.length));
-          }
-        };
-
         const updateCounter = () => {
           if (!textarea || !counter) return;
+          if (textarea.value.length > 10000) {
+            textarea.value = textarea.value.substring(0, 10000);
+          }
           counter.textContent = `${textarea.value.length}/10000`;
         };
 
-        editPostEditor?.addEventListener('input', () => {
-          if (editFormattingInProgress) return;
-          updateEditPostEditor();
-          updateCounter();
-        });
-        updateEditPostEditor('');
+        textarea?.addEventListener('input', updateCounter);
         updateCounter();
 
         const closeModal = () => {
@@ -14852,7 +14693,6 @@
           const tvUrlInput = modal.querySelector('#editPostTvUrlInput');
 
           if (textarea) textarea.value = '';
-          updateEditPostEditor('');
           updateCounter();
           if (radioNameInput) radioNameInput.value = '';
           if (radioUrlInput) radioUrlInput.value = '';
@@ -15035,9 +14875,8 @@
       function openEditPostModal({ postId, renderId, currentDescription, postData }) {
         const modal = ensureEditPostModal();
         const textarea = modal.querySelector('#editPostTextarea');
-        const editor = modal.querySelector('#editPostEditor');
         const counter = modal.querySelector('#editPostCounter');
-        if (!textarea || !counter || !editor) return;
+        if (!textarea || !counter) return;
 
         editingPostContext = {
           postId,
@@ -15046,13 +14885,13 @@
           editMode: getEditablePostMode(postData || {})
         };
         textarea.value = currentDescription || '';
-        editor.textContent = textarea.value;
-        editor.dispatchEvent(new Event('input'));
+        textarea.dispatchEvent(new Event('input'));
         applyEditPostModalState(modal, editingPostContext);
         modal.style.display = 'flex';
         setTimeout(() => {
-          editor.focus();
-          setCaretOffsetWithin(editor, textarea.value.length);
+          textarea.focus();
+          textarea.selectionStart = textarea.value.length;
+          textarea.selectionEnd = textarea.value.length;
         }, 10);
       }
 

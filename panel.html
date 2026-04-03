@@ -3751,6 +3751,34 @@
       box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
     }
 
+    .description-live-preview {
+      display: none;
+      margin-bottom: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      overflow: hidden;
+    }
+
+    .description-live-preview-title {
+      font-size: 12px;
+      color: var(--text-secondary);
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .description-live-preview-content {
+      min-height: 44px;
+      max-height: 180px;
+      overflow: auto;
+      padding: 10px 12px;
+      color: var(--text-primary);
+      font-size: 14px;
+      line-height: 1.4;
+      word-break: break-word;
+      white-space: normal;
+    }
+
     .post-description {
       word-wrap: break-word;
     }
@@ -4473,6 +4501,8 @@
                 <textarea id="postDescription" maxlength="10000" placeholder="¿Qué quieres compartir? Puedes usar:
                   • Saltos de línea (Enter)
                   • Enlaces (se detectarán automáticamente)
+                  • Negrita *texto*
+                  • Cursiva _texto_
                   • Menciones @usuario  
                   • Hashtags #tema" style="width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; 
                                    border: 1px solid var(--border-color); font-family: inherit; 
@@ -4480,11 +4510,15 @@
                                    min-height: 120px; resize: vertical; font-size: 14px; line-height: 1.4;"></textarea>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <small style="color: var(--text-primary); opacity: 0.9; font-size: 12px;">
-                  Presiona Enter para saltos de línea • Los enlaces se abrirán en nueva pestaña
+                  Presiona Enter para saltos de línea • *negrita* y _cursiva_ • Los enlaces se abrirán en nueva pestaña
                 </small>
                 <small id="charCount" style="color: var(--text-secondary); font-size: 12px;">
                   0/10000
                 </small>
+              </div>
+              <div id="descriptionLivePreview" class="description-live-preview" aria-live="polite">
+                <div class="description-live-preview-title">Vista previa en tiempo real</div>
+                <div id="descriptionLivePreviewContent" class="description-live-preview-content"></div>
               </div>
               <div id="previewContainer" style="margin-bottom: 10px;"></div>
               <div id="uploadProgress" style="display: none; margin-bottom: 10px;">
@@ -10589,6 +10623,8 @@
       const uploadContainer = document.getElementById('uploadContainer');
       const fileInput = document.getElementById('fileInput');
       const postDescription = document.getElementById('postDescription');
+      const descriptionLivePreview = document.getElementById('descriptionLivePreview');
+      const descriptionLivePreviewContent = document.getElementById('descriptionLivePreviewContent');
       const previewContainer = document.getElementById('previewContainer');
       const uploadProgress = document.getElementById('uploadProgress');
       const progressBar = document.getElementById('progressBar');
@@ -11959,6 +11995,7 @@
             await addDoc(collection(db, 'posts'), postData);
             fileInput.value = '';
             postDescription.value = '';
+            updateDescriptionLivePreview('');
             if (radioStreamUrlInput) radioStreamUrlInput.value = '';
             if (radioNameInput) radioNameInput.value = '';
             if (radioProfileImageInput) radioProfileImageInput.value = '';
@@ -12032,6 +12069,7 @@
 
             await addDoc(collection(db, 'posts'), postData);
             postDescription.value = '';
+            updateDescriptionLivePreview('');
             if (videoUrlInputEl) videoUrlInputEl.value = '';
             if (tvCoverImageInput) tvCoverImageInput.value = '';
             previewContainer.innerHTML = '';
@@ -12166,6 +12204,7 @@
           // 5. Limpiar y recargar
           fileInput.value = '';
           postDescription.value = '';
+          updateDescriptionLivePreview('');
           previewContainer.innerHTML = '';
 
           // Actualizar interfaz según si es admin o no
@@ -13854,11 +13893,26 @@
         return formatRichText(text);
       }
 
+      function updateDescriptionLivePreview(value = postDescription?.value || '') {
+        if (!descriptionLivePreview || !descriptionLivePreviewContent) return;
+
+        const raw = String(value || '');
+        if (!raw.trim()) {
+          descriptionLivePreview.style.display = 'none';
+          descriptionLivePreviewContent.innerHTML = '';
+          return;
+        }
+
+        descriptionLivePreview.style.display = 'block';
+        descriptionLivePreviewContent.innerHTML = formatRichText(raw);
+      }
+
       // Contador de caracteres mejorado para el textarea
       postDescription.addEventListener('input', function () {
         const MAX_DESCRIPTION_LENGTH = 10000;
         const currentLength = this.value.length;
         const charCount = document.getElementById('charCount');
+        updateDescriptionLivePreview(this.value);
 
         if (charCount) {
           // Actualizar contador
@@ -13897,8 +13951,11 @@
         // Limitar longitud en tiempo real (opcional)
         if (currentLength > MAX_DESCRIPTION_LENGTH) {
           this.value = this.value.substring(0, MAX_DESCRIPTION_LENGTH);
+          updateDescriptionLivePreview(this.value);
         }
       });
+
+      updateDescriptionLivePreview();
 
       // 🔹 Calcular tiempo transcurrido (formato humano)
       function getTimeAgo(date) {
@@ -16761,6 +16818,7 @@
         // Limpiar formulario al cerrar
         fileInput.value = '';
         postDescription.value = '';
+        updateDescriptionLivePreview('');
         const videoUrlInputEl = document.getElementById('videoUrlInput');
         const radioStreamUrlInput = document.getElementById('radioStreamUrlInput');
         const radioNameInput = document.getElementById('radioNameInput');

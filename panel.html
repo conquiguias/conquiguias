@@ -1777,6 +1777,167 @@
       box-shadow: none;
     }
 
+    .reaction-popup-backdrop {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(2, 6, 23, 0.58);
+      backdrop-filter: blur(6px);
+      z-index: 9999;
+    }
+
+    .reaction-popup-backdrop.open {
+      display: flex;
+    }
+
+    .reaction-popup {
+      position: relative;
+      width: min(94vw, 430px);
+      max-height: min(82vh, 620px);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px;
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.98));
+      box-shadow: 0 22px 60px rgba(0, 0, 0, 0.45);
+      color: var(--text-primary);
+    }
+
+    .reaction-popup-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .reaction-popup-title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .reaction-popup-close {
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--border-color);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .reaction-popup-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .reaction-popup-tab {
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 10px 8px;
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .reaction-popup-tab.active {
+      color: #ffffff;
+      border-color: var(--accent-color);
+      background: rgba(59, 130, 246, 0.18);
+      box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.16) inset;
+    }
+
+    .reaction-popup-tab-count {
+      font-size: 12px;
+      opacity: 0.85;
+    }
+
+    .reaction-popup-body {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .reaction-popup-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .reaction-popup-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .reaction-popup-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex: 0 0 auto;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #0f172a;
+    }
+
+    .reaction-popup-name {
+      min-width: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .reaction-popup-empty,
+    .reaction-popup-loading {
+      padding: 16px 12px;
+      border: 1px dashed rgba(148, 163, 184, 0.25);
+      border-radius: 12px;
+      color: var(--text-secondary);
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .reaction-popup-load-more {
+      width: 100%;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-primary);
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .reaction-popup-load-more:hover {
+      border-color: var(--accent-color);
+      background: rgba(59, 130, 246, 0.12);
+    }
+
     .post-action-link,
     .share-btn {
       background: none;
@@ -7544,6 +7705,10 @@
       window.applyRoleBasedNavigation = applyRoleBasedNavigation;
 
       function applyGuestNavigationState(isGuest) {
+        if (isGuest) {
+          hideReactionPopup();
+        }
+
         const allowedMenuIds = new Set(['menuInicio', 'menuClubes', 'menuGrabaciones', 'menuAcerca', 'menuDonar']);
         const guestLockTitle = 'Disponible solo con sesión iniciada';
         const headerUserPhotoEl = document.getElementById('headerUserPhoto');
@@ -10694,6 +10859,27 @@
       const DEFAULT_MUSIC_PROFILE_IMAGE = 'https://dummyimage.com/300x300/1e293b/e2e8f0&text=Musica';
       const DEFAULT_MUSIC_COVER_IMAGE = 'https://dummyimage.com/640x360/0f172a/e2e8f0&text=Conquiguias+Musica';
       const DEFAULT_TV_COVER_IMAGE = 'https://dummyimage.com/640x360/0f172a/e2e8f0&text=Conquiguias+TV';
+      const REACTION_PAGE_SIZE = 10;
+      const REACTION_LONG_PRESS_MS = 700;
+      const REACTION_TAB_META = {
+        like: { label: 'Like', icon: 'fa-heart', accent: '#ef4444' },
+        laugh: { label: 'Risa', icon: 'fa-grin-squint-tears', accent: '#f59e0b' },
+        seven: { label: '7', icon: 'fa-7', accent: '#8b5cf6' }
+      };
+      const postReactionsCache = new Map();
+      const reactionUserProfileCache = new Map();
+      const reactionUserProfilePending = new Map();
+      const reactionPopupState = {
+        timerId: null,
+        touchTimerId: null,
+        touchPostId: '',
+        suppressReactionClickUntil: 0,
+        visible: false,
+        activeType: 'like',
+        activePostId: '',
+        loadedCounts: { like: REACTION_PAGE_SIZE, laugh: REACTION_PAGE_SIZE, seven: REACTION_PAGE_SIZE },
+        renderToken: 0,
+      };
 
       function setActiveUploadTab(tabName) {
         activeUploadTab = tabName;
@@ -10744,6 +10930,273 @@
             ? 'URL del video (mp4, m3u8, YouTube...)'
             : 'URL de TV (m3u8, mp4, YouTube...)';
         }
+      }
+
+      function normalizeReactionBuckets(reactions = {}) {
+        return {
+          like: Array.isArray(reactions?.like) ? reactions.like : [],
+          laugh: Array.isArray(reactions?.laugh) ? reactions.laugh : [],
+          seven: Array.isArray(reactions?.seven) ? reactions.seven : [],
+        };
+      }
+
+      function getReactionDisplayName(profile = {}) {
+        const fullName = `${profile.nombre || ''} ${profile.apellido || ''}`.trim();
+        const candidates = [
+          fullName,
+          profile.userName,
+          profile.displayName,
+          profile.name,
+          profile.email,
+        ];
+        const value = candidates.find((item) => String(item || '').trim());
+        return String(value || 'Usuario').trim() || 'Usuario';
+      }
+
+      function getReactionDisplayPhoto(profile = {}, displayName = 'Usuario') {
+        const rawPhoto = String(
+          profile.fotoURL ||
+          profile.photoURL ||
+          profile.photo ||
+          profile.avatar ||
+          profile.image ||
+          profile.userPhoto ||
+          profile.picture ||
+          '',
+        ).trim();
+        if (rawPhoto) return rawPhoto;
+
+        const initials = String(displayName || 'U')
+          .trim()
+          .split(/\s+/)
+          .slice(0, 2)
+          .map((part) => part.charAt(0))
+          .join('')
+          .toUpperCase() || 'U';
+
+        return `https://dummyimage.com/80x80/334155/e2e8f0&text=${encodeURIComponent(initials)}`;
+      }
+
+      function setPostReactionsCache(postId, reactions) {
+        const normalizedPostId = String(postId || '').trim();
+        if (!normalizedPostId) return;
+        postReactionsCache.set(normalizedPostId, normalizeReactionBuckets(reactions));
+      }
+
+      function getPostReactionsCached(postId) {
+        const normalizedPostId = String(postId || '').trim();
+        if (!normalizedPostId) return normalizeReactionBuckets();
+        return postReactionsCache.get(normalizedPostId) || normalizeReactionBuckets();
+      }
+
+      function cancelReactionPopupTimer() {
+        if (reactionPopupState.timerId) {
+          clearTimeout(reactionPopupState.timerId);
+          reactionPopupState.timerId = null;
+        }
+      }
+
+      function cancelReactionTouchTimer() {
+        if (reactionPopupState.touchTimerId) {
+          clearTimeout(reactionPopupState.touchTimerId);
+          reactionPopupState.touchTimerId = null;
+        }
+        reactionPopupState.touchPostId = '';
+      }
+
+      function hideReactionPopup() {
+        cancelReactionPopupTimer();
+        reactionPopupState.visible = false;
+        reactionPopupState.activePostId = '';
+        const backdrop = document.getElementById('reactionPopupBackdrop');
+        backdrop?.classList.remove('open');
+      }
+
+      function scheduleReactionPopup(postId) {
+        const normalizedPostId = String(postId || '').trim();
+        if (!normalizedPostId) return;
+        if (isGuestSession || !currentUserId) return;
+
+        cancelReactionPopupTimer();
+        reactionPopupState.timerId = window.setTimeout(() => {
+          openReactionPopup(normalizedPostId, 'like');
+        }, 10000);
+      }
+
+      function ensureReactionPopup() {
+        let backdrop = document.getElementById('reactionPopupBackdrop');
+        if (backdrop) return backdrop;
+
+        backdrop = document.createElement('div');
+        backdrop.id = 'reactionPopupBackdrop';
+        backdrop.className = 'reaction-popup-backdrop';
+        backdrop.innerHTML = `
+          <div class="reaction-popup" role="dialog" aria-modal="true" aria-label="Reacciones de la publicación">
+            <div class="reaction-popup-header">
+              <div class="reaction-popup-title">Reacciones</div>
+              <button class="reaction-popup-close" type="button" aria-label="Cerrar">&times;</button>
+            </div>
+            <div class="reaction-popup-tabs" role="tablist"></div>
+            <div class="reaction-popup-body">
+              <div class="reaction-popup-list"></div>
+              <button class="reaction-popup-load-more" type="button">Cargar más reacciones</button>
+            </div>
+          </div>
+        `;
+
+        document.body.appendChild(backdrop);
+
+        backdrop.addEventListener('click', (event) => {
+          if (event.target === backdrop) {
+            hideReactionPopup();
+          }
+        });
+
+        backdrop.querySelector('.reaction-popup-close')?.addEventListener('click', hideReactionPopup);
+        backdrop.querySelector('.reaction-popup-load-more')?.addEventListener('click', () => {
+          const type = reactionPopupState.activeType || 'like';
+          const currentLoaded = reactionPopupState.loadedCounts[type] || REACTION_PAGE_SIZE;
+          reactionPopupState.loadedCounts[type] = currentLoaded + REACTION_PAGE_SIZE;
+          renderReactionPopup();
+        });
+
+        return backdrop;
+      }
+
+      async function getReactionUserProfile(uid) {
+        const userId = String(uid || '').trim();
+        if (!userId) {
+          return {
+            name: 'Usuario',
+            photo: getReactionDisplayPhoto({}, 'Usuario'),
+          };
+        }
+
+        if (reactionUserProfileCache.has(userId)) {
+          return reactionUserProfileCache.get(userId);
+        }
+
+        if (reactionUserProfilePending.has(userId)) {
+          return reactionUserProfilePending.get(userId);
+        }
+
+        const pending = (async () => {
+          let profile = {};
+
+          try {
+            if (userId === String(currentUserId || '').trim() && window.userData) {
+              profile = window.userData || {};
+            } else {
+              const userSnap = await getDoc(doc(db, 'usuarios', userId));
+              if (userSnap.exists()) {
+                profile = userSnap.data() || {};
+              }
+            }
+          } catch (_error) {
+            profile = {};
+          }
+
+          const name = getReactionDisplayName(profile);
+          const result = {
+            name,
+            photo: getReactionDisplayPhoto(profile, name),
+          };
+
+          reactionUserProfileCache.set(userId, result);
+          return result;
+        })();
+
+        reactionUserProfilePending.set(userId, pending);
+        try {
+          return await pending;
+        } finally {
+          reactionUserProfilePending.delete(userId);
+        }
+      }
+
+      function openReactionPopup(postId, activeType = 'like') {
+        const normalizedPostId = String(postId || '').trim();
+        if (!normalizedPostId) return;
+        if (isGuestSession || !currentUserId) return;
+
+        ensureReactionPopup();
+        reactionPopupState.visible = true;
+        reactionPopupState.activePostId = normalizedPostId;
+        reactionPopupState.activeType = REACTION_TAB_META[activeType] ? activeType : 'like';
+        reactionPopupState.loadedCounts = { like: REACTION_PAGE_SIZE, laugh: REACTION_PAGE_SIZE, seven: REACTION_PAGE_SIZE };
+        const backdrop = document.getElementById('reactionPopupBackdrop');
+        backdrop?.classList.add('open');
+        renderReactionPopup();
+      }
+
+      async function renderReactionPopup() {
+        if (!reactionPopupState.visible || !reactionPopupState.activePostId) return;
+
+        const backdrop = ensureReactionPopup();
+        const tabsEl = backdrop.querySelector('.reaction-popup-tabs');
+        const listEl = backdrop.querySelector('.reaction-popup-list');
+        const loadMoreBtn = backdrop.querySelector('.reaction-popup-load-more');
+        if (!tabsEl || !listEl || !loadMoreBtn) return;
+
+        const postId = reactionPopupState.activePostId;
+        const types = ['like', 'laugh', 'seven'];
+        const activeType = REACTION_TAB_META[reactionPopupState.activeType]
+          ? reactionPopupState.activeType
+          : 'like';
+
+        reactionPopupState.activeType = activeType;
+        const reactions = getPostReactionsCached(postId);
+
+        tabsEl.innerHTML = types
+          .map((type) => {
+            const meta = REACTION_TAB_META[type];
+            const count = Array.isArray(reactions[type]) ? reactions[type].length : 0;
+            return `
+              <button class="reaction-popup-tab${type === activeType ? ' active' : ''}" type="button" data-reaction-tab="${type}">
+                <i class="fas ${meta.icon}" style="color:${meta.accent};"></i>
+                <span>${meta.label}</span>
+                <span class="reaction-popup-tab-count">${formatReactionCount(count)}</span>
+              </button>
+            `;
+          })
+          .join('');
+
+        tabsEl.querySelectorAll('[data-reaction-tab]').forEach((tabBtn) => {
+          tabBtn.addEventListener('click', () => {
+            const nextType = tabBtn.getAttribute('data-reaction-tab') || 'like';
+            reactionPopupState.activeType = nextType;
+            renderReactionPopup();
+          });
+        });
+
+        const typeIds = Array.isArray(reactions[activeType]) ? reactions[activeType] : [];
+        const visibleCount = Math.max(REACTION_PAGE_SIZE, reactionPopupState.loadedCounts[activeType] || REACTION_PAGE_SIZE);
+        const visibleIds = typeIds.slice(0, visibleCount);
+        const hasMore = visibleIds.length < typeIds.length;
+
+        loadMoreBtn.style.display = hasMore ? 'block' : 'none';
+
+        if (!typeIds.length) {
+          listEl.innerHTML = '<div class="reaction-popup-empty">Aún no hay reacciones en esta pestaña.</div>';
+          return;
+        }
+
+        listEl.innerHTML = '<div class="reaction-popup-loading">Cargando reacciones...</div>';
+        const renderToken = ++reactionPopupState.renderToken;
+        const profiles = await Promise.all(visibleIds.map((uid) => getReactionUserProfile(uid)));
+
+        if (!reactionPopupState.visible || renderToken !== reactionPopupState.renderToken) {
+          return;
+        }
+
+        listEl.innerHTML = profiles
+          .map((profile) => `
+            <div class="reaction-popup-item">
+              <img class="reaction-popup-avatar" src="${escapeHtml(profile.photo)}" alt="Foto de perfil" onerror="this.src='https://dummyimage.com/80x80/334155/e2e8f0&text=U'">
+              <div class="reaction-popup-name">${escapeHtml(profile.name || 'Usuario')}</div>
+            </div>
+          `)
+          .join('');
       }
 
       const IMGUR_URL_REGEX = /^https?:\/\/i\.imgur\.com\//i;
@@ -13500,9 +13953,10 @@
         const isGuestUser = !!isGuestSession;
 
         // Preparar reacciones (con valores por defecto si no existen)
-        const reactions = post.reactions || {
+        const reactions = normalizeReactionBuckets(post.reactions || {
           like: [], laugh: [], seven: []
-        };
+        });
+        setPostReactionsCache(firestorePostId, reactions);
 
         // Determinar si el usuario actual está en cada reacción
         const userReactions = {
@@ -15290,6 +15744,64 @@
         }
       });
 
+      // 🔹 Popup de reacciones (solo usuarios autenticados)
+      document.addEventListener('mouseover', (event) => {
+        const btn = event.target?.closest?.('.reaction-btn');
+        if (!btn) return;
+        if (event.relatedTarget && btn.contains(event.relatedTarget)) return;
+        if (btn.classList.contains('disabled') || btn.getAttribute('aria-disabled') === 'true') return;
+
+        const postId = btn.getAttribute('data-postid');
+        scheduleReactionPopup(postId);
+      });
+
+      document.addEventListener('mouseout', (event) => {
+        const btn = event.target?.closest?.('.reaction-btn');
+        if (!btn) return;
+        if (event.relatedTarget && btn.contains(event.relatedTarget)) return;
+        cancelReactionPopupTimer();
+      });
+
+      document.addEventListener('focusin', (event) => {
+        const btn = event.target?.closest?.('.reaction-btn');
+        if (!btn) return;
+        if (btn.classList.contains('disabled') || btn.getAttribute('aria-disabled') === 'true') return;
+
+        const postId = btn.getAttribute('data-postid');
+        scheduleReactionPopup(postId);
+      });
+
+      document.addEventListener('focusout', (event) => {
+        const btn = event.target?.closest?.('.reaction-btn');
+        if (!btn) return;
+        cancelReactionPopupTimer();
+      });
+
+      document.addEventListener('touchstart', (event) => {
+        const btn = event.target?.closest?.('.reaction-btn');
+        if (!btn) return;
+        if (btn.classList.contains('disabled') || btn.getAttribute('aria-disabled') === 'true') return;
+        if (isGuestSession || !currentUserId) return;
+
+        const postId = String(btn.getAttribute('data-postid') || '').trim();
+        if (!postId) return;
+
+        cancelReactionTouchTimer();
+        reactionPopupState.touchPostId = postId;
+        reactionPopupState.touchTimerId = window.setTimeout(() => {
+          reactionPopupState.suppressReactionClickUntil = Date.now() + 900;
+          openReactionPopup(postId, 'like');
+        }, REACTION_LONG_PRESS_MS);
+      }, { passive: true });
+
+      document.addEventListener('touchend', () => {
+        cancelReactionTouchTimer();
+      }, { passive: true });
+
+      document.addEventListener('touchcancel', () => {
+        cancelReactionTouchTimer();
+      }, { passive: true });
+
       // 🔹 Manejar reacciones
       document.addEventListener('click', async (e) => {
         const optionsToggle = e.target.closest('.post-options-toggle');
@@ -15386,6 +15898,13 @@
         if (e.target.classList.contains('reaction-btn') || e.target.closest('.reaction-btn')) {
           const btn = e.target.classList.contains('reaction-btn') ? e.target :
             e.target.closest('.reaction-btn');
+
+          cancelReactionPopupTimer();
+          cancelReactionTouchTimer();
+
+          if (Date.now() < (reactionPopupState.suppressReactionClickUntil || 0)) {
+            return;
+          }
 
           if (!btn || btn.classList.contains('disabled') || btn.getAttribute('aria-disabled') === 'true') {
             return;
@@ -15593,6 +16112,8 @@
 
       // 🔹 Función para actualizar visualmente los botones de reacción
       function updateReactionButtons(postId, reactions) {
+        setPostReactionsCache(postId, reactions);
+
         const reactionButtons =
           document.querySelectorAll(`[data-postid="${postId}"].reaction-btn`);
 
@@ -15614,6 +16135,10 @@
             button.classList.remove('active');
           }
         });
+
+        if (reactionPopupState.visible && reactionPopupState.activePostId === String(postId || '').trim()) {
+          renderReactionPopup();
+        }
       }
 
       async function incrementPostShareCount(postId) {

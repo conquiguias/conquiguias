@@ -11082,18 +11082,38 @@
 
         const pending = (async () => {
           let profile = {};
+          let found = false;
 
           try {
+            // Verificar si es el usuario actual usando currentUserId
             if (userId === String(currentUserId || '').trim() && window.userData) {
               profile = window.userData || {};
-            } else {
-              const userSnap = await getDoc(doc(db, 'usuarios', userId));
-              if (userSnap.exists()) {
-                profile = userSnap.data() || {};
+              found = !!Object.keys(profile).length;
+            }
+
+            // Si no encontró, intentar buscar en colección 'usuarios'
+            if (!found) {
+              try {
+                const userSnap = await getDoc(doc(db, 'usuarios', userId));
+                if (userSnap.exists()) {
+                  profile = userSnap.data() || {};
+                  found = true;
+                }
+              } catch (firebaseError) {
+                console.log(`ℹ️ No se encontró perfil en 'usuarios' para ${userId}`);
               }
             }
+
+            // Si aún no encontró, usar el UID como nombre de fallback
+            if (!found) {
+              profile = {
+                displayName: userId.substring(0, 8),
+              };
+            }
           } catch (_error) {
-            profile = {};
+            profile = {
+              displayName: userId.substring(0, 8),
+            };
           }
 
           const name = getReactionDisplayName(profile);

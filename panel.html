@@ -7816,6 +7816,41 @@
         return false;
       }
 
+      function buildPublicUserProfileData(profileSource = {}, authUser = null) {
+        const source = profileSource || {};
+        const nombre = String(source.nombre || authUser?.displayName || 'Usuario').trim() || 'Usuario';
+        const apellido = String(source.apellido || '').trim();
+        const fotoURL = String(
+          source.fotoURL ||
+          source.photoURL ||
+          authUser?.photoURL ||
+          '',
+        ).trim();
+        const userName = String(source.userName || source.username || '').trim();
+        const pais = String(source.pais || '').trim();
+
+        return {
+          nombre,
+          apellido,
+          fotoURL,
+          userName,
+          pais,
+          actualizadoPublico: new Date().toISOString(),
+        };
+      }
+
+      async function syncPublicUserProfile(profileSource = {}, authUser = null) {
+        if (!db || isGuestSession || !currentUserId) return;
+
+        const publicProfile = buildPublicUserProfileData(profileSource, authUser);
+
+        try {
+          await setDoc(doc(db, 'usuarios_publicos', currentUserId), publicProfile, { merge: true });
+        } catch (error) {
+          console.warn('[WARN] No se pudo sincronizar usuarios_publicos:', error);
+        }
+      }
+
 
       // 🔹 Detectar usuario logueado
       onAuthStateChanged(auth, async (user) => {
@@ -8014,6 +8049,7 @@
               };
               userData = window.userData;
               lastPostTime = data.lastPostTime || null;
+              await syncPublicUserProfile(window.userData, user);
             } else {
               currentPhotoURL = user.photoURL || placeholderURL;
               headerUserPhoto.src = currentPhotoURL;
@@ -8029,6 +8065,7 @@
               };
               userData = window.userData;
               lastPostTime = null;
+              await syncPublicUserProfile(window.userData, user);
             }
           } catch (profileError) {
             console.warn('[WARN] No se pudo cargar perfil completo:', profileError);
@@ -8046,6 +8083,7 @@
             };
             userData = window.userData;
             lastPostTime = null;
+            await syncPublicUserProfile(window.userData, user);
           }
 
           if (deleteAccountBtn) {
@@ -8203,6 +8241,17 @@
             pais: paisInput.value,
             fotoURL: newPhotoURL
           });
+
+          window.userData = {
+            ...(window.userData || {}),
+            nombre: nombreInput.value,
+            apellido: apellidoInput.value,
+            pais: paisInput.value,
+            fotoURL: newPhotoURL,
+            email: correoInput.value || (auth.currentUser?.email || ''),
+          };
+          userData = window.userData;
+          await syncPublicUserProfile(window.userData, auth.currentUser || null);
 
           newPasswordInput.value = "";
           confirmPasswordInput.value = "";
@@ -11091,20 +11140,20 @@
               found = !!Object.keys(profile).length;
             }
 
-            // Si no encontró, intentar buscar en colección 'usuarios'
+            // Si no encontró, buscar perfil público en colección dedicada
             if (!found) {
               try {
                 console.log(`🔍 Buscando perfil para UID: ${userId}`);
-                const userSnap = await getDoc(doc(db, 'usuarios', userId));
+                const userSnap = await getDoc(doc(db, 'usuarios_publicos', userId));
                 if (userSnap.exists()) {
                   profile = userSnap.data() || {};
                   found = true;
                   console.log(`✅ Perfil encontrado para ${userId}:`, profile);
                 } else {
-                  console.log(`⚠️ Documento no existe para UID: ${userId}`);
+                  console.log(`⚠️ Documento público no existe para UID: ${userId}`);
                 }
               } catch (firebaseError) {
-                console.error(`❌ Error buscando perfil para ${userId}:`, firebaseError.message);
+                console.error(`❌ Error buscando perfil público para ${userId}:`, firebaseError.message);
               }
             }
 

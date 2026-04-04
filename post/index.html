@@ -1313,6 +1313,7 @@
         getFirestore,
         doc,
         getDoc,
+        setDoc,
         updateDoc,
         increment,
         collection,
@@ -1420,6 +1421,44 @@
             "[WARN] No se pudo activar persistencia en memoria en posts:",
             memoryError,
           );
+        }
+      }
+
+      function buildPublicUserProfileData(profileSource = {}, authUser = null) {
+        const source = profileSource || {};
+        const nombre = String(source.nombre || authUser?.displayName || "Usuario").trim() || "Usuario";
+        const apellido = String(source.apellido || "").trim();
+        const fotoURL = String(
+          source.fotoURL ||
+          source.photoURL ||
+          authUser?.photoURL ||
+          "",
+        ).trim();
+        const userName = String(source.userName || source.username || "").trim();
+        const pais = String(source.pais || "").trim();
+
+        return {
+          nombre,
+          apellido,
+          fotoURL,
+          userName,
+          pais,
+          actualizadoPublico: new Date().toISOString(),
+        };
+      }
+
+      async function syncPublicUserProfile(profileSource = {}, authUser = null) {
+        if (!db || !authUser || authUser.isAnonymous) return;
+
+        const uid = String(authUser.uid || "").trim();
+        if (!uid) return;
+
+        const publicProfile = buildPublicUserProfileData(profileSource, authUser);
+
+        try {
+          await setDoc(doc(db, "usuarios_publicos", uid), publicProfile, { merge: true });
+        } catch (error) {
+          console.warn("[WARN] No se pudo sincronizar usuarios_publicos en post:", error);
         }
       }
 
@@ -1578,20 +1617,20 @@
               found = !!Object.keys(profile).length;
             }
 
-            // Si no encontró, intentar buscar en colección 'usuarios'
+            // Si no encontró, buscar perfil público en colección dedicada
             if (!found) {
               try {
                 console.log(`🔍 Buscando perfil para UID: ${uid}`);
-                const snap = await getDoc(doc(db, "usuarios", uid));
+                const snap = await getDoc(doc(db, "usuarios_publicos", uid));
                 if (snap.exists()) {
                   profile = snap.data() || {};
                   found = true;
                   console.log(`✅ Perfil encontrado para ${uid}:`, profile);
                 } else {
-                  console.log(`⚠️ Documento no existe para UID: ${uid}`);
+                  console.log(`⚠️ Documento público no existe para UID: ${uid}`);
                 }
               } catch (firebaseError) {
-                console.error(`❌ Error buscando perfil para ${uid}:`, firebaseError.message);
+                console.error(`❌ Error buscando perfil público para ${uid}:`, firebaseError.message);
               }
             }
 
@@ -3632,8 +3671,10 @@
               currentUserProfile = profileSnap.exists()
                 ? profileSnap.data() || {}
                 : null;
+              await syncPublicUserProfile(currentUserProfile || {}, user);
             } catch {
               currentUserProfile = null;
+              await syncPublicUserProfile({}, user);
             }
           } else {
             currentUserProfile = null;

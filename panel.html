@@ -5406,34 +5406,40 @@
           <h4><i class="fas fa-chart-bar" style="margin-right: 8px; color: var(--accent-color);"></i> Estadísticas de
             Moderación</h4>
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
-            <div style="text-align: center;">
+            <button id="adminStatusTabPending" type="button" style="text-align: center; background: transparent; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; cursor: pointer;">
               <div style="font-size: 24px; color: #ff9800;" id="pendingCount">0</div>
               <div>Pendientes</div>
-            </div>
-            <div style="text-align: center;">
+            </button>
+            <button id="adminStatusTabApproved" type="button" style="text-align: center; background: transparent; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; cursor: pointer;">
               <div style="font-size: 24px; color: #4caf50;" id="approvedCount">0</div>
               <div>Aprobadas</div>
-            </div>
-            <div style="text-align: center;">
+            </button>
+            <button id="adminStatusTabRejected" type="button" style="text-align: center; background: transparent; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; cursor: pointer;">
               <div style="font-size: 24px; color: #f44336;" id="rejectedCount">0</div>
               <div>Rechazadas</div>
-            </div>
+            </button>
           </div>
         </div>
 
         <div id="adminLoading" style="text-align: center; padding: 20px; display: none;">
           <div class="loading" style="display: inline-block;"></div>
-          <p>Cargando publicaciones pendientes...</p>
+          <p id="adminLoadingText">Cargando publicaciones...</p>
         </div>
 
         <div id="adminPostsContainer">
           <!-- Aquí se cargarán las publicaciones pendientes -->
         </div>
 
+        <div style="text-align:center; margin-top:12px;">
+          <button id="adminLoadMoreBtn" type="button" style="display:none; width:auto; padding:8px 14px; font-size:13px;">
+            Cargar más
+          </button>
+        </div>
+
         <div id="noPendingPosts" style="text-align: center; padding: 40px; display: none;">
-          <h3><i class="fas fa-check-circle" style="margin-right: 8px; color: var(--success-color);"></i> No hay
+          <h3 id="adminEmptyTitle"><i class="fas fa-check-circle" style="margin-right: 8px; color: var(--success-color);"></i> No hay
             publicaciones pendientes</h3>
-          <p>Todas las publicaciones han sido moderadas.</p>
+          <p id="adminEmptyText">Todas las publicaciones han sido moderadas.</p>
         </div>
       </div>
 
@@ -12054,7 +12060,11 @@
               tags: [publishMode]
             };
 
-            await addDoc(collection(db, 'posts'), postData);
+            const createdRadioDocRef = await addDoc(collection(db, 'posts'), postData);
+            const createdRadioPost = {
+              ...postData,
+              id: createdRadioDocRef.id,
+            };
             fileInput.value = '';
             postDescription.value = '';
             updateDescriptionLivePreview('');
@@ -12066,14 +12076,14 @@
             uploadBtn.disabled = false;
             uploadBtn.textContent = 'Publicar';
             if (isAdmin) {
-              console.log('[PUBLISH] ✅ Admin - Post inmediatamente aprobado:', postData);
-              await refreshInicioForAdminAfterPublish();
+              console.log('[PUBLISH] ✅ Admin - Post inmediatamente aprobado:', createdRadioPost);
+              await refreshInicioForAdminAfterPublish(createdRadioPost);
               mostrarMensaje('info', '✅ Publicación creada', 
                 publishMode === 'musica' 
                   ? `La música fue publicada y ya está visible en Inicio.\n\nNombre: ${radioName}` 
                   : `La radio fue publicada y ya está visible en Inicio.\n\nNombre: ${radioName}`);
             } else {
-              console.log('[PUBLISH] ⏳ Usuario regular - Post pendiente de aprobación:', postData);
+              console.log('[PUBLISH] ⏳ Usuario regular - Post pendiente de aprobación:', createdRadioPost);
               mostrarMensaje('info', '✅ Publicación creada',
                 publishMode === 'musica'
                   ? `La música fue enviada para revisión.\n\n📊 Estado: PENDIENTE DE APROBACIÓN\n\nUn admin debe aprobarla para que aparezca en Inicio.\n\nTiempo estimado: 24 horas\n\nNombre: ${radioName}`
@@ -12272,18 +12282,28 @@
           };
 
           let postId;
+          let createdGeneralPost = null;
 
           // 3. Guardar en Firestore...
           try {
             console.log('💾 Intentando guardar en Firestore...');
             const docRef = await addDoc(collection(db, "posts"), postData);
             postId = docRef.id;
+            createdGeneralPost = {
+              ...postData,
+              id: docRef.id,
+            };
             console.log('✅ Guardado en Firestore, ID:', postId);
           } catch (firestoreError) {
             console.warn('⚠️ Falló Firestore, usando localStorage:', firestoreError);
             const saved = savePostToLocalStorage(postData);
             if (saved) {
               postId = 'local_' + Date.now();
+              createdGeneralPost = {
+                ...postData,
+                id: postId,
+                source: 'local',
+              };
               console.log('✅ Guardado en localStorage');
               mostrarMensaje('info', 'Publicación guardada localmente', 'La publicación se guardó localmente debido a problemas de conexión.');
             } else {
@@ -12342,7 +12362,7 @@
             uploadBtn.style.opacity = '1';
             uploadBtn.textContent = 'Publicar';
             console.log('[PUBLISH] ✅ Admin - Post inmediatamente aprobado');
-            await refreshInicioForAdminAfterPublish();
+            await refreshInicioForAdminAfterPublish(createdGeneralPost);
             mostrarMensaje('info', '✅ Publicación publicada', 
               'Tu publicación ya está visible en Inicio (Recientes).\n\n' +
               '✨ Porque eres admin, fue aprobada automáticamente.');
@@ -16567,84 +16587,174 @@
         }
       }
 
-      // Cargar publicaciones pendientes
-      async function loadPendingPosts() {
-        try {
-          const adminLoading = document.getElementById('adminLoading');
-          const adminPostsContainer = document.getElementById('adminPostsContainer');
-          const noPendingPosts = document.getElementById('noPendingPosts');
+      const ADMIN_MODERATION_PAGE_SIZE = 5;
+      const adminModerationStatusState = {
+        pending: { lastDoc: null, hasMore: true, loading: false },
+        approved: { lastDoc: null, hasMore: true, loading: false },
+        rejected: { lastDoc: null, hasMore: true, loading: false },
+      };
+      let activeAdminModerationStatus = 'pending';
 
-          cleanupDetachedMediaInstances();
-            scheduleMediaCleanup();
-          cleanupPendingMediaPlayers();
-          adminLoading.style.display = 'block';
+      function getAdminModerationStatusLabel(status) {
+        switch (status) {
+          case 'approved': return 'aprobadas';
+          case 'rejected': return 'rechazadas';
+          default: return 'pendientes';
+        }
+      }
+
+      function updateAdminModerationStatusTabsUI(status) {
+        const tabPending = document.getElementById('adminStatusTabPending');
+        const tabApproved = document.getElementById('adminStatusTabApproved');
+        const tabRejected = document.getElementById('adminStatusTabRejected');
+        const tabMap = {
+          pending: tabPending,
+          approved: tabApproved,
+          rejected: tabRejected,
+        };
+
+        Object.entries(tabMap).forEach(([key, button]) => {
+          if (!button) return;
+          const isActive = key === status;
+          button.style.background = isActive ? 'var(--accent-color)' : 'transparent';
+          button.style.color = isActive ? 'white' : 'var(--text-primary)';
+          button.style.border = isActive ? 'none' : '1px solid var(--border-color)';
+        });
+      }
+
+      function updateAdminLoadMoreButton(status) {
+        const loadMoreBtn = document.getElementById('adminLoadMoreBtn');
+        if (!loadMoreBtn) return;
+        const state = adminModerationStatusState[status];
+        const label = getAdminModerationStatusLabel(status);
+
+        loadMoreBtn.textContent = state.loading
+          ? `Cargando más ${label}...`
+          : `Cargar más ${label}`;
+        loadMoreBtn.disabled = !!state.loading;
+        loadMoreBtn.style.display = state.hasMore ? 'inline-block' : 'none';
+      }
+
+      function updateAdminEmptyState(status) {
+        const title = document.getElementById('adminEmptyTitle');
+        const text = document.getElementById('adminEmptyText');
+        const iconColor = status === 'approved' ? '#4caf50' : (status === 'rejected' ? '#f44336' : '#ff9800');
+
+        if (title) {
+          title.innerHTML = `<i class="fas fa-check-circle" style="margin-right: 8px; color: ${iconColor};"></i> No hay publicaciones ${getAdminModerationStatusLabel(status)}`;
+        }
+        if (text) {
+          text.textContent = status === 'pending'
+            ? 'Todas las publicaciones han sido moderadas.'
+            : `No hay publicaciones ${getAdminModerationStatusLabel(status)} para mostrar.`;
+        }
+      }
+
+      function setAdminLoadingState(loading, status) {
+        const adminLoading = document.getElementById('adminLoading');
+        const adminLoadingText = document.getElementById('adminLoadingText');
+        if (adminLoadingText) {
+          adminLoadingText.textContent = loading
+            ? `Cargando publicaciones ${getAdminModerationStatusLabel(status)}...`
+            : 'Cargando publicaciones...';
+        }
+        if (adminLoading) {
+          adminLoading.style.display = loading ? 'block' : 'none';
+        }
+      }
+
+      // Cargar publicaciones de moderación (por estado y paginadas)
+      async function loadAdminPostsByStatus(status = 'pending', { append = false } = {}) {
+        const adminPostsContainer = document.getElementById('adminPostsContainer');
+        const noPendingPosts = document.getElementById('noPendingPosts');
+        const state = adminModerationStatusState[status];
+        if (!adminPostsContainer || !noPendingPosts || !state) return;
+        if (state.loading) return;
+
+        activeAdminModerationStatus = status;
+        updateAdminModerationStatusTabsUI(status);
+        updateAdminEmptyState(status);
+
+        if (!append) {
+          state.lastDoc = null;
+          state.hasMore = true;
           adminPostsContainer.innerHTML = '';
           noPendingPosts.style.display = 'none';
+        }
 
-          console.log('🔧 Cargando publicaciones pendientes...');
+        if (!state.hasMore && append) {
+          updateAdminLoadMoreButton(status);
+          return;
+        }
 
-          // Consulta SOLO publicaciones pendientes
-          const q = query(
+        cleanupDetachedMediaInstances();
+        scheduleMediaCleanup();
+        cleanupPendingMediaPlayers();
+        state.loading = true;
+        setAdminLoadingState(true, status);
+        updateAdminLoadMoreButton(status);
+
+        try {
+          let q = query(
             collection(db, "posts"),
-            where("status", "==", "pending"),
-            orderBy("timestamp", "asc")
+            where("status", "==", status),
+            orderBy("timestamp", "desc"),
+            limit(ADMIN_MODERATION_PAGE_SIZE)
           );
 
-          const querySnapshot = await getDocs(q);
-          adminLoading.style.display = 'none';
+          if (append && state.lastDoc) {
+            q = query(
+              collection(db, "posts"),
+              where("status", "==", status),
+              orderBy("timestamp", "desc"),
+              startAfter(state.lastDoc),
+              limit(ADMIN_MODERATION_PAGE_SIZE)
+            );
+          }
 
-          if (querySnapshot.empty) {
+          const querySnapshot = await getDocs(q);
+          const docs = querySnapshot.docs;
+
+          if (!append && docs.length === 0) {
             noPendingPosts.style.display = 'block';
-            updateAdminStats();
+            state.hasMore = false;
+            updateAdminLoadMoreButton(status);
+            await updateAdminStats();
             return;
           }
 
-          console.log(`🔧 Publicaciones pendientes: ${querySnapshot.size}`);
-
-          querySnapshot.forEach((doc) => {
-            const post = { ...doc.data(), id: doc.id };
-            displayPendingPost(post, doc.id);
+          docs.forEach((docSnap) => {
+            const post = { ...docSnap.data(), id: docSnap.id };
+            displayPendingPost(post, docSnap.id, status);
           });
 
-          updateAdminStats();
+          state.lastDoc = docs.length ? docs[docs.length - 1] : state.lastDoc;
+          state.hasMore = docs.length === ADMIN_MODERATION_PAGE_SIZE;
 
-        } catch (error) {
-          console.error('❌ Error cargando publicaciones pendientes:', error);
-
-          // Fallback: cargar todas y filtrar manualmente
-          try {
-            console.log('🔄 Intentando carga manual de pendientes...');
-            const q = query(collection(db, "posts"), orderBy("timestamp", "asc"));
-            const querySnapshot = await getDocs(q);
-
-            document.getElementById('adminLoading').style.display = 'none';
-            const pendingPosts = [];
-
-            querySnapshot.forEach((doc) => {
-              const post = doc.data();
-              if (post.status === 'pending') {
-                pendingPosts.push({ ...post, id: doc.id });
-              }
-            });
-
-            if (pendingPosts.length === 0) {
-              document.getElementById('noPendingPosts').style.display = 'block';
-              updateAdminStats();
-              return;
-            }
-
-            pendingPosts.forEach((post) => {
-              displayPendingPost(post, post.id);
-            });
-
-            updateAdminStats();
-
-          } catch (fallbackError) {
-            console.error('❌ Error en fallback de admin:', fallbackError);
-            document.getElementById('adminLoading').style.display = 'none';
-            mostrarMensaje('error', 'Error', 'No se pudieron cargar las publicaciones pendientes.');
+          if (!append && adminPostsContainer.querySelectorAll('.post-card').length === 0) {
+            noPendingPosts.style.display = 'block';
+          } else {
+            noPendingPosts.style.display = 'none';
           }
+
+          updateAdminLoadMoreButton(status);
+          await updateAdminStats();
+        } catch (error) {
+          console.error(`❌ Error cargando publicaciones ${status}:`, error);
+          if (!append) {
+            noPendingPosts.style.display = 'block';
+          }
+          mostrarMensaje('error', 'Error', `No se pudieron cargar las publicaciones ${getAdminModerationStatusLabel(status)}.`);
+        } finally {
+          state.loading = false;
+          setAdminLoadingState(false, status);
+          updateAdminLoadMoreButton(status);
         }
+      }
+
+      // Compatibilidad con llamadas existentes
+      async function loadPendingPosts() {
+        return loadAdminPostsByStatus('pending', { append: false });
       }
 
       function cleanupPendingMediaPlayers() {
@@ -16652,18 +16762,26 @@
           scheduleMediaCleanup();
       }
 
-      // Mostrar publicación pendiente en el panel admin
-      function displayPendingPost(post, postId) {
+      // Mostrar publicación en el panel admin (pendiente/aprobada/rechazada)
+      function displayPendingPost(post, postId, statusView = 'pending') {
         const normalizedMediaType = String(post?.mediaType || '').trim() || inferUrlMediaType(post?.mediaUrl || '');
         const normalizedPost = {
           ...post,
           mediaType: normalizedMediaType
         };
 
+        const effectiveStatus = statusView || String(normalizedPost.status || 'pending').toLowerCase();
+        const statusMeta = effectiveStatus === 'approved'
+          ? { text: '✅ Publicación aprobada', color: '#4caf50', border: '#4caf50' }
+          : (effectiveStatus === 'rejected'
+            ? { text: '❌ Publicación rechazada', color: '#f44336', border: '#f44336' }
+            : { text: '⏳ Esperando aprobación', color: '#ff9800', border: '#ff9800' });
+        const canDeleteForever = effectiveStatus === 'approved' || effectiveStatus === 'rejected';
+
         const postElement = document.createElement('div');
         postElement.className = 'post-card';
         postElement.style.marginBottom = '20px';
-        postElement.style.border = '2px solid #ff9800';
+        postElement.style.border = `2px solid ${statusMeta.border}`;
 
         const postDateLabel = getPostDateLabel(new Date(normalizedPost.timestamp));
         const videoBlurBackgroundUrl = getVideoBlurBackgroundUrl(normalizedPost);
@@ -16702,8 +16820,8 @@
                                 <div class="post-header-meta">
                                   <div class="post-user-name">${normalizedPost.userName || 'Usuario'}</div>
                                   <div class="post-time">${postDateLabel}</div>
-                                  <div style="font-size: 12px; color: #ff9800; margin-top: 5px;">
-                                    ⏳ Esperando aprobación
+                                  <div style="font-size: 12px; color: ${statusMeta.color}; margin-top: 5px;">
+                                    ${statusMeta.text}
                                   </div>
                                 </div>
                               </div>
@@ -16717,6 +16835,7 @@
                               <div style="padding: 15px;border-radius: 8px; margin: 10px 0;">
                                 <h4 style="margin-bottom: 10px;">🔧 Acciones de Moderación</h4>
                                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                  ${effectiveStatus === 'pending' ? `
                                   <button class="approve-btn" data-postid="${postId}"
                                     data-deletehash="${normalizedPost.imgurData?.deletehash}"
                                     style="background: #4caf50; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px;">
@@ -16727,6 +16846,14 @@
                                     style="background: #f44336; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px;">
                                     ❌ Rechazar
                                   </button>
+                                  ` : ''}
+                                  ${canDeleteForever ? `
+                                  <button class="delete-forever-btn" data-postid="${postId}"
+                                    data-deletehash="${normalizedPost.imgurData?.deletehash}"
+                                    style="background: #9c27b0; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                                    🗑️ Eliminar para siempre
+                                  </button>
+                                  ` : ''}
                                   <button class="view-user-btn" data-userid="${normalizedPost.userId}"
                                     style="background: #2196f3; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px;">
                                     👤 Ver Usuario
@@ -16752,6 +16879,26 @@
           queuePlayerInitialization(playerId, () => {
             initPendingClapprPlayer(playerId, normalizedPost, postId);
           }, { auto: true });
+        }
+      }
+
+      async function deleteAdminPostForever(postId, deletehash) {
+        try {
+          await deletePost(postId, deletehash);
+          const card = document.querySelector(`.delete-forever-btn[data-postid="${postId}"]`)?.closest('.post-card');
+          if (card) card.remove();
+
+          const adminPostsContainer = document.getElementById('adminPostsContainer');
+          const noPendingPosts = document.getElementById('noPendingPosts');
+          if (adminPostsContainer && noPendingPosts && adminPostsContainer.querySelectorAll('.post-card').length === 0) {
+            noPendingPosts.style.display = 'block';
+          }
+
+          await updateAdminStats();
+          mostrarMensaje('success', 'Publicación eliminada', 'La publicación fue eliminada definitivamente de la base de datos.');
+        } catch (error) {
+          console.error('❌ Error eliminando definitivamente publicación:', error);
+          mostrarMensaje('error', 'Error', 'No se pudo eliminar definitivamente la publicación.');
         }
       }
 
@@ -16890,7 +17037,7 @@
           mostrarMensaje('success', '✅ Publicación aprobada', 'La publicación ahora es visible para todos los usuarios.');
 
           // Verificar si quedan más publicaciones pendientes
-          const remainingPosts = document.querySelectorAll('.post-card').length;
+          const remainingPosts = document.querySelectorAll('#adminPostsContainer .post-card').length;
           if (remainingPosts === 0) {
             document.getElementById('noPendingPosts').style.display = 'block';
           }
@@ -16953,7 +17100,7 @@
           // 4. Actualizar estadísticas
           await updateAdminStats();
 
-          mostrarMensaje('success', 'Publicación rechazada', 'La publicación ha sido rechazada y eliminada.');
+          mostrarMensaje('success', 'Publicación rechazada', 'La publicación quedó en estado rechazada.');
 
         } catch (error) {
           console.error('[ERROR] Error rechazando publicación:', error);
@@ -16979,19 +17126,20 @@
           const enrichedPosts = await enrichPostsRoleMetadata(rawPosts);
 
           enrichedPosts.forEach(post => {
-            switch (post.status) {
+            const status = String(post.status || 'approved').toLowerCase();
+            switch (status) {
               case 'pending':
                 pendingCount++;
                 break;
               case 'approved':
                 approvedCount++;
                 break;
-                displayPost(post, 'grab-' + post.id, grabFeed);
+              case 'rejected':
                 rejectedCount++;
                 break;
-                console.error(`[Grabaciones] ❌ Error renderizando post ${post.id}:`, renderErr);
-                // Consider missing status as 'approved' for backwards compatibility
-                if (!post.status) approvedCount++;
+              default:
+                approvedCount++;
+                break;
             }
           });
 
@@ -17047,9 +17195,12 @@
       // 🔹 Manejar eventos del panel admin (versión mejorada)
       function setupAdminEventListeners() {
         document.addEventListener('click', async (e) => {
+          const actionTarget = e.target.closest('button');
+          if (!actionTarget) return;
+
           // Aprobar publicación
-          if (e.target.classList.contains('approve-btn')) {
-            const postId = e.target.getAttribute('data-postid');
+          if (actionTarget.classList.contains('approve-btn')) {
+            const postId = actionTarget.getAttribute('data-postid');
             mostrarMensaje('confirm',
               '¿Aprobar publicación?',
               'Esta publicación será visible para todos los usuarios.',
@@ -17058,19 +17209,42 @@
           }
 
           // Rechazar publicación
-          if (e.target.classList.contains('reject-btn')) {
-            const postId = e.target.getAttribute('data-postid');
-            const deletehash = e.target.getAttribute('data-deletehash');
+          if (actionTarget.classList.contains('reject-btn')) {
+            const postId = actionTarget.getAttribute('data-postid');
+            const deletehash = actionTarget.getAttribute('data-deletehash');
             mostrarMensaje('confirm',
               '¿Rechazar publicación?',
-              'Esta publicación será eliminada permanentemente. Esta acción no se puede deshacer.',
+              'La publicación pasará a estado rechazada.',
               () => rejectPost(postId, deletehash)
             );
           }
 
+          if (actionTarget.classList.contains('delete-forever-btn')) {
+            const postId = actionTarget.getAttribute('data-postid');
+            const deletehash = actionTarget.getAttribute('data-deletehash');
+            mostrarMensaje('confirm',
+              '¿Eliminar definitivamente?',
+              'Esta publicación se eliminará para siempre de la base de datos. Esta acción no se puede deshacer.',
+              () => deleteAdminPostForever(postId, deletehash)
+            );
+          }
+
+          if (actionTarget.id === 'adminStatusTabPending') {
+            loadAdminPostsByStatus('pending', { append: false });
+          }
+          if (actionTarget.id === 'adminStatusTabApproved') {
+            loadAdminPostsByStatus('approved', { append: false });
+          }
+          if (actionTarget.id === 'adminStatusTabRejected') {
+            loadAdminPostsByStatus('rejected', { append: false });
+          }
+          if (actionTarget.id === 'adminLoadMoreBtn') {
+            loadAdminPostsByStatus(activeAdminModerationStatus, { append: true });
+          }
+
           // Ver información del usuario
-          if (e.target.classList.contains('view-user-btn')) {
-            const userId = e.target.getAttribute('data-userid');
+          if (actionTarget.classList.contains('view-user-btn')) {
+            const userId = actionTarget.getAttribute('data-userid');
             // Aquí puedes implementar una función para ver detalles del usuario
             mostrarMensaje('info', 'Información del usuario', `ID del usuario: ${userId}`);
           }

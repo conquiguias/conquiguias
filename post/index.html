@@ -1155,7 +1155,7 @@
         updateDoc,
         increment,
         collection,
-        query,
+        query as firestoreQuery,
         where,
         getDocs,
         limit,
@@ -1163,7 +1163,7 @@
 
       const stateEl = document.getElementById("state");
       const postRoot = document.getElementById("postRoot");
-      const query = new URLSearchParams(window.location.search);
+      const urlParams = new URLSearchParams(window.location.search);
 
       function getPostIdFromPathname(pathname) {
         const parts = String(pathname || "")
@@ -1185,7 +1185,7 @@
       }
 
       const rawPostId = String(
-        query.get("id") || getPostIdFromPathname(window.location.pathname) || "",
+        urlParams.get("id") || getPostIdFromPathname(window.location.pathname) || "",
       ).trim();
 
       let db;
@@ -1429,7 +1429,7 @@
             .toLowerCase();
           if (email) {
             try {
-              const usersByEmailQuery = query(
+              const usersByEmailQuery = firestoreQuery(
                 collection(db, "usuarios"),
                 where("email", "==", email),
                 limit(1),

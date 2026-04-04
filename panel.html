@@ -11094,13 +11094,17 @@
             // Si no encontró, intentar buscar en colección 'usuarios'
             if (!found) {
               try {
+                console.log(`🔍 Buscando perfil para UID: ${userId}`);
                 const userSnap = await getDoc(doc(db, 'usuarios', userId));
                 if (userSnap.exists()) {
                   profile = userSnap.data() || {};
                   found = true;
+                  console.log(`✅ Perfil encontrado para ${userId}:`, profile);
+                } else {
+                  console.log(`⚠️ Documento no existe para UID: ${userId}`);
                 }
               } catch (firebaseError) {
-                console.log(`ℹ️ No se encontró perfil en 'usuarios' para ${userId}`);
+                console.error(`❌ Error buscando perfil para ${userId}:`, firebaseError.message);
               }
             }
 
@@ -11109,8 +11113,10 @@
               profile = {
                 displayName: userId.substring(0, 8),
               };
+              console.log(`ℹ️ Usando UID como fallback para ${userId}`);
             }
           } catch (_error) {
+            console.error(`❌ Error general en getReactionUserProfile:`, _error);
             profile = {
               displayName: userId.substring(0, 8),
             };

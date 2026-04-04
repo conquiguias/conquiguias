@@ -11930,7 +11930,7 @@
         }
       }
 
-      async function refreshInicioForAdminAfterPublish() {
+      async function refreshInicioForAdminAfterPublish(optimisticPost = null) {
         if (!window.isAdmin) return;
 
         pauseOtherPostMedia('');
@@ -11948,6 +11948,20 @@
         }
 
         await loadPosts(true);
+
+        if (optimisticPost?.id && feed && !feed.querySelector(`[data-postid="${optimisticPost.id}"]`)) {
+          console.warn('[PUBLISH] ⚠️ Post no visible tras recarga; insertando fallback optimista:', optimisticPost.id);
+          try {
+            displayPost(optimisticPost, optimisticPost.id);
+            const insertedCard = feed.lastElementChild;
+            if (insertedCard) {
+              feed.prepend(insertedCard);
+            }
+            updateFirstPostMarker();
+          } catch (fallbackError) {
+            console.error('[PUBLISH] ❌ Fallback visual falló:', fallbackError);
+          }
+        }
       }
 
       // 🔹 Manejar subida de publicación - VERSIÓN FINAL CON FALLBACK
@@ -12109,6 +12123,10 @@
             uploadBtn.disabled = true;
             uploadBtn.textContent = 'Publicando...';
 
+            const normalizedTvMode = tvMode === 'video' ? 'video' : 'tv';
+            const tvDefaultDescription = normalizedTvMode === 'video' ? '#video' : '#television';
+            const tvDefaultTags = normalizedTvMode === 'video' ? ['video'] : ['television'];
+
             const postData = {
               userId: currentUserId,
               userName: `${userData.nombre || ''} ${userData.apellido || ''}`.trim() || 'Usuario',
@@ -12119,7 +12137,7 @@
               ...buildCurrentUserRoleSnapshot(),
               mediaUrl: tvUrl,
               mediaType: inferUrlMediaType(tvUrl),
-              description: description || '#television',
+              description: description || tvDefaultDescription,
               timestamp: new Date().toISOString(),
               imgurData: { id: null, deletehash: null },
               reactions: { like: [], laugh: [], seven: [] },
@@ -12127,13 +12145,17 @@
               viewCount: 0,
               comments: [],
               status: isAdmin ? 'approved' : 'pending',
-              postKind: 'tv',
+              postKind: normalizedTvMode,
               posterUrl: coverImage,
               thumbnailUrl: '',
-              tags: ['television']
+              tags: tvDefaultTags
             };
 
-            await addDoc(collection(db, 'posts'), postData);
+            const createdTvDocRef = await addDoc(collection(db, 'posts'), postData);
+            const createdTvPost = {
+              ...postData,
+              id: createdTvDocRef.id,
+            };
             postDescription.value = '';
             updateDescriptionLivePreview('');
             if (videoUrlInputEl) videoUrlInputEl.value = '';
@@ -12142,12 +12164,12 @@
             uploadBtn.disabled = false;
             uploadBtn.textContent = 'Publicar';
             if (isAdmin) {
-              console.log('[PUBLISH] ✅ Admin - Post inmediatamente aprobado:', postData);
-              await refreshInicioForAdminAfterPublish();
+              console.log('[PUBLISH] ✅ Admin - Post inmediatamente aprobado:', createdTvPost);
+              await refreshInicioForAdminAfterPublish(createdTvPost);
               mostrarMensaje('info', tvMode === 'video' ? '✅ Video publicado' : '✅ TV publicada', 
                 `${tvMode === 'video' ? 'El video' : 'La transmisión'} fue publicado y ya está visible en Inicio.\n\nURL guardada: ${tvUrl.slice(0, 60)}...`);
             } else {
-              console.log('[PUBLISH] ⏳ Usuario regular - Post pendiente de aprobación:', postData);
+              console.log('[PUBLISH] ⏳ Usuario regular - Post pendiente de aprobación:', createdTvPost);
               mostrarMensaje('info', tvMode === 'video' ? '✅ Video creado' : '✅ TV creada', 
                 `La publicación fue enviada para revisión.\n\n📊 Estado: PENDIENTE DE APROBACIÓN\n\nUn administrador debe aprobarla para que aparezca en Inicio.\n\nTiempo estimado: 24 horas\n\nURL guardada: ${tvUrl.slice(0, 60)}...`);
               // También guardar el estado en localStorage para referencia del usuario
@@ -12156,7 +12178,7 @@
                 id: Date.now(),
                 type: tvMode,
                 url: tvUrl,
-                description: description || '#television',
+                description: description || tvDefaultDescription,
                 createdAt: new Date().toISOString(),
                 status: 'pending'
               });

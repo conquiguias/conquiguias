@@ -12052,12 +12052,30 @@
             uploadBtn.disabled = false;
             uploadBtn.textContent = 'Publicar';
             if (isAdmin) {
+              console.log('[PUBLISH] ✅ Admin - Post inmediatamente aprobado:', postData);
               await refreshInicioForAdminAfterPublish();
-              mostrarMensaje('info', '✅ Publicación creada', publishMode === 'musica' ? 'La música fue publicada y ya está visible en Inicio.' : 'La radio fue publicada y ya está visible en Inicio.');
+              mostrarMensaje('info', '✅ Publicación creada', 
+                publishMode === 'musica' 
+                  ? `La música fue publicada y ya está visible en Inicio.\n\nNombre: ${radioName}` 
+                  : `La radio fue publicada y ya está visible en Inicio.\n\nNombre: ${radioName}`);
             } else {
-              mostrarMensaje('info', '✅ Publicación creada', publishMode === 'musica'
-                ? 'La música fue enviada para revisión. Un admin debe aprobarla para que aparezca en Inicio.'
-                : 'La radio fue enviada para revisión. Un admin debe aprobarla para que aparezca en Inicio.');
+              console.log('[PUBLISH] ⏳ Usuario regular - Post pendiente de aprobación:', postData);
+              mostrarMensaje('info', '✅ Publicación creada',
+                publishMode === 'musica'
+                  ? `La música fue enviada para revisión.\n\n📊 Estado: PENDIENTE DE APROBACIÓN\n\nUn admin debe aprobarla para que aparezca en Inicio.\n\nTiempo estimado: 24 horas\n\nNombre: ${radioName}`
+                  : `La radio fue enviada para revisión.\n\n📊 Estado: PENDIENTE DE APROBACIÓN\n\nUn admin debe aprobarla para que aparezca en Inicio.\n\nTiempo estimado: 24 horas\n\nNombre: ${radioName}`);
+              // También guardar el estado en localStorage
+              const pendingPosts = JSON.parse(localStorage.getItem('pendingPosts') || '[]');
+              pendingPosts.push({
+                id: Date.now(),
+                type: publishMode,
+                name: radioName,
+                url: streamUrl,
+                description: description || (publishMode === 'musica' ? '#musica' : '#radio'),
+                createdAt: new Date().toISOString(),
+                status: 'pending'
+              });
+              localStorage.setItem('pendingPosts', JSON.stringify(pendingPosts));
             }
             return;
           } catch (err) {
@@ -12124,10 +12142,25 @@
             uploadBtn.disabled = false;
             uploadBtn.textContent = 'Publicar';
             if (isAdmin) {
+              console.log('[PUBLISH] ✅ Admin - Post inmediatamente aprobado:', postData);
               await refreshInicioForAdminAfterPublish();
-              mostrarMensaje('info', tvMode === 'video' ? '✅ Video publicado' : '✅ TV publicada', tvMode === 'video' ? 'El video fue publicado y ya está visible en Inicio.' : 'La transmisión de TV fue publicada y ya está visible en Inicio.');
+              mostrarMensaje('info', tvMode === 'video' ? '✅ Video publicado' : '✅ TV publicada', 
+                `${tvMode === 'video' ? 'El video' : 'La transmisión'} fue publicado y ya está visible en Inicio.\n\nURL guardada: ${tvUrl.slice(0, 60)}...`);
             } else {
-              mostrarMensaje('info', tvMode === 'video' ? '✅ Video creado' : '✅ TV creada', 'La publicación fue enviada para revisión. Un admin debe aprobarla para que aparezca en Inicio.');
+              console.log('[PUBLISH] ⏳ Usuario regular - Post pendiente de aprobación:', postData);
+              mostrarMensaje('info', tvMode === 'video' ? '✅ Video creado' : '✅ TV creada', 
+                `La publicación fue enviada para revisión.\n\n📊 Estado: PENDIENTE DE APROBACIÓN\n\nUn administrador debe aprobarla para que aparezca en Inicio.\n\nTiempo estimado: 24 horas\n\nURL guardada: ${tvUrl.slice(0, 60)}...`);
+              // También guardar el estado en localStorage para referencia del usuario
+              const pendingPosts = JSON.parse(localStorage.getItem('pendingPosts') || '[]');
+              pendingPosts.push({
+                id: Date.now(),
+                type: tvMode,
+                url: tvUrl,
+                description: description || '#television',
+                createdAt: new Date().toISOString(),
+                status: 'pending'
+              });
+              localStorage.setItem('pendingPosts', JSON.stringify(pendingPosts));
             }
             return;
           } catch (err) {
@@ -12262,17 +12295,35 @@
             uploadBtn.style.opacity = '0.6';
             uploadBtn.textContent = 'Publicar';
             startCountdown(60);
+            console.log('[PUBLISH] ⏳ Usuario regular - Post pendiente de aprobación');
             mostrarMensaje('info', '📤 Publicación enviada',
-              'Tu publicación ha sido enviada para revisión. Será visible para todos una vez que sea aprobada por un administrador.\n\n' +
-              'Tiempo estimado de revisión: 24 horas.'
+              'Tu publicación ha sido enviada para revisión.\n\n' +
+              '📊 Estado: PENDIENTE DE APROBACIÓN\n\n' +
+              'Será visible para todos una vez que sea aprobada por un administrador.\n\n' +
+              'Tiempo estimado de revisión: 24 horas.\n\n' +
+              '💡 Tip: Puedes verificar el estado de tus publicaciones abiertas en el panel de historial.'
             );
+            // Guardar en historial local
+            const pendingPosts = JSON.parse(localStorage.getItem('pendingPosts') || '[]');
+            pendingPosts.push({
+              id: Date.now(),
+              type: 'image_or_video',
+              description: descriptionToPublish.slice(0, 100),
+              mediaUrl: mediaData?.url || '',
+              createdAt: new Date().toISOString(),
+              status: 'pending'
+            });
+            localStorage.setItem('pendingPosts', JSON.stringify(pendingPosts));
           } else {
             uploadBtn.disabled = false;
             uploadBtn.style.pointerEvents = 'auto';
             uploadBtn.style.opacity = '1';
             uploadBtn.textContent = 'Publicar';
+            console.log('[PUBLISH] ✅ Admin - Post inmediatamente aprobado');
             await refreshInicioForAdminAfterPublish();
-            mostrarMensaje('info', '✅ Publicación publicada', 'Tu publicación ya está visible en Inicio (Recientes).');
+            mostrarMensaje('info', '✅ Publicación publicada', 
+              'Tu publicación ya está visible en Inicio (Recientes).\n\n' +
+              '✨ Porque eres admin, fue aprobada automáticamente.');
           }
 
         } catch (error) {

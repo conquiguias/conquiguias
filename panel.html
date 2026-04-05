@@ -20237,8 +20237,16 @@
         const fechaCierreEl = document.getElementById('labelFechaCierreTarea');
         if (fechaCierreEl) {
           const fechaCierreInfo = formatFechaCierreTarea(currentEvaluandoFechaCierre);
-          fechaCierreEl.textContent = fechaCierreInfo.text;
-          fechaCierreEl.style.color = fechaCierreInfo.isExpired ? '#ef4444' : '#fbbf24';
+          if (fechaCierreInfo.isExpired) {
+            fechaCierreEl.textContent = `${fechaCierreInfo.text} (VENCIDA)`;
+            fechaCierreEl.style.color = '#ef4444';
+          } else if (fechaCierreInfo.hasValidDate) {
+            fechaCierreEl.textContent = `${fechaCierreInfo.text} (VIGENTE)`;
+            fechaCierreEl.style.color = '#22c55e';
+          } else {
+            fechaCierreEl.textContent = fechaCierreInfo.text;
+            fechaCierreEl.style.color = '#fbbf24';
+          }
         }
 
         const taskTitleEl = document.getElementById('rubricaTaskTitle');

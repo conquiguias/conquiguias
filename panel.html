@@ -5945,7 +5945,7 @@
         </div>
       </div>
       <div id="visorPDFContainer"
-        style="flex:1; display:flex; flex-direction:row; background:#0f172a; position:relative; width:100%; height:calc(100vh - 60px); overflow:hidden;">
+        style="flex:1; display:flex; flex-direction:row; background:#0f172a; position:relative; width:100%; height:calc(100vh - 60px); overflow-y:auto; overflow-x:hidden;">
         <!-- Visor PDF -->
         <div style="flex:1; height:100%;">
           <iframe id="iframePDFEvaluador" style="width:100%; height:100%; border:none;"></iframe>
@@ -5953,7 +5953,20 @@
 
         <!-- Panel Rúbrica -->
         <div
-          style="width:50%; height:100%; overflow-y:auto; overflow-x:hidden; background:#0f172a; border-left:1px solid #334155; padding:16px; box-sizing:border-box;">
+          style="width:50%; min-height:100%; overflow:visible; background:#0f172a; border-left:1px solid #334155; padding:16px; box-sizing:border-box;">
+          <div id="rubricaTaskStatement"
+            style="margin:0 0 14px 0; padding:12px; border:1px solid #334155; border-radius:10px; background:#111827;">
+            <div style="color:#94a3b8; font-size:11px; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px;">
+              Enunciado de la tarea
+            </div>
+            <div id="rubricaTaskTitle" style="color:#e2e8f0; font-weight:700; font-size:14px; margin:0 0 6px 0;">
+              —
+            </div>
+            <div id="rubricaTaskDetail"
+              style="color:#cbd5e1; font-size:13px; line-height:1.45; white-space:pre-wrap; text-align:left; margin:0;">
+              —
+            </div>
+          </div>
           <h4 style="color:#94a3b8; font-size:13px; text-transform:uppercase; letter-spacing:1px; margin:0 0 12px 0;">
             <i class="fas fa-clipboard-list" style="margin-right:6px; color:var(--accent-color);"></i> Rúbrica de
             Calificación
@@ -7828,7 +7841,7 @@
         ).trim();
         const userName = String(source.userName || source.username || '').trim();
         const pais = String(source.pais || '').trim();
-
+ 
         return {
           nombre,
           apellido,
@@ -19168,6 +19181,7 @@
                   especialidadesConTareas.push({
                     id,
                     titulo: form.titulo || 'Sin título',
+                    detalle: (form.tarea?.detalle || form.configTarea?.detalle || '').trim(),
                     pendientes,
                     calificadas,
                     total
@@ -19188,6 +19202,8 @@
           }
 
           especialidadesConTareas.forEach((esp, index) => {
+            const tituloEncoded = encodeURIComponent(String(esp.titulo || ''));
+            const detalleEncoded = encodeURIComponent(String(esp.detalle || ''));
             const fila = document.createElement('tr');
             fila.style.borderBottom = '1px solid var(--border-color)';
             fila.style.transition = 'background 0.2s';
@@ -19209,7 +19225,7 @@
                     </td>
                     <td style="padding:12px; text-align:center; font-weight:600;">${esp.total}</td>
                     <td style="padding:12px; text-align:center;">
-                        <button onclick="verEntregasEspecialidad('${esp.id}', '${esp.titulo}')" 
+                      <button onclick="verEntregasEspecialidad('${esp.id}', '${tituloEncoded}', '${detalleEncoded}')" 
                                 style="background:var(--accent-color); color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:600; transition: all 0.2s;"
                                 onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(59,130,246,0.3)';"
                                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
@@ -19927,6 +19943,8 @@
 
       let entregasCurrentForm = {};
       let currentEvalFormId = null;
+      let currentEvaluandoTitulo = '';
+      let currentEvaluandoDetalle = '';
 
       window.datosEntregasGlobal = {}; // Variable Global Unificada
 
@@ -20140,6 +20158,16 @@
         const label = document.getElementById('labelAlumnoActual');
         if (label) label.textContent = actualData.email || vid;
 
+        const taskTitleEl = document.getElementById('rubricaTaskTitle');
+        if (taskTitleEl) {
+          taskTitleEl.textContent = currentEvaluandoTitulo || 'Sin título';
+        }
+
+        const taskDetailEl = document.getElementById('rubricaTaskDetail');
+        if (taskDetailEl) {
+          taskDetailEl.textContent = currentEvaluandoDetalle || 'Sin enunciado disponible.';
+        }
+
         const inputNota = document.getElementById('inputNotaIndividual');
         if (inputNota) {
           inputNota.value = actualData.nota || '';
@@ -20213,6 +20241,11 @@
 
         // Resetear rúbrica de calificación
         if (typeof resetRubrica === 'function') resetRubrica();
+
+        const taskTitleEl = document.getElementById('rubricaTaskTitle');
+        if (taskTitleEl) taskTitleEl.textContent = '—';
+        const taskDetailEl = document.getElementById('rubricaTaskDetail');
+        if (taskDetailEl) taskDetailEl.textContent = '—';
 
         // No llamar a renderTablaEntregas() aquí porque sobrescribe el contenedor listaEntregasContainer
         // y borra el título necesario para guardarNotaIndividualYSalir,
@@ -20805,11 +20838,25 @@
       // La lógica de inicialización del panel instructor ahora incluye la configuración del selector
 
       // Función restaurada para ver entregas
-      window.verEntregasEspecialidad = function (formId, titulo) {
+      window.verEntregasEspecialidad = function (formId, tituloEncoded = '', detalleEncoded = '') {
         if (!window.isOwner && typeof window.isSpecialtyAllowedForCurrentInstructor === 'function' && !window.isSpecialtyAllowedForCurrentInstructor(formId)) {
           alert('❌ No tienes permiso para evaluar esta especialidad.');
           return;
         }
+
+        let titulo = '';
+        let detalle = '';
+        try {
+          titulo = decodeURIComponent(String(tituloEncoded || ''));
+          detalle = decodeURIComponent(String(detalleEncoded || ''));
+        } catch (_error) {
+          titulo = String(tituloEncoded || '');
+          detalle = String(detalleEncoded || '');
+        }
+
+        currentEvaluandoTitulo = titulo;
+        currentEvaluandoDetalle = detalle;
+
         currentEvalFormId = formId;
         console.log("Revisando especialidad:", titulo, formId);
         if (typeof cargarEntregasInstructor === 'function') {
@@ -20951,11 +20998,25 @@
 
       // Se eliminaron variables y funciones redundantes.
 
-      window.verEntregasEspecialidad = async function (formId, titulo) {
+      window.verEntregasEspecialidad = async function (formId, tituloEncoded = '', detalleEncoded = '') {
         if (!window.isOwner && typeof window.isSpecialtyAllowedForCurrentInstructor === 'function' && !window.isSpecialtyAllowedForCurrentInstructor(formId)) {
           alert('❌ No tienes permiso para evaluar esta especialidad.');
           return;
         }
+
+        let titulo = '';
+        let detalle = '';
+        try {
+          titulo = decodeURIComponent(String(tituloEncoded || ''));
+          detalle = decodeURIComponent(String(detalleEncoded || ''));
+        } catch (_error) {
+          titulo = String(tituloEncoded || '');
+          detalle = String(detalleEncoded || '');
+        }
+
+        currentEvaluandoTitulo = titulo;
+        currentEvaluandoDetalle = detalle;
+
         currentEvaluandoFormId = formId;
         const container = document.getElementById('listaEntregasContainer');
         container.style.display = 'block';

@@ -5914,7 +5914,8 @@
         style="height:60px; background:#1e293b; display:flex; align-items:center; justify-content:space-between; padding:0 20px; color:white; border-bottom:1px solid #334155;">
         <div style="display:flex; align-items:center; gap:15px;">
           <span style="font-size:16px; font-weight:500;">Evaluando a: <b id="labelAlumnoActual"
-              style="color:var(--accent-color)"></b></span>
+              style="color:var(--accent-color)"></b> | Fecha de cierre de la tarea: <b id="labelFechaCierreTarea"
+              style="color:#fbbf24; font-weight:700;">—</b></span>
         </div>
         <div style="display:flex; align-items:center; gap:10px;">
           <button onclick="devolverTareaActual()"
@@ -19182,6 +19183,7 @@
                     id,
                     titulo: form.titulo || 'Sin título',
                     detalle: (form.tarea?.detalle || form.configTarea?.detalle || '').trim(),
+                    fechaFin: String(form.tarea?.fechaFin || form.configTarea?.fechaFin || '').trim(),
                     pendientes,
                     calificadas,
                     total
@@ -19204,6 +19206,7 @@
           especialidadesConTareas.forEach((esp, index) => {
             const tituloEncoded = encodeURIComponent(String(esp.titulo || ''));
             const detalleEncoded = encodeURIComponent(String(esp.detalle || ''));
+            const fechaCierreEncoded = encodeURIComponent(String(esp.fechaFin || ''));
             const fila = document.createElement('tr');
             fila.style.borderBottom = '1px solid var(--border-color)';
             fila.style.transition = 'background 0.2s';
@@ -19225,7 +19228,7 @@
                     </td>
                     <td style="padding:12px; text-align:center; font-weight:600;">${esp.total}</td>
                     <td style="padding:12px; text-align:center;">
-                      <button onclick="verEntregasEspecialidad('${esp.id}', '${tituloEncoded}', '${detalleEncoded}')" 
+                      <button onclick="verEntregasEspecialidad('${esp.id}', '${tituloEncoded}', '${detalleEncoded}', '${fechaCierreEncoded}')" 
                                 style="background:var(--accent-color); color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:600; transition: all 0.2s;"
                                 onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(59,130,246,0.3)';"
                                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
@@ -19945,6 +19948,7 @@
       let currentEvalFormId = null;
       let currentEvaluandoTitulo = '';
       let currentEvaluandoDetalle = '';
+      let currentEvaluandoFechaCierre = '';
 
       window.datosEntregasGlobal = {}; // Variable Global Unificada
 
@@ -20105,7 +20109,54 @@
         return !!currentUid && !!normalizedTargetId && currentUid === normalizedTargetId;
       }
 
-      window.abrirEvaluador = function (vid, data) {
+      async function resolveEvaluacionTaskContext() {
+        if (currentEvaluandoTitulo && currentEvaluandoDetalle && currentEvaluandoFechaCierre) return;
+
+        const activeFormId = String(
+          (typeof currentEvaluandoFormId !== 'undefined' ? currentEvaluandoFormId : '') ||
+          window.currentGlobalFormId ||
+          currentEvalFormId ||
+          '',
+        ).trim();
+
+        if (!activeFormId) return;
+
+        try {
+          const resp = await fetch('/api/formulario?action=listarFormularios');
+          if (!resp.ok) return;
+          const formularios = await resp.json();
+          const form = formularios?.[activeFormId] || null;
+          if (!form) return;
+
+          const titulo = String(form.titulo || '').trim();
+          const detalle = String(form.tarea?.detalle || form.configTarea?.detalle || '').trim();
+          const fechaFin = String(form.tarea?.fechaFin || form.configTarea?.fechaFin || '').trim();
+
+          if (titulo) currentEvaluandoTitulo = titulo;
+          if (detalle) currentEvaluandoDetalle = detalle;
+          if (fechaFin) currentEvaluandoFechaCierre = fechaFin;
+        } catch (_error) {
+          // Silenciar: se mantiene fallback visual
+        }
+      }
+
+      function formatFechaCierreTarea(rawValue) {
+        const raw = String(rawValue || '').trim();
+        if (!raw) return 'Sin fecha';
+        const dateValue = new Date(raw);
+        if (Number.isNaN(dateValue.getTime())) return raw;
+
+        try {
+          return dateValue.toLocaleString('es-ES', {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+          });
+        } catch (_error) {
+          return dateValue.toLocaleString();
+        }
+      }
+
+      window.abrirEvaluador = async function (vid, data) {
         console.log("Opening evaluator for:", vid);
         const targetData = data || (typeof currentEntregasData !== 'undefined' ? currentEntregasData?.[vid] : null) || window.datosEntregasGlobal?.[vid] || null;
         if (targetData && String(targetData.estado || '').toLowerCase() === 'devuelta') {
@@ -20158,9 +20209,17 @@
         const label = document.getElementById('labelAlumnoActual');
         if (label) label.textContent = actualData.email || vid;
 
+        await resolveEvaluacionTaskContext();
+
+        const fechaCierreEl = document.getElementById('labelFechaCierreTarea');
+        if (fechaCierreEl) {
+          fechaCierreEl.textContent = formatFechaCierreTarea(currentEvaluandoFechaCierre);
+        }
+
         const taskTitleEl = document.getElementById('rubricaTaskTitle');
         if (taskTitleEl) {
-          taskTitleEl.textContent = currentEvaluandoTitulo || 'Sin título';
+          const especialidadNombre = currentEvaluandoTitulo || 'Sin especialidad';
+          taskTitleEl.textContent = `Especialidad de: ${especialidadNombre}`;
         }
 
         const taskDetailEl = document.getElementById('rubricaTaskDetail');
@@ -20246,6 +20305,12 @@
         if (taskTitleEl) taskTitleEl.textContent = '—';
         const taskDetailEl = document.getElementById('rubricaTaskDetail');
         if (taskDetailEl) taskDetailEl.textContent = '—';
+        const fechaCierreEl = document.getElementById('labelFechaCierreTarea');
+        if (fechaCierreEl) fechaCierreEl.textContent = '—';
+
+        currentEvaluandoTitulo = '';
+        currentEvaluandoDetalle = '';
+        currentEvaluandoFechaCierre = '';
 
         // No llamar a renderTablaEntregas() aquí porque sobrescribe el contenedor listaEntregasContainer
         // y borra el título necesario para guardarNotaIndividualYSalir,
@@ -20838,7 +20903,7 @@
       // La lógica de inicialización del panel instructor ahora incluye la configuración del selector
 
       // Función restaurada para ver entregas
-      window.verEntregasEspecialidad = function (formId, tituloEncoded = '', detalleEncoded = '') {
+      window.verEntregasEspecialidad = function (formId, tituloEncoded = '', detalleEncoded = '', fechaCierreEncoded = '') {
         if (!window.isOwner && typeof window.isSpecialtyAllowedForCurrentInstructor === 'function' && !window.isSpecialtyAllowedForCurrentInstructor(formId)) {
           alert('❌ No tienes permiso para evaluar esta especialidad.');
           return;
@@ -20846,16 +20911,20 @@
 
         let titulo = '';
         let detalle = '';
+        let fechaCierre = '';
         try {
           titulo = decodeURIComponent(String(tituloEncoded || ''));
           detalle = decodeURIComponent(String(detalleEncoded || ''));
+          fechaCierre = decodeURIComponent(String(fechaCierreEncoded || ''));
         } catch (_error) {
           titulo = String(tituloEncoded || '');
           detalle = String(detalleEncoded || '');
+          fechaCierre = String(fechaCierreEncoded || '');
         }
 
         currentEvaluandoTitulo = titulo;
         currentEvaluandoDetalle = detalle;
+        currentEvaluandoFechaCierre = fechaCierre;
 
         currentEvalFormId = formId;
         console.log("Revisando especialidad:", titulo, formId);
@@ -20998,7 +21067,7 @@
 
       // Se eliminaron variables y funciones redundantes.
 
-      window.verEntregasEspecialidad = async function (formId, tituloEncoded = '', detalleEncoded = '') {
+      window.verEntregasEspecialidad = async function (formId, tituloEncoded = '', detalleEncoded = '', fechaCierreEncoded = '') {
         if (!window.isOwner && typeof window.isSpecialtyAllowedForCurrentInstructor === 'function' && !window.isSpecialtyAllowedForCurrentInstructor(formId)) {
           alert('❌ No tienes permiso para evaluar esta especialidad.');
           return;
@@ -21006,16 +21075,20 @@
 
         let titulo = '';
         let detalle = '';
+        let fechaCierre = '';
         try {
           titulo = decodeURIComponent(String(tituloEncoded || ''));
           detalle = decodeURIComponent(String(detalleEncoded || ''));
+          fechaCierre = decodeURIComponent(String(fechaCierreEncoded || ''));
         } catch (_error) {
           titulo = String(tituloEncoded || '');
           detalle = String(detalleEncoded || '');
+          fechaCierre = String(fechaCierreEncoded || '');
         }
 
         currentEvaluandoTitulo = titulo;
         currentEvaluandoDetalle = detalle;
+        currentEvaluandoFechaCierre = fechaCierre;
 
         currentEvaluandoFormId = formId;
         const container = document.getElementById('listaEntregasContainer');

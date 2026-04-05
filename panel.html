@@ -20142,17 +20142,40 @@
 
       function formatFechaCierreTarea(rawValue) {
         const raw = String(rawValue || '').trim();
-        if (!raw) return 'Sin fecha';
+        if (!raw) {
+          return {
+            text: 'Sin fecha',
+            isExpired: false,
+            hasValidDate: false,
+          };
+        }
+
         const dateValue = new Date(raw);
-        if (Number.isNaN(dateValue.getTime())) return raw;
+        if (Number.isNaN(dateValue.getTime())) {
+          return {
+            text: raw,
+            isExpired: false,
+            hasValidDate: false,
+          };
+        }
+
+        const isExpired = dateValue.getTime() < Date.now();
 
         try {
-          return dateValue.toLocaleString('es-ES', {
-            dateStyle: 'medium',
-            timeStyle: 'short',
-          });
+          return {
+            text: dateValue.toLocaleString('es-ES', {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            }),
+            isExpired,
+            hasValidDate: true,
+          };
         } catch (_error) {
-          return dateValue.toLocaleString();
+          return {
+            text: dateValue.toLocaleString(),
+            isExpired,
+            hasValidDate: true,
+          };
         }
       }
 
@@ -20213,7 +20236,9 @@
 
         const fechaCierreEl = document.getElementById('labelFechaCierreTarea');
         if (fechaCierreEl) {
-          fechaCierreEl.textContent = formatFechaCierreTarea(currentEvaluandoFechaCierre);
+          const fechaCierreInfo = formatFechaCierreTarea(currentEvaluandoFechaCierre);
+          fechaCierreEl.textContent = fechaCierreInfo.text;
+          fechaCierreEl.style.color = fechaCierreInfo.isExpired ? '#ef4444' : '#fbbf24';
         }
 
         const taskTitleEl = document.getElementById('rubricaTaskTitle');
@@ -20306,7 +20331,10 @@
         const taskDetailEl = document.getElementById('rubricaTaskDetail');
         if (taskDetailEl) taskDetailEl.textContent = '—';
         const fechaCierreEl = document.getElementById('labelFechaCierreTarea');
-        if (fechaCierreEl) fechaCierreEl.textContent = '—';
+        if (fechaCierreEl) {
+          fechaCierreEl.textContent = '—';
+          fechaCierreEl.style.color = '#fbbf24';
+        }
 
         currentEvaluandoTitulo = '';
         currentEvaluandoDetalle = '';

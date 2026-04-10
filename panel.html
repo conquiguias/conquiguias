@@ -17509,6 +17509,65 @@
         }
       }
 
+      function persistAllAdminNotesToLocalStorage() {
+        try {
+          const payload = {
+            version: 2,
+            activeDocId: adminNotesActiveDocId,
+            documents: adminNotesDocuments.map((doc) => ({
+              id: doc.id,
+              title: doc.title,
+              html: doc.html,
+              zoom: doc.zoom,
+              wrap: doc.wrap,
+            })),
+            updatedAt: Date.now(),
+            by: String(window.currentUserId || '').trim() || String(window.userData?.email || '').trim() || 'unknown'
+          };
+          localStorage.setItem(ADMIN_NOTES_STORAGE_KEY, JSON.stringify(payload));
+          return true;
+        } catch (error) {
+          console.warn('No se pudo actualizar la caché completa de notas:', error);
+          return false;
+        }
+      }
+
+      async function deleteAdminNoteFromCloud(tabId, { notify = true } = {}) {
+        const normalizedId = String(tabId || '').trim();
+        if (!normalizedId) return false;
+
+        const idToken = await getAdminNotesAuthToken();
+        if (!idToken) {
+          if (notify) {
+            notifyAdminNotesSave('error', 'Error al cerrar pestaña', 'No hay sesión activa para eliminar esta nota en la nube.');
+          }
+          return false;
+        }
+
+        try {
+          const response = await fetch('/api/social?action=delete-admin-note', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${idToken}`
+            },
+            body: JSON.stringify({ idToken, tabId: normalizedId })
+          });
+
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !payload?.success) {
+            throw new Error(payload?.error || 'No se pudo eliminar la nota en la nube');
+          }
+
+          return true;
+        } catch (error) {
+          if (notify) {
+            notifyAdminNotesSave('error', 'Error al cerrar pestaña', error?.message || 'No se pudo eliminar la nota en la nube.');
+          }
+          return false;
+        }
+      }
+
       async function saveAdminNotesToSupabase({ notify = true } = {}) {
         if (!window.canAccessAdminPanel) return false;
         const editor = getAdminNotesEditor();
@@ -17674,7 +17733,7 @@
             event.stopPropagation();
             const targetId = btn.getAttribute('data-notes-close-doc-id');
             if (!targetId) return;
-            closeAdminNotesDocument(targetId);
+            void closeAdminNotesDocument(targetId);
           });
         });
       }
@@ -17688,7 +17747,7 @@
         renderAdminNotesTabs();
       }
 
-      function closeAdminNotesDocument(docId) {
+      async function closeAdminNotesDocument(docId) {
         const targetIndex = adminNotesDocuments.findIndex((doc) => doc.id === docId);
         if (targetIndex < 0) return;
 
@@ -17697,11 +17756,17 @@
           return;
         }
 
+        const removedInCloud = await deleteAdminNoteFromCloud(docId, { notify: true });
+        if (!removedInCloud) {
+          return;
+        }
+
         if (adminNotesDocuments.length === 1) {
           adminNotesDocuments = [createAdminNotesDocument({ title: 'Sin título' })];
           adminNotesActiveDocId = adminNotesDocuments[0].id;
           setAdminNotesContent('', 'Sin título');
           renderAdminNotesTabs();
+          persistAllAdminNotesToLocalStorage();
           return;
         }
 
@@ -17715,6 +17780,7 @@
         }
 
         renderAdminNotesTabs();
+        persistAllAdminNotesToLocalStorage();
       }
 
       function replaceAdminNotesDocuments(docs = [], activeId = '') {
@@ -18179,6 +18245,11 @@
         });
 
         editor.addEventListener('keydown', (event) => {
+          if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 's') {
+            event.preventDefault();
+            void runAdminNotesAction('save-local');
+            return;
+          }
           if (event.ctrlKey && event.key.toLowerCase() === 's') {
             event.preventDefault();
             void runAdminNotesAction('save-cloud');

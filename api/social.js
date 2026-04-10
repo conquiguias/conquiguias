@@ -144,6 +144,9 @@ export default async function handler(req, res) {
       case "save-admin-notes":
         await handleSaveAdminNotes(req, res);
         break;
+      case "delete-admin-note":
+        await handleDeleteAdminNote(req, res);
+        break;
       case "upsert-notification-token":
         await handleUpsertNotificationToken(req, res);
         break;
@@ -1051,6 +1054,46 @@ async function handleSaveAdminNotes(req, res) {
     return res.status(error.statusCode || 500).json({
       success: false,
       error: error.message || "No se pudieron guardar las notas admin",
+    });
+  }
+}
+
+async function handleDeleteAdminNote(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
+  try {
+    const body = req.body || {};
+    const actorEmail = await requireAdminOrOwner(req, body);
+    const tabId = String(body?.tabId || "").trim().slice(0, 120);
+
+    if (!tabId) {
+      return res.status(400).json({
+        success: false,
+        error: "tabId es requerido",
+      });
+    }
+
+    const { error } = await supabase
+      .from(ADMIN_NOTES_TABLE)
+      .delete()
+      .eq("id", tabId);
+
+    if (error) {
+      throw new Error(`No se pudo eliminar la nota en la nube: ${error.message}`);
+    }
+
+    return res.status(200).json({
+      success: true,
+      tabId,
+      deletedBy: actorEmail,
+    });
+  } catch (error) {
+    console.error("Error eliminando nota admin:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || "No se pudo eliminar la nota",
     });
   }
 }

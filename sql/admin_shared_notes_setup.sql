@@ -19,16 +19,27 @@ create table if not exists public.admin_shared_notes (
   file_name text not null default 'Sin título',
   zoom integer not null default 100,
   wrap boolean not null default true,
+  tab_order integer not null default 0,
   updated_at timestamptz not null default now(),
   updated_by text not null default ''
 );
 
 alter table public.admin_shared_notes
+  add column if not exists tab_order integer not null default 0;
+
+alter table public.admin_shared_notes
   add constraint admin_shared_notes_zoom_check
   check (zoom between 50 and 300);
 
+alter table public.admin_shared_notes
+  add constraint admin_shared_notes_tab_order_check
+  check (tab_order >= 0);
+
 create index if not exists admin_shared_notes_updated_at_idx
   on public.admin_shared_notes (updated_at desc);
+
+create index if not exists admin_shared_notes_tab_order_idx
+  on public.admin_shared_notes (tab_order asc, updated_at desc);
 
 create or replace function public.set_admin_shared_notes_updated_at()
 returns trigger

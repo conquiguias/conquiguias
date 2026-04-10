@@ -17496,47 +17496,16 @@
         if (!Array.isArray(adminNotesDocuments) || !adminNotesDocuments.length) return false;
         const activeDoc = getActiveAdminNotesDoc() || adminNotesDocuments[0];
         try {
-          const existingRaw = localStorage.getItem(ADMIN_NOTES_STORAGE_KEY);
-          let existingDocs = [];
-          let existingActiveDocId = activeDoc?.id || adminNotesActiveDocId;
-
-          if (existingRaw) {
-            try {
-              const existingData = JSON.parse(existingRaw);
-              if (Number(existingData?.version) === 2 && Array.isArray(existingData?.documents)) {
-                existingDocs = existingData.documents.map((doc) => ({
-                  id: String(doc?.id || '').trim(),
-                  title: String(doc?.title || 'Sin título').trim() || 'Sin título',
-                  html: String(doc?.html || ''),
-                  zoom: Math.min(300, Math.max(50, Number(doc?.zoom) || 100)),
-                  wrap: doc?.wrap !== false,
-                })).filter((doc) => !!doc.id);
-                existingActiveDocId = String(existingData?.activeDocId || existingActiveDocId || '').trim() || existingActiveDocId;
-              }
-            } catch (_error) {
-              existingDocs = [];
-            }
-          }
-
-          const activeDocPayload = {
-            id: activeDoc.id,
-            title: activeDoc.title,
-            html: activeDoc.html,
-            zoom: activeDoc.zoom,
-            wrap: activeDoc.wrap,
-          };
-
-          const idx = existingDocs.findIndex((doc) => doc.id === activeDoc.id);
-          if (idx >= 0) {
-            existingDocs[idx] = activeDocPayload;
-          } else {
-            existingDocs.push(activeDocPayload);
-          }
-
           const payload = {
             version: 2,
-            activeDocId: activeDoc?.id || existingActiveDocId,
-            documents: existingDocs,
+            activeDocId: activeDoc?.id || adminNotesActiveDocId,
+            documents: adminNotesDocuments.map((doc) => ({
+              id: doc.id,
+              title: doc.title,
+              html: doc.html,
+              zoom: doc.zoom,
+              wrap: doc.wrap,
+            })),
             html: activeDoc?.html || '',
             fileName: activeDoc?.title || adminNotesFileName,
             zoom: activeDoc?.zoom ?? adminNotesZoomPercent,
@@ -17611,7 +17580,7 @@
         }
       }
 
-      async function saveAdminNotesToSupabase({ notify = true } = {}) {
+      async function saveAdminNotesToSupabase({ notify = true, preserveDirty = false } = {}) {
         if (!window.canAccessAdminPanel) return false;
         const editor = getAdminNotesEditor();
         if (!editor) return false;
@@ -17644,6 +17613,7 @@
               wrap: activeDoc.wrap,
               activeDocId: adminNotesActiveDocId,
               saveOnlyActive: true,
+              tabsOrder: adminNotesDocuments.map((doc) => String(doc?.id || '').trim()).filter(Boolean),
               tabs: [
                 {
                   id: activeDoc.id,
@@ -17662,10 +17632,10 @@
           }
 
           adminNotesSyncEnabled = true;
-          if (activeDoc) {
+          if (activeDoc && !preserveDirty) {
             activeDoc.dirty = false;
           }
-          adminNotesDirty = false;
+          adminNotesDirty = !!activeDoc?.dirty;
           updateAdminNotesTitle();
           renderAdminNotesTabs();
           setAdminNotesSyncState('Sincronizado en la nube');
@@ -17753,7 +17723,7 @@
             item.classList.remove('drag-over');
           });
 
-          item.addEventListener('drop', (event) => {
+          item.addEventListener('drop', async (event) => {
             event.preventDefault();
             item.classList.remove('drag-over');
             const targetId = item.getAttribute('data-notes-doc-id');
@@ -17766,8 +17736,19 @@
             const [moved] = adminNotesDocuments.splice(fromIndex, 1);
             adminNotesDocuments.splice(toIndex, 0, moved);
             adminNotesTabDragHappened = true;
-            setAdminNotesSyncState('Orden de pestañas actualizado (pendiente de guardar)');
             renderAdminNotesTabs();
+
+            const cacheSaved = persistAllAdminNotesToLocalStorage();
+            setAdminNotesSyncState(cacheSaved
+              ? 'Guardando orden de pestañas en la nube...'
+              : 'Orden actualizado (falló guardado local)');
+
+            const cloudSaved = await saveAdminNotesToSupabase({ notify: false, preserveDirty: true });
+            if (cloudSaved) {
+              setAdminNotesSyncState('Orden de pestañas sincronizado en la nube');
+            } else if (cacheSaved) {
+              setAdminNotesSyncState('Orden guardado localmente · pendiente nube');
+            }
           });
         });
 

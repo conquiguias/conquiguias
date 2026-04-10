@@ -777,6 +777,16 @@ function sanitizeAdminNotesPayload(input = {}) {
     })
     .filter((tab) => !!tab.id);
 
+  const tabsOrder = Array.from(new Set(
+    (Array.isArray(input?.tabsOrder) ? input.tabsOrder : [])
+      .map((item) => String(item || "").trim().slice(0, 120))
+      .filter(Boolean),
+  )).slice(0, ADMIN_NOTES_MAX_TABS);
+
+  if (!tabsOrder.length && tabs.length) {
+    tabsOrder.push(...tabs.map((tab) => tab.id));
+  }
+
   const tabsHtmlLength = tabs.reduce((sum, tab) => sum + String(tab?.html || "").length, 0);
   if (tabsHtmlLength > ADMIN_NOTES_MAX_HTML) {
     const error = new Error("El contenido total de pestañas excede el tamaño permitido");
@@ -788,7 +798,7 @@ function sanitizeAdminNotesPayload(input = {}) {
   const activeDocId = activeDocIdRaw.slice(0, 120);
   const saveOnlyActive = input?.saveOnlyActive === true;
 
-  return { html, fileName, zoom, wrap, tabs, activeDocId, saveOnlyActive };
+  return { html, fileName, zoom, wrap, tabs, tabsOrder, activeDocId, saveOnlyActive };
 }
 
 async function handleTrackPlatformVisit(req, res) {
@@ -891,7 +901,8 @@ async function handleGetAdminNotes(req, res) {
 
     const { data: rows, error } = await supabase
       .from(ADMIN_NOTES_TABLE)
-      .select("id, html, file_name, zoom, wrap, updated_at, updated_by")
+      .select("id, html, file_name, zoom, wrap, tab_order, updated_at, updated_by")
+      .order("tab_order", { ascending: true })
       .order("updated_at", { ascending: false });
 
     if (error) {
@@ -963,6 +974,7 @@ async function handleSaveAdminNotes(req, res) {
     const payload = sanitizeAdminNotesPayload(body);
 
     let finalTabs = payload.tabs.length ? [...payload.tabs] : [];
+    const finalOrder = payload.tabsOrder.length ? [...payload.tabsOrder] : finalTabs.map((tab) => tab.id);
     let activeTab = finalTabs.find((tab) => tab.id === (payload.activeDocId || "")) || finalTabs[0] || null;
 
     if (payload.saveOnlyActive) {
@@ -973,6 +985,8 @@ async function handleSaveAdminNotes(req, res) {
         throw err;
       }
 
+      const activeTabOrder = Math.max(0, finalOrder.indexOf(activeIncomingTab.id));
+
       const { data, error } = await supabase
         .from(ADMIN_NOTES_TABLE)
         .upsert({
@@ -981,10 +995,11 @@ async function handleSaveAdminNotes(req, res) {
           file_name: activeIncomingTab.title,
           zoom: activeIncomingTab.zoom,
           wrap: activeIncomingTab.wrap,
+          tab_order: activeTabOrder,
           updated_at: new Date().toISOString(),
           updated_by: actorEmail,
         }, { onConflict: "id" })
-        .select("id, html, file_name, zoom, wrap, updated_at, updated_by")
+        .select("id, html, file_name, zoom, wrap, tab_order, updated_at, updated_by")
         .single();
 
       if (error) {
@@ -993,6 +1008,22 @@ async function handleSaveAdminNotes(req, res) {
 
       finalTabs = [activeIncomingTab];
       activeTab = activeIncomingTab;
+
+      const remainingOrderIds = finalOrder.filter((id) => id !== activeIncomingTab.id);
+      if (remainingOrderIds.length) {
+        const orderUpdates = remainingOrderIds.map((tabId, index) =>
+          supabase
+            .from(ADMIN_NOTES_TABLE)
+            .update({ tab_order: index + 1 })
+            .eq("id", tabId),
+        );
+
+        const orderResults = await Promise.all(orderUpdates);
+        const orderError = orderResults.find((result) => !!result?.error)?.error;
+        if (orderError) {
+          throw new Error(`No se pudo actualizar el orden de pestañas: ${orderError.message}`);
+        }
+      }
 
       return res.status(200).json({
         success: true,
@@ -1016,15 +1047,19 @@ async function handleSaveAdminNotes(req, res) {
       throw err;
     }
 
-    const batchPayload = batchTabs.map((tab) => ({
-      id: tab.id,
-      html: tab.html,
-      file_name: tab.title,
-      zoom: tab.zoom,
-      wrap: tab.wrap,
-      updated_at: new Date().toISOString(),
-      updated_by: actorEmail,
-    }));
+    const batchPayload = batchTabs.map((tab, index) => {
+      const mappedOrder = finalOrder.indexOf(tab.id);
+      return {
+        id: tab.id,
+        html: tab.html,
+        file_name: tab.title,
+        zoom: tab.zoom,
+        wrap: tab.wrap,
+        tab_order: mappedOrder >= 0 ? mappedOrder : index,
+        updated_at: new Date().toISOString(),
+        updated_by: actorEmail,
+      };
+    });
 
     const { error } = await supabase
       .from(ADMIN_NOTES_TABLE)

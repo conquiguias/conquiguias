@@ -55,6 +55,10 @@ const REMINDER_TIMEZONE = String(
 const REMINDER_HOUR_LOCAL = Number.isFinite(Number.parseInt(String(process.env.REMINDER_HOUR_LOCAL || "0"), 10))
   ? Math.min(23, Math.max(0, Number.parseInt(String(process.env.REMINDER_HOUR_LOCAL || "0"), 10)))
   : 0;
+const ADMIN_NOTES_TABLE = "admin_shared_notes";
+const ADMIN_NOTES_ROW_ID = "global";
+const ADMIN_NOTES_MAX_HTML = 2_000_000;
+const ADMIN_NOTES_MAX_FILE_NAME = 180;
 
 // 🔐 Add security headers to all API responses
 function setSecurityHeaders(res) {
@@ -133,6 +137,12 @@ export default async function handler(req, res) {
         break;
       case "get-platform-analytics":
         await handleGetPlatformAnalytics(req, res);
+        break;
+      case "get-admin-notes":
+        await handleGetAdminNotes(req, res);
+        break;
+      case "save-admin-notes":
+        await handleSaveAdminNotes(req, res);
         break;
       case "upsert-notification-token":
         await handleUpsertNotificationToken(req, res);
@@ -726,6 +736,23 @@ function sanitizeVisitorKey(value) {
   return safe.slice(0, 180);
 }
 
+function sanitizeAdminNotesPayload(input = {}) {
+  const html = String(input?.html || "");
+  const fileNameRaw = String(input?.fileName || "Sin título").trim();
+  const fileName = fileNameRaw.slice(0, ADMIN_NOTES_MAX_FILE_NAME) || "Sin título";
+  const zoomValue = Number.parseInt(String(input?.zoom ?? "100"), 10);
+  const zoom = Number.isFinite(zoomValue) ? Math.min(300, Math.max(50, zoomValue)) : 100;
+  const wrap = input?.wrap !== false;
+
+  if (html.length > ADMIN_NOTES_MAX_HTML) {
+    const error = new Error("El contenido de notas excede el tamaño permitido");
+    error.statusCode = 413;
+    throw error;
+  }
+
+  return { html, fileName, zoom, wrap };
+}
+
 async function handleTrackPlatformVisit(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Método no permitido" });
@@ -812,6 +839,105 @@ async function handleGetPlatformAnalytics(req, res) {
     return res.status(error.statusCode || 500).json({
       success: false,
       error: error.message || "No se pudieron obtener las analíticas",
+    });
+  }
+}
+
+async function handleGetAdminNotes(req, res) {
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
+  try {
+    await requireAdminOrOwner(req);
+
+    const { data, error } = await supabase
+      .from(ADMIN_NOTES_TABLE)
+      .select("id, html, file_name, zoom, wrap, updated_at, updated_by")
+      .eq("id", ADMIN_NOTES_ROW_ID)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`No se pudieron cargar notas admin desde Supabase: ${error.message}`);
+    }
+
+    const payload = data
+      ? {
+        html: String(data.html || ""),
+        fileName: String(data.file_name || "Sin título"),
+        zoom: Number(data.zoom) || 100,
+        wrap: data.wrap !== false,
+        updatedAt: data.updated_at || null,
+        updatedBy: data.updated_by || null,
+      }
+      : {
+        html: "",
+        fileName: "Sin título",
+        zoom: 100,
+        wrap: true,
+        updatedAt: null,
+        updatedBy: null,
+      };
+
+    return res.status(200).json({
+      success: true,
+      notes: payload,
+    });
+  } catch (error) {
+    console.error("Error obteniendo notas admin:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || "No se pudieron obtener las notas admin",
+    });
+  }
+}
+
+async function handleSaveAdminNotes(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
+  try {
+    const body = req.body || {};
+    const actorEmail = await requireAdminOrOwner(req, body);
+    const payload = sanitizeAdminNotesPayload(body);
+
+    const upsertPayload = {
+      id: ADMIN_NOTES_ROW_ID,
+      html: payload.html,
+      file_name: payload.fileName,
+      zoom: payload.zoom,
+      wrap: payload.wrap,
+      updated_at: new Date().toISOString(),
+      updated_by: actorEmail,
+    };
+
+    const { data, error } = await supabase
+      .from(ADMIN_NOTES_TABLE)
+      .upsert(upsertPayload, { onConflict: "id" })
+      .select("id, html, file_name, zoom, wrap, updated_at, updated_by")
+      .single();
+
+    if (error) {
+      throw new Error(`No se pudieron guardar notas admin en Supabase: ${error.message}`);
+    }
+
+    return res.status(200).json({
+      success: true,
+      notes: {
+        html: String(data?.html || ""),
+        fileName: String(data?.file_name || "Sin título"),
+        zoom: Number(data?.zoom) || 100,
+        wrap: data?.wrap !== false,
+        updatedAt: data?.updated_at || null,
+        updatedBy: data?.updated_by || actorEmail,
+      },
+    });
+  } catch (error) {
+    console.error("Error guardando notas admin:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || "No se pudieron guardar las notas admin",
     });
   }
 }

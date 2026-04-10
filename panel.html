@@ -2493,6 +2493,193 @@
       background: rgba(239, 68, 68, 0.05) !important;
     }
 
+    .admin-notes-app {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .admin-notes-titlebar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .admin-notes-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .admin-notes-actions button {
+      border: 1px solid var(--border-color);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      width: auto;
+      margin-top: 0;
+    }
+
+    .admin-notes-menubar {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--bg-card);
+      flex-wrap: wrap;
+    }
+
+    .admin-notes-menu {
+      position: relative;
+    }
+
+    .admin-notes-menu-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 0;
+      width: auto;
+      font-size: 13px;
+    }
+
+    .admin-notes-menu-btn:hover,
+    .admin-notes-menu.open .admin-notes-menu-btn {
+      background: var(--bg-secondary);
+    }
+
+    .admin-notes-menu-items {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      min-width: 170px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 6px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      z-index: 30;
+    }
+
+    .admin-notes-menu.open .admin-notes-menu-items {
+      display: block;
+    }
+
+    .admin-notes-menu-items button {
+      width: 100%;
+      margin: 0;
+      margin-top: 0;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-primary);
+      text-align: left;
+      padding: 8px 10px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .admin-notes-menu-items button:hover {
+      background: var(--bg-secondary);
+    }
+
+    .admin-notes-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+    }
+
+    .admin-notes-toolbar select,
+    .admin-notes-toolbar button {
+      margin-top: 0;
+      width: auto;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .admin-notes-toolbar button {
+      min-width: 36px;
+      text-align: center;
+    }
+
+    .admin-notes-editor-wrap {
+      padding: 10px;
+      background: var(--bg-card);
+    }
+
+    #adminNotesEditor {
+      min-height: 350px;
+      max-height: 62vh;
+      overflow: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      padding: 14px;
+      outline: none;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      font-size: 15px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    #adminNotesEditor.admin-notes-nowrap {
+      white-space: pre;
+      overflow-x: auto;
+      word-break: normal;
+    }
+
+    .admin-notes-statusbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      border-top: 1px solid var(--border-color);
+      padding: 7px 10px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: var(--bg-secondary);
+      flex-wrap: wrap;
+    }
+
+    .admin-notes-statusbar span {
+      white-space: nowrap;
+    }
+
+    @media (max-width: 760px) {
+      #adminNotesEditor {
+        min-height: 280px;
+      }
+
+      .admin-notes-toolbar {
+        gap: 6px;
+      }
+    }
+
     .approve-btn {
       background: var(--success-color) !important;
     }
@@ -5559,6 +5746,10 @@
           style="padding: 8px 16px; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;">
           <i class="fas fa-chart-line" style="margin-right: 6px;"></i>Estadísticas
         </button>
+        <button id="adminTabNotas"
+          style="padding: 8px 16px; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;">
+          <i class="fas fa-note-sticky" style="margin-right: 6px;"></i>Notas
+        </button>
       </div>
 
       <div id="adminModeracionView">
@@ -5757,6 +5948,81 @@
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="adminNotasView" class="hidden">
+        <div class="admin-notes-app">
+          <div class="admin-notes-titlebar">
+            <span id="adminNotesTitle">Sin título - Bloc de notas</span>
+            <div class="admin-notes-actions">
+              <button type="button" id="adminNotesQuickNew" title="Nuevo (Ctrl+N)"><i class="fas fa-file"></i></button>
+              <button type="button" id="adminNotesQuickOpen" title="Abrir TXT"><i class="fas fa-folder-open"></i></button>
+              <button type="button" id="adminNotesQuickSave" title="Guardar (Ctrl+S)"><i class="fas fa-floppy-disk"></i></button>
+            </div>
+          </div>
+
+          <div class="admin-notes-menubar">
+            <div class="admin-notes-menu" data-notes-menu="archivo">
+              <button type="button" class="admin-notes-menu-btn">Archivo</button>
+              <div class="admin-notes-menu-items">
+                <button type="button" data-notes-action="new">Nuevo</button>
+                <button type="button" data-notes-action="open">Abrir...</button>
+                <button type="button" data-notes-action="save">Guardar</button>
+              </div>
+            </div>
+            <div class="admin-notes-menu" data-notes-menu="editar">
+              <button type="button" class="admin-notes-menu-btn">Editar</button>
+              <div class="admin-notes-menu-items">
+                <button type="button" data-notes-action="undo">Deshacer</button>
+                <button type="button" data-notes-action="redo">Rehacer</button>
+                <button type="button" data-notes-action="cut">Cortar</button>
+                <button type="button" data-notes-action="copy">Copiar</button>
+                <button type="button" data-notes-action="paste">Pegar</button>
+                <button type="button" data-notes-action="selectall">Seleccionar todo</button>
+              </div>
+            </div>
+            <div class="admin-notes-menu" data-notes-menu="ver">
+              <button type="button" class="admin-notes-menu-btn">Ver</button>
+              <div class="admin-notes-menu-items">
+                <button type="button" data-notes-action="zoom-in">Aumentar zoom</button>
+                <button type="button" data-notes-action="zoom-out">Reducir zoom</button>
+                <button type="button" data-notes-action="zoom-reset">Restablecer zoom</button>
+                <button type="button" data-notes-action="toggle-wrap">Ajuste de línea</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="admin-notes-toolbar">
+            <select id="adminNotesHeading" aria-label="Formato de encabezado">
+              <option value="P" selected>Párrafo</option>
+              <option value="H1">H1</option>
+              <option value="H2">H2</option>
+              <option value="H3">H3</option>
+            </select>
+            <button type="button" data-notes-action="unordered-list" title="Lista con viñetas"><i class="fas fa-list-ul"></i></button>
+            <button type="button" data-notes-action="bold" title="Negrita"><i class="fas fa-bold"></i></button>
+            <button type="button" data-notes-action="italic" title="Cursiva"><i class="fas fa-italic"></i></button>
+            <button type="button" data-notes-action="strike" title="Tachado"><i class="fas fa-strikethrough"></i></button>
+            <button type="button" data-notes-action="link" title="Insertar enlace"><i class="fas fa-link"></i></button>
+            <button type="button" data-notes-action="table" title="Insertar tabla"><i class="fas fa-table"></i></button>
+            <button type="button" data-notes-action="clear-format" title="Limpiar formato"><i class="fas fa-eraser"></i></button>
+          </div>
+
+          <div class="admin-notes-editor-wrap">
+            <div id="adminNotesEditor" contenteditable="true" spellcheck="true"></div>
+            <input type="file" id="adminNotesOpenFile" accept=".txt,text/plain" class="hidden">
+          </div>
+
+          <div class="admin-notes-statusbar">
+            <span id="adminNotesLineCol">Ln 1, Col 1</span>
+            <span id="adminNotesCharCount">0 caracteres</span>
+            <span id="adminNotesWrapState">Con ajuste de línea</span>
+            <span id="adminNotesZoom">100%</span>
+            <span id="adminNotesSyncState">Sincronización local</span>
+            <span>Windows (CRLF)</span>
+            <span>UTF-8</span>
           </div>
         </div>
       </div>
@@ -16761,6 +17027,15 @@
       let adminSelectedInstructor = null;
       let adminInstructorUsersLoadedAt = 0;
       let adminPendingSpecialtiesLoadedAt = 0;
+      let adminNotesInitialized = false;
+      let adminNotesZoomPercent = 100;
+      let adminNotesWrapEnabled = true;
+      let adminNotesFileName = 'Sin título';
+      let adminNotesDirty = false;
+      let adminNotesAutosaveTimer = null;
+      let adminNotesCloudAutosaveTimer = null;
+      let adminNotesSyncEnabled = false;
+      const ADMIN_NOTES_STORAGE_KEY = 'conquiguias_admin_notas_v1';
       const ADMIN_INSTRUCTORES_CACHE_MS = 2 * 60 * 1000;
 
       function activarTabAdmin(tabName) {
@@ -16768,17 +17043,20 @@
         const tabInstructores = document.getElementById('adminTabInstructores');
         const tabDonaciones = document.getElementById('adminTabDonaciones');
         const tabEstadisticas = document.getElementById('adminTabEstadisticas');
+        const tabNotas = document.getElementById('adminTabNotas');
         const viewModeracion = document.getElementById('adminModeracionView');
         const viewInstructores = document.getElementById('adminInstructoresView');
         const viewDonaciones = document.getElementById('adminDonacionesView');
         const viewEstadisticas = document.getElementById('adminEstadisticasView');
+        const viewNotas = document.getElementById('adminNotasView');
 
-        if (!tabPublicaciones || !tabInstructores || !tabDonaciones || !tabEstadisticas || !viewModeracion || !viewInstructores || !viewDonaciones || !viewEstadisticas) return;
+        if (!tabPublicaciones || !tabInstructores || !tabDonaciones || !tabEstadisticas || !tabNotas || !viewModeracion || !viewInstructores || !viewDonaciones || !viewEstadisticas || !viewNotas) return;
 
         const isPublicaciones = tabName === 'publicaciones';
         const isInstructores = tabName === 'instructores';
         const isDonaciones = tabName === 'donaciones';
         const isEstadisticas = tabName === 'estadisticas';
+        const isNotas = tabName === 'notas';
 
         // Publicaciones
         tabPublicaciones.classList.toggle('active', isPublicaciones);
@@ -16808,6 +17086,13 @@
         tabEstadisticas.style.border = isEstadisticas ? 'none' : '1px solid var(--border-color)';
         viewEstadisticas.classList.toggle('hidden', !isEstadisticas);
 
+        // Notas
+        tabNotas.classList.toggle('active', isNotas);
+        tabNotas.style.background = isNotas ? 'var(--accent-color)' : 'transparent';
+        tabNotas.style.color = isNotas ? 'white' : 'var(--text-primary)';
+        tabNotas.style.border = isNotas ? 'none' : '1px solid var(--border-color)';
+        viewNotas.classList.toggle('hidden', !isNotas);
+
         if (!isEstadisticas) {
           resetAdminAnalyticsCache({ resetView: true });
         }
@@ -16822,6 +17107,8 @@
           if (!adminAnalyticsHasLoaded) {
             loadAdminPlatformAnalytics();
           }
+        } else if (isNotas) {
+          initAdminNotesEditor();
         }
       }
 
@@ -16831,6 +17118,7 @@
         const tabInstructores = document.getElementById('adminTabInstructores');
         const tabDonaciones = document.getElementById('adminTabDonaciones');
         const tabEstadisticas = document.getElementById('adminTabEstadisticas');
+        const tabNotas = document.getElementById('adminTabNotas');
         const searchInput = document.getElementById('adminInstructorSearch');
         const assignBtn = document.getElementById('btnAsignarInstructorEspecialidades');
         const refreshAdminDonacionesBtn = document.getElementById('refreshAdminDonacionesBtn');
@@ -16849,6 +17137,9 @@
         }
         if (tabEstadisticas) {
           tabEstadisticas.addEventListener('click', () => activarTabAdmin('estadisticas'));
+        }
+        if (tabNotas) {
+          tabNotas.addEventListener('click', () => activarTabAdmin('notas'));
         }
         if (refreshAdminDonacionesBtn) {
           refreshAdminDonacionesBtn.addEventListener('click', () => {
@@ -16885,6 +17176,477 @@
         }
 
         adminTabInitialized = true;
+      }
+
+      function getAdminNotesEditor() {
+        return document.getElementById('adminNotesEditor');
+      }
+
+      function updateAdminNotesTitle() {
+        const titleEl = document.getElementById('adminNotesTitle');
+        if (!titleEl) return;
+        titleEl.textContent = `${adminNotesFileName}${adminNotesDirty ? ' *' : ''} - Bloc de notas`;
+      }
+
+      function updateAdminNotesStatus() {
+        const editor = getAdminNotesEditor();
+        if (!editor) return;
+
+        const lineColEl = document.getElementById('adminNotesLineCol');
+        const charCountEl = document.getElementById('adminNotesCharCount');
+        const zoomEl = document.getElementById('adminNotesZoom');
+        const wrapStateEl = document.getElementById('adminNotesWrapState');
+
+        const text = editor.innerText || '';
+        if (charCountEl) {
+          charCountEl.textContent = `${text.length} caracteres`;
+        }
+        if (zoomEl) {
+          zoomEl.textContent = `${adminNotesZoomPercent}%`;
+        }
+        if (wrapStateEl) {
+          wrapStateEl.textContent = adminNotesWrapEnabled ? 'Con ajuste de línea' : 'Sin ajuste de línea';
+        }
+
+        if (!lineColEl) return;
+
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0 || !editor.contains(selection.anchorNode)) {
+          lineColEl.textContent = 'Ln 1, Col 1';
+          return;
+        }
+
+        const range = selection.getRangeAt(0).cloneRange();
+        range.selectNodeContents(editor);
+        range.setEnd(selection.anchorNode, selection.anchorOffset);
+        const beforeText = range.toString();
+        const lines = beforeText.split('\n');
+        const line = lines.length;
+        const column = (lines[lines.length - 1] || '').length + 1;
+        lineColEl.textContent = `Ln ${line}, Col ${column}`;
+      }
+
+      function setAdminNotesSyncState(message) {
+        const syncEl = document.getElementById('adminNotesSyncState');
+        if (!syncEl) return;
+        syncEl.textContent = String(message || '').trim() || 'Sincronización local';
+      }
+
+      async function getAdminNotesAuthToken() {
+        const authUser = auth.currentUser;
+        if (!authUser) return '';
+        try {
+          return await authUser.getIdToken(true);
+        } catch (error) {
+          console.warn('No se pudo obtener token para notas admin:', error);
+          return '';
+        }
+      }
+
+      function saveAdminNotesToLocalStorage() {
+        const editor = getAdminNotesEditor();
+        if (!editor) return;
+        try {
+          const payload = {
+            html: editor.innerHTML,
+            fileName: adminNotesFileName,
+            zoom: adminNotesZoomPercent,
+            wrap: adminNotesWrapEnabled,
+            updatedAt: Date.now(),
+            by: String(window.currentUserId || '').trim() || String(window.userData?.email || '').trim() || 'unknown'
+          };
+          localStorage.setItem(ADMIN_NOTES_STORAGE_KEY, JSON.stringify(payload));
+        } catch (error) {
+          console.warn('No se pudo guardar notas admin localmente:', error);
+        }
+      }
+
+      async function saveAdminNotesToSupabase({ silent = true } = {}) {
+        if (!window.canAccessAdminPanel) return false;
+        const editor = getAdminNotesEditor();
+        if (!editor) return false;
+
+        const idToken = await getAdminNotesAuthToken();
+        if (!idToken) {
+          adminNotesSyncEnabled = false;
+          if (!silent) setAdminNotesSyncState('Sin token · guardado local');
+          return false;
+        }
+
+        try {
+          const response = await fetch('/api/social?action=save-admin-notes', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${idToken}`
+            },
+            body: JSON.stringify({
+              idToken,
+              html: editor.innerHTML,
+              fileName: adminNotesFileName,
+              zoom: adminNotesZoomPercent,
+              wrap: adminNotesWrapEnabled
+            })
+          });
+
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !payload?.success) {
+            throw new Error(payload?.error || 'No fue posible guardar en Supabase');
+          }
+
+          adminNotesSyncEnabled = true;
+          adminNotesDirty = false;
+          updateAdminNotesTitle();
+          setAdminNotesSyncState('Sincronizado en Supabase');
+          return true;
+        } catch (error) {
+          adminNotesSyncEnabled = false;
+          setAdminNotesSyncState('Error en Supabase · guardado local');
+          console.warn('No se pudieron guardar notas admin en Supabase:', error);
+          return false;
+        }
+      }
+
+      async function loadAdminNotesFromSupabase() {
+        if (!window.canAccessAdminPanel) return false;
+
+        const idToken = await getAdminNotesAuthToken();
+        if (!idToken) {
+          setAdminNotesSyncState('Sin token · notas locales');
+          return false;
+        }
+
+        try {
+          setAdminNotesSyncState('Cargando desde Supabase...');
+          const response = await fetch('/api/social?action=get-admin-notes', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${idToken}`
+            }
+          });
+
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !payload?.success) {
+            throw new Error(payload?.error || 'No fue posible cargar notas de Supabase');
+          }
+
+          const notes = payload?.notes || {};
+          const editor = getAdminNotesEditor();
+          const currentHasEdits = !!adminNotesDirty && !!(editor?.innerText || '').trim();
+
+          if (!currentHasEdits) {
+            setAdminNotesContent(String(notes.html || ''), String(notes.fileName || 'Sin título'));
+            adminNotesZoomPercent = Number(notes.zoom) || 100;
+            adminNotesZoomPercent = Math.min(300, Math.max(50, adminNotesZoomPercent));
+            adminNotesWrapEnabled = notes.wrap !== false;
+            applyAdminNotesZoom();
+            applyAdminNotesWrap();
+            saveAdminNotesToLocalStorage();
+          }
+
+          adminNotesSyncEnabled = true;
+          setAdminNotesSyncState('Sincronizado en Supabase');
+          return true;
+        } catch (error) {
+          adminNotesSyncEnabled = false;
+          setAdminNotesSyncState('No disponible · usando local');
+          console.warn('No se pudieron cargar notas admin desde Supabase:', error);
+          return false;
+        }
+      }
+
+      function queueAdminNotesCloudAutosave() {
+        if (adminNotesCloudAutosaveTimer) {
+          clearTimeout(adminNotesCloudAutosaveTimer);
+        }
+        adminNotesCloudAutosaveTimer = setTimeout(() => {
+          saveAdminNotesToSupabase({ silent: true });
+        }, 1300);
+      }
+
+      function queueAdminNotesAutosave() {
+        if (adminNotesAutosaveTimer) {
+          clearTimeout(adminNotesAutosaveTimer);
+        }
+        adminNotesAutosaveTimer = setTimeout(() => {
+          saveAdminNotesToLocalStorage();
+          queueAdminNotesCloudAutosave();
+          adminNotesDirty = false;
+          updateAdminNotesTitle();
+        }, 500);
+      }
+
+      function applyAdminNotesZoom() {
+        const editor = getAdminNotesEditor();
+        if (!editor) return;
+        const scaledSize = 15 * (adminNotesZoomPercent / 100);
+        editor.style.fontSize = `${scaledSize}px`;
+        updateAdminNotesStatus();
+      }
+
+      function applyAdminNotesWrap() {
+        const editor = getAdminNotesEditor();
+        if (!editor) return;
+        editor.classList.toggle('admin-notes-nowrap', !adminNotesWrapEnabled);
+        updateAdminNotesStatus();
+      }
+
+      function markAdminNotesDirty() {
+        adminNotesDirty = true;
+        updateAdminNotesTitle();
+        queueAdminNotesAutosave();
+      }
+
+      function setAdminNotesContent(html, fileName = 'Sin título') {
+        const editor = getAdminNotesEditor();
+        if (!editor) return;
+        editor.innerHTML = html || '';
+        adminNotesFileName = fileName;
+        adminNotesDirty = false;
+        updateAdminNotesTitle();
+        updateAdminNotesStatus();
+      }
+
+      function loadAdminNotesFromStorage() {
+        try {
+          const raw = localStorage.getItem(ADMIN_NOTES_STORAGE_KEY);
+          if (!raw) {
+            setAdminNotesContent('', 'Sin título');
+            setAdminNotesSyncState('Sincronización local');
+            return;
+          }
+          const data = JSON.parse(raw);
+          setAdminNotesContent(data?.html || '', data?.fileName || 'Sin título');
+          adminNotesZoomPercent = Number(data?.zoom) || 100;
+          adminNotesZoomPercent = Math.min(300, Math.max(50, adminNotesZoomPercent));
+          adminNotesWrapEnabled = data?.wrap !== false;
+          applyAdminNotesZoom();
+          applyAdminNotesWrap();
+          setAdminNotesSyncState('Notas locales cargadas');
+        } catch (error) {
+          console.warn('No se pudieron cargar notas admin:', error);
+          setAdminNotesContent('', 'Sin título');
+          setAdminNotesSyncState('Sincronización local');
+        }
+      }
+
+      function downloadAdminNotes() {
+        const editor = getAdminNotesEditor();
+        if (!editor) return;
+        const plainText = editor.innerText || '';
+        const safeName = (adminNotesFileName || 'Sin título').replace(/[^\w\-. ]+/g, '').trim() || 'Sin título';
+        const finalName = safeName.toLowerCase().endsWith('.txt') ? safeName : `${safeName}.txt`;
+        const blob = new Blob([plainText], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = finalName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        adminNotesDirty = false;
+        updateAdminNotesTitle();
+      }
+
+      function runAdminNotesAction(action) {
+        const editor = getAdminNotesEditor();
+        if (!editor) return;
+
+        const focusEditor = () => {
+          editor.focus();
+          updateAdminNotesStatus();
+        };
+
+        switch (action) {
+          case 'new': {
+            if (adminNotesDirty && !confirm('Hay cambios sin guardar. ¿Crear una nota nueva?')) {
+              return;
+            }
+            setAdminNotesContent('', 'Sin título');
+            saveAdminNotesToLocalStorage();
+            focusEditor();
+            return;
+          }
+          case 'open': {
+            const fileInput = document.getElementById('adminNotesOpenFile');
+            if (fileInput) fileInput.click();
+            return;
+          }
+          case 'save':
+            saveAdminNotesToLocalStorage();
+            saveAdminNotesToSupabase({ silent: false });
+            downloadAdminNotes();
+            return;
+          case 'undo':
+            document.execCommand('undo');
+            break;
+          case 'redo':
+            document.execCommand('redo');
+            break;
+          case 'cut':
+            document.execCommand('cut');
+            break;
+          case 'copy':
+            document.execCommand('copy');
+            break;
+          case 'paste':
+            document.execCommand('paste');
+            break;
+          case 'selectall':
+            document.execCommand('selectAll');
+            break;
+          case 'unordered-list':
+            document.execCommand('insertUnorderedList');
+            break;
+          case 'bold':
+            document.execCommand('bold');
+            break;
+          case 'italic':
+            document.execCommand('italic');
+            break;
+          case 'strike':
+            document.execCommand('strikeThrough');
+            break;
+          case 'link': {
+            const url = prompt('Introduce la URL del enlace:', 'https://');
+            if (url && /^https?:\/\//i.test(url)) {
+              document.execCommand('createLink', false, url);
+            }
+            break;
+          }
+          case 'table':
+            document.execCommand('insertHTML', false, '<table style="border-collapse:collapse; width:100%;"><tr><th style="border:1px solid #9ca3af; padding:6px;">Columna 1</th><th style="border:1px solid #9ca3af; padding:6px;">Columna 2</th></tr><tr><td style="border:1px solid #9ca3af; padding:6px;">Dato</td><td style="border:1px solid #9ca3af; padding:6px;">Dato</td></tr></table><p><br></p>');
+            break;
+          case 'clear-format':
+            document.execCommand('removeFormat');
+            break;
+          case 'zoom-in':
+            adminNotesZoomPercent = Math.min(300, adminNotesZoomPercent + 10);
+            applyAdminNotesZoom();
+            saveAdminNotesToLocalStorage();
+            queueAdminNotesCloudAutosave();
+            return;
+          case 'zoom-out':
+            adminNotesZoomPercent = Math.max(50, adminNotesZoomPercent - 10);
+            applyAdminNotesZoom();
+            saveAdminNotesToLocalStorage();
+            queueAdminNotesCloudAutosave();
+            return;
+          case 'zoom-reset':
+            adminNotesZoomPercent = 100;
+            applyAdminNotesZoom();
+            saveAdminNotesToLocalStorage();
+            queueAdminNotesCloudAutosave();
+            return;
+          case 'toggle-wrap':
+            adminNotesWrapEnabled = !adminNotesWrapEnabled;
+            applyAdminNotesWrap();
+            saveAdminNotesToLocalStorage();
+            queueAdminNotesCloudAutosave();
+            return;
+          default:
+            return;
+        }
+
+        markAdminNotesDirty();
+        focusEditor();
+      }
+
+      function initAdminNotesEditor() {
+        if (adminNotesInitialized) return;
+        const editor = getAdminNotesEditor();
+        const headingSelect = document.getElementById('adminNotesHeading');
+        const fileInput = document.getElementById('adminNotesOpenFile');
+        const quickNew = document.getElementById('adminNotesQuickNew');
+        const quickOpen = document.getElementById('adminNotesQuickOpen');
+        const quickSave = document.getElementById('adminNotesQuickSave');
+
+        if (!editor || !headingSelect || !fileInput) return;
+
+        const menuRoots = Array.from(document.querySelectorAll('.admin-notes-menu'));
+        const closeMenus = () => menuRoots.forEach(menu => menu.classList.remove('open'));
+
+        menuRoots.forEach(menu => {
+          const btn = menu.querySelector('.admin-notes-menu-btn');
+          if (!btn) return;
+          btn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const willOpen = !menu.classList.contains('open');
+            closeMenus();
+            if (willOpen) menu.classList.add('open');
+          });
+        });
+
+        document.addEventListener('click', (event) => {
+          if (!event.target.closest('.admin-notes-menu')) {
+            closeMenus();
+          }
+        });
+
+        document.querySelectorAll('[data-notes-action]').forEach(button => {
+          button.addEventListener('click', (event) => {
+            const action = event.currentTarget?.dataset?.notesAction;
+            closeMenus();
+            if (action) runAdminNotesAction(action);
+          });
+        });
+
+        headingSelect.addEventListener('change', () => {
+          editor.focus();
+          const tagName = headingSelect.value || 'P';
+          document.execCommand('formatBlock', false, `<${tagName}>`);
+          markAdminNotesDirty();
+          updateAdminNotesStatus();
+        });
+
+        editor.addEventListener('input', () => {
+          markAdminNotesDirty();
+          updateAdminNotesStatus();
+        });
+
+        ['click', 'keyup', 'mouseup', 'focus'].forEach(eventName => {
+          editor.addEventListener(eventName, updateAdminNotesStatus);
+        });
+
+        editor.addEventListener('keydown', (event) => {
+          if (event.ctrlKey && event.key.toLowerCase() === 's') {
+            event.preventDefault();
+            runAdminNotesAction('save');
+          }
+          if (event.ctrlKey && event.key.toLowerCase() === 'n') {
+            event.preventDefault();
+            runAdminNotesAction('new');
+          }
+        });
+
+        fileInput.addEventListener('change', (event) => {
+          const file = event.target?.files?.[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            const rawText = String(reader.result || '');
+            const escaped = escapeHtml(rawText).replace(/\n/g, '<br>');
+            setAdminNotesContent(escaped, file.name || 'Sin título');
+            saveAdminNotesToLocalStorage();
+            queueAdminNotesCloudAutosave();
+            editor.focus();
+          };
+          reader.readAsText(file);
+          fileInput.value = '';
+        });
+
+        if (quickNew) quickNew.addEventListener('click', () => runAdminNotesAction('new'));
+        if (quickOpen) quickOpen.addEventListener('click', () => runAdminNotesAction('open'));
+        if (quickSave) quickSave.addEventListener('click', () => runAdminNotesAction('save'));
+
+        loadAdminNotesFromStorage();
+        applyAdminNotesZoom();
+        applyAdminNotesWrap();
+        updateAdminNotesTitle();
+        updateAdminNotesStatus();
+        loadAdminNotesFromSupabase();
+        adminNotesInitialized = true;
       }
 
       function getInstructorAssignmentKey(user) {

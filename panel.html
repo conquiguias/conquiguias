@@ -747,45 +747,88 @@
 
     /* Contenedor de pestañas */
     .tabs-menu-container {
-      border-bottom: 2px solid var(--border-color);
-      margin-bottom: 20px;
       display: flex;
       align-items: center;
+      margin: 14px 0 20px 0;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 10px;
     }
 
     .tabs-menu {
       display: flex;
-      gap: 0;
+      gap: 10px;
       width: 100%;
+      flex-wrap: wrap;
     }
 
     .tab-button {
-      flex: 1;
-      padding: 14px 16px;
+      padding: 8px 16px;
       background: transparent;
-      border: none;
-      color: var(--text-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 500;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      border-bottom: 3px solid transparent;
-      transition: all 0.3s ease;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
     }
 
     .tab-button:hover {
+      background: rgba(59, 130, 246, 0.08);
       color: var(--text-primary);
-      background: rgba(59, 130, 246, 0.05);
     }
 
     .tab-button.active {
-      color: var(--accent-color);
-      border-bottom-color: var(--accent-color);
+      background: var(--accent-color);
+      color: white;
+      border-color: var(--accent-color);
+    }
+
+    @media (max-width: 767px) {
+      .tabs-menu-container {
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .tabs-menu {
+        flex-wrap: nowrap;
+        width: max-content;
+        min-width: 100%;
+      }
+
+      .tab-button {
+        flex: 0 0 auto;
+        white-space: nowrap;
+      }
+
+      #adminSectionTabs {
+        overflow-x: auto;
+        overflow-y: hidden;
+        flex-wrap: nowrap !important;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      #adminSectionTabs button {
+        flex: 0 0 auto;
+        white-space: nowrap;
+      }
+
+      #instructorSectionTabs {
+        overflow-x: auto;
+        overflow-y: hidden;
+        flex-wrap: nowrap !important;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      #instructorSectionTabs button {
+        flex: 0 0 auto;
+        white-space: nowrap;
+      }
     }
 
     .tab-content {
@@ -5431,7 +5474,7 @@
       </div>
 
       <!-- Navegación Instructor -->
-      <div
+      <div id="instructorSectionTabs"
         style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
         <button id="tabInstructorCrear" class="active"
           style="padding: 8px 16px; background: var(--accent-color); color: white; border: none; border-radius: 4px; cursor: pointer;">Crear
@@ -5855,7 +5898,7 @@
       <h2><i class="fas fa-cog" style="margin-right: 8px; color: var(--accent-color);"></i> Panel de Administración</h2>
       <p>Desde aquí puedes moderar publicaciones y gestionar instructores.</p>
 
-      <div
+      <div id="adminSectionTabs"
         style="display:flex; gap:10px; margin: 14px 0 20px 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
         <button id="adminTabPublicaciones" class="active"
           style="padding: 8px 16px; background: var(--accent-color); color: white; border: none; border-radius: 4px; cursor: pointer;">

@@ -56,7 +56,6 @@ const REMINDER_HOUR_LOCAL = Number.isFinite(Number.parseInt(String(process.env.R
   ? Math.min(23, Math.max(0, Number.parseInt(String(process.env.REMINDER_HOUR_LOCAL || "0"), 10)))
   : 0;
 const ADMIN_NOTES_TABLE = "admin_shared_notes";
-const ADMIN_NOTES_ROW_ID = "global";
 const ADMIN_NOTES_MAX_HTML = 2_000_000;
 const ADMIN_NOTES_MAX_FILE_NAME = 180;
 const ADMIN_NOTES_MAX_TABS = 30;
@@ -784,41 +783,9 @@ function sanitizeAdminNotesPayload(input = {}) {
 
   const activeDocIdRaw = String(input?.activeDocId || "").trim();
   const activeDocId = activeDocIdRaw.slice(0, 120);
+  const saveOnlyActive = input?.saveOnlyActive === true;
 
-  return { html, fileName, zoom, wrap, tabs, activeDocId };
-}
-
-function parseAdminNotesTabsFromHtml(rawHtml = "") {
-  const html = String(rawHtml || "");
-  if (!html) return null;
-
-  try {
-    const parsed = JSON.parse(html);
-    if (!parsed || typeof parsed !== "object") return null;
-    if (Number(parsed?.version) !== 2) return null;
-
-    const docs = Array.isArray(parsed?.documents)
-      ? parsed.documents
-        .slice(0, ADMIN_NOTES_MAX_TABS)
-        .map((tab, index) => ({
-          id: String(tab?.id || `tab_${index + 1}`).slice(0, 120),
-          title: String(tab?.title || `Sin título ${index + 1}`).slice(0, ADMIN_NOTES_MAX_FILE_NAME),
-          html: String(tab?.html || ""),
-          zoom: Math.min(300, Math.max(50, Number(tab?.zoom) || 100)),
-          wrap: tab?.wrap !== false,
-        }))
-        .filter((tab) => !!tab.id)
-      : [];
-
-    const activeDocId = String(parsed?.activeDocId || "").slice(0, 120);
-
-    return {
-      documents: docs,
-      activeDocId,
-    };
-  } catch (_error) {
-    return null;
-  }
+  return { html, fileName, zoom, wrap, tabs, activeDocId, saveOnlyActive };
 }
 
 async function handleTrackPlatformVisit(req, res) {
@@ -919,28 +886,50 @@ async function handleGetAdminNotes(req, res) {
   try {
     await requireAdminOrOwner(req);
 
-    const { data, error } = await supabase
+    const { data: rows, error } = await supabase
       .from(ADMIN_NOTES_TABLE)
       .select("id, html, file_name, zoom, wrap, updated_at, updated_by")
-      .eq("id", ADMIN_NOTES_ROW_ID)
-      .maybeSingle();
+      .order("updated_at", { ascending: false });
 
     if (error) {
       throw new Error(`No se pudieron cargar notas admin desde Supabase: ${error.message}`);
     }
 
-    const payload = data
-      ? {
-        html: String(data.html || ""),
-        fileName: String(data.file_name || "Sin título"),
-        zoom: Number(data.zoom) || 100,
-        wrap: data.wrap !== false,
-        tabs: [],
-        activeDocId: "",
-        updatedAt: data.updated_at || null,
-        updatedBy: data.updated_by || null,
-      }
-      : {
+    const normalizedRows = Array.isArray(rows) ? rows : [];
+    const perTabRows = normalizedRows.filter((row) => String(row?.id || "").trim());
+
+    if (perTabRows.length > 0) {
+      const tabs = perTabRows
+        .slice(0, ADMIN_NOTES_MAX_TABS)
+        .map((row) => ({
+          id: String(row.id || "").trim(),
+          title: String(row.file_name || "Sin título"),
+          html: String(row.html || ""),
+          zoom: Number(row.zoom) || 100,
+          wrap: row.wrap !== false,
+        }))
+        .filter((tab) => !!tab.id);
+
+      const first = tabs[0] || null;
+
+      return res.status(200).json({
+        success: true,
+        notes: {
+          html: String(first?.html || ""),
+          fileName: String(first?.title || "Sin título"),
+          zoom: Number(first?.zoom) || 100,
+          wrap: first?.wrap !== false,
+          tabs,
+          activeDocId: first?.id || "",
+          updatedAt: perTabRows[0]?.updated_at || null,
+          updatedBy: perTabRows[0]?.updated_by || null,
+        },
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      notes: {
         html: "",
         fileName: "Sin título",
         zoom: 100,
@@ -949,19 +938,7 @@ async function handleGetAdminNotes(req, res) {
         activeDocId: "",
         updatedAt: null,
         updatedBy: null,
-      };
-
-    if (data) {
-      const tabsPayload = parseAdminNotesTabsFromHtml(data.html);
-      if (tabsPayload?.documents?.length) {
-        payload.tabs = tabsPayload.documents;
-        payload.activeDocId = tabsPayload.activeDocId || tabsPayload.documents[0]?.id || "";
-      }
-    }
-
-    return res.status(200).json({
-      success: true,
-      notes: payload,
+      },
     });
   } catch (error) {
     console.error("Error obteniendo notas admin:", error);
@@ -982,47 +959,91 @@ async function handleSaveAdminNotes(req, res) {
     const actorEmail = await requireAdminOrOwner(req, body);
     const payload = sanitizeAdminNotesPayload(body);
 
-    const tabsEnvelope = payload.tabs.length
-      ? JSON.stringify({
-        version: 2,
-        activeDocId: payload.activeDocId || payload.tabs[0]?.id || "",
-        documents: payload.tabs,
-      })
-      : payload.html;
+    let finalTabs = payload.tabs.length ? [...payload.tabs] : [];
+    let activeTab = finalTabs.find((tab) => tab.id === (payload.activeDocId || "")) || finalTabs[0] || null;
 
-    const activeTab = payload.tabs.find((tab) => tab.id === (payload.activeDocId || "")) || payload.tabs[0] || null;
+    if (payload.saveOnlyActive) {
+      const activeIncomingTab = payload.tabs.find((tab) => tab.id === (payload.activeDocId || "")) || payload.tabs[0] || null;
+      if (!activeIncomingTab) {
+        const err = new Error("No se recibió la pestaña activa para guardar");
+        err.statusCode = 400;
+        throw err;
+      }
 
-    const upsertPayload = {
-      id: ADMIN_NOTES_ROW_ID,
-      html: tabsEnvelope,
-      file_name: activeTab?.title || payload.fileName,
-      zoom: activeTab?.zoom ?? payload.zoom,
-      wrap: activeTab?.wrap ?? payload.wrap,
+      const { data, error } = await supabase
+        .from(ADMIN_NOTES_TABLE)
+        .upsert({
+          id: activeIncomingTab.id,
+          html: activeIncomingTab.html,
+          file_name: activeIncomingTab.title,
+          zoom: activeIncomingTab.zoom,
+          wrap: activeIncomingTab.wrap,
+          updated_at: new Date().toISOString(),
+          updated_by: actorEmail,
+        }, { onConflict: "id" })
+        .select("id, html, file_name, zoom, wrap, updated_at, updated_by")
+        .single();
+
+      if (error) {
+        throw new Error(`No se pudo guardar la pestaña activa: ${error.message}`);
+      }
+
+      finalTabs = [activeIncomingTab];
+      activeTab = activeIncomingTab;
+
+      return res.status(200).json({
+        success: true,
+        notes: {
+          html: String(data?.html || activeIncomingTab.html || ""),
+          fileName: String(data?.file_name || activeIncomingTab.title || "Sin título"),
+          zoom: Number(data?.zoom) || activeIncomingTab.zoom || 100,
+          wrap: data?.wrap !== false,
+          tabs: finalTabs,
+          activeDocId: activeIncomingTab.id,
+          updatedAt: data?.updated_at || null,
+          updatedBy: data?.updated_by || actorEmail,
+        },
+      });
+    }
+
+    const batchTabs = finalTabs.slice(0, ADMIN_NOTES_MAX_TABS);
+    if (!batchTabs.length) {
+      const err = new Error("No se recibieron pestañas para guardar");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const batchPayload = batchTabs.map((tab) => ({
+      id: tab.id,
+      html: tab.html,
+      file_name: tab.title,
+      zoom: tab.zoom,
+      wrap: tab.wrap,
       updated_at: new Date().toISOString(),
       updated_by: actorEmail,
-    };
+    }));
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from(ADMIN_NOTES_TABLE)
-      .upsert(upsertPayload, { onConflict: "id" })
-      .select("id, html, file_name, zoom, wrap, updated_at, updated_by")
-      .single();
+      .upsert(batchPayload, { onConflict: "id" });
 
     if (error) {
-      throw new Error(`No se pudieron guardar notas admin en Supabase: ${error.message}`);
+      throw new Error(`No se pudieron guardar pestañas de notas admin: ${error.message}`);
     }
+
+    activeTab = batchTabs.find((tab) => tab.id === (payload.activeDocId || "")) || batchTabs[0] || null;
 
     return res.status(200).json({
       success: true,
       notes: {
-        html: String(activeTab?.html || payload.html || ""),
-        fileName: String(data?.file_name || "Sin título"),
-        zoom: Number(data?.zoom) || 100,
-        wrap: data?.wrap !== false,
-        tabs: payload.tabs,
+        html: String(activeTab?.html || ""),
+        fileName: String(activeTab?.title || "Sin título"),
+        zoom: Number(activeTab?.zoom) || 100,
+        wrap: activeTab?.wrap !== false,
+        tabs: batchTabs,
         activeDocId: payload.activeDocId || activeTab?.id || "",
-        updatedAt: data?.updated_at || null,
-        updatedBy: data?.updated_by || actorEmail,
+        updatedAt: new Date().toISOString(),
+        updatedBy: actorEmail,
       },
     });
   } catch (error) {

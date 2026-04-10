@@ -2513,6 +2513,47 @@
       font-weight: 600;
     }
 
+    .admin-notes-titletext {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      flex: 1;
+      margin-right: 10px;
+    }
+
+    #adminNotesTitleInput {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-primary);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 4px 6px;
+      border-radius: 6px;
+      min-width: 140px;
+      max-width: 320px;
+      width: 100%;
+      outline: none;
+    }
+
+    #adminNotesTitleInput:focus {
+      border-color: var(--accent-color);
+      background: var(--bg-primary);
+    }
+
+    .admin-notes-title-suffix {
+      color: var(--text-secondary);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    #adminNotesTitleDirty {
+      color: var(--warning-color);
+      visibility: hidden;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
     .admin-notes-actions {
       display: flex;
       gap: 6px;
@@ -6041,7 +6082,11 @@
       <div id="adminNotasView" class="hidden">
         <div class="admin-notes-app">
           <div class="admin-notes-titlebar">
-            <span id="adminNotesTitle">Sin título - Bloc de notas</span>
+            <div class="admin-notes-titletext">
+              <input id="adminNotesTitleInput" type="text" value="Sin título" maxlength="120" aria-label="Nombre de la nota activa">
+              <span class="admin-notes-title-suffix">- Bloc de notas</span>
+              <span id="adminNotesTitleDirty">*</span>
+            </div>
             <div class="admin-notes-actions">
               <button type="button" id="adminNotesQuickNew" title="Nuevo (Ctrl+N)"><i class="fas fa-file"></i></button>
               <button type="button" id="adminNotesQuickOpen" title="Abrir TXT"><i class="fas fa-folder-open"></i></button>
@@ -17307,12 +17352,18 @@
       }
 
       function updateAdminNotesTitle() {
-        const titleEl = document.getElementById('adminNotesTitle');
-        if (!titleEl) return;
+        const titleInput = document.getElementById('adminNotesTitleInput');
+        const dirtyEl = document.getElementById('adminNotesTitleDirty');
+        if (!titleInput) return;
         const activeDoc = getActiveAdminNotesDoc();
         adminNotesFileName = activeDoc?.title || 'Sin título';
         adminNotesDirty = !!activeDoc?.dirty;
-        titleEl.textContent = `${adminNotesFileName}${adminNotesDirty ? ' *' : ''} - Bloc de notas`;
+        if (document.activeElement !== titleInput) {
+          titleInput.value = adminNotesFileName;
+        }
+        if (dirtyEl) {
+          dirtyEl.style.visibility = adminNotesDirty ? 'visible' : 'hidden';
+        }
       }
 
       function updateAdminNotesStatus() {
@@ -17391,16 +17442,47 @@
         if (!Array.isArray(adminNotesDocuments) || !adminNotesDocuments.length) return false;
         const activeDoc = getActiveAdminNotesDoc() || adminNotesDocuments[0];
         try {
+          const existingRaw = localStorage.getItem(ADMIN_NOTES_STORAGE_KEY);
+          let existingDocs = [];
+          let existingActiveDocId = activeDoc?.id || adminNotesActiveDocId;
+
+          if (existingRaw) {
+            try {
+              const existingData = JSON.parse(existingRaw);
+              if (Number(existingData?.version) === 2 && Array.isArray(existingData?.documents)) {
+                existingDocs = existingData.documents.map((doc) => ({
+                  id: String(doc?.id || '').trim(),
+                  title: String(doc?.title || 'Sin título').trim() || 'Sin título',
+                  html: String(doc?.html || ''),
+                  zoom: Math.min(300, Math.max(50, Number(doc?.zoom) || 100)),
+                  wrap: doc?.wrap !== false,
+                })).filter((doc) => !!doc.id);
+                existingActiveDocId = String(existingData?.activeDocId || existingActiveDocId || '').trim() || existingActiveDocId;
+              }
+            } catch (_error) {
+              existingDocs = [];
+            }
+          }
+
+          const activeDocPayload = {
+            id: activeDoc.id,
+            title: activeDoc.title,
+            html: activeDoc.html,
+            zoom: activeDoc.zoom,
+            wrap: activeDoc.wrap,
+          };
+
+          const idx = existingDocs.findIndex((doc) => doc.id === activeDoc.id);
+          if (idx >= 0) {
+            existingDocs[idx] = activeDocPayload;
+          } else {
+            existingDocs.push(activeDocPayload);
+          }
+
           const payload = {
             version: 2,
-            activeDocId: activeDoc?.id || adminNotesActiveDocId,
-            documents: adminNotesDocuments.map((doc) => ({
-              id: doc.id,
-              title: doc.title,
-              html: doc.html,
-              zoom: doc.zoom,
-              wrap: doc.wrap,
-            })),
+            activeDocId: activeDoc?.id || existingActiveDocId,
+            documents: existingDocs,
             html: activeDoc?.html || '',
             fileName: activeDoc?.title || adminNotesFileName,
             zoom: activeDoc?.zoom ?? adminNotesZoomPercent,
@@ -17434,6 +17516,7 @@
 
         try {
           const activeDoc = getActiveAdminNotesDoc() || createAdminNotesDocument();
+          const docTitle = String(activeDoc.title || 'Sin título').trim() || 'Sin título';
           const response = await fetch('/api/social?action=save-admin-notes', {
             method: 'POST',
             headers: {
@@ -17443,40 +17526,48 @@
             body: JSON.stringify({
               idToken,
               html: activeDoc.html,
-              fileName: activeDoc.title,
+              fileName: docTitle,
               zoom: activeDoc.zoom,
               wrap: activeDoc.wrap,
               activeDocId: adminNotesActiveDocId,
-              tabs: adminNotesDocuments.map((doc) => ({
-                id: doc.id,
-                title: doc.title,
-                html: doc.html,
-                zoom: doc.zoom,
-                wrap: doc.wrap,
-              }))
+              saveOnlyActive: true,
+              tabs: [
+                {
+                  id: activeDoc.id,
+                  title: docTitle,
+                  html: activeDoc.html,
+                  zoom: activeDoc.zoom,
+                  wrap: activeDoc.wrap,
+                }
+              ]
             })
           });
 
           const payload = await response.json().catch(() => ({}));
           if (!response.ok || !payload?.success) {
-            throw new Error(payload?.error || 'No fue posible guardar en Supabase');
+            throw new Error(payload?.error || 'No fue posible guardar en la nube');
           }
 
           adminNotesSyncEnabled = true;
-          adminNotesDocuments.forEach((doc) => { doc.dirty = false; });
+          if (activeDoc) {
+            activeDoc.dirty = false;
+          }
           adminNotesDirty = false;
           updateAdminNotesTitle();
-          setAdminNotesSyncState('Sincronizado en Supabase');
+          renderAdminNotesTabs();
+          setAdminNotesSyncState('Sincronizado en la nube');
           if (notify) {
-            notifyAdminNotesSave('info', 'Guardado en nube', 'Las notas se guardaron correctamente en Supabase.');
+            notifyAdminNotesSave('info', 'Guardado en la nube', `Documento "${docTitle}" guardado correctamente.`);
           }
           return true;
         } catch (error) {
           adminNotesSyncEnabled = false;
-          setAdminNotesSyncState('Error en Supabase · guardado local');
+          const activeDoc = getActiveAdminNotesDoc();
+          const docTitle = String(activeDoc?.title || adminNotesFileName || 'Sin título').trim() || 'Sin título';
+          setAdminNotesSyncState('Error en la nube · guardado local');
           console.warn('No se pudieron guardar notas admin en Supabase:', error);
           if (notify) {
-            notifyAdminNotesSave('error', 'Error al guardar en nube', error?.message || 'Ocurrió un error inesperado al guardar.');
+            notifyAdminNotesSave('error', 'Error al guardar en la nube', `Documento "${docTitle}": ${error?.message || 'Ocurrió un error inesperado al guardar.'}`);
           }
           return false;
         }
@@ -17642,7 +17733,7 @@
         }
 
         try {
-          setAdminNotesSyncState('Cargando desde Supabase...');
+          setAdminNotesSyncState('Cargando desde la nube...');
           const response = await fetch('/api/social?action=get-admin-notes', {
             method: 'GET',
             headers: {
@@ -17652,7 +17743,7 @@
 
           const payload = await response.json().catch(() => ({}));
           if (!response.ok || !payload?.success) {
-            throw new Error(payload?.error || 'No fue posible cargar notas de Supabase');
+            throw new Error(payload?.error || 'No fue posible cargar notas de la nube');
           }
 
           const notes = payload?.notes || {};
@@ -17675,7 +17766,7 @@
           }
 
           adminNotesSyncEnabled = true;
-          setAdminNotesSyncState('Sincronizado en Supabase');
+          setAdminNotesSyncState('Sincronizado en la nube');
           return true;
         } catch (error) {
           adminNotesSyncEnabled = false;
@@ -17716,20 +17807,29 @@
       }
 
       async function saveAdminNotesLocalAndCloud({ notify = true } = {}) {
+        const activeDoc = getActiveAdminNotesDoc();
+        const docTitle = String(activeDoc?.title || adminNotesFileName || 'Sin título').trim() || 'Sin título';
         const localSaved = saveAdminNotesToLocalStorage();
-        if (notify) {
-          if (localSaved) {
-            notifyAdminNotesSave('info', 'Guardado local', 'La nota se guardó localmente en tu navegador.');
-          } else {
-            notifyAdminNotesSave('error', 'Error local', 'No se pudo guardar localmente la nota.');
-          }
-        }
-        const cloudSaved = await saveAdminNotesToSupabase({ notify });
+        const cloudSaved = await saveAdminNotesToSupabase({ notify: false });
         if (cloudSaved) {
-          adminNotesDocuments.forEach((doc) => { doc.dirty = false; });
+          if (activeDoc) {
+            activeDoc.dirty = false;
+          }
           adminNotesDirty = false;
           updateAdminNotesTitle();
           renderAdminNotesTabs();
+        }
+
+        if (notify) {
+          if (localSaved && cloudSaved) {
+            notifyAdminNotesSave('info', 'Guardado', `Documento "${docTitle}" guardado localmente y en la nube.`);
+          } else if (!localSaved && cloudSaved) {
+            notifyAdminNotesSave('error', 'Guardado parcial', `Documento "${docTitle}" guardado en la nube, pero falló el guardado local.`);
+          } else if (localSaved && !cloudSaved) {
+            notifyAdminNotesSave('error', 'Guardado parcial', `Documento "${docTitle}" guardado localmente, pero falló el guardado en la nube.`);
+          } else {
+            notifyAdminNotesSave('error', 'Error de guardado', `No se pudo guardar el documento "${docTitle}".`);
+          }
         }
         return localSaved && cloudSaved;
       }
@@ -17773,14 +17873,7 @@
           if (Number(data?.version) === 2 && Array.isArray(data?.documents) && data.documents.length) {
             replaceAdminNotesDocuments(data.documents, data.activeDocId || '');
           } else {
-            replaceAdminNotesDocuments([
-              {
-                title: data?.fileName || 'Sin título',
-                html: data?.html || '',
-                zoom: Number(data?.zoom) || 100,
-                wrap: data?.wrap !== false,
-              }
-            ]);
+            replaceAdminNotesDocuments([createAdminNotesDocument({ title: 'Sin título' })]);
           }
 
           setAdminNotesSyncState('Notas locales cargadas');
@@ -17917,6 +18010,7 @@
         const quickSave = document.getElementById('adminNotesQuickSave');
         const quickSaveCloud = document.getElementById('adminNotesQuickSaveCloud');
         const addTabBtn = document.getElementById('adminNotesAddTabBtn');
+        const titleInput = document.getElementById('adminNotesTitleInput');
 
         if (!editor || !headingSelect || !fileInput) return;
 
@@ -17999,6 +18093,39 @@
         if (quickSave) quickSave.addEventListener('click', () => runAdminNotesAction('save-local'));
         if (quickSaveCloud) quickSaveCloud.addEventListener('click', () => runAdminNotesAction('save-cloud'));
         if (addTabBtn) addTabBtn.addEventListener('click', () => runAdminNotesAction('new'));
+        if (titleInput) {
+          titleInput.addEventListener('input', () => {
+            const activeDoc = getActiveAdminNotesDoc();
+            if (!activeDoc) return;
+            const rawName = String(titleInput.value || '').slice(0, 120);
+            activeDoc.title = rawName || 'Sin título';
+            activeDoc.dirty = true;
+            adminNotesDirty = true;
+            adminNotesFileName = activeDoc.title;
+            updateAdminNotesTitle();
+            renderAdminNotesTabs();
+          });
+
+          titleInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              titleInput.blur();
+              editor.focus();
+            }
+          });
+
+          titleInput.addEventListener('blur', () => {
+            const activeDoc = getActiveAdminNotesDoc();
+            if (!activeDoc) return;
+            const normalized = String(titleInput.value || '').trim().slice(0, 120) || 'Sin título';
+            activeDoc.title = normalized;
+            activeDoc.dirty = true;
+            adminNotesDirty = true;
+            adminNotesFileName = normalized;
+            updateAdminNotesTitle();
+            renderAdminNotesTabs();
+          });
+        }
 
         loadAdminNotesFromStorage();
         updateAdminNotesTitle();

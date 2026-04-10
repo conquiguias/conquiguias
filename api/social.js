@@ -59,6 +59,7 @@ const ADMIN_NOTES_TABLE = "admin_shared_notes";
 const ADMIN_NOTES_ROW_ID = "global";
 const ADMIN_NOTES_MAX_HTML = 2_000_000;
 const ADMIN_NOTES_MAX_FILE_NAME = 180;
+const ADMIN_NOTES_MAX_TABS = 30;
 
 // 🔐 Add security headers to all API responses
 function setSecurityHeaders(res) {
@@ -750,7 +751,74 @@ function sanitizeAdminNotesPayload(input = {}) {
     throw error;
   }
 
-  return { html, fileName, zoom, wrap };
+  const tabsInput = Array.isArray(input?.tabs) ? input.tabs.slice(0, ADMIN_NOTES_MAX_TABS) : [];
+  const tabs = tabsInput
+    .map((tab, index) => {
+      const tabHtml = String(tab?.html || "");
+      const tabTitleRaw = String(tab?.title || `Sin título ${index + 1}`).trim();
+      const tabTitle = tabTitleRaw.slice(0, ADMIN_NOTES_MAX_FILE_NAME) || `Sin título ${index + 1}`;
+      const tabIdRaw = String(tab?.id || `tab_${index + 1}`).trim();
+      const tabId = tabIdRaw.slice(0, 120) || `tab_${index + 1}`;
+      const tabZoomValue = Number.parseInt(String(tab?.zoom ?? "100"), 10);
+      const tabZoom = Number.isFinite(tabZoomValue)
+        ? Math.min(300, Math.max(50, tabZoomValue))
+        : 100;
+      const tabWrap = tab?.wrap !== false;
+
+      return {
+        id: tabId,
+        title: tabTitle,
+        html: tabHtml,
+        zoom: tabZoom,
+        wrap: tabWrap,
+      };
+    })
+    .filter((tab) => !!tab.id);
+
+  const tabsHtmlLength = tabs.reduce((sum, tab) => sum + String(tab?.html || "").length, 0);
+  if (tabsHtmlLength > ADMIN_NOTES_MAX_HTML) {
+    const error = new Error("El contenido total de pestañas excede el tamaño permitido");
+    error.statusCode = 413;
+    throw error;
+  }
+
+  const activeDocIdRaw = String(input?.activeDocId || "").trim();
+  const activeDocId = activeDocIdRaw.slice(0, 120);
+
+  return { html, fileName, zoom, wrap, tabs, activeDocId };
+}
+
+function parseAdminNotesTabsFromHtml(rawHtml = "") {
+  const html = String(rawHtml || "");
+  if (!html) return null;
+
+  try {
+    const parsed = JSON.parse(html);
+    if (!parsed || typeof parsed !== "object") return null;
+    if (Number(parsed?.version) !== 2) return null;
+
+    const docs = Array.isArray(parsed?.documents)
+      ? parsed.documents
+        .slice(0, ADMIN_NOTES_MAX_TABS)
+        .map((tab, index) => ({
+          id: String(tab?.id || `tab_${index + 1}`).slice(0, 120),
+          title: String(tab?.title || `Sin título ${index + 1}`).slice(0, ADMIN_NOTES_MAX_FILE_NAME),
+          html: String(tab?.html || ""),
+          zoom: Math.min(300, Math.max(50, Number(tab?.zoom) || 100)),
+          wrap: tab?.wrap !== false,
+        }))
+        .filter((tab) => !!tab.id)
+      : [];
+
+    const activeDocId = String(parsed?.activeDocId || "").slice(0, 120);
+
+    return {
+      documents: docs,
+      activeDocId,
+    };
+  } catch (_error) {
+    return null;
+  }
 }
 
 async function handleTrackPlatformVisit(req, res) {
@@ -867,6 +935,8 @@ async function handleGetAdminNotes(req, res) {
         fileName: String(data.file_name || "Sin título"),
         zoom: Number(data.zoom) || 100,
         wrap: data.wrap !== false,
+        tabs: [],
+        activeDocId: "",
         updatedAt: data.updated_at || null,
         updatedBy: data.updated_by || null,
       }
@@ -875,9 +945,19 @@ async function handleGetAdminNotes(req, res) {
         fileName: "Sin título",
         zoom: 100,
         wrap: true,
+        tabs: [],
+        activeDocId: "",
         updatedAt: null,
         updatedBy: null,
       };
+
+    if (data) {
+      const tabsPayload = parseAdminNotesTabsFromHtml(data.html);
+      if (tabsPayload?.documents?.length) {
+        payload.tabs = tabsPayload.documents;
+        payload.activeDocId = tabsPayload.activeDocId || tabsPayload.documents[0]?.id || "";
+      }
+    }
 
     return res.status(200).json({
       success: true,
@@ -902,12 +982,22 @@ async function handleSaveAdminNotes(req, res) {
     const actorEmail = await requireAdminOrOwner(req, body);
     const payload = sanitizeAdminNotesPayload(body);
 
+    const tabsEnvelope = payload.tabs.length
+      ? JSON.stringify({
+        version: 2,
+        activeDocId: payload.activeDocId || payload.tabs[0]?.id || "",
+        documents: payload.tabs,
+      })
+      : payload.html;
+
+    const activeTab = payload.tabs.find((tab) => tab.id === (payload.activeDocId || "")) || payload.tabs[0] || null;
+
     const upsertPayload = {
       id: ADMIN_NOTES_ROW_ID,
-      html: payload.html,
-      file_name: payload.fileName,
-      zoom: payload.zoom,
-      wrap: payload.wrap,
+      html: tabsEnvelope,
+      file_name: activeTab?.title || payload.fileName,
+      zoom: activeTab?.zoom ?? payload.zoom,
+      wrap: activeTab?.wrap ?? payload.wrap,
       updated_at: new Date().toISOString(),
       updated_by: actorEmail,
     };
@@ -925,10 +1015,12 @@ async function handleSaveAdminNotes(req, res) {
     return res.status(200).json({
       success: true,
       notes: {
-        html: String(data?.html || ""),
+        html: String(activeTab?.html || payload.html || ""),
         fileName: String(data?.file_name || "Sin título"),
         zoom: Number(data?.zoom) || 100,
         wrap: data?.wrap !== false,
+        tabs: payload.tabs,
+        activeDocId: payload.activeDocId || activeTab?.id || "",
         updatedAt: data?.updated_at || null,
         updatedBy: data?.updated_by || actorEmail,
       },

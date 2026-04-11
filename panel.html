@@ -9641,6 +9641,10 @@
 
       if (menuBlocNotas && blocNotasSection) {
         menuBlocNotas.addEventListener("click", () => {
+          if (isGuestSession) {
+            mostrarMensaje('info', 'Sesión requerida', 'Bloc de Notas está disponible solo para usuarios con sesión iniciada.');
+            return;
+          }
           ensureBlocNotasMounted();
           mostrarSeccion(blocNotasSection, menuBlocNotas);
           initAdminNotesEditor();
@@ -17395,6 +17399,21 @@
         return !!window.canAccessAdminPanel;
       }
 
+      function getNotesCloudActions() {
+        if (isSharedAdminNotesScope()) {
+          return {
+            save: 'save-admin-notes',
+            get: 'get-admin-notes',
+            remove: 'delete-admin-note',
+          };
+        }
+        return {
+          save: 'save-user-notes',
+          get: 'get-user-notes',
+          remove: 'delete-user-note',
+        };
+      }
+
       function getAdminNotesStorageKey() {
         if (isSharedAdminNotesScope()) {
           return ADMIN_NOTES_STORAGE_KEY_BASE;
@@ -19733,7 +19752,7 @@
         }
 
         try {
-          const response = await fetch('/api/social?action=delete-admin-note', {
+          const response = await fetch(`/api/social?action=${getNotesCloudActions().remove}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -19775,7 +19794,7 @@
         try {
           const activeDoc = getActiveAdminNotesDoc() || createAdminNotesDocument();
           const docTitle = String(activeDoc.title || 'Sin título').trim() || 'Sin título';
-          const response = await fetch('/api/social?action=save-admin-notes', {
+          const response = await fetch(`/api/social?action=${getNotesCloudActions().save}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -19804,16 +19823,6 @@
 
           const payload = await response.json().catch(() => ({}));
           if (!response.ok || !payload?.success) {
-            const isPermissionError = response.status === 403 || response.status === 401;
-            if (isPermissionError && !isSharedAdminNotesScope()) {
-              const computerSaved = await saveAdminNotesToComputer({ markClean: false });
-              adminNotesSyncEnabled = false;
-              setAdminNotesSyncState('Privado · descargado');
-              if (notify) {
-                notifyAdminNotesSave(computerSaved ? 'info' : 'error', computerSaved ? 'Descargado a tu computadora' : 'Error al descargar', computerSaved ? 'Solo puedes guardar archivos en tu computadora.' : 'No se pudo descargar el archivo.');
-              }
-              return computerSaved;
-            }
             throw new Error(payload?.error || 'No fue posible guardar en la nube');
           }
 
@@ -19830,21 +19839,10 @@
           }
           return true;
         } catch (error) {
-          const isPermissionError = error?.message?.includes('permiso') || error?.message?.includes('autorized');
-          if (isPermissionError && !isSharedAdminNotesScope()) {
-            const computerSaved = await saveAdminNotesToComputer({ markClean: false });
-            adminNotesSyncEnabled = false;
-            setAdminNotesSyncState('Privado · descargado');
-            if (notify) {
-              notifyAdminNotesSave(computerSaved ? 'info' : 'error', computerSaved ? 'Descargado a tu computadora' : 'Error al descargar', computerSaved ? 'Solo puedes guardar archivos en tu computadora.' : 'No se pudo descargar el archivo.');
-            }
-            return computerSaved;
-          }
-
           adminNotesSyncEnabled = false;
           const activeDoc = getActiveAdminNotesDoc();
           const docTitle = String(activeDoc?.title || adminNotesFileName || 'Sin título').trim() || 'Sin título';
-          setAdminNotesSyncState('Error en la nube · descargando...');
+          setAdminNotesSyncState('Error en la nube · guardado local');
           console.warn('No se pudieron guardar notas admin en Supabase:', error);
           if (notify) {
             notifyAdminNotesSave('error', 'Error al guardar en la nube', `Documento "${docTitle}": ${error?.message || 'Ocurrió un error inesperado al guardar.'}`);
@@ -20031,7 +20029,7 @@
 
         try {
           setAdminNotesSyncState('Cargando desde la nube...');
-          const response = await fetch('/api/social?action=get-admin-notes', {
+          const response = await fetch(`/api/social?action=${getNotesCloudActions().get}`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${idToken}`
@@ -20040,12 +20038,6 @@
 
           const payload = await response.json().catch(() => ({}));
           if (!response.ok || !payload?.success) {
-            const isPermissionError = response.status === 403 || response.status === 401;
-            if (isPermissionError && !isSharedAdminNotesScope()) {
-              adminNotesSyncEnabled = false;
-              setAdminNotesSyncState('Privado · notas locales');
-              return false;
-            }
             throw new Error(payload?.error || 'No fue posible cargar notas de la nube');
           }
 
@@ -20069,11 +20061,11 @@
           }
 
           adminNotesSyncEnabled = true;
-          setAdminNotesSyncState(isSharedAdminNotesScope() ? 'Sincronizado en la nube' : 'Privado · notas locales');
+          setAdminNotesSyncState('Sincronizado en la nube');
           return true;
         } catch (error) {
           adminNotesSyncEnabled = false;
-          setAdminNotesSyncState(isSharedAdminNotesScope() ? 'No disponible · usando local' : 'Privado · notas locales');
+          setAdminNotesSyncState('No disponible · usando local');
           console.warn('No se pudieron cargar notas admin:', error);
           return false;
         }
@@ -20112,7 +20104,7 @@
       async function saveAdminNotesLocalAndCloud({ notify = true } = {}) {
         const activeDoc = getActiveAdminNotesDoc();
         const docTitle = String(activeDoc?.title || adminNotesFileName || 'Sin título').trim() || 'Sin título';
-        const shouldSyncCloud = isSharedAdminNotesScope();
+        const shouldSyncCloud = !!auth?.currentUser;
         const computerSaved = await saveAdminNotesToComputer({ markClean: false });
         const cacheSaved = saveAdminNotesToLocalStorage();
         const cloudSaved = shouldSyncCloud ? await saveAdminNotesToSupabase({ notify: false }) : true;

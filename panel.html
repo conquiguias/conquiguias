@@ -2943,6 +2943,30 @@
       background: color-mix(in srgb, var(--success-color) 16%, transparent);
     }
 
+    .notes-plan-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      margin-left: 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      border: 1.5px solid;
+      text-transform: uppercase;
+    }
+
+    .notes-plan-badge.basic {
+      color: var(--warning-color);
+      border-color: var(--warning-color);
+      background: color-mix(in srgb, var(--warning-color) 14%, transparent);
+    }
+
+    .notes-plan-badge.premium {
+      color: var(--success-color);
+      border-color: var(--success-color);
+      background: color-mix(in srgb, var(--success-color) 14%, transparent);
+    }
+
     @media (max-width: 760px) {
       #adminNotesEditor,
       #directorNotesEditor,
@@ -6270,6 +6294,7 @@
               <input id="adminNotesTitleInput" type="text" value="Sin título" maxlength="120" aria-label="Nombre de la nota activa">
               <span class="admin-notes-title-suffix">- Bloc de notas</span>
               <span id="blocNotasScopeBadge" class="scope-badge private">Privado</span>
+              <span id="adminNotesPlanBadge" class="notes-plan-badge basic">Free</span>
               <span id="adminNotesTitleDirty">*</span>
             </div>
             <div class="admin-notes-actions">
@@ -9681,11 +9706,12 @@
       });
 
       if (menuBlocNotas && blocNotasSection) {
-        menuBlocNotas.addEventListener("click", () => {
+        menuBlocNotas.addEventListener("click", async () => {
           if (isGuestSession) {
             mostrarMensaje('info', 'Sesión requerida', 'Bloc de Notas está disponible solo para usuarios con sesión iniciada.');
             return;
           }
+          await refreshCurrentUserPremiumStatus();
           setAdminNotesScope('private');
           updateBlocNotasScopeBadge();
           ensureBlocNotasMounted();
@@ -17476,8 +17502,10 @@
       let adminNotesTabDragHappened = false;
       let adminNotesSyncEnabled = false;
       let adminNotesScopeMode = 'private';
+      let adminNotesLimitNoticeShown = false;
       const ADMIN_NOTES_STORAGE_KEY_BASE = 'conquiguias_admin_notas_v1';
       const ADMIN_INSTRUCTORES_CACHE_MS = 2 * 60 * 1000;
+      const ADMIN_NOTES_FREE_CHAR_LIMIT = 1000;
 
       function isSharedAdminNotesScope() {
         return adminNotesScopeMode === 'shared';
@@ -17511,6 +17539,71 @@
         }
       }
 
+      function canUseAdminNotesPremiumFeatures() {
+        if (isSharedAdminNotesScope()) return true;
+        if (window.isOwner || window.isAdmin || window.isInstructorRole) return true;
+        return !!window.isPremiumDonor;
+      }
+
+      function getAdminNotesCharacterLimit() {
+        return canUseAdminNotesPremiumFeatures() ? Infinity : ADMIN_NOTES_FREE_CHAR_LIMIT;
+      }
+
+      function notifyAdminNotesPremiumRequired() {
+        if (typeof mostrarMensaje === 'function') {
+          mostrarMensaje(
+            'info',
+            'Función premium no disponible',
+            'Agregar más pestañas en Bloc de Notas está disponible para usuarios Premium (donadores), administradores, propietario o instructores. Puedes activar este beneficio en la sección Donaciones.'
+          );
+        }
+      }
+
+      function canCreateAdditionalAdminNotesTab({ notify = true } = {}) {
+        if (canUseAdminNotesPremiumFeatures()) return true;
+        if ((adminNotesDocuments?.length || 0) < 1) return true;
+        if (notify) {
+          notifyAdminNotesPremiumRequired();
+        }
+        return false;
+      }
+
+      function enforceAdminNotesCharacterLimit({ notify = false } = {}) {
+        const editor = getAdminNotesEditor();
+        if (!editor) return false;
+        const limit = getAdminNotesCharacterLimit();
+        if (!Number.isFinite(limit)) return false;
+
+        const text = String(editor.innerText || '');
+        if (text.length <= limit) {
+          adminNotesLimitNoticeShown = false;
+          return false;
+        }
+
+        const clamped = text.slice(0, limit);
+        editor.innerText = clamped;
+
+        const selection = window.getSelection();
+        if (selection) {
+          const range = document.createRange();
+          range.selectNodeContents(editor);
+          range.collapse(false);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+
+        if (notify && !adminNotesLimitNoticeShown && typeof mostrarMensaje === 'function') {
+          mostrarMensaje(
+            'info',
+            'Límite de caracteres alcanzado',
+            `Tu plan actual permite hasta ${ADMIN_NOTES_FREE_CHAR_LIMIT} caracteres por nota en Bloc de Notas. Para superar este límite, activa Premium en Donaciones.`
+          );
+          adminNotesLimitNoticeShown = true;
+        }
+
+        return true;
+      }
+
       function updateAdminNotesScopeState() {
         const scopeEl = document.getElementById('adminNotesScopeState');
         if (!scopeEl) return;
@@ -17523,10 +17616,18 @@
       function updateBlocNotasScopeBadge() {
         const badge = document.getElementById('blocNotasScopeBadge');
         if (!badge) return;
+        const planBadge = document.getElementById('adminNotesPlanBadge');
         const sharedScope = isSharedAdminNotesScope();
         badge.classList.remove('private', 'shared');
         badge.classList.add(sharedScope ? 'shared' : 'private');
         badge.textContent = sharedScope ? 'Compartido' : 'Privado';
+
+        if (planBadge) {
+          const premiumEnabled = canUseAdminNotesPremiumFeatures();
+          planBadge.classList.remove('basic', 'premium');
+          planBadge.classList.add(premiumEnabled ? 'premium' : 'basic');
+          planBadge.textContent = premiumEnabled ? 'Pro' : 'Free';
+        }
       }
 
       function getNotesCloudActions() {
@@ -19757,8 +19858,11 @@
         const wrapStateEl = document.getElementById('adminNotesWrapState');
 
         const text = editor.innerText || '';
+        const charLimit = getAdminNotesCharacterLimit();
         if (charCountEl) {
-          charCountEl.textContent = `${text.length} caracteres`;
+          charCountEl.textContent = Number.isFinite(charLimit)
+            ? `${text.length}/${charLimit} caracteres`
+            : `${text.length} caracteres`;
         }
         if (zoomEl) {
           zoomEl.textContent = `${adminNotesZoomPercent}%`;
@@ -20097,12 +20201,16 @@
       }
 
       function openAdminNotesDocument(doc) {
+        if (!canCreateAdditionalAdminNotesTab({ notify: true })) {
+          return false;
+        }
         syncActiveAdminNotesDocFromEditor();
         const normalized = createAdminNotesDocument(doc || {});
         adminNotesDocuments.push(normalized);
         adminNotesActiveDocId = normalized.id;
         setAdminNotesContent(normalized.html, normalized.title, { preserveDirty: true });
         renderAdminNotesTabs();
+        return true;
       }
 
       async function closeAdminNotesDocument(docId) {
@@ -20458,6 +20566,9 @@
 
         switch (action) {
           case 'new': {
+            if (!canCreateAdditionalAdminNotesTab({ notify: true })) {
+              return;
+            }
             openAdminNotesDocument({ title: 'Sin título', html: '' });
             focusEditor();
             return;
@@ -20596,6 +20707,13 @@
         });
 
         editor.addEventListener('input', () => {
+          const wasClamped = enforceAdminNotesCharacterLimit({ notify: true });
+          if (wasClamped) {
+            const activeDoc = getActiveAdminNotesDoc();
+            if (activeDoc) {
+              activeDoc.html = editor.innerHTML;
+            }
+          }
           markAdminNotesDirty();
           updateAdminNotesStatus();
         });

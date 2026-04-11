@@ -27,13 +27,35 @@ create table if not exists public.admin_shared_notes (
 alter table public.admin_shared_notes
   add column if not exists tab_order integer not null default 0;
 
-alter table public.admin_shared_notes
-  add constraint admin_shared_notes_zoom_check
-  check (zoom between 50 and 300);
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'admin_shared_notes_zoom_check'
+      and conrelid = 'public.admin_shared_notes'::regclass
+  ) then
+    alter table public.admin_shared_notes
+      add constraint admin_shared_notes_zoom_check
+      check (zoom between 50 and 300);
+  end if;
+end
+$$;
 
-alter table public.admin_shared_notes
-  add constraint admin_shared_notes_tab_order_check
-  check (tab_order >= 0);
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'admin_shared_notes_tab_order_check'
+      and conrelid = 'public.admin_shared_notes'::regclass
+  ) then
+    alter table public.admin_shared_notes
+      add constraint admin_shared_notes_tab_order_check
+      check (tab_order >= 0);
+  end if;
+end
+$$;
 
 create index if not exists admin_shared_notes_updated_at_idx
   on public.admin_shared_notes (updated_at desc);

@@ -148,6 +148,25 @@ export default async function handler(req, res) {
         await handleDeleteAdminNote(req, res);
         break;
       case "upsert-notification-token":
+              case "get-director-notes":
+                await handleGetDirectorNotes(req, res);
+                break;
+              case "save-director-notes":
+                await handleSaveDirectorNotes(req, res);
+                break;
+              case "delete-director-note":
+                await handleDeleteDirectorNote(req, res);
+                break;
+              case "get-conqui-notes":
+                await handleGetConquiNotes(req, res);
+                break;
+              case "save-conqui-notes":
+                await handleSaveConquiNotes(req, res);
+                break;
+              case "delete-conqui-note":
+                await handleDeleteConquiNote(req, res);
+                break;
+              case "upsert-notification-token":
         await handleUpsertNotificationToken(req, res);
         break;
       case "disable-notification-token":
@@ -1129,6 +1148,571 @@ async function handleDeleteAdminNote(req, res) {
     return res.status(error.statusCode || 500).json({
       success: false,
       error: error.message || "No se pudo eliminar la nota",
+
+    // Helper function to get authenticated user ID
+    async function getAuthenticatedUserId(req) {
+      try {
+        const authHeader = String(req.headers?.authorization || req.headers?.Authorization || "").trim();
+        if (!authHeader.startsWith("Bearer ")) {
+          const err = new Error("Token de autorización requerido");
+          err.statusCode = 401;
+          throw err;
+        }
+
+        const idToken = authHeader.substring(7);
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        return decodedToken.uid;
+      } catch (error) {
+        if (!error.statusCode) {
+          error.statusCode = 401;
+        }
+        throw error;
+      }
+    }
+
+    // Handler for getting user-scoped director notes
+    async function handleGetDirectorNotes(req, res) {
+      if (req.method !== "GET") {
+        return res.status(405).json({ error: "Método no permitido" });
+      }
+
+      try {
+        const userId = await getAuthenticatedUserId(req);
+        const USER_NOTES_TABLE = "user_notes";
+
+        const { data: rows, error } = await supabase
+          .from(USER_NOTES_TABLE)
+          .select("id, html, title, zoom, wrap, tab_order, updated_at, updated_by")
+          .eq("user_id", userId)
+          .eq("note_type", "director")
+          .order("tab_order", { ascending: true })
+          .order("updated_at", { ascending: false });
+
+        if (error) {
+          throw new Error(`No se pudieron cargar notas de director desde Supabase: ${error.message}`);
+        }
+
+        const normalizedRows = Array.isArray(rows) ? rows : [];
+        const DIRECTOR_NOTES_MAX_TABS = 30;
+
+        if (normalizedRows.length > 0) {
+          const tabs = normalizedRows
+            .slice(0, DIRECTOR_NOTES_MAX_TABS)
+            .map((row) => ({
+              id: String(row.id || "").trim(),
+              title: String(row.title || "Sin título"),
+              html: String(row.html || ""),
+              zoom: Number(row.zoom) || 100,
+              wrap: row.wrap !== false,
+            }))
+            .filter((tab) => !!tab.id);
+
+          const first = tabs[0] || null;
+
+          return res.status(200).json({
+            success: true,
+            notes: {
+              html: String(first?.html || ""),
+              fileName: String(first?.title || "Sin título"),
+              zoom: Number(first?.zoom) || 100,
+              wrap: first?.wrap !== false,
+              tabs,
+              activeDocId: first?.id || "",
+              updatedAt: normalizedRows[0]?.updated_at || null,
+              updatedBy: normalizedRows[0]?.updated_by || null,
+            },
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          notes: {
+            html: "",
+            fileName: "Sin título",
+            zoom: 100,
+            wrap: true,
+            tabs: [],
+            activeDocId: "",
+            updatedAt: null,
+            updatedBy: null,
+          },
+        });
+      } catch (error) {
+        console.error("Error obteniendo notas de director:", error);
+        return res.status(error.statusCode || 500).json({
+          success: false,
+          error: error.message || "No se pudieron obtener las notas de director",
+        });
+      }
+    }
+
+    // Handler for saving user-scoped director notes
+    async function handleSaveDirectorNotes(req, res) {
+      if (req.method !== "POST") {
+        return res.status(405).json({ error: "Método no permitido" });
+      }
+
+      try {
+        const userId = await getAuthenticatedUserId(req);
+        const USER_NOTES_TABLE = "user_notes";
+        const body = req.body || {};
+        const DIRECTOR_NOTES_MAX_HTML = 2_000_000;
+        const DIRECTOR_NOTES_MAX_FILE_NAME = 180;
+        const DIRECTOR_NOTES_MAX_TABS = 30;
+
+        const payload = {
+          tabs: Array.isArray(body.tabs) ? body.tabs.slice(0, DIRECTOR_NOTES_MAX_TABS) : [],
+          activeDocId: String(body.activeDocId || "").trim().slice(0, 120),
+          tabsOrder: Array.isArray(body.tabsOrder) ? body.tabsOrder : [],
+          saveOnlyActive: !!body.saveOnlyActive,
+        };
+
+        payload.tabs = payload.tabs.map((tab) => ({
+          id: String(tab?.id || "").trim().slice(0, 120),
+          title: String(tab?.title || "Sin título").slice(0, DIRECTOR_NOTES_MAX_FILE_NAME),
+          html: String(tab?.html || "").slice(0, DIRECTOR_NOTES_MAX_HTML),
+          zoom: Math.min(300, Math.max(50, Number(tab?.zoom) || 100)),
+          wrap: tab?.wrap !== false,
+        }));
+
+        let finalTabs = payload.tabs.length ? [...payload.tabs] : [];
+        const finalOrder = payload.tabsOrder.length ? [...payload.tabsOrder] : finalTabs.map((tab) => tab.id);
+
+        if (payload.saveOnlyActive) {
+          const activeIncomingTab = payload.tabs.find((tab) => tab.id === (payload.activeDocId || "")) || payload.tabs[0] || null;
+          if (!activeIncomingTab) {
+            const err = new Error("No se recibió la pestaña activa para guardar");
+            err.statusCode = 400;
+            throw err;
+          }
+
+          const activeTabOrder = Math.max(0, finalOrder.indexOf(activeIncomingTab.id));
+
+          const { data, error } = await supabase
+            .from(USER_NOTES_TABLE)
+            .upsert({
+              id: activeIncomingTab.id,
+              user_id: userId,
+              note_type: "director",
+              title: activeIncomingTab.title,
+              html: activeIncomingTab.html,
+              zoom: activeIncomingTab.zoom,
+              wrap: activeIncomingTab.wrap,
+              tab_order: activeTabOrder,
+              updated_at: new Date().toISOString(),
+              updated_by: userId,
+            }, { onConflict: "id" })
+            .select("id, html, title, zoom, wrap, tab_order, updated_at, updated_by")
+            .single();
+
+          if (error) {
+            throw new Error(`No se pudo guardar la pestaña activa: ${error.message}`);
+          }
+
+          finalTabs = [activeIncomingTab];
+
+          const remainingOrderIds = finalOrder.filter((id) => id !== activeIncomingTab.id);
+          if (remainingOrderIds.length) {
+            const orderUpdates = remainingOrderIds.map((tabId, index) =>
+              supabase
+                .from(USER_NOTES_TABLE)
+                .update({ tab_order: index + 1 })
+                .eq("id", tabId)
+                .eq("user_id", userId),
+            );
+
+            const orderResults = await Promise.all(orderUpdates);
+            const orderError = orderResults.find((result) => !!result?.error)?.error;
+            if (orderError) {
+              throw new Error(`No se pudo actualizar el orden de pestañas: ${orderError.message}`);
+            }
+          }
+
+          return res.status(200).json({
+            success: true,
+            notes: {
+              html: String(data?.html || activeIncomingTab.html || ""),
+              fileName: String(data?.title || activeIncomingTab.title || "Sin título"),
+              zoom: Number(data?.zoom) || activeIncomingTab.zoom || 100,
+              wrap: data?.wrap !== false,
+              tabs: finalTabs,
+              activeDocId: activeIncomingTab.id,
+              updatedAt: data?.updated_at || null,
+              updatedBy: data?.updated_by || userId,
+            },
+          });
+        }
+
+        const batchTabs = finalTabs.slice(0, DIRECTOR_NOTES_MAX_TABS);
+        if (!batchTabs.length) {
+          const err = new Error("No se recibieron pestañas para guardar");
+          err.statusCode = 400;
+          throw err;
+        }
+
+        const batchPayload = batchTabs.map((tab, index) => {
+          const mappedOrder = finalOrder.indexOf(tab.id);
+          return {
+            id: tab.id,
+            user_id: userId,
+            note_type: "director",
+            title: tab.title,
+            html: tab.html,
+            zoom: tab.zoom,
+            wrap: tab.wrap,
+            tab_order: mappedOrder >= 0 ? mappedOrder : index,
+            updated_at: new Date().toISOString(),
+            updated_by: userId,
+          };
+        });
+
+        const { error } = await supabase
+          .from(USER_NOTES_TABLE)
+          .upsert(batchPayload, { onConflict: "id" });
+
+        if (error) {
+          throw new Error(`No se pudieron guardar pestañas de notas de director: ${error.message}`);
+        }
+
+        const activeTab = batchTabs.find((tab) => tab.id === (payload.activeDocId || "")) || batchTabs[0] || null;
+
+        return res.status(200).json({
+          success: true,
+          notes: {
+            html: String(activeTab?.html || ""),
+            fileName: String(activeTab?.title || "Sin título"),
+            zoom: Number(activeTab?.zoom) || 100,
+            wrap: activeTab?.wrap !== false,
+            tabs: batchTabs,
+            activeDocId: payload.activeDocId || activeTab?.id || "",
+            updatedAt: new Date().toISOString(),
+            updatedBy: userId,
+          },
+        });
+      } catch (error) {
+        console.error("Error guardando notas de director:", error);
+        return res.status(error.statusCode || 500).json({
+          success: false,
+          error: error.message || "No se pudieron guardar las notas de director",
+        });
+      }
+    }
+
+    // Handler for deleting user-scoped director notes
+    async function handleDeleteDirectorNote(req, res) {
+      if (req.method !== "POST") {
+        return res.status(405).json({ error: "Método no permitido" });
+      }
+
+      try {
+        const userId = await getAuthenticatedUserId(req);
+        const USER_NOTES_TABLE = "user_notes";
+        const body = req.body || {};
+        const tabId = String(body?.tabId || "").trim().slice(0, 120);
+
+        if (!tabId) {
+          return res.status(400).json({
+            success: false,
+            error: "tabId es requerido",
+          });
+        }
+
+        const { error } = await supabase
+          .from(USER_NOTES_TABLE)
+          .delete()
+          .eq("id", tabId)
+          .eq("user_id", userId)
+          .eq("note_type", "director");
+
+        if (error) {
+          throw new Error(`No se pudo eliminar la nota en la nube: ${error.message}`);
+        }
+
+        return res.status(200).json({
+          success: true,
+          tabId,
+          deletedBy: userId,
+        });
+      } catch (error) {
+        console.error("Error eliminando nota de director:", error);
+        return res.status(error.statusCode || 500).json({
+          success: false,
+          error: error.message || "No se pudo eliminar la nota de director",
+        });
+      }
+    }
+
+    // Handler for getting user-scoped conqui notes
+    async function handleGetConquiNotes(req, res) {
+      if (req.method !== "GET") {
+        return res.status(405).json({ error: "Método no permitido" });
+      }
+
+      try {
+        const userId = await getAuthenticatedUserId(req);
+        const USER_NOTES_TABLE = "user_notes";
+
+        const { data: rows, error } = await supabase
+          .from(USER_NOTES_TABLE)
+          .select("id, html, title, zoom, wrap, tab_order, updated_at, updated_by")
+          .eq("user_id", userId)
+          .eq("note_type", "conqui")
+          .order("tab_order", { ascending: true })
+          .order("updated_at", { ascending: false });
+
+        if (error) {
+          throw new Error(`No se pudieron cargar notas de conqui desde Supabase: ${error.message}`);
+        }
+
+        const normalizedRows = Array.isArray(rows) ? rows : [];
+        const CONQUI_NOTES_MAX_TABS = 30;
+
+        if (normalizedRows.length > 0) {
+          const tabs = normalizedRows
+            .slice(0, CONQUI_NOTES_MAX_TABS)
+            .map((row) => ({
+              id: String(row.id || "").trim(),
+              title: String(row.title || "Sin título"),
+              html: String(row.html || ""),
+              zoom: Number(row.zoom) || 100,
+              wrap: row.wrap !== false,
+            }))
+            .filter((tab) => !!tab.id);
+
+          const first = tabs[0] || null;
+
+          return res.status(200).json({
+            success: true,
+            notes: {
+              html: String(first?.html || ""),
+              fileName: String(first?.title || "Sin título"),
+              zoom: Number(first?.zoom) || 100,
+              wrap: first?.wrap !== false,
+              tabs,
+              activeDocId: first?.id || "",
+              updatedAt: normalizedRows[0]?.updated_at || null,
+              updatedBy: normalizedRows[0]?.updated_by || null,
+            },
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          notes: {
+            html: "",
+            fileName: "Sin título",
+            zoom: 100,
+            wrap: true,
+            tabs: [],
+            activeDocId: "",
+            updatedAt: null,
+            updatedBy: null,
+          },
+        });
+      } catch (error) {
+        console.error("Error obteniendo notas de conqui:", error);
+        return res.status(error.statusCode || 500).json({
+          success: false,
+          error: error.message || "No se pudieron obtener las notas de conqui",
+        });
+      }
+    }
+
+    // Handler for saving user-scoped conqui notes
+    async function handleSaveConquiNotes(req, res) {
+      if (req.method !== "POST") {
+        return res.status(405).json({ error: "Método no permitido" });
+      }
+
+      try {
+        const userId = await getAuthenticatedUserId(req);
+        const USER_NOTES_TABLE = "user_notes";
+        const body = req.body || {};
+        const CONQUI_NOTES_MAX_HTML = 2_000_000;
+        const CONQUI_NOTES_MAX_FILE_NAME = 180;
+        const CONQUI_NOTES_MAX_TABS = 30;
+
+        const payload = {
+          tabs: Array.isArray(body.tabs) ? body.tabs.slice(0, CONQUI_NOTES_MAX_TABS) : [],
+          activeDocId: String(body.activeDocId || "").trim().slice(0, 120),
+          tabsOrder: Array.isArray(body.tabsOrder) ? body.tabsOrder : [],
+          saveOnlyActive: !!body.saveOnlyActive,
+        };
+
+        payload.tabs = payload.tabs.map((tab) => ({
+          id: String(tab?.id || "").trim().slice(0, 120),
+          title: String(tab?.title || "Sin título").slice(0, CONQUI_NOTES_MAX_FILE_NAME),
+          html: String(tab?.html || "").slice(0, CONQUI_NOTES_MAX_HTML),
+          zoom: Math.min(300, Math.max(50, Number(tab?.zoom) || 100)),
+          wrap: tab?.wrap !== false,
+        }));
+
+        let finalTabs = payload.tabs.length ? [...payload.tabs] : [];
+        const finalOrder = payload.tabsOrder.length ? [...payload.tabsOrder] : finalTabs.map((tab) => tab.id);
+
+        if (payload.saveOnlyActive) {
+          const activeIncomingTab = payload.tabs.find((tab) => tab.id === (payload.activeDocId || "")) || payload.tabs[0] || null;
+          if (!activeIncomingTab) {
+            const err = new Error("No se recibió la pestaña activa para guardar");
+            err.statusCode = 400;
+            throw err;
+          }
+
+          const activeTabOrder = Math.max(0, finalOrder.indexOf(activeIncomingTab.id));
+
+          const { data, error } = await supabase
+            .from(USER_NOTES_TABLE)
+            .upsert({
+              id: activeIncomingTab.id,
+              user_id: userId,
+              note_type: "conqui",
+              title: activeIncomingTab.title,
+              html: activeIncomingTab.html,
+              zoom: activeIncomingTab.zoom,
+              wrap: activeIncomingTab.wrap,
+              tab_order: activeTabOrder,
+              updated_at: new Date().toISOString(),
+              updated_by: userId,
+            }, { onConflict: "id" })
+            .select("id, html, title, zoom, wrap, tab_order, updated_at, updated_by")
+            .single();
+
+          if (error) {
+            throw new Error(`No se pudo guardar la pestaña activa: ${error.message}`);
+          }
+
+          finalTabs = [activeIncomingTab];
+
+          const remainingOrderIds = finalOrder.filter((id) => id !== activeIncomingTab.id);
+          if (remainingOrderIds.length) {
+            const orderUpdates = remainingOrderIds.map((tabId, index) =>
+              supabase
+                .from(USER_NOTES_TABLE)
+                .update({ tab_order: index + 1 })
+                .eq("id", tabId)
+                .eq("user_id", userId),
+            );
+
+            const orderResults = await Promise.all(orderUpdates);
+            const orderError = orderResults.find((result) => !!result?.error)?.error;
+            if (orderError) {
+              throw new Error(`No se pudo actualizar el orden de pestañas: ${orderError.message}`);
+            }
+          }
+
+          return res.status(200).json({
+            success: true,
+            notes: {
+              html: String(data?.html || activeIncomingTab.html || ""),
+              fileName: String(data?.title || activeIncomingTab.title || "Sin título"),
+              zoom: Number(data?.zoom) || activeIncomingTab.zoom || 100,
+              wrap: data?.wrap !== false,
+              tabs: finalTabs,
+              activeDocId: activeIncomingTab.id,
+              updatedAt: data?.updated_at || null,
+              updatedBy: data?.updated_by || userId,
+            },
+          });
+        }
+
+        const batchTabs = finalTabs.slice(0, CONQUI_NOTES_MAX_TABS);
+        if (!batchTabs.length) {
+          const err = new Error("No se recibieron pestañas para guardar");
+          err.statusCode = 400;
+          throw err;
+        }
+
+        const batchPayload = batchTabs.map((tab, index) => {
+          const mappedOrder = finalOrder.indexOf(tab.id);
+          return {
+            id: tab.id,
+            user_id: userId,
+            note_type: "conqui",
+            title: tab.title,
+            html: tab.html,
+            zoom: tab.zoom,
+            wrap: tab.wrap,
+            tab_order: mappedOrder >= 0 ? mappedOrder : index,
+            updated_at: new Date().toISOString(),
+            updated_by: userId,
+          };
+        });
+
+        const { error } = await supabase
+          .from(USER_NOTES_TABLE)
+          .upsert(batchPayload, { onConflict: "id" });
+
+        if (error) {
+          throw new Error(`No se pudieron guardar pestañas de notas de conqui: ${error.message}`);
+        }
+
+        const activeTab = batchTabs.find((tab) => tab.id === (payload.activeDocId || "")) || batchTabs[0] || null;
+
+        return res.status(200).json({
+          success: true,
+          notes: {
+            html: String(activeTab?.html || ""),
+            fileName: String(activeTab?.title || "Sin título"),
+            zoom: Number(activeTab?.zoom) || 100,
+            wrap: activeTab?.wrap !== false,
+            tabs: batchTabs,
+            activeDocId: payload.activeDocId || activeTab?.id || "",
+            updatedAt: new Date().toISOString(),
+            updatedBy: userId,
+          },
+        });
+      } catch (error) {
+        console.error("Error guardando notas de conqui:", error);
+        return res.status(error.statusCode || 500).json({
+          success: false,
+          error: error.message || "No se pudieron guardar las notas de conqui",
+        });
+      }
+    }
+
+    // Handler for deleting user-scoped conqui notes
+    async function handleDeleteConquiNote(req, res) {
+      if (req.method !== "POST") {
+        return res.status(405).json({ error: "Método no permitido" });
+      }
+
+      try {
+        const userId = await getAuthenticatedUserId(req);
+        const USER_NOTES_TABLE = "user_notes";
+        const body = req.body || {};
+        const tabId = String(body?.tabId || "").trim().slice(0, 120);
+
+        if (!tabId) {
+          return res.status(400).json({
+            success: false,
+            error: "tabId es requerido",
+          });
+        }
+
+        const { error } = await supabase
+          .from(USER_NOTES_TABLE)
+          .delete()
+          .eq("id", tabId)
+          .eq("user_id", userId)
+          .eq("note_type", "conqui");
+
+        if (error) {
+          throw new Error(`No se pudo eliminar la nota en la nube: ${error.message}`);
+        }
+
+        return res.status(200).json({
+          success: true,
+          tabId,
+          deletedBy: userId,
+        });
+      } catch (error) {
+        console.error("Error eliminando nota de conqui:", error);
+        return res.status(error.statusCode || 500).json({
+          success: false,
+          error: error.message || "No se pudo eliminar la nota de conqui",
+        });
+      }
+    }
     });
   }
 }

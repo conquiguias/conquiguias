@@ -19778,13 +19778,13 @@
           if (!response.ok || !payload?.success) {
             const isPermissionError = response.status === 403 || response.status === 401;
             if (isPermissionError && !isSharedAdminNotesScope()) {
-              const cacheSaved = saveAdminNotesToLocalStorage();
+              const computerSaved = await saveAdminNotesToComputer({ markClean: false });
               adminNotesSyncEnabled = false;
-              setAdminNotesSyncState('Privado · guardado local');
+              setAdminNotesSyncState('Privado · descargado');
               if (notify) {
-                notifyAdminNotesSave('info', 'Notas privadas', 'Solo puedes guardar localmente.');
+                notifyAdminNotesSave(computerSaved ? 'info' : 'error', computerSaved ? 'Descargado a tu computadora' : 'Error al descargar', computerSaved ? 'Solo puedes guardar archivos en tu computadora.' : 'No se pudo descargar el archivo.');
               }
-              return cacheSaved;
+              return computerSaved;
             }
             throw new Error(payload?.error || 'No fue posible guardar en la nube');
           }
@@ -19804,19 +19804,19 @@
         } catch (error) {
           const isPermissionError = error?.message?.includes('permiso') || error?.message?.includes('autorized');
           if (isPermissionError && !isSharedAdminNotesScope()) {
-            const cacheSaved = saveAdminNotesToLocalStorage();
+            const computerSaved = await saveAdminNotesToComputer({ markClean: false });
             adminNotesSyncEnabled = false;
-            setAdminNotesSyncState('Privado · guardado local');
+            setAdminNotesSyncState('Privado · descargado');
             if (notify) {
-              notifyAdminNotesSave('info', 'Notas privadas', 'Solo puedes guardar localmente.');
+              notifyAdminNotesSave(computerSaved ? 'info' : 'error', computerSaved ? 'Descargado a tu computadora' : 'Error al descargar', computerSaved ? 'Solo puedes guardar archivos en tu computadora.' : 'No se pudo descargar el archivo.');
             }
-            return cacheSaved;
+            return computerSaved;
           }
 
           adminNotesSyncEnabled = false;
           const activeDoc = getActiveAdminNotesDoc();
           const docTitle = String(activeDoc?.title || adminNotesFileName || 'Sin título').trim() || 'Sin título';
-          setAdminNotesSyncState('Error en la nube · guardado local');
+          setAdminNotesSyncState('Error en la nube · descargando...');
           console.warn('No se pudieron guardar notas admin en Supabase:', error);
           if (notify) {
             notifyAdminNotesSave('error', 'Error al guardar en la nube', `Documento "${docTitle}": ${error?.message || 'Ocurrió un error inesperado al guardar.'}`);

@@ -58,9 +58,44 @@ const REMINDER_HOUR_LOCAL = Number.isFinite(Number.parseInt(String(process.env.R
 const ADMIN_NOTES_TABLE = "admin_shared_notes";
 const USER_NOTES_TABLE = "user_notes";
 const USER_NOTES_TYPE = String(process.env.USER_NOTES_TYPE || "private").trim().toLowerCase() || "private";
+const USER_NOTES_ALLOWED_TYPES = new Set(
+  String(process.env.USER_NOTES_ALLOWED_TYPES || "private")
+    .split(",")
+    .map((value) => String(value || "").trim().toLowerCase())
+    .filter(Boolean),
+);
 const ADMIN_NOTES_MAX_HTML = 2_000_000;
 const ADMIN_NOTES_MAX_FILE_NAME = 180;
 const ADMIN_NOTES_MAX_TABS = 30;
+
+function resolveUserNotesType() {
+  if (USER_NOTES_ALLOWED_TYPES.has(USER_NOTES_TYPE)) {
+    return USER_NOTES_TYPE;
+  }
+
+  if (USER_NOTES_ALLOWED_TYPES.has("private")) {
+    return "private";
+  }
+
+  return Array.from(USER_NOTES_ALLOWED_TYPES)[0] || "private";
+}
+
+function isUserNotesTypeConstraintError(errorLike) {
+  const message = String(errorLike?.message || "").toLowerCase();
+  return (
+    message.includes("user_notes_note_type_check") ||
+    (message.includes("note_type") && message.includes("check constraint"))
+  );
+}
+
+function createUserNotesTypeConstraintError(errorLike, notesType) {
+  const allowed = Array.from(USER_NOTES_ALLOWED_TYPES);
+  const err = new Error(
+    `Configuración inválida de note_type en user_notes. note_type actual: "${notesType}". Valores permitidos: ${allowed.join(", ")}.`,
+  );
+  err.statusCode = 500;
+  return err;
+}
 
 // ðŸ” Add security headers to all API responses
 function setSecurityHeaders(res) {
@@ -1214,6 +1249,7 @@ async function handleSaveUserNotes(req, res) {
     const body = req.body || {};
     const requester = await requireAuthenticated(req, body);
     const userId = String(requester?.uid || "").trim();
+    const userNotesType = resolveUserNotesType();
     const payload = sanitizeAdminNotesPayload(body);
 
     if (!userId) {
@@ -1239,7 +1275,7 @@ async function handleSaveUserNotes(req, res) {
         .upsert({
           id: activeIncomingTab.id,
           user_id: userId,
-          note_type: USER_NOTES_TYPE,
+          note_type: userNotesType,
           title: activeIncomingTab.title,
           html: activeIncomingTab.html,
           zoom: activeIncomingTab.zoom,
@@ -1252,6 +1288,9 @@ async function handleSaveUserNotes(req, res) {
         .single();
 
       if (error) {
+        if (isUserNotesTypeConstraintError(error)) {
+          throw createUserNotesTypeConstraintError(error, userNotesType);
+        }
         throw new Error(`No se pudo guardar la pestaÃ±a activa: ${error.message}`);
       }
 
@@ -1266,7 +1305,7 @@ async function handleSaveUserNotes(req, res) {
             .update({ tab_order: index + 1 })
             .eq("id", tabId)
             .eq("user_id", userId)
-            .eq("note_type", USER_NOTES_TYPE),
+            .eq("note_type", userNotesType),
         );
 
         const orderResults = await Promise.all(orderUpdates);
@@ -1303,7 +1342,7 @@ async function handleSaveUserNotes(req, res) {
       return {
         id: tab.id,
         user_id: userId,
-        note_type: USER_NOTES_TYPE,
+        note_type: userNotesType,
         title: tab.title,
         html: tab.html,
         zoom: tab.zoom,
@@ -1319,6 +1358,9 @@ async function handleSaveUserNotes(req, res) {
       .upsert(batchPayload, { onConflict: "id" });
 
     if (error) {
+      if (isUserNotesTypeConstraintError(error)) {
+        throw createUserNotesTypeConstraintError(error, userNotesType);
+      }
       throw new Error(`No se pudieron guardar pestañas de notas de usuario: ${error.message}`);
     }
 

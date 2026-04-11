@@ -6852,18 +6852,19 @@
         6: { excelente: 10, bueno: 7, basico: 5, deficiente: 0 },
         7: { excelente: 10, bueno: 7, basico: 5, deficiente: 0 }
       };
+
       const _rubricaColores = {
         excelente: { bg: 'rgba(16,185,129,0.18)', sombra: '#10b981', texto: '#10b981' },
         bueno: { bg: 'rgba(59,130,246,0.18)', sombra: '#3b82f6', texto: '#3b82f6' },
         basico: { bg: 'rgba(245,158,11,0.18)', sombra: '#f59e0b', texto: '#f59e0b' },
         deficiente: { bg: 'rgba(239,68,68,0.18)', sombra: '#ef4444', texto: '#ef4444' }
       };
-      const _selecciones = {}; // { 1: 'excelente', 2: 'bueno', ... }
+
+      const _selecciones = {};
 
       function seleccionarNivel(criterio, nivel) {
         const niveles = ['excelente', 'bueno', 'basico', 'deficiente'];
 
-        // Quitar resaltado de todos los niveles del criterio
         niveles.forEach(n => {
           const cel = document.getElementById(`cel-${criterio}-${n}`);
           if (cel) {
@@ -6873,7 +6874,6 @@
           }
         });
 
-        // Resaltar celda seleccionada
         const selCell = document.getElementById(`cel-${criterio}-${nivel}`);
         if (selCell) {
           const c = _rubricaColores[nivel];
@@ -6882,10 +6882,8 @@
           selCell.style.fontWeight = '600';
         }
 
-        // Guardar selección
         _selecciones[criterio] = nivel;
 
-        // Actualizar pts del criterio
         const pts = _rubricaPuntos[criterio][nivel];
         const ptsCell = document.getElementById(`pts-c${criterio}`);
         if (ptsCell) {
@@ -6893,7 +6891,6 @@
           ptsCell.style.color = _rubricaColores[nivel].texto;
         }
 
-        // Recalcular total
         let total = 0;
         for (let i = 1; i <= 7; i++) {
           if (_selecciones[i] !== undefined) {
@@ -6901,87 +6898,118 @@
           }
         }
 
-        // Actualizar celda total
         const totalCell = document.getElementById('total-rubrica-pts');
         if (totalCell) {
           totalCell.textContent = `${total} pts`;
           totalCell.style.color = total >= 70 ? '#10b981' : total >= 50 ? '#f59e0b' : '#ef4444';
         }
 
-        // Convertir a nota 0-10 y actualizar input del header
         const nota = (total / 10).toFixed(1);
         const inputNota = document.getElementById('inputNotaIndividual');
         if (inputNota) inputNota.value = nota;
       }
 
-      // Resetear rúbrica al abrir nuevo alumno (se puede llamar externamente)
       window.resetRubrica = function () {
         for (let i = 1; i <= 7; i++) {
           delete _selecciones[i];
           ['excelente', 'bueno', 'basico', 'deficiente'].forEach(n => {
             const cel = document.getElementById(`cel-${i}-${n}`);
-            if (cel) { cel.style.background = ''; cel.style.boxShadow = ''; cel.style.fontWeight = ''; }
+            if (cel) {
+              cel.style.background = '';
+              cel.style.boxShadow = '';
+              cel.style.fontWeight = '';
+            }
           });
           const ptsCell = document.getElementById(`pts-c${i}`);
-          if (ptsCell) { ptsCell.textContent = '—'; ptsCell.style.color = '#64748b'; }
+          if (ptsCell) {
+            ptsCell.textContent = '—';
+            ptsCell.style.color = '#64748b';
+          }
         }
         const totalCell = document.getElementById('total-rubrica-pts');
-        if (totalCell) { totalCell.textContent = '—'; totalCell.style.color = '#64748b'; }
+        if (totalCell) {
+          totalCell.textContent = '—';
+          totalCell.style.color = '#64748b';
+        }
       };
 
-      // ─── Datos de la rúbrica (compartidos para visualización) ───────────────
       const _rubricaDefinicion = [
         {
-          n: 1, label: '1. Cumplimiento del formato solicitado', sub: '(Portada y Diseño)',
-          excelente: 'Cumple exactamente el formato solicitado: portada correcta, tipografía, tamaños, alineación, línea azul, datos completos y orden visual profesional.',
-          bueno: 'Presenta casi todo el formato correcto, con pequeños errores de alineación o estilo.',
-          basico: 'Presenta formato incompleto o varios elementos mal configurados.',
-          deficiente: 'No respeta el formato solicitado o falta la portada requerida.', pts: '10 pts'
+          n: 1,
+          label: '1. Cumplimiento del formato solicitado',
+          sub: '',
+          excelente: 'Cumple exactamente con el formato solicitado (portada, estructura, apartados, etc.).',
+          bueno: 'Cumple casi todo el formato, con leves omisiones.',
+          basico: 'Cumple parcialmente con el formato.',
+          deficiente: 'No respeta el formato solicitado o falta la portada requerida.',
+          pts: '10 pts'
         },
         {
-          n: 2, label: '2. Originalidad del contenido', sub: '(Plagio e IA)',
-          excelente: 'Contenido auténtico, redacción propia, coherente con el nivel del estudiante. Sin coincidencias relevantes en detector de plagio ni uso indebido de IA.',
-          bueno: 'Coincidencias mínimas o uso leve de apoyo externo con adecuada adaptación personal.',
-          basico: 'Evidencia moderada de copia, parafraseo pobre o dependencia excesiva de IA.',
-          deficiente: 'Copia directa, trabajo generado por IA sin edición o plagio evidente.', pts: '10 pts'
+          n: 2,
+          label: '2. Originalidad y autenticidad',
+          sub: '',
+          excelente: 'El trabajo refleja ideas propias, análisis personal y elaboración auténtica.',
+          bueno: 'Presenta mayormente contenido propio con algunas referencias externas bien usadas.',
+          basico: 'Muestra escasa elaboración personal o demasiada dependencia de fuentes externas.',
+          deficiente: 'Copia directa, trabajo generado por IA sin edición o plagio evidente.',
+          pts: '10 pts'
         },
         {
-          n: 3, label: '3. Desarrollo del contenido de la especialidad', sub: '',
-          excelente: 'Responde completamente todos los requisitos de la especialidad con profundidad, claridad y comprensión.',
-          bueno: 'Responde la mayoría de los requisitos correctamente.',
-          basico: 'Respuestas incompletas o superficiales.',
-          deficiente: 'No cumple con los requisitos de la especialidad.', pts: '40 pts',
-          pExcelente: 40, pBueno: 30, pBasico: 15, pDeficiente: 0
+          n: 3,
+          label: '3. Desarrollo y profundidad del tema',
+          sub: '(criterio principal)',
+          excelente: 'Explica todos los requisitos de la especialidad con profundidad, claridad y ejemplos concretos.',
+          bueno: 'Desarrolla bien la mayoría de requisitos, con algunas partes menos detalladas.',
+          basico: 'Desarrollo superficial; faltan detalles o evidencia de comprensión.',
+          deficiente: 'No cumple con los requisitos de la especialidad.',
+          pts: '40 pts',
+          pExcelente: 40,
+          pBueno: 30,
+          pBasico: 15,
+          pDeficiente: 0
         },
         {
-          n: 4, label: '4. Claridad y organización del trabajo', sub: '',
+          n: 4,
+          label: '4. Claridad y organización del trabajo',
+          sub: '',
           excelente: 'Información ordenada, coherente, bien estructurada y fácil de leer.',
           bueno: 'Buena organización con pequeños desordenes.',
           basico: 'Organización confusa en algunas partes.',
-          deficiente: 'Desorden general, difícil de entender.', pts: '10 pts'
+          deficiente: 'Desorden general, difícil de entender.',
+          pts: '10 pts'
         },
         {
-          n: 5, label: '5. Redacción y ortografía', sub: '',
+          n: 5,
+          label: '5. Redacción y ortografía',
+          sub: '',
           excelente: 'Excelente ortografía, redacción clara y formal.',
           bueno: 'Algunos errores menores.',
           basico: 'Varios errores que afectan la lectura.',
-          deficiente: 'Muchos errores que dificultan la comprensión.', pts: '10 pts'
+          deficiente: 'Muchos errores que dificultan la comprensión.',
+          pts: '10 pts'
         },
         {
-          n: 6, label: '6. Evidencias de aprendizaje / aplicación práctica', sub: '',
+          n: 6,
+          label: '6. Evidencias de aprendizaje / aplicación práctica',
+          sub: '',
           excelente: 'Incluye evidencias claras: fotos, ejercicios, ejemplos, actividades realizadas o demostraciones.',
           bueno: 'Incluye evidencias pero limitadas o poco detalladas.',
           basico: 'Evidencias mínimas o poco claras.',
-          deficiente: 'No incluye evidencias.', pts: '10 pts'
+          deficiente: 'No incluye evidencias.',
+          pts: '10 pts'
         },
         {
-          n: 7, label: '7. Reflexión personal del aprendizaje', sub: '',
+          n: 7,
+          label: '7. Reflexión personal del aprendizaje',
+          sub: '',
           excelente: 'Explica claramente lo que aprendió, cómo lo aplicó y qué significado tuvo la experiencia para su crecimiento personal.',
           bueno: 'Presenta reflexión clara pero poco profunda o breve.',
           basico: 'Reflexión limitada o muy general.',
-          deficiente: 'No incluye reflexión o es irrelevante.', pts: '10 pts'
+          deficiente: 'No incluye reflexión o es irrelevante.',
+          pts: '10 pts'
         }
       ];
+
       const _ptsVisuales = { excelente: '10 pts', bueno: '7 pts', basico: '5 pts', deficiente: '0 pts' };
       const _ptsVisualesC3 = { excelente: '40 pts', bueno: '30 pts', basico: '15 pts', deficiente: '0 pts' };
 
@@ -20503,14 +20531,7 @@
         if (quickOpen) quickOpen.addEventListener('click', () => runAdminNotesAction('open'));
         if (quickSave) quickSave.addEventListener('click', () => runAdminNotesAction('save-local'));
         if (quickSaveCloud) {
-          if (!isSharedAdminNotesScope()) {
-            quickSaveCloud.disabled = true;
-            quickSaveCloud.style.opacity = '0.5';
-            quickSaveCloud.style.cursor = 'not-allowed';
-            quickSaveCloud.title = 'Usuarios normales solo pueden guardar localmente';
-          } else {
             quickSaveCloud.addEventListener('click', () => runAdminNotesAction('save-cloud'));
-          }
         }
         if (addTabBtn) addTabBtn.addEventListener('click', () => runAdminNotesAction('new'));
         if (titleInput) {

@@ -287,6 +287,8 @@ module.exports = async function handler(req, res) {
 // --- HANDLERS (Migrados a Supabase con la misma lógica) ---
 
 async function handleListarFormularios(req, res) {
+  await verifyAuthenticatedUser(req);
+
   const { data, error } = await supabase
     .from("formularios")
     .select("id, data")
@@ -341,6 +343,8 @@ async function handleObtenerEvaluacion(req, res) {
 }
 
 async function handleVerRespuestas(req, res) {
+  await verifyAuthenticatedUser(req);
+
   const { id } = req.query;
 
   // Consultas paralelas a las tablas "respuestas" y "evaluaciones"

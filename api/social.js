@@ -57,7 +57,7 @@ const REMINDER_HOUR_LOCAL = Number.isFinite(Number.parseInt(String(process.env.R
   : 0;
 const ADMIN_NOTES_TABLE = "admin_shared_notes";
 const USER_NOTES_TABLE = "user_notes";
-const USER_NOTES_TYPE = "user_private";
+const USER_NOTES_TYPE = String(process.env.USER_NOTES_TYPE || "private").trim().toLowerCase() || "private";
 const ADMIN_NOTES_MAX_HTML = 2_000_000;
 const ADMIN_NOTES_MAX_FILE_NAME = 180;
 const ADMIN_NOTES_MAX_TABS = 30;

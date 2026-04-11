@@ -76,14 +76,7 @@
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
-    .hidden {
-      display: none;
-    }
-
-    .hiddenX {
-      display: none !important;
-    }
-
+    /* Body y contenedor principal */
     body {
       display: flex;
       height: 100vh;
@@ -91,6 +84,9 @@
       color: var(--text-primary);
     }
 
+    /* ============================================
+   MENÚ LATERAL - MODO NOCHE
+   ============================================ */
     #sidebar {
       width: 220px;
       background: var(--bg-sidebar);
@@ -101,8 +97,11 @@
       box-shadow: 2px 0 5px var(--shadow-color);
       border-right: 1px solid var(--border-color);
       z-index: 2000;
+      /* Asegurar que esté por encima */
       position: relative;
+      /* O fixed, segun el diseño deseado, pero z-index lo requiere */
       overflow-y: auto;
+      /* Permitir scroll vertical */
     }
 
     #sidebar h2 {
@@ -235,123 +234,464 @@
         opacity: 0;
         transform: translateY(-6px) translateX(6px);
       }
-
       to {
         opacity: 1;
         transform: translateY(0) translateX(0);
       }
     }
 
-    #ordenContainer {
-      margin-bottom: 10px;
+    #sidebar #logoutBtn {
+      margin-top: auto;
+      background: var(--danger-color);
+    }
+
+    #sidebar #logoutBtn:hover {
+      background: var(--danger-hover);
+      transform: translateX(0);
+    }
+
+    #mobileMenuToggle {
+      display: none;
+    }
+
+    /* ============================================
+       ESTILOS DEL PANEL INSTRUCTOR
+       ============================================ */
+    .image-option {
       display: flex;
       align-items: center;
-      gap: 8px;
+      padding: 5px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border-color);
+      transition: background 0.2s;
+      position: relative;
     }
 
-    #ordenSelect {
-      padding: 6px 10px;
-      border-radius: 6px;
-      border: 1px solid var(--border-color);
+    .image-option:hover {
+      background: var(--bg-hover);
+    }
+
+    .image-option.selected {
+      background: rgba(25, 118, 210, 0.2);
+      border-left: 4px solid var(--accent-color);
+    }
+
+    .image-option img {
+      width: 40px;
+      height: 40px;
+      border-radius: 4px;
+      object-fit: cover;
+      margin-right: 10px;
+    }
+
+    .image-option .image-name {
+      font-size: 13px;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .delete-image-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 5px;
       font-size: 14px;
-      background: var(--bg-secondary);
-      color: var(--text-primary);
+      opacity: 0.6;
+      transition: opacity 0.2s;
     }
 
-    #mensajeModal {
+    .delete-image-btn:hover {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+
+    /* Estilos para preguntas */
+    .question-item {
+      background: var(--bg-secondary);
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      position: relative;
+    }
+
+    .question-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .question-type {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: bold;
+    }
+
+    .question-type.multiple-choice {
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .question-type.true-false {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    /* Estilos del Modal de Previsualización */
+    .preview-modal {
+      display: none;
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.6);
+      background: rgba(0, 0, 0, 0.85);
+      /* Fondo más oscuro */
+      z-index: 10000;
+      backdrop-filter: blur(5px);
+      overflow-y: auto;
+      /* Permitir scroll si el contenido es largo */
+    }
+
+    .preview-content-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      /* Alinear arriba con margen */
+      min-height: 100%;
+      padding: 40px 20px;
+      box-sizing: border-box;
+    }
+
+    .preview-content {
+      background: var(--bg-primary);
+      padding: 30px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 800px;
+      position: relative;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--border-color);
+      animation: modalFadeIn 0.3s ease;
+    }
+
+    @keyframes modalFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .close-modal-btn {
+      position: absolute;
+      top: -15px;
+      right: -15px;
+      background: var(--danger-color);
+      color: white;
+      border: 2px solid var(--bg-primary);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 2000;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s;
+      z-index: 10;
     }
 
-    .mensaje-content {
-      background: var(--bg-card);
-      background: color-mix(in srgb, var(--bg-card) 80%, transparent);
-      padding: 25px 30px;
-      border-radius: 12px;
-      box-shadow: 0 8px 20px var(--shadow-color);
-      text-align: center;
-      width: 90%;
-      max-width: 400px;
-      animation: fadeIn 0.25s ease;
+    .close-modal-btn:hover {
+      transform: scale(1.1);
+      background: #ff4444;
+    }
+
+    .option-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    /* FIX: Asegurar que el input de texto dentro de las opciones se vea bien */
+    .option-item input[type="text"] {
+      flex: 1;
+      width: auto !important;
+      /* Sobrescribir el width: 100% global */
+      margin: 0 !important;
+      /* Quitar márgenes globales */
+      min-width: 0;
+      /* Permitir que flexbox maneje el ancho */
+      background: var(--bg-primary);
+      color: var(--text-primary);
       border: 1px solid var(--border-color);
     }
 
-    .mensaje-content h3 {
-      margin-bottom: 12px;
-      color: var(--accent-color);
+    /* Ajustar radio button y checkbox */
+    .option-item input[type="radio"],
+    .option-item input[type="checkbox"] {
+      width: auto !important;
+      margin: 0 !important;
+      cursor: pointer;
     }
 
-    .mensaje-content p {
-      margin-bottom: 20px;
-      color: var(--text-primary);
+    .btn-add-option,
+    .btn-remove {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      padding: 5px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      border-radius: 4px;
     }
 
-    #mensajeBotones {
-      display: flex;
-      justify-content: center;
-      gap: 15px;
+    .btn-remove:hover {
+      border-color: var(--danger-color);
+      color: var(--danger-color);
     }
 
-    #mensajeBotones button {
-      padding: 10px 20px;
+    .upload-btn {
+      background: var(--accent-color);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
       border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 15px;
-      transition: transform 0.2s, background 0.3s;
-    }
-
-    #mensajeAceptar {
-      background: var(--accent-color);
-      color: white;
-    }
-
-    #mensajeCancelar {
-      background: var(--danger-color);
-      color: white;
-    }
-
-    #mensajeBotones button:hover {
-      transform: scale(1.05);
-    }
-
-    .niveles {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
-    .nivel {
-      flex: 1;
-      padding: 12px;
-      background: var(--accent-color);
-      color: var(--text-primary);
-      text-align: center;
-      border-radius: 6px;
-      cursor: pointer;
+      font-size: 13px;
       transition: background 0.3s;
     }
 
-    .nivel:hover {
+    .upload-btn:hover {
       background: var(--accent-hover);
     }
 
-    #uploadContainer {
-      display: none;
+
+    /* ============================================
+   CONTENIDO PRINCIPAL - MODO NOCHE
+   ============================================ */
+    #mainContent {
+      flex: 1;
+      padding: 25px;
+      overflow-y: auto;
+      background: var(--bg-primary);
+    }
+
+    #desktopRightAdShell {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+
+    #mobileTopAdShell {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+
+    @media (min-width: 1024px) {
+      body {
+        /* padding-right: 184px; */
+        padding-right: 0 !important;
+      }
+
+      #desktopRightAdShell {
+        display: none !important;
+      }
+
+      #desktopRightAdSlot {
+        width: 160px;
+        height: 600px;
+        overflow: hidden;
+      }
+
+      #desktopRightAdSlot iframe {
+        width: 160px !important;
+        height: 600px !important;
+        border: 0 !important;
+        display: block;
+      }
+    }
+
+    /* Cards (excepto certificaciones) */
+    .card:not(.card-certificaciones) {
       background: var(--bg-card);
-      margin-bottom: 20px;
+      padding: 25px;
       border-radius: 12px;
       box-shadow: 0 6px 15px var(--shadow-color);
-      padding: 20px;
+      max-width: 650px;
+      margin: 20px auto;
+      transition: transform 0.3s, box-shadow 0.3s;
       border: 1px solid var(--border-color);
+    }
+
+    .card:not(.card-certificaciones):hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px var(--shadow-color);
+    }
+
+    /* Inputs y selects */
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      font-size: 14px;
+      transition: border 0.3s, box-shadow 0.3s;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      overflow-x: hidden;
+    }
+
+    textarea {
+      min-height: 200px;
+      font-size: 16px;
+    }
+
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+      outline: none;
+    }
+
+    /* Botones */
+    button.saveBtn,
+    button#crearEspecialidad,
+    button#subirArchivoBtn {
+      background: var(--accent-color);
+      color: var(--text-primary);
+      cursor: pointer;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      font-size: 15px;
+      transition: background 0.3s, transform 0.2s;
+    }
+
+    button.saveBtn:hover,
+    button#crearEspecialidad:hover,
+    button#subirArchivoBtn:hover {
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+    }
+
+    /* Botón eliminar foto */
+    #removePhoto {
+      background: var(--danger-color);
+      margin-top: 5px;
+    }
+
+    #removePhoto:hover {
+      background: var(--danger-hover);
+      transform: translateY(-2px);
+    }
+
+    #deleteAccountBtn {
+      background: var(--danger-color);
+      color: #fff;
+      cursor: pointer;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      font-size: 15px;
+      margin-top: 10px;
+      width: 100%;
+      transition: background 0.3s, transform 0.2s;
+    }
+
+    #deleteAccountBtn:hover:not(:disabled) {
+      background: var(--danger-hover);
+      transform: translateY(-2px);
+    }
+
+    #deleteAccountBtn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .danger-zone-profile {
+      margin-top: 20px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .danger-zone-profile p {
+      margin: 0 0 10px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* FIX SCROLL */
+    #instructorSection,
+    #main-content,
+    .view-section {
+      overflow-y: auto;
+      flex: 1;
+      /* Ocupar espacio restante */
+      height: 100vh;
+      /* Asegurar altura completa */
+      box-sizing: border-box;
+      padding-bottom: 80px;
+      /* Margen extra para ver el final */
+    }
+
+    /* Listas de archivos y especialidades */
+    ul {
+      list-style: none;
+      padding-left: 0;
+      margin-top: 10px;
+    }
+
+    ul li {
+      padding: 10px 12px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      background: var(--bg-secondary);
+      transition: background 0.3s;
+    }
+
+    ul li:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    ul li a {
+      text-decoration: none;
+      color: var(--accent-color);
+      font-weight: 500;
+    }
+
+    ul li a:hover {
+      text-decoration: underline;
+    }
+
+    /* Encabezados */
+    h2,
+    h3,
+    h4 {
+      color: var(--text-primary);
+      margin-bottom: 15px;
+    }
+
+    /* Ocultar secciones */
+    .hidden {
+      display: none;
     }
 
     .carpeta-item {
@@ -401,12 +741,125 @@
       transform: scale(1.2);
     }
 
+    /* ============================================
+    ESTILOS PARA ESPECIALIDADES CONQUIGUIAS
+    ============================================ */
+
+    /* Contenedor de pestañas */
+    .tabs-menu-container {
+      display: flex;
+      align-items: center;
+      margin: 14px 0 20px 0;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 10px;
+    }
+
+    .tabs-menu {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      flex-wrap: wrap;
+    }
+
+    .tab-button {
+      padding: 8px 16px;
+      background: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .tab-button:hover {
+      background: rgba(59, 130, 246, 0.08);
+      color: var(--text-primary);
+    }
+
+    .tab-button.active {
+      background: var(--accent-color);
+      color: white;
+      border-color: var(--accent-color);
+    }
+
+    @media (max-width: 767px) {
+      .tabs-menu-container {
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .tabs-menu {
+        flex-wrap: nowrap;
+        width: max-content;
+        min-width: 100%;
+      }
+
+      .tab-button {
+        flex: 0 0 auto;
+        white-space: nowrap;
+      }
+
+      #adminSectionTabs {
+        overflow-x: auto;
+        overflow-y: hidden;
+        flex-wrap: nowrap !important;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      #adminSectionTabs button {
+        flex: 0 0 auto;
+        white-space: nowrap;
+      }
+
+      #instructorSectionTabs {
+        overflow-x: auto;
+        overflow-y: hidden;
+        flex-wrap: nowrap !important;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      #instructorSectionTabs button {
+        flex: 0 0 auto;
+        white-space: nowrap;
+      }
+    }
+
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(5px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Contenedor de especialidades */
     .especialidades-container {
       display: flex;
       flex-direction: column;
       gap: 20px;
     }
 
+    /* Header del área */
     .area-header {
       display: flex;
       align-items: center;
@@ -427,8 +880,9 @@
       border-radius: 12px;
       object-fit: contain;
       box-shadow: 0 4px 12px var(--shadow-color);
+      border: 2px solid var(--border-color);
       background: var(--bg-secondary);
-      padding: 8px;
+      padding: 4px;
     }
 
     .area-info {
@@ -437,17 +891,53 @@
 
     .area-info h2 {
       margin: 0 0 8px 0;
-      color: var(--text-primary);
       font-size: 24px;
+      color: var(--text-primary);
     }
 
     .area-count {
       margin: 0;
+      font-size: 13px;
       color: var(--text-secondary);
-      font-size: 14px;
-      font-weight: 500;
     }
 
+    /* Buscador de especialidades */
+    .especialidades-searcher {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 10px 15px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .search-input::placeholder {
+      color: var(--text-secondary);
+    }
+
+    .search-results-info {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      padding: 5px 10px;
+      background: rgba(59, 130, 246, 0.05);
+      border-radius: 6px;
+    }
+
+    /* Navegador de áreas */
     .areas-navigator {
       display: flex;
       flex-direction: column;
@@ -517,20 +1007,15 @@
 
     .area-item.active {
       border-color: var(--accent-color);
-      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
     }
 
-    .especialidades-searcher {
-      margin-top: 10px;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-
+    /* Grid de especialidades */
     .especialidades-section {
+      flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 15px;
     }
 
     .especialidades-grid {
@@ -594,75 +1079,57 @@
       height: 100%;
       object-fit: contain;
       background: var(--bg-secondary);
-      transition: transform 0.3s ease;
-    }
-
-    .especialidad-item:hover {
-      transform: translateY(-2px);
-      border-color: var(--accent-color);
-      box-shadow: 0 4px 12px var(--shadow-color);
-    }
-
-    .especialidad-item.loading {
-      opacity: 0.65;
-      pointer-events: none;
+      opacity: 1;
+      transition: opacity 0.3s ease;
     }
 
     .especialidad-name {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--text-primary);
-      line-height: 1.3;
       text-align: center;
+      line-height: 1.25;
       min-height: 34px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 4px;
+      display: -webkit-box;
+      line-clamp: 2;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      word-break: break-word;
+      text-transform: none;
+    }
+
+    .especialidad-item:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px var(--shadow-color);
+      border-color: var(--accent-color);
+    }
+
+    .especialidad-item.loading {
+      background: linear-gradient(90deg, var(--bg-secondary) 0%, var(--bg-primary) 50%, var(--bg-secondary) 100%);
+      background-size: 200% 100%;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        background-position: 200% 0;
+      }
+
+      100% {
+        background-position: -200% 0;
+      }
     }
 
     .especialidad-placeholder {
       width: 100%;
       height: 100%;
+      background: var(--bg-secondary);
       display: flex;
       align-items: center;
       justify-content: center;
       color: var(--text-secondary);
       font-size: 12px;
-      text-align: center;
-      padding: 8px;
-    }
-
-    .image-option .image-name {
-      font-size: 13px;
-      flex: 1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .delete-image-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 5px;
-      font-size: 14px;
-      opacity: 0.6;
-      transition: opacity 0.2s;
-    }
-
-    .delete-image-btn:hover {
-      opacity: 1;
-      transform: scale(1.1);
-    }
-
-    .preview-content-wrapper {
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      min-height: 100%;
-      padding: 40px 20px;
-      box-sizing: border-box;
     }
 
     .loading-indicator {
@@ -679,10 +1146,274 @@
       display: none;
     }
 
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--border-color);
+      border-top-color: var(--accent-color);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* 🔹 Fondo del visor */
+    #pdfViewerModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    /* 🔹 Contenedor del visor */
+    .pdf-viewer-content {
+      position: relative;
+      width: 90%;
+      height: 90%;
+      background: var(--bg-card);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 0 15px var(--shadow-color);
+      animation: fadeIn 0.3s ease;
+    }
+
+    /* 🔹 Botón de cerrar */
+    .cerrar-pdf {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      background: var(--danger-color);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 35px;
+      height: 35px;
+      font-size: 18px;
+      cursor: pointer;
+      z-index: 10;
+      transition: background 0.3s;
+    }
+
+    .cerrar-pdf:hover {
+      background: var(--danger-hover);
+    }
+
+    /* 🔹 PDF dentro del visor */
     .pdf-viewer-content iframe {
       width: 100%;
       height: 100%;
       border: none;
+    }
+
+    /* 🔹 Animación */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    #ordenContainer {
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #ordenSelect {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      font-size: 14px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    /* 🔹 Fondo del modal */
+    #mensajeModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+
+    /* 🔹 Caja del mensaje */
+    .mensaje-content {
+      background: var(--bg-card);
+      background: color-mix(in srgb, var(--bg-card) 80%, transparent);
+      padding: 25px 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px var(--shadow-color);
+      text-align: center;
+      width: 90%;
+      max-width: 400px;
+      animation: fadeIn 0.25s ease;
+      border: 1px solid var(--border-color);
+    }
+
+    .mensaje-content h3 {
+      margin-bottom: 12px;
+      color: var(--accent-color);
+    }
+
+    .mensaje-content p {
+      margin-bottom: 20px;
+      color: var(--text-primary);
+    }
+
+    /* 🔹 Botones */
+    #mensajeBotones {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+    }
+
+    #mensajeBotones button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 15px;
+      transition: transform 0.2s, background 0.3s;
+    }
+
+    #mensajeAceptar {
+      background: var(--accent-color);
+      color: white;
+    }
+
+    #mensajeCancelar {
+      background: var(--danger-color);
+      color: white;
+    }
+
+    #mensajeBotones button:hover {
+      transform: scale(1.05);
+    }
+
+    .hiddenX {
+      display: none !important;
+    }
+
+    /* Niveles en filas de 3 */
+    .niveles {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .nivel {
+      flex: 1;
+      padding: 12px;
+      background: var(--accent-color);
+      color: var(--text-primary);
+      text-align: center;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .nivel:hover {
+      transform: scale(1.05);
+    }
+
+    /* Carpetas tipo Windows */
+    .secciones-conquistadores {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .seccion-item {
+      margin: 6px 0;
+    }
+
+    .seccion-titulo {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      background: var(--bg-secondary);
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid var(--border-color);
+      transition: background 0.2s;
+    }
+
+    .seccion-titulo::before {
+      content: "\f07b";
+      font-family: "Font Awesome 6 Free";
+      font-weight: 400;
+      margin-right: 8px;
+      color: var(--accent-color);
+    }
+
+    .seccion-titulo.abierto::before {
+      content: "\f07c";
+      font-weight: 400;
+    }
+
+    .seccion-titulo:hover {
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    .seccion-contenido {
+      padding: 10px 20px;
+      margin-top: 4px;
+      border-left: 4px solid var(--accent-color);
+      background: var(--bg-card);
+      border-radius: 0 4px 4px 0;
+    }
+
+    /* Ocultar campo de fecha de entrega (deprecated) */
+    #fechaEntregaTarea,
+    label[for="fechaEntregaTarea"],
+    .fecha-entrega-row {
+      display: none !important;
+    }
+
+    /* ============================================
+   ESTILOS RED SOCIAL - MODO NOCHE
+   ============================================ */
+
+    /* Contenedor de publicación */
+    #uploadContainer {
+      display: none;
+      background: var(--bg-card);
+      margin-bottom: 20px;
+      border-radius: 12px;
+      box-shadow: 0 6px 15px var(--shadow-color);
+      padding: 20px;
+      border: 1px solid var(--border-color);
+    }
+
+    /* Cards de publicaciones */
+    .post-card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      box-shadow: 0 0 10px var(--shadow-color);
+      overflow: hidden;
+      margin-bottom: 20px;
+      border: 1px solid var(--border-color);
     }
 
     .post-header {
@@ -716,6 +1447,15 @@
       margin-left: 5px;
     }
 
+    .status-verified-icon {
+      width: 14px;
+      height: 14px;
+      object-fit: contain;
+      display: inline-block;
+      margin-left: 5px;
+      flex-shrink: 0;
+    }
+
     .post-header-meta {
       flex: 1;
       min-width: 0;
@@ -740,7 +1480,9 @@
       font-size: 11px;
     }
 
+    /* ===== LIVE STREAM ===== */
     @keyframes live-pulse {
+
       0%,
       100% {
         box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.55);
@@ -863,7 +1605,8 @@
     .media-blur-bg-fallback {
       position: absolute;
       inset: 0;
-      background: radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.35), transparent 45%),
+      background:
+        radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.35), transparent 45%),
         radial-gradient(circle at 80% 75%, rgba(168, 85, 247, 0.28), transparent 40%),
         linear-gradient(180deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
       filter: blur(16px);
@@ -903,6 +1646,20 @@
     .media-blur-video-shell .clappr-container [data-html5-video],
     .media-blur-video-shell .clappr-container video {
       object-fit: contain !important;
+    }
+
+    .post-description {
+      padding: 10px;
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+
+    .post-body-layout {
+      display: flex;
+      padding: 0;
+      margin: 0;
+      align-items: stretch;
+      position: relative;
     }
 
     .post-card.text-only-post .post-body-layout {
@@ -958,367 +1715,70 @@
       min-width: 0;
     }
 
+    .post-sidebar-column {
+      display: none;
+      border-left: 1px solid var(--border-color);
+      padding: 5px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
     .post-card.comments-open .post-main-column {
       width: 70%;
     }
 
-    .post-comments-side {
+    .post-card.comments-open .post-sidebar-column {
       display: flex;
-      justify-content: flex-start;
-      padding: 0;
-      flex: 1;
-      height: 100%;
-      min-height: 0;
-      overflow: hidden;
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 30%;
     }
 
-    .post-comments-side.hidden {
-      display: none;
-    }
-
-    .post-comments-side-box {
-      width: 100%;
-      min-height: 44px;
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-      background: var(--bg-secondary);
-      padding: 10px 12px;
-      color: var(--text-secondary);
-      font-size: 13px;
-      line-height: 1.4;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      min-height: 0;
-      overflow: hidden;
-    }
-
-    .comments-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      color: var(--text-primary);
-      font-weight: 700;
-      font-size: 13px;
-    }
-
-    .comments-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      flex: 1;
-      min-height: 0;
-      max-height: none;
-      overflow-y: auto;
-      overflow-x: hidden;
-      margin-bottom: 10px;
-      padding-right: 2px;
-    }
-
-    .comment-item {
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      border-radius: 8px;
-      padding: 8px;
-      background: rgba(15, 23, 42, 0.35);
-    }
-
-    @keyframes modalFadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(-20px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .option-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 8px;
-    }
-
-    .option-item input[type="text"] {
-      flex: 1;
-      width: auto !important;
-      margin: 0 !important;
-      min-width: 0;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      border: 1px solid var(--border-color);
-    }
-
-    .option-item input[type="radio"],
-    .option-item input[type="checkbox"] {
-      width: auto !important;
-      margin: 0 !important;
-      cursor: pointer;
-    }
-
-    #desktopRightAdShell {
-      display: none !important;
-      width: 0 !important;
-      height: 0 !important;
-    }
-
-    @media (min-width: 1024px) {
-      #desktopRightAdSlot {
-        width: 160px;
-        height: 600px;
-        overflow: hidden;
-      }
-
-      #desktopRightAdSlot iframe {
-        width: 160px !important;
-        height: 600px !important;
-        border: 0 !important;
-        display: block;
-      }
-    }
-
-    textarea {
-      min-height: 200px;
-      font-size: 16px;
-    }
-
-    textarea:focus {
-      border-color: var(--accent-color);
-      box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
-      outline: none;
-    }
-
-    button#subirArchivoBtn {
-      background: var(--accent-color);
-      color: var(--text-primary);
-      cursor: pointer;
-      padding: 12px;
-      border-radius: 8px;
-      border: none;
-      font-size: 15px;
-      transition: background 0.3s, transform 0.2s;
-    }
-
-    button#subirArchivoBtn:hover {
-      background: var(--accent-hover);
-      transform: translateY(-2px);
-    }
-
-    #removePhoto {
-      background: var(--danger-color);
-      margin-top: 5px;
-    }
-
-    #removePhoto:hover {
-      background: var(--danger-hover);
-      transform: translateY(-2px);
-    }
-
-    #deleteAccountBtn {
-      background: var(--danger-color);
-      color: #fff;
-      cursor: pointer;
-      padding: 12px;
-      border-radius: 8px;
-      border: none;
-      font-size: 15px;
-      margin-top: 10px;
-      width: 100%;
-      transition: background 0.3s, transform 0.2s;
-    }
-
-    #deleteAccountBtn:hover:not(:disabled) {
-      background: var(--danger-hover);
-      transform: translateY(-2px);
-    }
-
-    #deleteAccountBtn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .danger-zone-profile {
-      margin-top: 20px;
-      padding-top: 14px;
-      border-top: 1px solid var(--border-color);
-    }
-
-    .danger-zone-profile p {
-      margin: 0 0 10px;
-      font-size: 12px;
-      color: var(--text-secondary);
-    }
-
-    .view-section {
-      overflow-y: auto;
-      flex: 1;
-      height: 100vh;
-      box-sizing: border-box;
-      padding-bottom: 80px;
-    }
-
-    ul {
-      list-style: none;
-      padding-left: 0;
-      margin-top: 10px;
-    }
-
-    ul li {
-      padding: 10px 12px;
-      border-radius: 6px;
-      margin-bottom: 6px;
-      background: var(--bg-secondary);
-      transition: background 0.3s;
-    }
-
-    ul li:hover {
-      background: rgba(59, 130, 246, 0.1);
-    }
-
-    ul li a {
-      text-decoration: none;
-      color: var(--accent-color);
-      font-weight: 500;
-    }
-
-    ul li a:hover {
-      text-decoration: underline;
-    }
-
-    h4 {
-      color: var(--text-primary);
-      margin-bottom: 15px;
-    }
-
-    .tabs-menu-container {
-      border-bottom: 2px solid var(--border-color);
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-    }
-
-    .tabs-menu {
-      display: flex;
-      gap: 0;
-      width: 100%;
-    }
-
-    .tab-button {
-      flex: 1;
-      padding: 14px 16px;
-      background: transparent;
-      border: none;
-      color: var(--text-secondary);
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      border-bottom: 3px solid transparent;
-      transition: all 0.3s ease;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .tab-button:hover {
-      color: var(--text-primary);
-      background: rgba(59, 130, 246, 0.05);
-    }
-
-    .tab-button.active {
-      color: var(--accent-color);
-      border-bottom-color: var(--accent-color);
-    }
-
-    .tab-content {
-      display: none;
-      animation: fadeIn 0.3s ease;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    .search-input {
-      width: 100%;
+    .post-actions {
       padding: 10px 15px;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      font-size: 14px;
-      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--border-color);
+      gap: 10px;
     }
 
-    .search-input:focus {
-      outline: none;
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-
-    .search-input::placeholder {
-      color: var(--text-secondary);
-    }
-
-    .search-results-info {
-      color: var(--text-secondary);
-      font-size: 12px;
-      margin-top: 6px;
-    }
-
-    .secciones-conquistadores {
-      list-style: none;
-      padding-left: 0;
-    }
-
-    .seccion-item {
-      margin: 6px 0;
-    }
-
-    .seccion-titulo {
+    .post-actions-left,
+    .post-actions-right {
       display: flex;
       align-items: center;
-      padding: 10px;
-      background: var(--bg-secondary);
-      border-radius: 4px;
+      gap: 8px;
+      flex-wrap: nowrap;
+    }
+
+    .post-actions-left {
+      flex: 1;
+      min-width: 0;
+      overflow-x: hidden;
+    }
+
+    .post-actions-right {
+      justify-content: flex-end;
+      min-width: max-content;
+      overflow: visible;
+    }
+
+    .reaction-btn {
+      background: none;
+      border: 2px solid transparent;
+      border-radius: 20px;
+      padding: 6px 12px;
+      margin: 2px;
       cursor: pointer;
-      border: 1px solid var(--border-color);
-      transition: background 0.2s;
-    }
-
-    .seccion-titulo::before {
-      content: "\f07b";
-      font-family: "Font Awesome 6 Free";
-      font-weight: 400;
-      margin-right: 8px;
-      color: var(--accent-color);
-    }
-
-    .seccion-titulo.abierto::before {
-      content: "\f07c";
-      font-weight: 400;
-    }
-
-    .seccion-titulo:hover {
-      background: rgba(59, 130, 246, 0.1);
-    }
-
-    .seccion-contenido {
-      padding: 10px 20px;
-      margin-top: 4px;
-      border-left: 4px solid var(--accent-color);
-      background: var(--bg-card);
-      border-radius: 0 4px 4px 0;
-    }
-
-    .fecha-entrega-row {
-      display: none !important;
+      font-size: 16px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--text-secondary);
     }
 
     .reaction-btn:hover {
@@ -1334,16 +1794,26 @@
       color: var(--accent-color);
     }
 
+    .reaction-count {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      min-width: 20px;
+      text-align: center;
+    }
+
     .reaction-btn.active .reaction-count {
       color: var(--accent-color);
       font-weight: bold;
     }
 
+    .reaction-btn.disabled,
     .reaction-btn:disabled {
       cursor: not-allowed;
       opacity: 0.6;
     }
 
+    .reaction-btn.disabled:hover,
     .reaction-btn:disabled:hover {
       background-color: transparent;
       border-color: transparent;
@@ -1485,6 +1955,7 @@
       white-space: nowrap;
     }
 
+    .reaction-popup-empty,
     .reaction-popup-loading {
       padding: 16px 12px;
       border: 1px dashed rgba(148, 163, 184, 0.25);
@@ -1510,77 +1981,89 @@
       background: rgba(59, 130, 246, 0.12);
     }
 
-    .spinner {
-      width: 32px;
-      height: 32px;
-      border: 3px solid var(--border-color);
-      border-top-color: var(--accent-color);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+    .post-action-link,
+    .share-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
     }
 
-    .status-verified-icon {
-      width: 14px;
-      height: 14px;
-      object-fit: contain;
-      display: inline-block;
-      margin-left: 5px;
-      flex-shrink: 0;
+    .post-action-link:hover,
+    .share-btn:hover {
+      color: var(--accent-color);
     }
 
-    .cerrar-pdf:hover {
-      background: var(--danger-hover);
+    .post-actions-separator {
+      color: var(--text-secondary);
+      opacity: 0.7;
+      user-select: none;
     }
 
-    @keyframes pulse {
-      0% {
-        opacity: 1;
-      }
-
-      50% {
-        opacity: 0.5;
-      }
-
-      100% {
-        opacity: 1;
-      }
+    .post-comments-side {
+      display: flex;
+      justify-content: flex-start;
+      padding: 0;
+      flex: 1;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
     }
 
-    #sidebar #logoutBtn {
-      margin-top: auto;
-      background: var(--danger-color);
-    }
-
-    #sidebar #logoutBtn:hover {
-      background: var(--danger-hover);
-      transform: translateX(0);
-    }
-
-    #mobileMenuToggle {
+    .post-comments-side.hidden {
       display: none;
     }
 
-    #mainContent {
-      flex: 1;
-      padding: 25px;
-      overflow-y: auto;
-      background: var(--bg-primary);
-    }
-
-    .card:not(.card-certificaciones) {
-      background: var(--bg-card);
-      padding: 25px;
-      border-radius: 12px;
-      box-shadow: 0 6px 15px var(--shadow-color);
-      max-width: 650px;
-      margin: 20px auto;
-      transition: transform 0.3s, box-shadow 0.3s;
+    .post-comments-side-box {
+      width: 100%;
+      min-height: 44px;
       border: 1px solid var(--border-color);
+      border-radius: 10px;
+      background: var(--bg-secondary);
+      padding: 10px 12px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      line-height: 1.4;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
     }
 
-    .card:not(.card-certificaciones):hover {
-      transform: translateY(-3px);
-      box-shadow: 0 10px 20px var(--shadow-color);
+    .comments-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      color: var(--text-primary);
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .comments-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+      min-height: 0;
+      max-height: none;
+      overflow-y: auto;
+      overflow-x: hidden;
+      margin-bottom: 10px;
+      padding-right: 2px;
+    }
+
+    .comment-item {
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 8px;
+      padding: 8px;
+      background: rgba(15, 23, 42, 0.35);
     }
 
     .comment-meta {
@@ -2053,14 +2536,18 @@
       background: rgba(239, 68, 68, 0.05) !important;
     }
 
-    .admin-notes-app {
+    .admin-notes-app,
+    .director-notes-app,
+    .conqui-notes-app {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: 10px;
       overflow: hidden;
     }
 
-    .admin-notes-titlebar {
+    .admin-notes-titlebar,
+    .director-notes-titlebar,
+    .conqui-notes-titlebar {
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -2073,7 +2560,9 @@
       font-weight: 600;
     }
 
-    .admin-notes-titletext {
+    .admin-notes-titletext,
+    .director-notes-titletext,
+    .conqui-notes-titletext {
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -2082,7 +2571,9 @@
       margin-right: 10px;
     }
 
-    #adminNotesTitleInput {
+    #adminNotesTitleInput,
+    #directorNotesTitleInput,
+    #conquiNotesTitleInput {
       background: transparent;
       border: 1px solid transparent;
       color: var(--text-primary);
@@ -2096,30 +2587,40 @@
       outline: none;
     }
 
-    #adminNotesTitleInput:focus {
+    #adminNotesTitleInput:focus,
+    #directorNotesTitleInput:focus,
+    #conquiNotesTitleInput:focus {
       border-color: var(--accent-color);
       background: var(--bg-primary);
     }
 
-    .admin-notes-title-suffix {
+    .admin-notes-title-suffix,
+    .director-notes-title-suffix,
+    .conqui-notes-title-suffix {
       color: var(--text-secondary);
       font-weight: 600;
       white-space: nowrap;
     }
 
-    #adminNotesTitleDirty {
+    #adminNotesTitleDirty,
+    #directorNotesTitleDirty,
+    #conquiNotesTitleDirty {
       color: var(--warning-color);
       visibility: hidden;
       font-weight: 700;
       white-space: nowrap;
     }
 
-    .admin-notes-actions {
+    .admin-notes-actions,
+    .director-notes-actions,
+    .conqui-notes-actions {
       display: flex;
       gap: 6px;
     }
 
-    .admin-notes-actions button {
+    .admin-notes-actions button,
+    .director-notes-actions button,
+    .conqui-notes-actions button {
       border: 1px solid var(--border-color);
       background: var(--bg-primary);
       color: var(--text-primary);
@@ -2131,7 +2632,9 @@
       margin-top: 0;
     }
 
-    .admin-notes-menubar {
+    .admin-notes-menubar,
+    .director-notes-menubar,
+    .conqui-notes-menubar {
       display: flex;
       gap: 6px;
       align-items: center;
@@ -2141,11 +2644,15 @@
       flex-wrap: wrap;
     }
 
-    .admin-notes-menu {
+    .admin-notes-menu,
+    .director-notes-menu,
+    .conqui-notes-menu {
       position: relative;
     }
 
-    .admin-notes-menu-btn {
+    .admin-notes-menu-btn,
+    .director-notes-menu-btn,
+    .conqui-notes-menu-btn {
       background: transparent;
       border: none;
       color: var(--text-primary);
@@ -2158,11 +2665,17 @@
     }
 
     .admin-notes-menu-btn:hover,
-    .admin-notes-menu.open .admin-notes-menu-btn {
+    .admin-notes-menu.open .admin-notes-menu-btn,
+    .director-notes-menu-btn:hover,
+    .director-notes-menu.open .director-notes-menu-btn,
+    .conqui-notes-menu-btn:hover,
+    .conqui-notes-menu.open .conqui-notes-menu-btn {
       background: var(--bg-secondary);
     }
 
-    .admin-notes-menu-items {
+    .admin-notes-menu-items,
+    .director-notes-menu-items,
+    .conqui-notes-menu-items {
       display: none;
       position: absolute;
       top: 100%;
@@ -2176,11 +2689,15 @@
       z-index: 30;
     }
 
-    .admin-notes-menu.open .admin-notes-menu-items {
+    .admin-notes-menu.open .admin-notes-menu-items,
+    .director-notes-menu.open .director-notes-menu-items,
+    .conqui-notes-menu.open .conqui-notes-menu-items {
       display: block;
     }
 
-    .admin-notes-menu-items button {
+    .admin-notes-menu-items button,
+    .director-notes-menu-items button,
+    .conqui-notes-menu-items button {
       width: 100%;
       margin: 0;
       margin-top: 0;
@@ -2194,11 +2711,15 @@
       cursor: pointer;
     }
 
-    .admin-notes-menu-items button:hover {
+    .admin-notes-menu-items button:hover,
+    .director-notes-menu-items button:hover,
+    .conqui-notes-menu-items button:hover {
       background: var(--bg-secondary);
     }
 
-    .admin-notes-toolbar {
+    .admin-notes-toolbar,
+    .director-notes-toolbar,
+    .conqui-notes-toolbar {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -2208,7 +2729,9 @@
       background: var(--bg-secondary);
     }
 
-    .admin-notes-tabsbar {
+    .admin-notes-tabsbar,
+    .director-notes-tabsbar,
+    .conqui-notes-tabsbar {
       display: flex;
       align-items: center;
       gap: 6px;
@@ -2217,7 +2740,9 @@
       padding: 6px 8px;
     }
 
-    .admin-notes-tabs {
+    .admin-notes-tabs,
+    .director-notes-tabs,
+    .conqui-notes-tabs {
       display: flex;
       align-items: stretch;
       gap: 6px;
@@ -2226,7 +2751,9 @@
       padding-bottom: 2px;
     }
 
-    .admin-notes-tab {
+    .admin-notes-tab,
+    .director-notes-tab,
+    .conqui-notes-tab {
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -2245,27 +2772,37 @@
       font-size: 12px;
     }
 
-    .admin-notes-tab.active {
+    .admin-notes-tab.active,
+    .director-notes-tab.active,
+    .conqui-notes-tab.active {
       background: var(--bg-primary);
       border-color: var(--accent-color);
     }
 
-    .admin-notes-tab.dragging {
+    .admin-notes-tab.dragging,
+    .director-notes-tab.dragging,
+    .conqui-notes-tab.dragging {
       opacity: 0.45;
     }
 
-    .admin-notes-tab.drag-over {
+    .admin-notes-tab.drag-over,
+    .director-notes-tab.drag-over,
+    .conqui-notes-tab.drag-over {
       border-color: var(--accent-color);
       box-shadow: inset 0 0 0 1px var(--accent-color);
     }
 
-    .admin-notes-tab-name {
+    .admin-notes-tab-name,
+    .director-notes-tab-name,
+    .conqui-notes-tab-name {
       overflow: hidden;
       text-overflow: ellipsis;
       flex: 1;
     }
 
-    .admin-notes-tab-close {
+    .admin-notes-tab-close,
+    .director-notes-tab-close,
+    .conqui-notes-tab-close {
       border: none;
       background: transparent;
       color: var(--text-secondary);
@@ -2279,11 +2816,15 @@
       line-height: 1;
     }
 
-    .admin-notes-tab-close:hover {
+    .admin-notes-tab-close:hover,
+    .director-notes-tab-close:hover,
+    .conqui-notes-tab-close:hover {
       color: var(--danger-color);
     }
 
-    .admin-notes-tab-add {
+    .admin-notes-tab-add,
+    .director-notes-tab-add,
+    .conqui-notes-tab-add {
       border: 1px solid var(--border-color);
       background: var(--bg-secondary);
       color: var(--text-primary);
@@ -2295,7 +2836,11 @@
     }
 
     .admin-notes-toolbar select,
-    .admin-notes-toolbar button {
+    .admin-notes-toolbar button,
+    .director-notes-toolbar select,
+    .director-notes-toolbar button,
+    .conqui-notes-toolbar select,
+    .conqui-notes-toolbar button {
       margin-top: 0;
       width: auto;
       background: var(--bg-primary);
@@ -2307,17 +2852,23 @@
       cursor: pointer;
     }
 
-    .admin-notes-toolbar button {
+    .admin-notes-toolbar button,
+    .director-notes-toolbar button,
+    .conqui-notes-toolbar button {
       min-width: 36px;
       text-align: center;
     }
 
-    .admin-notes-editor-wrap {
+    .admin-notes-editor-wrap,
+    .director-notes-editor-wrap,
+    .conqui-notes-editor-wrap {
       padding: 10px;
       background: var(--bg-card);
     }
 
-    #adminNotesEditor {
+    #adminNotesEditor,
+    #directorNotesEditor,
+    #conquiNotesEditor {
       min-height: 350px;
       max-height: 62vh;
       overflow: auto;
@@ -2334,13 +2885,17 @@
       word-break: break-word;
     }
 
-    #adminNotesEditor.admin-notes-nowrap {
+    #adminNotesEditor.admin-notes-nowrap,
+    #directorNotesEditor.director-notes-nowrap,
+    #conquiNotesEditor.conqui-notes-nowrap {
       white-space: pre;
       overflow-x: auto;
       word-break: normal;
     }
 
-    .admin-notes-statusbar {
+    .admin-notes-statusbar,
+    .director-notes-statusbar,
+    .conqui-notes-statusbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -2353,16 +2908,22 @@
       flex-wrap: wrap;
     }
 
-    .admin-notes-statusbar span {
+    .admin-notes-statusbar span,
+    .director-notes-statusbar span,
+    .conqui-notes-statusbar span {
       white-space: nowrap;
     }
 
     @media (max-width: 760px) {
-      #adminNotesEditor {
+      #adminNotesEditor,
+      #directorNotesEditor,
+      #conquiNotesEditor {
         min-height: 280px;
       }
 
-      .admin-notes-toolbar {
+      .admin-notes-toolbar,
+      .director-notes-toolbar,
+      .conqui-notes-toolbar {
         gap: 6px;
       }
     }
@@ -4446,7 +5007,6 @@
       Conquiguias World</h2>
     <button id="menuInicio" class="active"><i class="fas fa-home" style="margin-right: 8px;"></i> Inicio</button>
     <button id="menuClubes"><i class="fas fa-users" style="margin-right: 8px;"></i> Clubes</button>
-    <button id="menuBlocNotas"><i class="fas fa-note-sticky" style="margin-right: 8px;"></i> Bloc De Notas</button>
     <button id="menuGrabaciones"><i class="fas fa-video" style="margin-right: 8px;"></i> Grabaciones de
       Especialidades</button>
     <button id="menuTareasExamenes"><i class="fas fa-tasks" style="margin-right: 8px;"></i> Tareas y Exámenes <span id="menuTareasPendingBadge" class="menu-tareas-notif-badge" aria-live="polite"></span></button>
@@ -4675,6 +5235,14 @@
             <i class="fas fa-layer-group"></i>
             <span>Más Material</span>
           </button>
+          <button class="tab-button" data-tab="director-club">
+            <i class="fas fa-user-tie"></i>
+            <span>Director del Club</span>
+          </button>
+          <button class="tab-button" data-tab="conqui-club">
+            <i class="fas fa-compass"></i>
+            <span>Conqui/guía del Club</span>
+          </button>
         </div>
       </div>
 
@@ -4735,40 +5303,36 @@
         </div>
       </div>
 
-    </div>
-
-    <div id="blocNotasSection" class="card hidden">
-      <h2><i class="fas fa-note-sticky" style="margin-right: 8px; color: var(--accent-color);"></i> Bloc De Notas</h2>
-      <p>Bloc de notas principal.</p>
-      <div id="adminNotasView">
-        <div class="admin-notes-app">
-          <div class="admin-notes-titlebar">
-            <div class="admin-notes-titletext">
-              <input id="adminNotesTitleInput" type="text" value="Sin título" maxlength="120" aria-label="Nombre de la nota activa">
-              <span class="admin-notes-title-suffix">- Bloc de notas</span>
-              <span id="adminNotesTitleDirty">*</span>
+      <!-- TAB 3: Director del Club -->
+      <div id="tab-director-club" class="tab-content">
+        <div class="director-notes-app">
+          <div class="director-notes-titlebar">
+            <div class="director-notes-titletext">
+              <input id="directorNotesTitleInput" type="text" value="Sin título" maxlength="120" aria-label="Nombre de la nota activa">
+              <span class="director-notes-title-suffix">- Bloc de notas</span>
+              <span id="directorNotesTitleDirty">*</span>
             </div>
-            <div class="admin-notes-actions">
-              <button type="button" id="adminNotesQuickNew" title="Nuevo (Ctrl+N)"><i class="fas fa-file"></i></button>
-              <button type="button" id="adminNotesQuickOpen" title="Abrir TXT"><i class="fas fa-folder-open"></i></button>
-              <button type="button" id="adminNotesQuickSave" title="Guardar local + nube"><i class="fas fa-floppy-disk"></i></button>
-              <button type="button" id="adminNotesQuickSaveCloud" title="Guardar solo en nube (Ctrl+S)"><i class="fas fa-cloud-arrow-up"></i></button>
+            <div class="director-notes-actions">
+              <button type="button" id="directorNotesQuickNew" title="Nuevo (Ctrl+N)"><i class="fas fa-file"></i></button>
+              <button type="button" id="directorNotesQuickOpen" title="Abrir TXT"><i class="fas fa-folder-open"></i></button>
+              <button type="button" id="directorNotesQuickSave" title="Guardar local + nube"><i class="fas fa-floppy-disk"></i></button>
+              <button type="button" id="directorNotesQuickSaveCloud" title="Guardar solo en nube (Ctrl+S)"><i class="fas fa-cloud-arrow-up"></i></button>
             </div>
           </div>
 
-          <div class="admin-notes-menubar">
-            <div class="admin-notes-menu" data-notes-menu="archivo">
-              <button type="button" class="admin-notes-menu-btn">Archivo</button>
-              <div class="admin-notes-menu-items">
+          <div class="director-notes-menubar">
+            <div class="director-notes-menu" data-notes-menu="archivo">
+              <button type="button" class="director-notes-menu-btn">Archivo</button>
+              <div class="director-notes-menu-items">
                 <button type="button" data-notes-action="new">Nuevo</button>
                 <button type="button" data-notes-action="open">Abrir...</button>
                 <button type="button" data-notes-action="save-local">Guardar local + nube</button>
                 <button type="button" data-notes-action="save-cloud">Guardar solo en nube</button>
               </div>
             </div>
-            <div class="admin-notes-menu" data-notes-menu="editar">
-              <button type="button" class="admin-notes-menu-btn">Editar</button>
-              <div class="admin-notes-menu-items">
+            <div class="director-notes-menu" data-notes-menu="editar">
+              <button type="button" class="director-notes-menu-btn">Editar</button>
+              <div class="director-notes-menu-items">
                 <button type="button" data-notes-action="undo">Deshacer</button>
                 <button type="button" data-notes-action="redo">Rehacer</button>
                 <button type="button" data-notes-action="cut">Cortar</button>
@@ -4777,9 +5341,9 @@
                 <button type="button" data-notes-action="selectall">Seleccionar todo</button>
               </div>
             </div>
-            <div class="admin-notes-menu" data-notes-menu="ver">
-              <button type="button" class="admin-notes-menu-btn">Ver</button>
-              <div class="admin-notes-menu-items">
+            <div class="director-notes-menu" data-notes-menu="ver">
+              <button type="button" class="director-notes-menu-btn">Ver</button>
+              <div class="director-notes-menu-items">
                 <button type="button" data-notes-action="zoom-in">Aumentar zoom</button>
                 <button type="button" data-notes-action="zoom-out">Reducir zoom</button>
                 <button type="button" data-notes-action="zoom-reset">Restablecer zoom</button>
@@ -4788,13 +5352,13 @@
             </div>
           </div>
 
-          <div class="admin-notes-tabsbar">
-            <div id="adminNotesTabs" class="admin-notes-tabs"></div>
-            <button type="button" id="adminNotesAddTabBtn" class="admin-notes-tab-add" title="Nueva pestaña">+</button>
+          <div class="director-notes-tabsbar">
+            <div id="directorNotesTabs" class="director-notes-tabs"></div>
+            <button type="button" id="directorNotesAddTabBtn" class="director-notes-tab-add" title="Nueva pestaña">+</button>
           </div>
 
-          <div class="admin-notes-toolbar">
-            <select id="adminNotesHeading" aria-label="Formato de encabezado">
+          <div class="director-notes-toolbar">
+            <select id="directorNotesHeading" aria-label="Formato de encabezado">
               <option value="P" selected>Párrafo</option>
               <option value="H1">H1</option>
               <option value="H2">H2</option>
@@ -4809,17 +5373,104 @@
             <button type="button" data-notes-action="clear-format" title="Limpiar formato"><i class="fas fa-eraser"></i></button>
           </div>
 
-          <div class="admin-notes-editor-wrap">
-            <div id="adminNotesEditor" contenteditable="true" spellcheck="true"></div>
-            <input type="file" id="adminNotesOpenFile" accept=".txt,text/plain" class="hidden">
+          <div class="director-notes-editor-wrap">
+            <div id="directorNotesEditor" contenteditable="true" spellcheck="true"></div>
+            <input type="file" id="directorNotesOpenFile" accept=".txt,text/plain" class="hidden">
           </div>
 
-          <div class="admin-notes-statusbar">
-            <span id="adminNotesLineCol">Ln 1, Col 1</span>
-            <span id="adminNotesCharCount">0 caracteres</span>
-            <span id="adminNotesWrapState">Con ajuste de línea</span>
-            <span id="adminNotesZoom">100%</span>
-            <span id="adminNotesSyncState">Sincronización local</span>
+          <div class="director-notes-statusbar">
+            <span id="directorNotesLineCol">Ln 1, Col 1</span>
+            <span id="directorNotesCharCount">0 caracteres</span>
+            <span id="directorNotesWrapState">Con ajuste de línea</span>
+            <span id="directorNotesZoom">100%</span>
+            <span id="directorNotesSyncState">Sincronización local</span>
+            <span>Windows (CRLF)</span>
+            <span>UTF-8</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: Conqui/guía del Club -->
+      <div id="tab-conqui-club" class="tab-content">
+        <div class="conqui-notes-app">
+          <div class="conqui-notes-titlebar">
+            <div class="conqui-notes-titletext">
+              <input id="conquiNotesTitleInput" type="text" value="Sin título" maxlength="120" aria-label="Nombre de la nota activa">
+              <span class="conqui-notes-title-suffix">- Bloc de notas</span>
+              <span id="conquiNotesTitleDirty">*</span>
+            </div>
+            <div class="conqui-notes-actions">
+              <button type="button" id="conquiNotesQuickNew" title="Nuevo (Ctrl+N)"><i class="fas fa-file"></i></button>
+              <button type="button" id="conquiNotesQuickOpen" title="Abrir TXT"><i class="fas fa-folder-open"></i></button>
+              <button type="button" id="conquiNotesQuickSave" title="Guardar local + nube"><i class="fas fa-floppy-disk"></i></button>
+              <button type="button" id="conquiNotesQuickSaveCloud" title="Guardar solo en nube (Ctrl+S)"><i class="fas fa-cloud-arrow-up"></i></button>
+            </div>
+          </div>
+
+          <div class="conqui-notes-menubar">
+            <div class="conqui-notes-menu" data-notes-menu="archivo">
+              <button type="button" class="conqui-notes-menu-btn">Archivo</button>
+              <div class="conqui-notes-menu-items">
+                <button type="button" data-notes-action="new">Nuevo</button>
+                <button type="button" data-notes-action="open">Abrir...</button>
+                <button type="button" data-notes-action="save-local">Guardar local + nube</button>
+                <button type="button" data-notes-action="save-cloud">Guardar solo en nube</button>
+              </div>
+            </div>
+            <div class="conqui-notes-menu" data-notes-menu="editar">
+              <button type="button" class="conqui-notes-menu-btn">Editar</button>
+              <div class="conqui-notes-menu-items">
+                <button type="button" data-notes-action="undo">Deshacer</button>
+                <button type="button" data-notes-action="redo">Rehacer</button>
+                <button type="button" data-notes-action="cut">Cortar</button>
+                <button type="button" data-notes-action="copy">Copiar</button>
+                <button type="button" data-notes-action="paste">Pegar</button>
+                <button type="button" data-notes-action="selectall">Seleccionar todo</button>
+              </div>
+            </div>
+            <div class="conqui-notes-menu" data-notes-menu="ver">
+              <button type="button" class="conqui-notes-menu-btn">Ver</button>
+              <div class="conqui-notes-menu-items">
+                <button type="button" data-notes-action="zoom-in">Aumentar zoom</button>
+                <button type="button" data-notes-action="zoom-out">Reducir zoom</button>
+                <button type="button" data-notes-action="zoom-reset">Restablecer zoom</button>
+                <button type="button" data-notes-action="toggle-wrap">Ajuste de línea</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="conqui-notes-tabsbar">
+            <div id="conquiNotesTabs" class="conqui-notes-tabs"></div>
+            <button type="button" id="conquiNotesAddTabBtn" class="conqui-notes-tab-add" title="Nueva pestaña">+</button>
+          </div>
+
+          <div class="conqui-notes-toolbar">
+            <select id="conquiNotesHeading" aria-label="Formato de encabezado">
+              <option value="P" selected>Párrafo</option>
+              <option value="H1">H1</option>
+              <option value="H2">H2</option>
+              <option value="H3">H3</option>
+            </select>
+            <button type="button" data-notes-action="unordered-list" title="Lista con viñetas"><i class="fas fa-list-ul"></i></button>
+            <button type="button" data-notes-action="bold" title="Negrita"><i class="fas fa-bold"></i></button>
+            <button type="button" data-notes-action="italic" title="Cursiva"><i class="fas fa-italic"></i></button>
+            <button type="button" data-notes-action="strike" title="Tachado"><i class="fas fa-strikethrough"></i></button>
+            <button type="button" data-notes-action="link" title="Insertar enlace"><i class="fas fa-link"></i></button>
+            <button type="button" data-notes-action="table" title="Insertar tabla"><i class="fas fa-table"></i></button>
+            <button type="button" data-notes-action="clear-format" title="Limpiar formato"><i class="fas fa-eraser"></i></button>
+          </div>
+
+          <div class="conqui-notes-editor-wrap">
+            <div id="conquiNotesEditor" contenteditable="true" spellcheck="true"></div>
+            <input type="file" id="conquiNotesOpenFile" accept=".txt,text/plain" class="hidden">
+          </div>
+
+          <div class="conqui-notes-statusbar">
+            <span id="conquiNotesLineCol">Ln 1, Col 1</span>
+            <span id="conquiNotesCharCount">0 caracteres</span>
+            <span id="conquiNotesWrapState">Con ajuste de línea</span>
+            <span id="conquiNotesZoom">100%</span>
+            <span id="conquiNotesSyncState">Sincronización local</span>
             <span>Windows (CRLF)</span>
             <span>UTF-8</span>
           </div>
@@ -5525,6 +6176,10 @@
           style="padding: 8px 16px; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;">
           <i class="fas fa-chart-line" style="margin-right: 6px;"></i>Estadísticas
         </button>
+        <button id="adminTabNotas"
+          style="padding: 8px 16px; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;">
+          <i class="fas fa-note-sticky" style="margin-right: 6px;"></i>Notas
+        </button>
       </div>
 
       <div id="adminModeracionView">
@@ -5727,6 +6382,91 @@
         </div>
       </div>
 
+      <div id="adminNotasView" class="hidden">
+        <div class="admin-notes-app">
+          <div class="admin-notes-titlebar">
+            <div class="admin-notes-titletext">
+              <input id="adminNotesTitleInput" type="text" value="Sin título" maxlength="120" aria-label="Nombre de la nota activa">
+              <span class="admin-notes-title-suffix">- Bloc de notas</span>
+              <span id="adminNotesTitleDirty">*</span>
+            </div>
+            <div class="admin-notes-actions">
+              <button type="button" id="adminNotesQuickNew" title="Nuevo (Ctrl+N)"><i class="fas fa-file"></i></button>
+              <button type="button" id="adminNotesQuickOpen" title="Abrir TXT"><i class="fas fa-folder-open"></i></button>
+              <button type="button" id="adminNotesQuickSave" title="Guardar local + nube"><i class="fas fa-floppy-disk"></i></button>
+              <button type="button" id="adminNotesQuickSaveCloud" title="Guardar solo en nube (Ctrl+S)"><i class="fas fa-cloud-arrow-up"></i></button>
+            </div>
+          </div>
+
+          <div class="admin-notes-menubar">
+            <div class="admin-notes-menu" data-notes-menu="archivo">
+              <button type="button" class="admin-notes-menu-btn">Archivo</button>
+              <div class="admin-notes-menu-items">
+                <button type="button" data-notes-action="new">Nuevo</button>
+                <button type="button" data-notes-action="open">Abrir...</button>
+                <button type="button" data-notes-action="save-local">Guardar local + nube</button>
+                <button type="button" data-notes-action="save-cloud">Guardar solo en nube</button>
+              </div>
+            </div>
+            <div class="admin-notes-menu" data-notes-menu="editar">
+              <button type="button" class="admin-notes-menu-btn">Editar</button>
+              <div class="admin-notes-menu-items">
+                <button type="button" data-notes-action="undo">Deshacer</button>
+                <button type="button" data-notes-action="redo">Rehacer</button>
+                <button type="button" data-notes-action="cut">Cortar</button>
+                <button type="button" data-notes-action="copy">Copiar</button>
+                <button type="button" data-notes-action="paste">Pegar</button>
+                <button type="button" data-notes-action="selectall">Seleccionar todo</button>
+              </div>
+            </div>
+            <div class="admin-notes-menu" data-notes-menu="ver">
+              <button type="button" class="admin-notes-menu-btn">Ver</button>
+              <div class="admin-notes-menu-items">
+                <button type="button" data-notes-action="zoom-in">Aumentar zoom</button>
+                <button type="button" data-notes-action="zoom-out">Reducir zoom</button>
+                <button type="button" data-notes-action="zoom-reset">Restablecer zoom</button>
+                <button type="button" data-notes-action="toggle-wrap">Ajuste de línea</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="admin-notes-tabsbar">
+            <div id="adminNotesTabs" class="admin-notes-tabs"></div>
+            <button type="button" id="adminNotesAddTabBtn" class="admin-notes-tab-add" title="Nueva pestaña">+</button>
+          </div>
+
+          <div class="admin-notes-toolbar">
+            <select id="adminNotesHeading" aria-label="Formato de encabezado">
+              <option value="P" selected>Párrafo</option>
+              <option value="H1">H1</option>
+              <option value="H2">H2</option>
+              <option value="H3">H3</option>
+            </select>
+            <button type="button" data-notes-action="unordered-list" title="Lista con viñetas"><i class="fas fa-list-ul"></i></button>
+            <button type="button" data-notes-action="bold" title="Negrita"><i class="fas fa-bold"></i></button>
+            <button type="button" data-notes-action="italic" title="Cursiva"><i class="fas fa-italic"></i></button>
+            <button type="button" data-notes-action="strike" title="Tachado"><i class="fas fa-strikethrough"></i></button>
+            <button type="button" data-notes-action="link" title="Insertar enlace"><i class="fas fa-link"></i></button>
+            <button type="button" data-notes-action="table" title="Insertar tabla"><i class="fas fa-table"></i></button>
+            <button type="button" data-notes-action="clear-format" title="Limpiar formato"><i class="fas fa-eraser"></i></button>
+          </div>
+
+          <div class="admin-notes-editor-wrap">
+            <div id="adminNotesEditor" contenteditable="true" spellcheck="true"></div>
+            <input type="file" id="adminNotesOpenFile" accept=".txt,text/plain" class="hidden">
+          </div>
+
+          <div class="admin-notes-statusbar">
+            <span id="adminNotesLineCol">Ln 1, Col 1</span>
+            <span id="adminNotesCharCount">0 caracteres</span>
+            <span id="adminNotesWrapState">Con ajuste de línea</span>
+            <span id="adminNotesZoom">100%</span>
+            <span id="adminNotesSyncState">Sincronización local</span>
+            <span>Windows (CRLF)</span>
+            <span>UTF-8</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="acercaSection" class="card hidden">
@@ -8980,8 +9720,6 @@
       ////////////////////////////////////////////
       const menuClubes = document.getElementById("menuClubes");
       const clubesSection = document.getElementById("clubesSection");
-      const menuBlocNotas = document.getElementById("menuBlocNotas");
-      const blocNotasSection = document.getElementById("blocNotasSection");
 
       function setupAboutTabs() {
         const aboutButtons = document.querySelectorAll('.about-tab-btn');
@@ -9009,12 +9747,6 @@
         mostrarSeccion(clubesSection, menuClubes);
         ensureEspecialidadesTabInitialized();
       });
-      if (menuBlocNotas && blocNotasSection) {
-        menuBlocNotas.addEventListener("click", () => {
-          mostrarSeccion(blocNotasSection, menuBlocNotas);
-          initAdminNotesEditor();
-        });
-      }
       ///////////////////////////////////////////
 
       const clubBtns = document.querySelectorAll(".clubBtn");
@@ -9213,6 +9945,16 @@
           document.getElementById(`tab-${tabId}`).classList.add('active');
 
           // Cargar áreas si es la primera vez
+
+                    // Inicializar director notas si es la pestaña de director
+                    if (tabId === 'director-club') {
+                      initDirectorNotesEditor();
+                    }
+
+                    // Inicializar conqui notas si es la pestaña de conqui
+                    if (tabId === 'conqui-club') {
+                      initConquiNotesEditor();
+                    }
           if (tabId === 'especialidades-conquiguias' && !areasLoaded) {
             loadAreas();
             areasLoaded = true;
@@ -16747,24 +17489,2020 @@
       let adminNotesDraggedDocId = null;
       let adminNotesTabDragHappened = false;
       let adminNotesSyncEnabled = false;
-      const ADMIN_NOTES_STORAGE_KEY_BASE = 'conquiguias_admin_notas_v1';
+      const ADMIN_NOTES_STORAGE_KEY = 'conquiguias_admin_notas_v1';
       const ADMIN_INSTRUCTORES_CACHE_MS = 2 * 60 * 1000;
+
+      // Director del Club Notes
+      let directorNotesDocuments = [];
+      let directorNotesActiveDocId = null;
+      let directorNotesDocCounter = 0;
+      let directorNotesDraggedDocId = null;
+      let directorNotesTabDragHappened = false;
+      let directorNotesSyncEnabled = false;
+      let directorNotesZoomPercent = 100;
+      let directorNotesWrapEnabled = true;
+      let directorNotesFileName = 'Sin título';
+      let directorNotesDirty = false;
+      let directorNotesInitialized = false;
+      
+      // Conqui/guía del Club Notes
+      let conquiNotesDocuments = [];
+      let conquiNotesActiveDocId = null;
+      let conquiNotesDocCounter = 0;
+      let conquiNotesDraggedDocId = null;
+      let conquiNotesTabDragHappened = false;
+      let conquiNotesSyncEnabled = false;
+      let conquiNotesZoomPercent = 100;
+      let conquiNotesWrapEnabled = true;
+      let conquiNotesFileName = 'Sin título';
+      let conquiNotesDirty = false;
+      let conquiNotesInitialized = false;
+
+      const DIRECTOR_NOTES_STORAGE_KEY = 'conquiguias_director_notas_' + (window.currentUserId || 'unknown');
+
+      function getDirectorNotesEditor() {
+        return document.getElementById('directorNotesEditor');
+      }
+
+      function createDirectorNotesDocument({ id = null, title = 'Sin título', html = '', zoom = 100, wrap = true, dirty = false, fileHandle = null } = {}) {
+        directorNotesDocCounter += 1;
+        const uidPart = String(window.currentUserId || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const nextId = String(id || `director_${uidPart}_${Date.now()}_${directorNotesDocCounter}`).trim();
+        const safeTitle = (String(title || 'Sin título').trim() || 'Sin título').slice(0, 120);
+        const safeZoom = Math.min(300, Math.max(50, Number(zoom) || 100));
+        return {
+          id: nextId,
+          title: safeTitle,
+          html: String(html || ''),
+          zoom: safeZoom,
+          wrap: wrap !== false,
+          dirty: !!dirty,
+          fileHandle: fileHandle || null,
+        };
+      }
+
+      function sanitizeDirectorNotesFileName(name = 'Sin título') {
+        const base = String(name || 'Sin título').trim() || 'Sin título';
+        const safe = base.replace(/[^\w\-. ]+/g, '').trim() || 'Sin título';
+        return safe.toLowerCase().endsWith('.txt') ? safe : `${safe}.txt`;
+      }
+
+      function getActiveDirectorNotesDoc() {
+        return directorNotesDocuments.find((doc) => doc.id === directorNotesActiveDocId) || null;
+      }
+
+      function syncActiveDirectorNotesDocFromEditor() {
+        const editor = getDirectorNotesEditor();
+        const activeDoc = getActiveDirectorNotesDoc();
+        if (!editor || !activeDoc) return;
+        activeDoc.html = editor.innerHTML;
+        activeDoc.zoom = directorNotesZoomPercent;
+        activeDoc.wrap = directorNotesWrapEnabled;
+      }
+
+      function updateDirectorNotesTitle() {
+        const titleInput = document.getElementById('directorNotesTitleInput');
+        const dirtyEl = document.getElementById('directorNotesTitleDirty');
+        if (!titleInput) return;
+        const activeDoc = getActiveDirectorNotesDoc();
+        directorNotesFileName = activeDoc?.title || 'Sin título';
+        directorNotesDirty = !!activeDoc?.dirty;
+        if (document.activeElement !== titleInput) {
+          titleInput.value = directorNotesFileName;
+        }
+        if (dirtyEl) {
+          dirtyEl.style.visibility = directorNotesDirty ? 'visible' : 'hidden';
+        }
+      }
+
+      function updateDirectorNotesStatus() {
+        const editor = getDirectorNotesEditor();
+        if (!editor) return;
+
+        const lineColEl = document.getElementById('directorNotesLineCol');
+        const charCountEl = document.getElementById('directorNotesCharCount');
+        const zoomEl = document.getElementById('directorNotesZoom');
+        const wrapStateEl = document.getElementById('directorNotesWrapState');
+
+        const text = editor.innerText || '';
+        if (charCountEl) {
+          charCountEl.textContent = `${text.length} caracteres`;
+        }
+        if (zoomEl) {
+          zoomEl.textContent = `${directorNotesZoomPercent}%`;
+        }
+        if (wrapStateEl) {
+          wrapStateEl.textContent = directorNotesWrapEnabled ? 'Con ajuste de línea' : 'Sin ajuste de línea';
+        }
+
+        if (!lineColEl) return;
+
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0 || !editor.contains(selection.anchorNode)) {
+          lineColEl.textContent = 'Ln 1, Col 1';
+          return;
+        }
+
+        const range = selection.getRangeAt(0).cloneRange();
+        range.selectNodeContents(editor);
+        range.setEnd(selection.anchorNode, selection.anchorOffset);
+        const beforeText = range.toString();
+        const lines = beforeText.split('\n');
+        const line = lines.length;
+        const column = (lines[lines.length - 1] || '').length + 1;
+        lineColEl.textContent = `Ln ${line}, Col ${column}`;
+      }
+
+      function setDirectorNotesSyncState(message) {
+        const syncEl = document.getElementById('directorNotesSyncState');
+        if (!syncEl) return;
+        syncEl.textContent = String(message || '').trim() || 'Sincronización local';
+      }
+
+      function notifyDirectorNotesSave(type = 'info', title = 'Notas', message = '') {
+        const safeType = type === 'error' ? 'error' : 'info';
+        if (typeof showCornerNotification === 'function') {
+          showCornerNotification({
+            title,
+            message,
+            actionText: safeType === 'error' ? 'Revisar' : 'OK',
+            durationMs: safeType === 'error' ? 9500 : 4500,
+          });
+          return;
+        }
+        if (typeof mostrarMensaje === 'function') {
+          mostrarMensaje(safeType, title, message);
+        }
+      }
+
+      async function getDirectorNotesAuthToken() {
+        const authUser = auth.currentUser;
+        if (!authUser) return '';
+        try {
+          return await authUser.getIdToken(true);
+        } catch (error) {
+          console.warn('No se pudo obtener token para notas director:', error);
+          return '';
+        }
+      }
+
+      function saveDirectorNotesToLocalStorage() {
+        syncActiveDirectorNotesDocFromEditor();
+        if (!Array.isArray(directorNotesDocuments) || !directorNotesDocuments.length) return false;
+        const activeDoc = getActiveDirectorNotesDoc() || directorNotesDocuments[0];
+        try {
+          const payload = {
+            version: 2,
+            activeDocId: activeDoc?.id || directorNotesActiveDocId,
+            documents: directorNotesDocuments.map((doc) => ({
+              id: doc.id,
+              title: doc.title,
+              html: doc.html,
+              zoom: doc.zoom,
+              wrap: doc.wrap,
+            })),
+            html: activeDoc?.html || '',
+            fileName: activeDoc?.title || directorNotesFileName,
+            zoom: activeDoc?.zoom ?? directorNotesZoomPercent,
+            wrap: activeDoc?.wrap ?? directorNotesWrapEnabled,
+            updatedAt: Date.now(),
+            by: String(window.currentUserId || '').trim() || String(window.userData?.email || '').trim() || 'unknown'
+          };
+          localStorage.setItem(DIRECTOR_NOTES_STORAGE_KEY, JSON.stringify(payload));
+          return true;
+        } catch (error) {
+          console.warn('No se pudo guardar notas director localmente:', error);
+          return false;
+        }
+      }
+
+      function persistAllDirectorNotesToLocalStorage() {
+        try {
+          const payload = {
+            version: 2,
+            activeDocId: directorNotesActiveDocId,
+            documents: directorNotesDocuments.map((doc) => ({
+              id: doc.id,
+              title: doc.title,
+              html: doc.html,
+              zoom: doc.zoom,
+              wrap: doc.wrap,
+            })),
+            updatedAt: Date.now(),
+            by: String(window.currentUserId || '').trim() || String(window.userData?.email || '').trim() || 'unknown'
+          };
+          localStorage.setItem(DIRECTOR_NOTES_STORAGE_KEY, JSON.stringify(payload));
+          return true;
+        } catch (error) {
+          console.warn('No se pudo actualizar la caché completa de notas director:', error);
+          return false;
+        }
+      }
+
+      async function deleteDirectorNoteFromCloud(tabId, { notify = true } = {}) {
+        const normalizedId = String(tabId || '').trim();
+        if (!normalizedId) return false;
+
+        const idToken = await getDirectorNotesAuthToken();
+        if (!idToken) {
+          if (notify) {
+            notifyDirectorNotesSave('error', 'Error al cerrar pestaña', 'No hay sesión activa para eliminar esta nota en la nube.');
+          }
+          return false;
+        }
+
+        try {
+          const response = await fetch('/api/social?action=delete-director-note', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${idToken}`
+            },
+            body: JSON.stringify({ idToken, tabId: normalizedId })
+          });
+
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !payload?.success) {
+            throw new Error(payload?.error || 'No se pudo eliminar la nota en la nube');
+          }
+
+          return true;
+        } catch (error) {
+          if (notify) {
+            notifyDirectorNotesSave('error', 'Error al cerrar pestaña', error?.message || 'No se pudo eliminar la nota en la nube.');
+          }
+          return false;
+        }
+      }
+
+      async function saveDirectorNotesToSupabase({ notify = true, preserveDirty = false } = {}) {
+        const editor = getDirectorNotesEditor();
+        if (!editor) return false;
+        syncActiveDirectorNotesDocFromEditor();
+
+        const idToken = await getDirectorNotesAuthToken();
+        if (!idToken) {
+          directorNotesSyncEnabled = false;
+          setDirectorNotesSyncState('Sin token · guardado local');
+          if (notify) {
+            notifyDirectorNotesSave('error', 'Error al guardar en nube', 'No hay sesión activa para validar el guardado.');
+          }
+          return false;
+        }
+
+        try {
+          const activeDoc = getActiveDirectorNotesDoc() || createDirectorNotesDocument();
+          const docTitle = String(activeDoc.title || 'Sin título').trim() || 'Sin título';
+          const response = await fetch('/api/social?action=save-director-notes', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${idToken}`
+            },
+            body: JSON.stringify({
+              idToken,
+              html: activeDoc.html,
+              fileName: docTitle,
+              zoom: activeDoc.zoom,
+              wrap: activeDoc.wrap,
+              activeDocId: directorNotesActiveDocId,
+              saveOnlyActive: true,
+              tabsOrder: directorNotesDocuments.map((doc) => String(doc?.id || '').trim()).filter(Boolean),
+              tabs: [
+                {
+                  id: activeDoc.id,
+                  title: docTitle,
+                  html: activeDoc.html,
+                  zoom: activeDoc.zoom,
+                  wrap: activeDoc.wrap,
+                }
+              ]
+            })
+          });
+
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !payload?.success) {
+            throw new Error(payload?.error || 'No fue posible guardar en la nube');
+          }
+
+          directorNotesSyncEnabled = true;
+          if (activeDoc && !preserveDirty) {
+            activeDoc.dirty = false;
+          }
+          directorNotesDirty = !!activeDoc?.dirty;
+          updateDirectorNotesTitle();
+          renderDirectorNotesTabs();
+          setDirectorNotesSyncState('Sincronizado en la nube');
+          if (notify) {
+            notifyDirectorNotesSave('info', 'Guardado en la nube', `Documento "${docTitle}" guardado correctamente.`);
+          }
+          return true;
+        } catch (error) {
+          directorNotesSyncEnabled = false;
+          const activeDoc = getActiveDirectorNotesDoc();
+          const docTitle = String(activeDoc?.title || directorNotesFileName || 'Sin título').trim() || 'Sin título';
+          setDirectorNotesSyncState('Error en la nube · guardado local');
+          console.warn('No se pudieron guardar notas director en Supabase:', error);
+          if (notify) {
+            notifyDirectorNotesSave('error', 'Error al guardar en la nube', `Documento "${docTitle}": ${error?.message || 'Ocurrió un error inesperado al guardar.'}`);
+          }
+          return false;
+        }
+      }
+
+      function renderDirectorNotesTabs() {
+        const tabsRoot = document.getElementById('directorNotesTabs');
+        if (!tabsRoot) return;
+
+        tabsRoot.innerHTML = directorNotesDocuments.map((doc) => {
+          const isActive = doc.id === directorNotesActiveDocId;
+          return `
+            <div class="director-notes-tab ${isActive ? 'active' : ''}" data-notes-doc-id="${escapeHtml(doc.id)}" role="button" tabindex="0" draggable="true" aria-label="Pestaña ${escapeHtml(doc.title)}">
+              <span class="director-notes-tab-name">${escapeHtml(doc.title)}${doc.dirty ? ' *' : ''}</span>
+              <button type="button" class="director-notes-tab-close" data-notes-close-doc-id="${escapeHtml(doc.id)}" aria-label="Cerrar pestaña">×</button>
+            </div>
+          `;
+        }).join('');
+
+        tabsRoot.querySelectorAll('[data-notes-doc-id]').forEach((item) => {
+          item.addEventListener('click', (event) => {
+            if (directorNotesTabDragHappened) {
+              directorNotesTabDragHappened = false;
+              return;
+            }
+            if (event.target.closest('[data-notes-close-doc-id]')) return;
+            const nextId = item.getAttribute('data-notes-doc-id');
+            if (!nextId || nextId === directorNotesActiveDocId) return;
+            syncActiveDirectorNotesDocFromEditor();
+            directorNotesActiveDocId = nextId;
+            const nextDoc = getActiveDirectorNotesDoc();
+            if (nextDoc) {
+              setDirectorNotesContent(nextDoc.html, nextDoc.title, { preserveDirty: true });
+            }
+            renderDirectorNotesTabs();
+          });
+
+          item.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              item.click();
+            }
+          });
+
+          item.addEventListener('dragstart', (event) => {
+            directorNotesDraggedDocId = item.getAttribute('data-notes-doc-id');
+            directorNotesTabDragHappened = false;
+            item.classList.add('dragging');
+            if (event.dataTransfer) {
+              event.dataTransfer.effectAllowed = 'move';
+              event.dataTransfer.setData('text/plain', directorNotesDraggedDocId || '');
+            }
+          });
+
+          item.addEventListener('dragend', () => {
+            directorNotesDraggedDocId = null;
+            item.classList.remove('dragging');
+            tabsRoot.querySelectorAll('.director-notes-tab.drag-over').forEach((tab) => tab.classList.remove('drag-over'));
+          });
+
+          item.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            if (!directorNotesDraggedDocId) return;
+            if (item.getAttribute('data-notes-doc-id') === directorNotesDraggedDocId) return;
+            item.classList.add('drag-over');
+            if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+          });
+
+          item.addEventListener('dragleave', () => {
+            item.classList.remove('drag-over');
+          });
+
+          item.addEventListener('drop', async (event) => {
+            event.preventDefault();
+            item.classList.remove('drag-over');
+            const targetId = item.getAttribute('data-notes-doc-id');
+            if (!directorNotesDraggedDocId || !targetId || targetId === directorNotesDraggedDocId) return;
+
+            const fromIndex = directorNotesDocuments.findIndex((doc) => doc.id === directorNotesDraggedDocId);
+            const toIndex = directorNotesDocuments.findIndex((doc) => doc.id === targetId);
+            if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return;
+
+            const [moved] = directorNotesDocuments.splice(fromIndex, 1);
+            directorNotesDocuments.splice(toIndex, 0, moved);
+            directorNotesTabDragHappened = true;
+            renderDirectorNotesTabs();
+
+            const cacheSaved = persistAllDirectorNotesToLocalStorage();
+            setDirectorNotesSyncState(cacheSaved
+              ? 'Guardando orden de pestañas en la nube...'
+              : 'Orden actualizado (falló guardado local)');
+
+            const cloudSaved = await saveDirectorNotesToSupabase({ notify: false, preserveDirty: true });
+            if (cloudSaved) {
+              setDirectorNotesSyncState('Orden de pestañas sincronizado en la nube');
+            } else if (cacheSaved) {
+              setDirectorNotesSyncState('Orden guardado localmente · pendiente nube');
+            }
+          });
+        });
+
+        tabsRoot.querySelectorAll('[data-notes-close-doc-id]').forEach((btn) => {
+          btn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const targetId = btn.getAttribute('data-notes-close-doc-id');
+            if (!targetId) return;
+            void closeDirectorNotesDocument(targetId);
+          });
+        });
+      }
+
+      function openDirectorNotesDocument(doc) {
+        syncActiveDirectorNotesDocFromEditor();
+        const normalized = createDirectorNotesDocument(doc || {});
+        directorNotesDocuments.push(normalized);
+        directorNotesActiveDocId = normalized.id;
+        setDirectorNotesContent(normalized.html, normalized.title, { preserveDirty: true });
+        renderDirectorNotesTabs();
+      }
+
+      async function closeDirectorNotesDocument(docId) {
+        const targetIndex = directorNotesDocuments.findIndex((doc) => doc.id === docId);
+        if (targetIndex < 0) return;
+
+        const targetDoc = directorNotesDocuments[targetIndex];
+        if (targetDoc?.dirty && !confirm(`La pestaña "${targetDoc.title}" tiene cambios sin guardar. ¿Cerrar de todos modos?`)) {
+          return;
+        }
+
+        const removedInCloud = await deleteDirectorNoteFromCloud(docId, { notify: true });
+        if (!removedInCloud) {
+          return;
+        }
+
+        if (directorNotesDocuments.length === 1) {
+          directorNotesDocuments = [createDirectorNotesDocument({ title: 'Sin título' })];
+          directorNotesActiveDocId = directorNotesDocuments[0].id;
+          setDirectorNotesContent('', 'Sin título');
+          renderDirectorNotesTabs();
+          persistAllDirectorNotesToLocalStorage();
+          return;
+        }
+
+        const wasActive = directorNotesActiveDocId === docId;
+        directorNotesDocuments.splice(targetIndex, 1);
+
+        if (wasActive) {
+          const fallback = directorNotesDocuments[Math.max(0, targetIndex - 1)] || directorNotesDocuments[0];
+          directorNotesActiveDocId = fallback.id;
+          setDirectorNotesContent(fallback.html, fallback.title, { preserveDirty: true });
+        }
+
+        renderDirectorNotesTabs();
+        persistAllDirectorNotesToLocalStorage();
+      }
+
+      function replaceDirectorNotesDocuments(docs = [], activeId = '') {
+        const normalizedDocs = (Array.isArray(docs) ? docs : [])
+          .map((doc) => createDirectorNotesDocument(doc))
+          .filter((doc) => !!doc.id);
+
+        directorNotesDocuments = normalizedDocs.length
+          ? normalizedDocs
+          : [createDirectorNotesDocument({ title: 'Sin título' })];
+
+        const matched = directorNotesDocuments.find((doc) => doc.id === activeId);
+        directorNotesActiveDocId = matched ? matched.id : directorNotesDocuments[0].id;
+
+        const activeDoc = getActiveDirectorNotesDoc() || directorNotesDocuments[0];
+        setDirectorNotesContent(activeDoc.html, activeDoc.title, { preserveDirty: true });
+        renderDirectorNotesTabs();
+      }
+
+      async function loadDirectorNotesFromSupabase() {
+        const idToken = await getDirectorNotesAuthToken();
+        if (!idToken) {
+          setDirectorNotesSyncState('Sin token · notas locales');
+          return false;
+        }
+
+        try {
+          setDirectorNotesSyncState('Cargando desde la nube...');
+          const response = await fetch('/api/social?action=get-director-notes', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${idToken}`
+            }
+          });
+
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !payload?.success) {
+            throw new Error(payload?.error || 'No fue posible cargar notas de la nube');
+          }
+
+          const notes = payload?.notes || {};
+          const currentHasEdits = directorNotesDocuments.some((doc) => !!doc?.dirty);
+
+          if (!currentHasEdits) {
+            if (Array.isArray(notes.tabs) && notes.tabs.length) {
+              replaceDirectorNotesDocuments(notes.tabs, notes.activeDocId || '');
+            } else {
+              replaceDirectorNotesDocuments([
+                {
+                  title: String(notes.fileName || 'Sin título'),
+                  html: String(notes.html || ''),
+                  zoom: Number(notes.zoom) || 100,
+                  wrap: notes.wrap !== false,
+                }
+              ]);
+            }
+            saveDirectorNotesToLocalStorage();
+          }
+
+          directorNotesSyncEnabled = true;
+          setDirectorNotesSyncState('Sincronizado en la nube');
+          return true;
+        } catch (error) {
+          directorNotesSyncEnabled = false;
+          setDirectorNotesSyncState('No disponible · usando local');
+          console.warn('No se pudieron cargar notas director desde Supabase:', error);
+          return false;
+        }
+      }
+
+      function applyDirectorNotesZoom() {
+        const editor = getDirectorNotesEditor();
+        if (!editor) return;
+        const scaledSize = 15 * (directorNotesZoomPercent / 100);
+        editor.style.fontSize = `${scaledSize}px`;
+        const activeDoc = getActiveDirectorNotesDoc();
+        if (activeDoc) activeDoc.zoom = directorNotesZoomPercent;
+        updateDirectorNotesStatus();
+      }
+
+      function applyDirectorNotesWrap() {
+        const editor = getDirectorNotesEditor();
+        if (!editor) return;
+        editor.classList.toggle('director-notes-nowrap', !directorNotesWrapEnabled);
+        const activeDoc = getActiveDirectorNotesDoc();
+        if (activeDoc) activeDoc.wrap = directorNotesWrapEnabled;
+        updateDirectorNotesStatus();
+      }
+
+      function markDirectorNotesDirty() {
+        const activeDoc = getActiveDirectorNotesDoc();
+        if (activeDoc) {
+          activeDoc.dirty = true;
+          activeDoc.html = getDirectorNotesEditor()?.innerHTML || activeDoc.html;
+        }
+        directorNotesDirty = !!activeDoc;
+        updateDirectorNotesTitle();
+        renderDirectorNotesTabs();
+      }
+
+      async function saveDirectorNotesLocalAndCloud({ notify = true } = {}) {
+        const activeDoc = getActiveDirectorNotesDoc();
+        const docTitle = String(activeDoc?.title || directorNotesFileName || 'Sin título').trim() || 'Sin título';
+        const computerSaved = await saveDirectorNotesToComputer({ markClean: false });
+        const cacheSaved = saveDirectorNotesToLocalStorage();
+        const cloudSaved = await saveDirectorNotesToSupabase({ notify: false });
+        if (cloudSaved) {
+          if (activeDoc) {
+            activeDoc.dirty = false;
+          }
+          directorNotesDirty = false;
+          updateDirectorNotesTitle();
+          renderDirectorNotesTabs();
+        }
+
+        if (notify) {
+          if (computerSaved && cloudSaved) {
+            notifyDirectorNotesSave('info', 'Guardado', `Documento "${docTitle}" guardado en tu computadora y en la nube.`);
+          } else if (!computerSaved && cloudSaved) {
+            notifyDirectorNotesSave('error', 'Guardado parcial', `Documento "${docTitle}" guardado en la nube, pero falló la descarga a tu computadora.`);
+          } else if (computerSaved && !cloudSaved) {
+            notifyDirectorNotesSave('error', 'Guardado parcial', `Documento "${docTitle}" guardado en tu computadora, pero falló el guardado en la nube.`);
+          } else {
+            notifyDirectorNotesSave('error', 'Error de guardado', `No se pudo guardar el documento "${docTitle}".`);
+          }
+        }
+
+        if (!cacheSaved) {
+          console.warn('No se pudo actualizar la caché local de notas director.');
+        }
+
+        return computerSaved && cloudSaved;
+      }
+
+      function setDirectorNotesContent(html, fileName = 'Sin título', { preserveDirty = false } = {}) {
+        const editor = getDirectorNotesEditor();
+        if (!editor) return;
+        editor.innerHTML = html || '';
+        const activeDoc = getActiveDirectorNotesDoc();
+        if (activeDoc) {
+          activeDoc.title = (String(fileName || 'Sin título').trim() || 'Sin título').slice(0, 120);
+          activeDoc.html = editor.innerHTML;
+          directorNotesZoomPercent = Math.min(300, Math.max(50, Number(activeDoc.zoom) || 100));
+          directorNotesWrapEnabled = activeDoc.wrap !== false;
+          if (!preserveDirty) {
+            activeDoc.dirty = false;
+          }
+          directorNotesDirty = !!activeDoc.dirty;
+          directorNotesFileName = activeDoc.title;
+        } else {
+          directorNotesFileName = fileName;
+          directorNotesDirty = false;
+        }
+        applyDirectorNotesZoom();
+        applyDirectorNotesWrap();
+        updateDirectorNotesTitle();
+        updateDirectorNotesStatus();
+        renderDirectorNotesTabs();
+      }
+
+      function loadDirectorNotesFromStorage() {
+        try {
+          const raw = localStorage.getItem(DIRECTOR_NOTES_STORAGE_KEY);
+          if (!raw) {
+            replaceDirectorNotesDocuments([createDirectorNotesDocument({ title: 'Sin título' })]);
+            setDirectorNotesSyncState('Sincronización local');
+            return;
+          }
+          const data = JSON.parse(raw);
+
+          if (Number(data?.version) === 2 && Array.isArray(data?.documents) && data.documents.length) {
+            replaceDirectorNotesDocuments(data.documents, data.activeDocId || '');
+          } else {
+            replaceDirectorNotesDocuments([createDirectorNotesDocument({ title: 'Sin título' })]);
+          }
+
+          setDirectorNotesSyncState('Notas locales cargadas');
+        } catch (error) {
+          console.warn('No se pudieron cargar notas director:', error);
+          replaceDirectorNotesDocuments([createDirectorNotesDocument({ title: 'Sin título' })]);
+          setDirectorNotesSyncState('Sincronización local');
+        }
+      }
+
+      function downloadDirectorNotes({ markClean = false } = {}) {
+        const editor = getDirectorNotesEditor();
+        if (!editor) return false;
+
+        try {
+          const activeDoc = getActiveDirectorNotesDoc();
+          const plainText = editor.innerText || '';
+          const titleBase = String(activeDoc?.title || directorNotesFileName || 'Sin título').trim() || 'Sin título';
+          const safeName = titleBase.replace(/[^\w\-. ]+/g, '').trim() || 'Sin título';
+          const finalName = safeName.toLowerCase().endsWith('.txt') ? safeName : `${safeName}.txt`;
+          const blob = new Blob([plainText], { type: 'text/plain;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = finalName;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(url);
+
+          if (markClean && activeDoc) {
+            activeDoc.dirty = false;
+            directorNotesDirty = false;
+            updateDirectorNotesTitle();
+            renderDirectorNotesTabs();
+          }
+
+          return true;
+        } catch (error) {
+          console.warn('No se pudo guardar la nota en tu computadora:', error);
+          return false;
+        }
+      }
+
+      async function saveDirectorNotesToComputer({ markClean = false, forcePicker = false } = {}) {
+        const editor = getDirectorNotesEditor();
+        const activeDoc = getActiveDirectorNotesDoc();
+        if (!editor || !activeDoc) return false;
+
+        const finalName = sanitizeDirectorNotesFileName(activeDoc.title || directorNotesFileName || 'Sin título');
+        const supportsFilePicker = typeof window.showSaveFilePicker === 'function';
+
+        if (supportsFilePicker) {
+          try {
+            if (forcePicker || !activeDoc.fileHandle) {
+              activeDoc.fileHandle = await window.showSaveFilePicker({
+                suggestedName: finalName,
+                types: [
+                  {
+                    description: 'Documento de texto',
+                    accept: { 'text/plain': ['.txt'] },
+                  },
+                ],
+              });
+
+              if (activeDoc.fileHandle?.name) {
+                activeDoc.title = stripTxtExtension(activeDoc.fileHandle.name) || activeDoc.title;
+                directorNotesFileName = activeDoc.title;
+              }
+            }
+
+            const writable = await activeDoc.fileHandle.createWritable();
+            await writable.write(editor.innerText || '');
+            await writable.close();
+
+            if (markClean) {
+              activeDoc.dirty = false;
+              directorNotesDirty = false;
+              updateDirectorNotesTitle();
+              renderDirectorNotesTabs();
+            }
+
+            return true;
+          } catch (error) {
+            if (error?.name === 'AbortError') {
+              return false;
+            }
+            console.warn('No se pudo guardar usando File System Access API, se usará descarga:', error);
+          }
+        }
+
+        return downloadDirectorNotes({ markClean });
+      }
+
+      async function openDirectorNotesFromComputer() {
+        if (typeof window.showOpenFilePicker === 'function') {
+          try {
+            const [fileHandle] = await window.showOpenFilePicker({
+              multiple: false,
+              types: [
+                {
+                  description: 'Documento de texto',
+                  accept: { 'text/plain': ['.txt'] },
+                },
+              ],
+            });
+
+            if (!fileHandle) return false;
+            const file = await fileHandle.getFile();
+            const rawText = await file.text();
+            const escaped = escapeHtml(rawText).replace(/\n/g, '<br>');
+            openDirectorNotesDocument({
+              title: stripTxtExtension(file.name) || 'Sin título',
+              html: escaped,
+              fileHandle,
+              dirty: false,
+            });
+            return true;
+          } catch (error) {
+            if (error?.name === 'AbortError') return false;
+            console.warn('No se pudo abrir archivo con File System Access API:', error);
+          }
+        }
+
+        const fileInput = document.getElementById('directorNotesOpenFile');
+        if (fileInput) {
+          fileInput.click();
+          return true;
+        }
+        return false;
+      }
+
+      function runDirectorNotesAction(action) {
+        const editor = getDirectorNotesEditor();
+        if (!editor) return;
+
+        const focusEditor = () => {
+          editor.focus();
+          updateDirectorNotesStatus();
+        };
+
+        switch (action) {
+          case 'new': {
+            openDirectorNotesDocument({ title: 'Sin título', html: '' });
+            focusEditor();
+            return;
+          }
+          case 'open': {
+            void openDirectorNotesFromComputer();
+            return;
+          }
+          case 'save-local':
+            void saveDirectorNotesLocalAndCloud({ notify: true });
+            return;
+          case 'save-cloud':
+            void saveDirectorNotesToSupabase({ notify: true });
+            return;
+          case 'undo':
+            document.execCommand('undo');
+            break;
+          case 'redo':
+            document.execCommand('redo');
+            break;
+          case 'cut':
+            document.execCommand('cut');
+            break;
+          case 'copy':
+            document.execCommand('copy');
+            break;
+          case 'paste':
+            document.execCommand('paste');
+            break;
+          case 'selectall':
+            document.execCommand('selectAll');
+            break;
+          case 'unordered-list':
+            document.execCommand('insertUnorderedList');
+            break;
+          case 'bold':
+            document.execCommand('bold');
+            break;
+          case 'italic':
+            document.execCommand('italic');
+            break;
+          case 'strike':
+            document.execCommand('strikeThrough');
+            break;
+          case 'link': {
+            const url = prompt('Introduce la URL del enlace:', 'https://');
+            if (url && /^https?:\/\//i.test(url)) {
+              document.execCommand('createLink', false, url);
+            }
+            break;
+          }
+          case 'table':
+            document.execCommand('insertHTML', false, '<table style="border-collapse:collapse; width:100%;"><tr><th style="border:1px solid #9ca3af; padding:6px;">Columna 1</th><th style="border:1px solid #9ca3af; padding:6px;">Columna 2</th></tr><tr><td style="border:1px solid #9ca3af; padding:6px;">Dato</td><td style="border:1px solid #9ca3af; padding:6px;">Dato</td></tr></table><p><br></p>');
+            break;
+          case 'clear-format':
+            document.execCommand('removeFormat');
+            break;
+          case 'zoom-in':
+            directorNotesZoomPercent = Math.min(300, directorNotesZoomPercent + 10);
+            applyDirectorNotesZoom();
+            markDirectorNotesDirty();
+            return;
+          case 'zoom-out':
+            directorNotesZoomPercent = Math.max(50, directorNotesZoomPercent - 10);
+            applyDirectorNotesZoom();
+            markDirectorNotesDirty();
+            return;
+          case 'zoom-reset':
+            directorNotesZoomPercent = 100;
+            applyDirectorNotesZoom();
+            markDirectorNotesDirty();
+            return;
+          case 'toggle-wrap':
+            directorNotesWrapEnabled = !directorNotesWrapEnabled;
+            applyDirectorNotesWrap();
+            markDirectorNotesDirty();
+            return;
+          default:
+            return;
+        }
+
+        markDirectorNotesDirty();
+        focusEditor();
+      }
+
+      function initDirectorNotesEditor() {
+        if (directorNotesInitialized) return;
+        const editor = getDirectorNotesEditor();
+        const headingSelect = document.getElementById('directorNotesHeading');
+        const fileInput = document.getElementById('directorNotesOpenFile');
+        const quickNew = document.getElementById('directorNotesQuickNew');
+        const quickOpen = document.getElementById('directorNotesQuickOpen');
+        const quickSave = document.getElementById('directorNotesQuickSave');
+        const quickSaveCloud = document.getElementById('directorNotesQuickSaveCloud');
+        const addTabBtn = document.getElementById('directorNotesAddTabBtn');
+        const titleInput = document.getElementById('directorNotesTitleInput');
+
+        if (!editor || !headingSelect || !fileInput) return;
+
+        const menuRoots = Array.from(document.querySelectorAll('.director-notes-menu'));
+        const closeMenus = () => menuRoots.forEach(menu => menu.classList.remove('open'));
+
+        menuRoots.forEach(menu => {
+          const btn = menu.querySelector('.director-notes-menu-btn');
+          if (!btn) return;
+          btn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const willOpen = !menu.classList.contains('open');
+            closeMenus();
+            if (willOpen) menu.classList.add('open');
+          });
+        });
+
+        document.addEventListener('click', (event) => {
+          if (!event.target.closest('.director-notes-menu')) {
+            closeMenus();
+          }
+        });
+
+        document.querySelectorAll('[data-notes-action]').forEach(button => {
+          button.addEventListener('click', (event) => {
+            const action = event.currentTarget?.dataset?.notesAction;
+            closeMenus();
+            if (action) runDirectorNotesAction(action);
+          });
+        });
+
+        headingSelect.addEventListener('change', () => {
+          editor.focus();
+          const tagName = headingSelect.value || 'P';
+          document.execCommand('formatBlock', false, `<${tagName}>`);
+          markDirectorNotesDirty();
+          updateDirectorNotesStatus();
+        });
+
+        editor.addEventListener('input', () => {
+          markDirectorNotesDirty();
+          updateDirectorNotesStatus();
+        });
+
+        ['click', 'keyup', 'mouseup', 'focus'].forEach(eventName => {
+          editor.addEventListener(eventName, updateDirectorNotesStatus);
+        });
+
+        editor.addEventListener('keydown', (event) => {
+          if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 's') {
+            event.preventDefault();
+            void runDirectorNotesAction('save-local');
+            return;
+          }
+          if (event.ctrlKey && event.key.toLowerCase() === 's') {
+            event.preventDefault();
+            void runDirectorNotesAction('save-cloud');
+          }
+          if (event.ctrlKey && event.key.toLowerCase() === 'n') {
+            event.preventDefault();
+            runDirectorNotesAction('new');
+          }
+        });
+
+        fileInput.addEventListener('change', (event) => {
+          const file = event.target?.files?.[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            const rawText = String(reader.result || '');
+            const escaped = escapeHtml(rawText).replace(/\n/g, '<br>');
+            openDirectorNotesDocument({
+              title: stripTxtExtension(file.name) || 'Sin título',
+              html: escaped,
+              fileHandle: null,
+            });
+            markDirectorNotesDirty();
+            editor.focus();
+          };
+          reader.readAsText(file);
+          fileInput.value = '';
+        });
+
+        if (quickNew) quickNew.addEventListener('click', () => runDirectorNotesAction('new'));
+        if (quickOpen) quickOpen.addEventListener('click', () => runDirectorNotesAction('open'));
+        if (quickSave) quickSave.addEventListener('click', () => runDirectorNotesAction('save-local'));
+        if (quickSaveCloud) quickSaveCloud.addEventListener('click', () => runDirectorNotesAction('save-cloud'));
+        if (addTabBtn) addTabBtn.addEventListener('click', () => runDirectorNotesAction('new'));
+        if (titleInput) {
+          titleInput.addEventListener('input', () => {
+            const activeDoc = getActiveDirectorNotesDoc();
+            if (!activeDoc) return;
+            const rawName = String(titleInput.value || '').slice(0, 120);
+            activeDoc.title = rawName || 'Sin título';
+            activeDoc.dirty = true;
+            directorNotesDirty = true;
+            directorNotesFileName = activeDoc.title;
+            updateDirectorNotesTitle();
+            renderDirectorNotesTabs();
+          });
+
+          titleInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              titleInput.blur();
+              editor.focus();
+            }
+          });
+
+          titleInput.addEventListener('blur', () => {
+            const activeDoc = getActiveDirectorNotesDoc();
+            if (!activeDoc) return;
+            const normalized = String(titleInput.value || '').trim().slice(0, 120) || 'Sin título';
+            activeDoc.title = normalized;
+            activeDoc.dirty = true;
+            directorNotesDirty = true;
+            directorNotesFileName = normalized;
+            updateDirectorNotesTitle();
+            renderDirectorNotesTabs();
+          });
+        }
+
+        loadDirectorNotesFromStorage();
+        updateDirectorNotesTitle();
+        updateDirectorNotesStatus();
+        loadDirectorNotesFromSupabase();
+        directorNotesInitialized = true;
+      }
+
+      const CONQUI_NOTES_STORAGE_KEY = 'conquiguias_conqui_notas_' + (window.currentUserId || 'unknown');
+
+      function getConquiNotesEditor() {
+        return document.getElementById('conquiNotesEditor');
+      }
+
+      function createConquiNotesDocument({ id = null, title = 'Sin título', html = '', zoom = 100, wrap = true, dirty = false, fileHandle = null } = {}) {
+        conquiNotesDocCounter += 1;
+        const uidPart = String(window.currentUserId || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const nextId = String(id || `conqui_${uidPart}_${Date.now()}_${conquiNotesDocCounter}`).trim();
+        const safeTitle = (String(title || 'Sin título').trim() || 'Sin título').slice(0, 120);
+        const safeZoom = Math.min(300, Math.max(50, Number(zoom) || 100));
+        return {
+          id: nextId,
+          title: safeTitle,
+          html: String(html || ''),
+          zoom: safeZoom,
+          wrap: wrap !== false,
+          dirty: !!dirty,
+          fileHandle: fileHandle || null,
+        };
+      }
+
+      function sanitizeConquiNotesFileName(name = 'Sin título') {
+        const base = String(name || 'Sin título').trim() || 'Sin título';
+        const safe = base.replace(/[^\w\-. ]+/g, '').trim() || 'Sin título';
+        return safe.toLowerCase().endsWith('.txt') ? safe : `${safe}.txt`;
+      }
+
+      function getActiveConquiNotesDoc() {
+        return conquiNotesDocuments.find((doc) => doc.id === conquiNotesActiveDocId) || null;
+      }
+
+      function syncActiveConquiNotesDocFromEditor() {
+        const editor = getConquiNotesEditor();
+        const activeDoc = getActiveConquiNotesDoc();
+        if (!editor || !activeDoc) return;
+        activeDoc.html = editor.innerHTML;
+        activeDoc.zoom = conquiNotesZoomPercent;
+        activeDoc.wrap = conquiNotesWrapEnabled;
+      }
+
+      function updateConquiNotesTitle() {
+        const titleInput = document.getElementById('conquiNotesTitleInput');
+        const dirtyEl = document.getElementById('conquiNotesTitleDirty');
+        if (!titleInput) return;
+        const activeDoc = getActiveConquiNotesDoc();
+        conquiNotesFileName = activeDoc?.title || 'Sin título';
+        conquiNotesDirty = !!activeDoc?.dirty;
+        if (document.activeElement !== titleInput) {
+          titleInput.value = conquiNotesFileName;
+        }
+        if (dirtyEl) {
+          dirtyEl.style.visibility = conquiNotesDirty ? 'visible' : 'hidden';
+        }
+      }
+
+      function updateConquiNotesStatus() {
+        const editor = getConquiNotesEditor();
+        if (!editor) return;
+
+        const lineColEl = document.getElementById('conquiNotesLineCol');
+        const charCountEl = document.getElementById('conquiNotesCharCount');
+        const zoomEl = document.getElementById('conquiNotesZoom');
+        const wrapStateEl = document.getElementById('conquiNotesWrapState');
+
+        const text = editor.innerText || '';
+        if (charCountEl) {
+          charCountEl.textContent = `${text.length} caracteres`;
+        }
+        if (zoomEl) {
+          zoomEl.textContent = `${conquiNotesZoomPercent}%`;
+        }
+        if (wrapStateEl) {
+          wrapStateEl.textContent = conquiNotesWrapEnabled ? 'Con ajuste de línea' : 'Sin ajuste de línea';
+        }
+
+        if (!lineColEl) return;
+
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0 || !editor.contains(selection.anchorNode)) {
+          lineColEl.textContent = 'Ln 1, Col 1';
+          return;
+        }
+
+        const range = selection.getRangeAt(0).cloneRange();
+        range.selectNodeContents(editor);
+        range.setEnd(selection.anchorNode, selection.anchorOffset);
+        const beforeText = range.toString();
+        const lines = beforeText.split('\n');
+        const line = lines.length;
+        const column = (lines[lines.length - 1] || '').length + 1;
+        lineColEl.textContent = `Ln ${line}, Col ${column}`;
+      }
+
+      function setConquiNotesSyncState(message) {
+        const syncEl = document.getElementById('conquiNotesSyncState');
+        if (!syncEl) return;
+        syncEl.textContent = String(message || '').trim() || 'Sincronización local';
+      }
+
+      function notifyConquiNotesSave(type = 'info', title = 'Notas', message = '') {
+        const safeType = type === 'error' ? 'error' : 'info';
+        if (typeof showCornerNotification === 'function') {
+          showCornerNotification({
+            title,
+            message,
+            actionText: safeType === 'error' ? 'Revisar' : 'OK',
+            durationMs: safeType === 'error' ? 9500 : 4500,
+          });
+          return;
+        }
+        if (typeof mostrarMensaje === 'function') {
+          mostrarMensaje(safeType, title, message);
+        }
+      }
+
+      async function getConquiNotesAuthToken() {
+        const authUser = auth.currentUser;
+        if (!authUser) return '';
+        try {
+          return await authUser.getIdToken(true);
+        } catch (error) {
+          console.warn('No se pudo obtener token para notas conqui:', error);
+          return '';
+        }
+      }
+
+      function saveConquiNotesToLocalStorage() {
+        syncActiveConquiNotesDocFromEditor();
+        if (!Array.isArray(conquiNotesDocuments) || !conquiNotesDocuments.length) return false;
+        const activeDoc = getActiveConquiNotesDoc() || conquiNotesDocuments[0];
+        try {
+          const payload = {
+            version: 2,
+            activeDocId: activeDoc?.id || conquiNotesActiveDocId,
+            documents: conquiNotesDocuments.map((doc) => ({
+              id: doc.id,
+              title: doc.title,
+              html: doc.html,
+              zoom: doc.zoom,
+              wrap: doc.wrap,
+            })),
+            html: activeDoc?.html || '',
+            fileName: activeDoc?.title || conquiNotesFileName,
+            zoom: activeDoc?.zoom ?? conquiNotesZoomPercent,
+            wrap: activeDoc?.wrap ?? conquiNotesWrapEnabled,
+            updatedAt: Date.now(),
+            by: String(window.currentUserId || '').trim() || String(window.userData?.email || '').trim() || 'unknown'
+          };
+          localStorage.setItem(CONQUI_NOTES_STORAGE_KEY, JSON.stringify(payload));
+          return true;
+        } catch (error) {
+          console.warn('No se pudo guardar notas conqui localmente:', error);
+          return false;
+        }
+      }
+
+      function persistAllConquiNotesToLocalStorage() {
+        try {
+          const payload = {
+            version: 2,
+            activeDocId: conquiNotesActiveDocId,
+            documents: conquiNotesDocuments.map((doc) => ({
+              id: doc.id,
+              title: doc.title,
+              html: doc.html,
+              zoom: doc.zoom,
+              wrap: doc.wrap,
+            })),
+            updatedAt: Date.now(),
+            by: String(window.currentUserId || '').trim() || String(window.userData?.email || '').trim() || 'unknown'
+          };
+          localStorage.setItem(CONQUI_NOTES_STORAGE_KEY, JSON.stringify(payload));
+          return true;
+        } catch (error) {
+          console.warn('No se pudo actualizar la caché completa de notas conqui:', error);
+          return false;
+        }
+      }
+
+      async function deleteConquiNoteFromCloud(tabId, { notify = true } = {}) {
+        const normalizedId = String(tabId || '').trim();
+        if (!normalizedId) return false;
+
+        const idToken = await getConquiNotesAuthToken();
+        if (!idToken) {
+          if (notify) {
+            notifyConquiNotesSave('error', 'Error al cerrar pestaña', 'No hay sesión activa para eliminar esta nota en la nube.');
+          }
+          return false;
+        }
+
+        try {
+          const response = await fetch('/api/social?action=delete-conqui-note', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${idToken}`
+            },
+            body: JSON.stringify({ idToken, tabId: normalizedId })
+          });
+
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !payload?.success) {
+            throw new Error(payload?.error || 'No se pudo eliminar la nota en la nube');
+          }
+
+          return true;
+        } catch (error) {
+          if (notify) {
+            notifyConquiNotesSave('error', 'Error al cerrar pestaña', error?.message || 'No se pudo eliminar la nota en la nube.');
+          }
+          return false;
+        }
+      }
+
+      async function saveConquiNotesToSupabase({ notify = true, preserveDirty = false } = {}) {
+        const editor = getConquiNotesEditor();
+        if (!editor) return false;
+        syncActiveConquiNotesDocFromEditor();
+
+        const idToken = await getConquiNotesAuthToken();
+        if (!idToken) {
+          conquiNotesSyncEnabled = false;
+          setConquiNotesSyncState('Sin token · guardado local');
+          if (notify) {
+            notifyConquiNotesSave('error', 'Error al guardar en nube', 'No hay sesión activa para validar el guardado.');
+          }
+          return false;
+        }
+
+        try {
+          const activeDoc = getActiveConquiNotesDoc() || createConquiNotesDocument();
+          const docTitle = String(activeDoc.title || 'Sin título').trim() || 'Sin título';
+          const response = await fetch('/api/social?action=save-conqui-notes', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${idToken}`
+            },
+            body: JSON.stringify({
+              idToken,
+              html: activeDoc.html,
+              fileName: docTitle,
+              zoom: activeDoc.zoom,
+              wrap: activeDoc.wrap,
+              activeDocId: conquiNotesActiveDocId,
+              saveOnlyActive: true,
+              tabsOrder: conquiNotesDocuments.map((doc) => String(doc?.id || '').trim()).filter(Boolean),
+              tabs: [
+                {
+                  id: activeDoc.id,
+                  title: docTitle,
+                  html: activeDoc.html,
+                  zoom: activeDoc.zoom,
+                  wrap: activeDoc.wrap,
+                }
+              ]
+            })
+          });
+
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !payload?.success) {
+            throw new Error(payload?.error || 'No fue posible guardar en la nube');
+          }
+
+          conquiNotesSyncEnabled = true;
+          if (activeDoc && !preserveDirty) {
+            activeDoc.dirty = false;
+          }
+          conquiNotesDirty = !!activeDoc?.dirty;
+          updateConquiNotesTitle();
+          renderConquiNotesTabs();
+          setConquiNotesSyncState('Sincronizado en la nube');
+          if (notify) {
+            notifyConquiNotesSave('info', 'Guardado en la nube', `Documento "${docTitle}" guardado correctamente.`);
+          }
+          return true;
+        } catch (error) {
+          conquiNotesSyncEnabled = false;
+          const activeDoc = getActiveConquiNotesDoc();
+          const docTitle = String(activeDoc?.title || conquiNotesFileName || 'Sin título').trim() || 'Sin título';
+          setConquiNotesSyncState('Error en la nube · guardado local');
+          console.warn('No se pudieron guardar notas conqui en Supabase:', error);
+          if (notify) {
+            notifyConquiNotesSave('error', 'Error al guardar en la nube', `Documento "${docTitle}": ${error?.message || 'Ocurrió un error inesperado al guardar.'}`);
+          }
+          return false;
+        }
+      }
+
+      function renderConquiNotesTabs() {
+        const tabsRoot = document.getElementById('conquiNotesTabs');
+        if (!tabsRoot) return;
+
+        tabsRoot.innerHTML = conquiNotesDocuments.map((doc) => {
+          const isActive = doc.id === conquiNotesActiveDocId;
+          return `
+            <div class="conqui-notes-tab ${isActive ? 'active' : ''}" data-notes-doc-id="${escapeHtml(doc.id)}" role="button" tabindex="0" draggable="true" aria-label="Pestaña ${escapeHtml(doc.title)}">
+              <span class="conqui-notes-tab-name">${escapeHtml(doc.title)}${doc.dirty ? ' *' : ''}</span>
+              <button type="button" class="conqui-notes-tab-close" data-notes-close-doc-id="${escapeHtml(doc.id)}" aria-label="Cerrar pestaña">×</button>
+            </div>
+          `;
+        }).join('');
+
+        tabsRoot.querySelectorAll('[data-notes-doc-id]').forEach((item) => {
+          item.addEventListener('click', (event) => {
+            if (conquiNotesTabDragHappened) {
+              conquiNotesTabDragHappened = false;
+              return;
+            }
+            if (event.target.closest('[data-notes-close-doc-id]')) return;
+            const nextId = item.getAttribute('data-notes-doc-id');
+            if (!nextId || nextId === conquiNotesActiveDocId) return;
+            syncActiveConquiNotesDocFromEditor();
+            conquiNotesActiveDocId = nextId;
+            const nextDoc = getActiveConquiNotesDoc();
+            if (nextDoc) {
+              setConquiNotesContent(nextDoc.html, nextDoc.title, { preserveDirty: true });
+            }
+            renderConquiNotesTabs();
+          });
+
+          item.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              item.click();
+            }
+          });
+
+          item.addEventListener('dragstart', (event) => {
+            conquiNotesDraggedDocId = item.getAttribute('data-notes-doc-id');
+            conquiNotesTabDragHappened = false;
+            item.classList.add('dragging');
+            if (event.dataTransfer) {
+              event.dataTransfer.effectAllowed = 'move';
+              event.dataTransfer.setData('text/plain', conquiNotesDraggedDocId || '');
+            }
+          });
+
+          item.addEventListener('dragend', () => {
+            conquiNotesDraggedDocId = null;
+            item.classList.remove('dragging');
+            tabsRoot.querySelectorAll('.conqui-notes-tab.drag-over').forEach((tab) => tab.classList.remove('drag-over'));
+          });
+
+          item.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            if (!conquiNotesDraggedDocId) return;
+            if (item.getAttribute('data-notes-doc-id') === conquiNotesDraggedDocId) return;
+            item.classList.add('drag-over');
+            if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+          });
+
+          item.addEventListener('dragleave', () => {
+            item.classList.remove('drag-over');
+          });
+
+          item.addEventListener('drop', async (event) => {
+            event.preventDefault();
+            item.classList.remove('drag-over');
+            const targetId = item.getAttribute('data-notes-doc-id');
+            if (!conquiNotesDraggedDocId || !targetId || targetId === conquiNotesDraggedDocId) return;
+
+            const fromIndex = conquiNotesDocuments.findIndex((doc) => doc.id === conquiNotesDraggedDocId);
+            const toIndex = conquiNotesDocuments.findIndex((doc) => doc.id === targetId);
+            if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return;
+
+            const [moved] = conquiNotesDocuments.splice(fromIndex, 1);
+            conquiNotesDocuments.splice(toIndex, 0, moved);
+            conquiNotesTabDragHappened = true;
+            renderConquiNotesTabs();
+
+            const cacheSaved = persistAllConquiNotesToLocalStorage();
+            setConquiNotesSyncState(cacheSaved
+              ? 'Guardando orden de pestañas en la nube...'
+              : 'Orden actualizado (falló guardado local)');
+
+            const cloudSaved = await saveConquiNotesToSupabase({ notify: false, preserveDirty: true });
+            if (cloudSaved) {
+              setConquiNotesSyncState('Orden de pestañas sincronizado en la nube');
+            } else if (cacheSaved) {
+              setConquiNotesSyncState('Orden guardado localmente · pendiente nube');
+            }
+          });
+        });
+
+        tabsRoot.querySelectorAll('[data-notes-close-doc-id]').forEach((btn) => {
+          btn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const targetId = btn.getAttribute('data-notes-close-doc-id');
+            if (!targetId) return;
+            void closeConquiNotesDocument(targetId);
+          });
+        });
+      }
+
+      function openConquiNotesDocument(doc) {
+        syncActiveConquiNotesDocFromEditor();
+        const normalized = createConquiNotesDocument(doc || {});
+        conquiNotesDocuments.push(normalized);
+        conquiNotesActiveDocId = normalized.id;
+        setConquiNotesContent(normalized.html, normalized.title, { preserveDirty: true });
+        renderConquiNotesTabs();
+      }
+
+      async function closeConquiNotesDocument(docId) {
+        const targetIndex = conquiNotesDocuments.findIndex((doc) => doc.id === docId);
+        if (targetIndex < 0) return;
+
+        const targetDoc = conquiNotesDocuments[targetIndex];
+        if (targetDoc?.dirty && !confirm(`La pestaña "${targetDoc.title}" tiene cambios sin guardar. ¿Cerrar de todos modos?`)) {
+          return;
+        }
+
+        const removedInCloud = await deleteConquiNoteFromCloud(docId, { notify: true });
+        if (!removedInCloud) {
+          return;
+        }
+
+        if (conquiNotesDocuments.length === 1) {
+          conquiNotesDocuments = [createConquiNotesDocument({ title: 'Sin título' })];
+          conquiNotesActiveDocId = conquiNotesDocuments[0].id;
+          setConquiNotesContent('', 'Sin título');
+          renderConquiNotesTabs();
+          persistAllConquiNotesToLocalStorage();
+          return;
+        }
+
+        const wasActive = conquiNotesActiveDocId === docId;
+        conquiNotesDocuments.splice(targetIndex, 1);
+
+        if (wasActive) {
+          const fallback = conquiNotesDocuments[Math.max(0, targetIndex - 1)] || conquiNotesDocuments[0];
+          conquiNotesActiveDocId = fallback.id;
+          setConquiNotesContent(fallback.html, fallback.title, { preserveDirty: true });
+        }
+
+        renderConquiNotesTabs();
+        persistAllConquiNotesToLocalStorage();
+      }
+
+      function replaceConquiNotesDocuments(docs = [], activeId = '') {
+        const normalizedDocs = (Array.isArray(docs) ? docs : [])
+          .map((doc) => createConquiNotesDocument(doc))
+          .filter((doc) => !!doc.id);
+
+        conquiNotesDocuments = normalizedDocs.length
+          ? normalizedDocs
+          : [createConquiNotesDocument({ title: 'Sin título' })];
+
+        const matched = conquiNotesDocuments.find((doc) => doc.id === activeId);
+        conquiNotesActiveDocId = matched ? matched.id : conquiNotesDocuments[0].id;
+
+        const activeDoc = getActiveConquiNotesDoc() || conquiNotesDocuments[0];
+        setConquiNotesContent(activeDoc.html, activeDoc.title, { preserveDirty: true });
+        renderConquiNotesTabs();
+      }
+
+      async function loadConquiNotesFromSupabase() {
+        const idToken = await getConquiNotesAuthToken();
+        if (!idToken) {
+          setConquiNotesSyncState('Sin token · notas locales');
+          return false;
+        }
+
+        try {
+          setConquiNotesSyncState('Cargando desde la nube...');
+          const response = await fetch('/api/social?action=get-conqui-notes', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${idToken}`
+            }
+          });
+
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !payload?.success) {
+            throw new Error(payload?.error || 'No fue posible cargar notas de la nube');
+          }
+
+          const notes = payload?.notes || {};
+          const currentHasEdits = conquiNotesDocuments.some((doc) => !!doc?.dirty);
+
+          if (!currentHasEdits) {
+            if (Array.isArray(notes.tabs) && notes.tabs.length) {
+              replaceConquiNotesDocuments(notes.tabs, notes.activeDocId || '');
+            } else {
+              replaceConquiNotesDocuments([
+                {
+                  title: String(notes.fileName || 'Sin título'),
+                  html: String(notes.html || ''),
+                  zoom: Number(notes.zoom) || 100,
+                  wrap: notes.wrap !== false,
+                }
+              ]);
+            }
+            saveConquiNotesToLocalStorage();
+          }
+
+          conquiNotesSyncEnabled = true;
+          setConquiNotesSyncState('Sincronizado en la nube');
+          return true;
+        } catch (error) {
+          conquiNotesSyncEnabled = false;
+          setConquiNotesSyncState('No disponible · usando local');
+          console.warn('No se pudieron cargar notas conqui desde Supabase:', error);
+          return false;
+        }
+      }
+
+      function applyConquiNotesZoom() {
+        const editor = getConquiNotesEditor();
+        if (!editor) return;
+        const scaledSize = 15 * (conquiNotesZoomPercent / 100);
+        editor.style.fontSize = `${scaledSize}px`;
+        const activeDoc = getActiveConquiNotesDoc();
+        if (activeDoc) activeDoc.zoom = conquiNotesZoomPercent;
+        updateConquiNotesStatus();
+      }
+
+      function applyConquiNotesWrap() {
+        const editor = getConquiNotesEditor();
+        if (!editor) return;
+        editor.classList.toggle('conqui-notes-nowrap', !conquiNotesWrapEnabled);
+        const activeDoc = getActiveConquiNotesDoc();
+        if (activeDoc) activeDoc.wrap = conquiNotesWrapEnabled;
+        updateConquiNotesStatus();
+      }
+
+      function markConquiNotesDirty() {
+        const activeDoc = getActiveConquiNotesDoc();
+        if (activeDoc) {
+          activeDoc.dirty = true;
+          activeDoc.html = getConquiNotesEditor()?.innerHTML || activeDoc.html;
+        }
+        conquiNotesDirty = !!activeDoc;
+        updateConquiNotesTitle();
+        renderConquiNotesTabs();
+      }
+
+      async function saveConquiNotesLocalAndCloud({ notify = true } = {}) {
+        const activeDoc = getActiveConquiNotesDoc();
+        const docTitle = String(activeDoc?.title || conquiNotesFileName || 'Sin título').trim() || 'Sin título';
+        const computerSaved = await saveConquiNotesToComputer({ markClean: false });
+        const cacheSaved = saveConquiNotesToLocalStorage();
+        const cloudSaved = await saveConquiNotesToSupabase({ notify: false });
+        if (cloudSaved) {
+          if (activeDoc) {
+            activeDoc.dirty = false;
+          }
+          conquiNotesDirty = false;
+          updateConquiNotesTitle();
+          renderConquiNotesTabs();
+        }
+
+        if (notify) {
+          if (computerSaved && cloudSaved) {
+            notifyConquiNotesSave('info', 'Guardado', `Documento "${docTitle}" guardado en tu computadora y en la nube.`);
+          } else if (!computerSaved && cloudSaved) {
+            notifyConquiNotesSave('error', 'Guardado parcial', `Documento "${docTitle}" guardado en la nube, pero falló la descarga a tu computadora.`);
+          } else if (computerSaved && !cloudSaved) {
+            notifyConquiNotesSave('error', 'Guardado parcial', `Documento "${docTitle}" guardado en tu computadora, pero falló el guardado en la nube.`);
+          } else {
+            notifyConquiNotesSave('error', 'Error de guardado', `No se pudo guardar el documento "${docTitle}".`);
+          }
+        }
+
+        if (!cacheSaved) {
+          console.warn('No se pudo actualizar la caché local de notas conqui.');
+        }
+
+        return computerSaved && cloudSaved;
+      }
+
+      function setConquiNotesContent(html, fileName = 'Sin título', { preserveDirty = false } = {}) {
+        const editor = getConquiNotesEditor();
+        if (!editor) return;
+        editor.innerHTML = html || '';
+        const activeDoc = getActiveConquiNotesDoc();
+        if (activeDoc) {
+          activeDoc.title = (String(fileName || 'Sin título').trim() || 'Sin título').slice(0, 120);
+          activeDoc.html = editor.innerHTML;
+          conquiNotesZoomPercent = Math.min(300, Math.max(50, Number(activeDoc.zoom) || 100));
+          conquiNotesWrapEnabled = activeDoc.wrap !== false;
+          if (!preserveDirty) {
+            activeDoc.dirty = false;
+          }
+          conquiNotesDirty = !!activeDoc.dirty;
+          conquiNotesFileName = activeDoc.title;
+        } else {
+          conquiNotesFileName = fileName;
+          conquiNotesDirty = false;
+        }
+        applyConquiNotesZoom();
+        applyConquiNotesWrap();
+        updateConquiNotesTitle();
+        updateConquiNotesStatus();
+        renderConquiNotesTabs();
+      }
+
+      function loadConquiNotesFromStorage() {
+        try {
+          const raw = localStorage.getItem(CONQUI_NOTES_STORAGE_KEY);
+          if (!raw) {
+            replaceConquiNotesDocuments([createConquiNotesDocument({ title: 'Sin título' })]);
+            setConquiNotesSyncState('Sincronización local');
+            return;
+          }
+          const data = JSON.parse(raw);
+
+          if (Number(data?.version) === 2 && Array.isArray(data?.documents) && data.documents.length) {
+            replaceConquiNotesDocuments(data.documents, data.activeDocId || '');
+          } else {
+            replaceConquiNotesDocuments([createConquiNotesDocument({ title: 'Sin título' })]);
+          }
+
+          setConquiNotesSyncState('Notas locales cargadas');
+        } catch (error) {
+          console.warn('No se pudieron cargar notas conqui:', error);
+          replaceConquiNotesDocuments([createConquiNotesDocument({ title: 'Sin título' })]);
+          setConquiNotesSyncState('Sincronización local');
+        }
+      }
+
+      function downloadConquiNotes({ markClean = false } = {}) {
+        const editor = getConquiNotesEditor();
+        if (!editor) return false;
+
+        try {
+          const activeDoc = getActiveConquiNotesDoc();
+          const plainText = editor.innerText || '';
+          const titleBase = String(activeDoc?.title || conquiNotesFileName || 'Sin título').trim() || 'Sin título';
+          const safeName = titleBase.replace(/[^\w\-. ]+/g, '').trim() || 'Sin título';
+          const finalName = safeName.toLowerCase().endsWith('.txt') ? safeName : `${safeName}.txt`;
+          const blob = new Blob([plainText], { type: 'text/plain;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = finalName;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(url);
+
+          if (markClean && activeDoc) {
+            activeDoc.dirty = false;
+            conquiNotesDirty = false;
+            updateConquiNotesTitle();
+            renderConquiNotesTabs();
+          }
+
+          return true;
+        } catch (error) {
+          console.warn('No se pudo guardar la nota en tu computadora:', error);
+          return false;
+        }
+      }
+
+      async function saveConquiNotesToComputer({ markClean = false, forcePicker = false } = {}) {
+        const editor = getConquiNotesEditor();
+        const activeDoc = getActiveConquiNotesDoc();
+        if (!editor || !activeDoc) return false;
+
+        const finalName = sanitizeConquiNotesFileName(activeDoc.title || conquiNotesFileName || 'Sin título');
+        const supportsFilePicker = typeof window.showSaveFilePicker === 'function';
+
+        if (supportsFilePicker) {
+          try {
+            if (forcePicker || !activeDoc.fileHandle) {
+              activeDoc.fileHandle = await window.showSaveFilePicker({
+                suggestedName: finalName,
+                types: [
+                  {
+                    description: 'Documento de texto',
+                    accept: { 'text/plain': ['.txt'] },
+                  },
+                ],
+              });
+
+              if (activeDoc.fileHandle?.name) {
+                activeDoc.title = stripTxtExtension(activeDoc.fileHandle.name) || activeDoc.title;
+                conquiNotesFileName = activeDoc.title;
+              }
+            }
+
+            const writable = await activeDoc.fileHandle.createWritable();
+            await writable.write(editor.innerText || '');
+            await writable.close();
+
+            if (markClean) {
+              activeDoc.dirty = false;
+              conquiNotesDirty = false;
+              updateConquiNotesTitle();
+              renderConquiNotesTabs();
+            }
+
+            return true;
+          } catch (error) {
+            if (error?.name === 'AbortError') {
+              return false;
+            }
+            console.warn('No se pudo guardar usando File System Access API, se usará descarga:', error);
+          }
+        }
+
+        return downloadConquiNotes({ markClean });
+      }
+
+      async function openConquiNotesFromComputer() {
+        if (typeof window.showOpenFilePicker === 'function') {
+          try {
+            const [fileHandle] = await window.showOpenFilePicker({
+              multiple: false,
+              types: [
+                {
+                  description: 'Documento de texto',
+                  accept: { 'text/plain': ['.txt'] },
+                },
+              ],
+            });
+
+            if (!fileHandle) return false;
+            const file = await fileHandle.getFile();
+            const rawText = await file.text();
+            const escaped = escapeHtml(rawText).replace(/\n/g, '<br>');
+            openConquiNotesDocument({
+              title: stripTxtExtension(file.name) || 'Sin título',
+              html: escaped,
+              fileHandle,
+              dirty: false,
+            });
+            return true;
+          } catch (error) {
+            if (error?.name === 'AbortError') return false;
+            console.warn('No se pudo abrir archivo con File System Access API:', error);
+          }
+        }
+
+        const fileInput = document.getElementById('conquiNotesOpenFile');
+        if (fileInput) {
+          fileInput.click();
+          return true;
+        }
+        return false;
+      }
+
+      function runConquiNotesAction(action) {
+        const editor = getConquiNotesEditor();
+        if (!editor) return;
+
+        const focusEditor = () => {
+          editor.focus();
+          updateConquiNotesStatus();
+        };
+
+        switch (action) {
+          case 'new': {
+            openConquiNotesDocument({ title: 'Sin título', html: '' });
+            focusEditor();
+            return;
+          }
+          case 'open': {
+            void openConquiNotesFromComputer();
+            return;
+          }
+          case 'save-local':
+            void saveConquiNotesLocalAndCloud({ notify: true });
+            return;
+          case 'save-cloud':
+            void saveConquiNotesToSupabase({ notify: true });
+            return;
+          case 'undo':
+            document.execCommand('undo');
+            break;
+          case 'redo':
+            document.execCommand('redo');
+            break;
+          case 'cut':
+            document.execCommand('cut');
+            break;
+          case 'copy':
+            document.execCommand('copy');
+            break;
+          case 'paste':
+            document.execCommand('paste');
+            break;
+          case 'selectall':
+            document.execCommand('selectAll');
+            break;
+          case 'unordered-list':
+            document.execCommand('insertUnorderedList');
+            break;
+          case 'bold':
+            document.execCommand('bold');
+            break;
+          case 'italic':
+            document.execCommand('italic');
+            break;
+          case 'strike':
+            document.execCommand('strikeThrough');
+            break;
+          case 'link': {
+            const url = prompt('Introduce la URL del enlace:', 'https://');
+            if (url && /^https?:\/\//i.test(url)) {
+              document.execCommand('createLink', false, url);
+            }
+            break;
+          }
+          case 'table':
+            document.execCommand('insertHTML', false, '<table style="border-collapse:collapse; width:100%;"><tr><th style="border:1px solid #9ca3af; padding:6px;">Columna 1</th><th style="border:1px solid #9ca3af; padding:6px;">Columna 2</th></tr><tr><td style="border:1px solid #9ca3af; padding:6px;">Dato</td><td style="border:1px solid #9ca3af; padding:6px;">Dato</td></tr></table><p><br></p>');
+            break;
+          case 'clear-format':
+            document.execCommand('removeFormat');
+            break;
+          case 'zoom-in':
+            conquiNotesZoomPercent = Math.min(300, conquiNotesZoomPercent + 10);
+            applyConquiNotesZoom();
+            markConquiNotesDirty();
+            return;
+          case 'zoom-out':
+            conquiNotesZoomPercent = Math.max(50, conquiNotesZoomPercent - 10);
+            applyConquiNotesZoom();
+            markConquiNotesDirty();
+            return;
+          case 'zoom-reset':
+            conquiNotesZoomPercent = 100;
+            applyConquiNotesZoom();
+            markConquiNotesDirty();
+            return;
+          case 'toggle-wrap':
+            conquiNotesWrapEnabled = !conquiNotesWrapEnabled;
+            applyConquiNotesWrap();
+            markConquiNotesDirty();
+            return;
+          default:
+            return;
+        }
+
+        markConquiNotesDirty();
+        focusEditor();
+      }
+
+      function initConquiNotesEditor() {
+        if (conquiNotesInitialized) return;
+        const editor = getConquiNotesEditor();
+        const headingSelect = document.getElementById('conquiNotesHeading');
+        const fileInput = document.getElementById('conquiNotesOpenFile');
+        const quickNew = document.getElementById('conquiNotesQuickNew');
+        const quickOpen = document.getElementById('conquiNotesQuickOpen');
+        const quickSave = document.getElementById('conquiNotesQuickSave');
+        const quickSaveCloud = document.getElementById('conquiNotesQuickSaveCloud');
+        const addTabBtn = document.getElementById('conquiNotesAddTabBtn');
+        const titleInput = document.getElementById('conquiNotesTitleInput');
+
+        if (!editor || !headingSelect || !fileInput) return;
+
+        const menuRoots = Array.from(document.querySelectorAll('.conqui-notes-menu'));
+        const closeMenus = () => menuRoots.forEach(menu => menu.classList.remove('open'));
+
+        menuRoots.forEach(menu => {
+          const btn = menu.querySelector('.conqui-notes-menu-btn');
+          if (!btn) return;
+          btn.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const willOpen = !menu.classList.contains('open');
+            closeMenus();
+            if (willOpen) menu.classList.add('open');
+          });
+        });
+
+        document.addEventListener('click', (event) => {
+          if (!event.target.closest('.conqui-notes-menu')) {
+            closeMenus();
+          }
+        });
+
+        document.querySelectorAll('[data-notes-action]').forEach(button => {
+          button.addEventListener('click', (event) => {
+            const action = event.currentTarget?.dataset?.notesAction;
+            closeMenus();
+            if (action) runConquiNotesAction(action);
+          });
+        });
+
+        headingSelect.addEventListener('change', () => {
+          editor.focus();
+          const tagName = headingSelect.value || 'P';
+          document.execCommand('formatBlock', false, `<${tagName}>`);
+          markConquiNotesDirty();
+          updateConquiNotesStatus();
+        });
+
+        editor.addEventListener('input', () => {
+          markConquiNotesDirty();
+          updateConquiNotesStatus();
+        });
+
+        ['click', 'keyup', 'mouseup', 'focus'].forEach(eventName => {
+          editor.addEventListener(eventName, updateConquiNotesStatus);
+        });
+
+        editor.addEventListener('keydown', (event) => {
+          if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 's') {
+            event.preventDefault();
+            void runConquiNotesAction('save-local');
+            return;
+          }
+          if (event.ctrlKey && event.key.toLowerCase() === 's') {
+            event.preventDefault();
+            void runConquiNotesAction('save-cloud');
+          }
+          if (event.ctrlKey && event.key.toLowerCase() === 'n') {
+            event.preventDefault();
+            runConquiNotesAction('new');
+          }
+        });
+
+        fileInput.addEventListener('change', (event) => {
+          const file = event.target?.files?.[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            const rawText = String(reader.result || '');
+            const escaped = escapeHtml(rawText).replace(/\n/g, '<br>');
+            openConquiNotesDocument({
+              title: stripTxtExtension(file.name) || 'Sin título',
+              html: escaped,
+              fileHandle: null,
+            });
+            markConquiNotesDirty();
+            editor.focus();
+          };
+          reader.readAsText(file);
+          fileInput.value = '';
+        });
+
+        if (quickNew) quickNew.addEventListener('click', () => runConquiNotesAction('new'));
+        if (quickOpen) quickOpen.addEventListener('click', () => runConquiNotesAction('open'));
+        if (quickSave) quickSave.addEventListener('click', () => runConquiNotesAction('save-local'));
+        if (quickSaveCloud) quickSaveCloud.addEventListener('click', () => runConquiNotesAction('save-cloud'));
+        if (addTabBtn) addTabBtn.addEventListener('click', () => runConquiNotesAction('new'));
+        if (titleInput) {
+          titleInput.addEventListener('input', () => {
+            const activeDoc = getActiveConquiNotesDoc();
+            if (!activeDoc) return;
+            const rawName = String(titleInput.value || '').slice(0, 120);
+            activeDoc.title = rawName || 'Sin título';
+            activeDoc.dirty = true;
+            conquiNotesDirty = true;
+            conquiNotesFileName = activeDoc.title;
+            updateConquiNotesTitle();
+            renderConquiNotesTabs();
+          });
+
+          titleInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              titleInput.blur();
+              editor.focus();
+            }
+          });
+
+          titleInput.addEventListener('blur', () => {
+            const activeDoc = getActiveConquiNotesDoc();
+            if (!activeDoc) return;
+            const normalized = String(titleInput.value || '').trim().slice(0, 120) || 'Sin título';
+            activeDoc.title = normalized;
+            activeDoc.dirty = true;
+            conquiNotesDirty = true;
+            conquiNotesFileName = normalized;
+            updateConquiNotesTitle();
+            renderConquiNotesTabs();
+          });
+        }
+
+        loadConquiNotesFromStorage();
+        updateConquiNotesTitle();
+        updateConquiNotesStatus();
+        loadConquiNotesFromSupabase();
+        conquiNotesInitialized = true;
+      }
+
       function activarTabAdmin(tabName) {
         const tabPublicaciones = document.getElementById('adminTabPublicaciones');
         const tabInstructores = document.getElementById('adminTabInstructores');
         const tabDonaciones = document.getElementById('adminTabDonaciones');
         const tabEstadisticas = document.getElementById('adminTabEstadisticas');
+        const tabNotas = document.getElementById('adminTabNotas');
         const viewModeracion = document.getElementById('adminModeracionView');
         const viewInstructores = document.getElementById('adminInstructoresView');
         const viewDonaciones = document.getElementById('adminDonacionesView');
         const viewEstadisticas = document.getElementById('adminEstadisticasView');
+        const viewNotas = document.getElementById('adminNotasView');
 
-        if (!tabPublicaciones || !tabInstructores || !tabDonaciones || !tabEstadisticas || !viewModeracion || !viewInstructores || !viewDonaciones || !viewEstadisticas) return;
+        if (!tabPublicaciones || !tabInstructores || !tabDonaciones || !tabEstadisticas || !tabNotas || !viewModeracion || !viewInstructores || !viewDonaciones || !viewEstadisticas || !viewNotas) return;
 
         const isPublicaciones = tabName === 'publicaciones';
         const isInstructores = tabName === 'instructores';
         const isDonaciones = tabName === 'donaciones';
         const isEstadisticas = tabName === 'estadisticas';
+        const isNotas = tabName === 'notas';
 
         // Publicaciones
         tabPublicaciones.classList.toggle('active', isPublicaciones);
@@ -16794,6 +19532,13 @@
         tabEstadisticas.style.border = isEstadisticas ? 'none' : '1px solid var(--border-color)';
         viewEstadisticas.classList.toggle('hidden', !isEstadisticas);
 
+        // Notas
+        tabNotas.classList.toggle('active', isNotas);
+        tabNotas.style.background = isNotas ? 'var(--accent-color)' : 'transparent';
+        tabNotas.style.color = isNotas ? 'white' : 'var(--text-primary)';
+        tabNotas.style.border = isNotas ? 'none' : '1px solid var(--border-color)';
+        viewNotas.classList.toggle('hidden', !isNotas);
+
         if (!isEstadisticas) {
           resetAdminAnalyticsCache({ resetView: true });
         }
@@ -16808,6 +19553,8 @@
           if (!adminAnalyticsHasLoaded) {
             loadAdminPlatformAnalytics();
           }
+        } else if (isNotas) {
+          initAdminNotesEditor();
         }
       }
 
@@ -16817,6 +19564,7 @@
         const tabInstructores = document.getElementById('adminTabInstructores');
         const tabDonaciones = document.getElementById('adminTabDonaciones');
         const tabEstadisticas = document.getElementById('adminTabEstadisticas');
+        const tabNotas = document.getElementById('adminTabNotas');
         const searchInput = document.getElementById('adminInstructorSearch');
         const assignBtn = document.getElementById('btnAsignarInstructorEspecialidades');
         const refreshAdminDonacionesBtn = document.getElementById('refreshAdminDonacionesBtn');
@@ -16835,6 +19583,9 @@
         }
         if (tabEstadisticas) {
           tabEstadisticas.addEventListener('click', () => activarTabAdmin('estadisticas'));
+        }
+        if (tabNotas) {
+          tabNotas.addEventListener('click', () => activarTabAdmin('notas'));
         }
         if (refreshAdminDonacionesBtn) {
           refreshAdminDonacionesBtn.addEventListener('click', () => {
@@ -17002,39 +19753,6 @@
         }
       }
 
-      function isAdminNotesSharedScope() {
-        return !!window.canAccessAdminPanel;
-      }
-
-      function getAdminNotesIdentityKey() {
-        const rawIdentity = String(window.currentUserId || window.userData?.email || auth?.currentUser?.uid || auth?.currentUser?.email || 'anon')
-          .trim()
-          .toLowerCase();
-        return rawIdentity.replace(/[^a-z0-9_-]+/g, '_').slice(0, 96) || 'anon';
-      }
-
-      function getAdminNotesStorageKey() {
-        if (isAdminNotesSharedScope()) {
-          return `${ADMIN_NOTES_STORAGE_KEY_BASE}_shared`;
-        }
-        return `${ADMIN_NOTES_STORAGE_KEY_BASE}_user_${getAdminNotesIdentityKey()}`;
-      }
-
-      function getAdminNotesCloudActions() {
-        if (isAdminNotesSharedScope()) {
-          return {
-            get: 'get-admin-notes',
-            save: 'save-admin-notes',
-            delete: 'delete-admin-note',
-          };
-        }
-        return {
-          get: 'get-user-notes',
-          save: 'save-user-notes',
-          delete: 'delete-user-note',
-        };
-      }
-
       function saveAdminNotesToLocalStorage() {
         syncActiveAdminNotesDocFromEditor();
         if (!Array.isArray(adminNotesDocuments) || !adminNotesDocuments.length) return false;
@@ -17057,7 +19775,7 @@
             updatedAt: Date.now(),
             by: String(window.currentUserId || '').trim() || String(window.userData?.email || '').trim() || 'unknown'
           };
-          localStorage.setItem(getAdminNotesStorageKey(), JSON.stringify(payload));
+          localStorage.setItem(ADMIN_NOTES_STORAGE_KEY, JSON.stringify(payload));
           return true;
         } catch (error) {
           console.warn('No se pudo guardar notas admin localmente:', error);
@@ -17080,7 +19798,7 @@
             updatedAt: Date.now(),
             by: String(window.currentUserId || '').trim() || String(window.userData?.email || '').trim() || 'unknown'
           };
-          localStorage.setItem(getAdminNotesStorageKey(), JSON.stringify(payload));
+          localStorage.setItem(ADMIN_NOTES_STORAGE_KEY, JSON.stringify(payload));
           return true;
         } catch (error) {
           console.warn('No se pudo actualizar la caché completa de notas:', error);
@@ -17101,8 +19819,7 @@
         }
 
         try {
-          const cloudActions = getAdminNotesCloudActions();
-          const response = await fetch(`/api/social?action=${encodeURIComponent(cloudActions.delete)}`, {
+          const response = await fetch('/api/social?action=delete-admin-note', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -17126,6 +19843,7 @@
       }
 
       async function saveAdminNotesToSupabase({ notify = true, preserveDirty = false } = {}) {
+        if (!window.canAccessAdminPanel) return false;
         const editor = getAdminNotesEditor();
         if (!editor) return false;
         syncActiveAdminNotesDocFromEditor();
@@ -17143,8 +19861,7 @@
         try {
           const activeDoc = getActiveAdminNotesDoc() || createAdminNotesDocument();
           const docTitle = String(activeDoc.title || 'Sin título').trim() || 'Sin título';
-          const cloudActions = getAdminNotesCloudActions();
-          const response = await fetch(`/api/social?action=${encodeURIComponent(cloudActions.save)}`, {
+          const response = await fetch('/api/social?action=save-admin-notes', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -17370,6 +20087,8 @@
       }
 
       async function loadAdminNotesFromSupabase() {
+        if (!window.canAccessAdminPanel) return false;
+
         const idToken = await getAdminNotesAuthToken();
         if (!idToken) {
           setAdminNotesSyncState('Sin token · notas locales');
@@ -17378,8 +20097,7 @@
 
         try {
           setAdminNotesSyncState('Cargando desde la nube...');
-          const cloudActions = getAdminNotesCloudActions();
-          const response = await fetch(`/api/social?action=${encodeURIComponent(cloudActions.get)}`, {
+          const response = await fetch('/api/social?action=get-admin-notes', {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${idToken}`
@@ -17513,7 +20231,7 @@
 
       function loadAdminNotesFromStorage() {
         try {
-          const raw = localStorage.getItem(getAdminNotesStorageKey());
+          const raw = localStorage.getItem(ADMIN_NOTES_STORAGE_KEY);
           if (!raw) {
             replaceAdminNotesDocuments([createAdminNotesDocument({ title: 'Sin título' })]);
             setAdminNotesSyncState('Sincronización local');

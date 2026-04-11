@@ -1,10 +1,10 @@
-// api/social.js - VERSIÓN OPTIMIZADA SIN SUBIDA DE ARCHIVOS
+﻿// api/social.js - VERSIÃ“N OPTIMIZADA SIN SUBIDA DE ARCHIVOS
 import admin from "firebase-admin";
 import { createClient } from "@supabase/supabase-js";
 
 const IMGUR_CLIENT_ID = process.env.IMGUR_CLIENT_ID;
 
-// 🔐 Admin emails - ONLY from environment variables (NEVER hardcoded)
+// ðŸ” Admin emails - ONLY from environment variables (NEVER hardcoded)
 const OWNER_EMAIL = (process.env.OWNER_EMAIL || '').trim().toLowerCase();
 const ADMIN_EMAILS_LIST = (process.env.ADMIN_EMAILS || '')
   .split(',')
@@ -36,7 +36,7 @@ if (!admin.apps.length) {
   });
 }
 
-// 🔐 Supabase credentials - ONLY from environment variables
+// ðŸ” Supabase credentials - ONLY from environment variables
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
@@ -60,7 +60,7 @@ const ADMIN_NOTES_MAX_HTML = 2_000_000;
 const ADMIN_NOTES_MAX_FILE_NAME = 180;
 const ADMIN_NOTES_MAX_TABS = 30;
 
-// 🔐 Add security headers to all API responses
+// ðŸ” Add security headers to all API responses
 function setSecurityHeaders(res) {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "SAMEORIGIN");
@@ -70,10 +70,10 @@ function setSecurityHeaders(res) {
 }
 
 export default async function handler(req, res) {
-  // 🔐 Apply security headers to all responses
+  // ðŸ” Apply security headers to all responses
   setSecurityHeaders(res);
   
-  // 🔐 CORS - Restrict to allowed origins only (NOT wildcard)
+  // ðŸ” CORS - Restrict to allowed origins only (NOT wildcard)
   const allowedOrigin = process.env.APP_BASE_URL || "https://conquiguias.xyz";
   const origin = req.headers.origin || allowedOrigin;
   const isAllowed = origin === allowedOrigin || origin.endsWith(".vercel.app");
@@ -147,24 +147,6 @@ export default async function handler(req, res) {
       case "delete-admin-note":
         await handleDeleteAdminNote(req, res);
         break;
-      case "get-director-notes":
-        await handleGetDirectorNotes(req, res);
-        break;
-      case "save-director-notes":
-        await handleSaveDirectorNotes(req, res);
-        break;
-      case "delete-director-note":
-        await handleDeleteDirectorNote(req, res);
-        break;
-      case "get-conqui-notes":
-        await handleGetConquiNotes(req, res);
-        break;
-      case "save-conqui-notes":
-        await handleSaveConquiNotes(req, res);
-        break;
-      case "delete-conqui-note":
-        await handleDeleteConquiNote(req, res);
-        break;
       case "upsert-notification-token":
         await handleUpsertNotificationToken(req, res);
         break;
@@ -184,7 +166,7 @@ export default async function handler(req, res) {
         await handleCheckStream(req, res);
         break;
       default:
-        res.status(400).json({ error: "Acción no válida" });
+        res.status(400).json({ error: "AcciÃ³n no vÃ¡lida" });
     }
   } catch (error) {
     console.error("Error en social API:", error);
@@ -195,10 +177,10 @@ export default async function handler(req, res) {
   }
 }
 
-// Manejar eliminación de archivos
+// Manejar eliminaciÃ³n de archivos
 async function handleDelete(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Método no permitido" });
+    return res.status(405).json({ error: "MÃ©todo no permitido" });
   }
 
   const { deletehash } = req.body;
@@ -249,10 +231,10 @@ export const config = {
   },
 };
 
-// 🔒 Endpoint para obtener lista de administradores
+// ðŸ”’ Endpoint para obtener lista de administradores
 async function handleGetAdmins(req, res) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Método no permitido" });
+    return res.status(405).json({ error: "MÃ©todo no permitido" });
   }
 
   try {
@@ -296,7 +278,7 @@ async function requireOwner(req, body = {}) {
   const token = getBearerToken(req) || String(body.idToken || "").trim();
 
   if (!token) {
-    const error = new Error("Token de autenticación requerido");
+    const error = new Error("Token de autenticaciÃ³n requerido");
     error.statusCode = 401;
     throw error;
   }
@@ -305,14 +287,14 @@ async function requireOwner(req, body = {}) {
   try {
     decodedToken = await admin.auth().verifyIdToken(token);
   } catch (_error) {
-    const error = new Error("Token de autenticación inválido");
+    const error = new Error("Token de autenticaciÃ³n invÃ¡lido");
     error.statusCode = 401;
     throw error;
   }
 
   const requesterEmail = normalizeEmail(decodedToken?.email || "");
   if (!requesterEmail || requesterEmail !== normalizeEmail(OWNER_EMAIL)) {
-    const error = new Error("Solo el propietario puede realizar esta acción");
+    const error = new Error("Solo el propietario puede realizar esta acciÃ³n");
     error.statusCode = 403;
     throw error;
   }
@@ -324,7 +306,7 @@ async function requireAdminOrOwner(req, body = {}) {
   const token = getBearerToken(req) || String(body.idToken || "").trim();
 
   if (!token) {
-    const error = new Error("Token de autenticación requerido");
+    const error = new Error("Token de autenticaciÃ³n requerido");
     error.statusCode = 401;
     throw error;
   }
@@ -333,7 +315,7 @@ async function requireAdminOrOwner(req, body = {}) {
   try {
     decodedToken = await admin.auth().verifyIdToken(token);
   } catch (_error) {
-    const error = new Error("Token de autenticación inválido");
+    const error = new Error("Token de autenticaciÃ³n invÃ¡lido");
     error.statusCode = 401;
     throw error;
   }
@@ -341,7 +323,7 @@ async function requireAdminOrOwner(req, body = {}) {
   const requesterEmail = normalizeEmail(decodedToken?.email || "");
   const admins = getAdminEmails();
   if (!requesterEmail || !admins.includes(requesterEmail)) {
-    const error = new Error("No tienes permisos para realizar esta acción");
+    const error = new Error("No tienes permisos para realizar esta acciÃ³n");
     error.statusCode = 403;
     throw error;
   }
@@ -353,7 +335,7 @@ async function requireAuthenticated(req, body = {}) {
   const token = getBearerToken(req) || String(body.idToken || "").trim();
 
   if (!token) {
-    const error = new Error("Token de autenticación requerido");
+    const error = new Error("Token de autenticaciÃ³n requerido");
     error.statusCode = 401;
     throw error;
   }
@@ -362,7 +344,7 @@ async function requireAuthenticated(req, body = {}) {
   try {
     decodedToken = await admin.auth().verifyIdToken(token);
   } catch (_error) {
-    const error = new Error("Token de autenticación inválido");
+    const error = new Error("Token de autenticaciÃ³n invÃ¡lido");
     error.statusCode = 401;
     throw error;
   }
@@ -414,7 +396,7 @@ function sanitizeAssignments(input) {
 
 async function handleGetInstructorAssignments(req, res) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Método no permitido" });
+    return res.status(405).json({ error: "MÃ©todo no permitido" });
   }
 
   try {
@@ -443,7 +425,7 @@ async function handleGetInstructorAssignments(req, res) {
 
 async function handleGetMyInstructorAssignment(req, res) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Método no permitido" });
+    return res.status(405).json({ error: "MÃ©todo no permitido" });
   }
 
   try {
@@ -484,17 +466,17 @@ async function handleGetMyInstructorAssignment(req, res) {
       assignment: assignment || null,
     });
   } catch (error) {
-    console.error("Error obteniendo asignación del instructor actual:", error);
+    console.error("Error obteniendo asignaciÃ³n del instructor actual:", error);
     res.status(error.statusCode || 500).json({
       success: false,
-      error: error.message || "Error al obtener asignación del instructor",
+      error: error.message || "Error al obtener asignaciÃ³n del instructor",
     });
   }
 }
 
 async function handleSaveInstructorAssignments(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Método no permitido" });
+    return res.status(405).json({ error: "MÃ©todo no permitido" });
   }
 
   try {
@@ -529,7 +511,7 @@ async function handleSaveInstructorAssignments(req, res) {
 
 async function handleGetAssignableUsers(req, res) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Método no permitido" });
+    return res.status(405).json({ error: "MÃ©todo no permitido" });
   }
 
   try {
@@ -607,7 +589,7 @@ async function handleGetAssignableUsers(req, res) {
 
 async function handleSavePaypalDonation(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Método no permitido" });
+    return res.status(405).json({ error: "MÃ©todo no permitido" });
   }
 
   try {
@@ -659,21 +641,21 @@ async function handleSavePaypalDonation(req, res) {
 
     return res.status(200).json({
       success: true,
-      message: "Donación guardada correctamente",
+      message: "DonaciÃ³n guardada correctamente",
       subscriptionId,
     });
   } catch (error) {
-    console.error("Error guardando donación PayPal:", error);
+    console.error("Error guardando donaciÃ³n PayPal:", error);
     return res.status(error.statusCode || 500).json({
       success: false,
-      error: error.message || "Error al guardar donación",
+      error: error.message || "Error al guardar donaciÃ³n",
     });
   }
 }
 
 async function handleGetPaypalDonations(req, res) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Método no permitido" });
+    return res.status(405).json({ error: "MÃ©todo no permitido" });
   }
 
   try {
@@ -720,7 +702,7 @@ async function handleGetPaypalDonations(req, res) {
       };
     });
 
-    // Si es el usuario filtrando sus donaciones, ordenar en cliente (para evitar índice compuesto)
+    // Si es el usuario filtrando sus donaciones, ordenar en cliente (para evitar Ã­ndice compuesto)
     if (type === "user") {
       donations.sort((a, b) => {
         const dateA = new Date(a.approvedAt || 0);
@@ -759,14 +741,14 @@ function sanitizeVisitorKey(value) {
 
 function sanitizeAdminNotesPayload(input = {}) {
   const html = String(input?.html || "");
-  const fileNameRaw = String(input?.fileName || "Sin título").trim();
-  const fileName = fileNameRaw.slice(0, ADMIN_NOTES_MAX_FILE_NAME) || "Sin título";
+  const fileNameRaw = String(input?.fileName || "Sin tÃ­tulo").trim();
+  const fileName = fileNameRaw.slice(0, ADMIN_NOTES_MAX_FILE_NAME) || "Sin tÃ­tulo";
   const zoomValue = Number.parseInt(String(input?.zoom ?? "100"), 10);
   const zoom = Number.isFinite(zoomValue) ? Math.min(300, Math.max(50, zoomValue)) : 100;
   const wrap = input?.wrap !== false;
 
   if (html.length > ADMIN_NOTES_MAX_HTML) {
-    const error = new Error("El contenido de notas excede el tamaño permitido");
+    const error = new Error("El contenido de notas excede el tamaÃ±o permitido");
     error.statusCode = 413;
     throw error;
   }
@@ -775,8 +757,8 @@ function sanitizeAdminNotesPayload(input = {}) {
   const tabs = tabsInput
     .map((tab, index) => {
       const tabHtml = String(tab?.html || "");
-      const tabTitleRaw = String(tab?.title || `Sin título ${index + 1}`).trim();
-      const tabTitle = tabTitleRaw.slice(0, ADMIN_NOTES_MAX_FILE_NAME) || `Sin título ${index + 1}`;
+      const tabTitleRaw = String(tab?.title || `Sin tÃ­tulo ${index + 1}`).trim();
+      const tabTitle = tabTitleRaw.slice(0, ADMIN_NOTES_MAX_FILE_NAME) || `Sin tÃ­tulo ${index + 1}`;
       const tabIdRaw = String(tab?.id || `tab_${index + 1}`).trim();
       const tabId = tabIdRaw.slice(0, 120) || `tab_${index + 1}`;
       const tabZoomValue = Number.parseInt(String(tab?.zoom ?? "100"), 10);
@@ -807,7 +789,7 @@ function sanitizeAdminNotesPayload(input = {}) {
 
   const tabsHtmlLength = tabs.reduce((sum, tab) => sum + String(tab?.html || "").length, 0);
   if (tabsHtmlLength > ADMIN_NOTES_MAX_HTML) {
-    const error = new Error("El contenido total de pestañas excede el tamaño permitido");
+    const error = new Error("El contenido total de pestaÃ±as excede el tamaÃ±o permitido");
     error.statusCode = 413;
     throw error;
   }
@@ -821,7 +803,7 @@ function sanitizeAdminNotesPayload(input = {}) {
 
 async function handleTrackPlatformVisit(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Método no permitido" });
+    return res.status(405).json({ error: "MÃ©todo no permitido" });
   }
 
   try {
@@ -874,7 +856,7 @@ async function handleTrackPlatformVisit(req, res) {
 
 async function handleGetPlatformAnalytics(req, res) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Método no permitido" });
+    return res.status(405).json({ error: "MÃ©todo no permitido" });
   }
 
   try {
@@ -901,17 +883,17 @@ async function handleGetPlatformAnalytics(req, res) {
       rows,
     });
   } catch (error) {
-    console.error("Error obteniendo analíticas de plataforma:", error);
+    console.error("Error obteniendo analÃ­ticas de plataforma:", error);
     return res.status(error.statusCode || 500).json({
       success: false,
-      error: error.message || "No se pudieron obtener las analíticas",
+      error: error.message || "No se pudieron obtener las analÃ­ticas",
     });
   }
 }
 
 async function handleGetAdminNotes(req, res) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Método no permitido" });
+    return res.status(405).json({ error: "MÃ©todo no permitido" });
   }
 
   try {
@@ -935,7 +917,7 @@ async function handleGetAdminNotes(req, res) {
         .slice(0, ADMIN_NOTES_MAX_TABS)
         .map((row) => ({
           id: String(row.id || "").trim(),
-          title: String(row.file_name || "Sin título"),
+          title: String(row.file_name || "Sin tÃ­tulo"),
           html: String(row.html || ""),
           zoom: Number(row.zoom) || 100,
           wrap: row.wrap !== false,
@@ -948,7 +930,7 @@ async function handleGetAdminNotes(req, res) {
         success: true,
         notes: {
           html: String(first?.html || ""),
-          fileName: String(first?.title || "Sin título"),
+          fileName: String(first?.title || "Sin tÃ­tulo"),
           zoom: Number(first?.zoom) || 100,
           wrap: first?.wrap !== false,
           tabs,
@@ -963,7 +945,7 @@ async function handleGetAdminNotes(req, res) {
       success: true,
       notes: {
         html: "",
-        fileName: "Sin título",
+        fileName: "Sin tÃ­tulo",
         zoom: 100,
         wrap: true,
         tabs: [],
@@ -983,7 +965,7 @@ async function handleGetAdminNotes(req, res) {
 
 async function handleSaveAdminNotes(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Método no permitido" });
+    return res.status(405).json({ error: "MÃ©todo no permitido" });
   }
 
   try {
@@ -998,7 +980,7 @@ async function handleSaveAdminNotes(req, res) {
     if (payload.saveOnlyActive) {
       const activeIncomingTab = payload.tabs.find((tab) => tab.id === (payload.activeDocId || "")) || payload.tabs[0] || null;
       if (!activeIncomingTab) {
-        const err = new Error("No se recibió la pestaña activa para guardar");
+        const err = new Error("No se recibiÃ³ la pestaÃ±a activa para guardar");
         err.statusCode = 400;
         throw err;
       }
@@ -1021,7 +1003,7 @@ async function handleSaveAdminNotes(req, res) {
         .single();
 
       if (error) {
-        throw new Error(`No se pudo guardar la pestaña activa: ${error.message}`);
+        throw new Error(`No se pudo guardar la pestaÃ±a activa: ${error.message}`);
       }
 
       finalTabs = [activeIncomingTab];
@@ -1039,7 +1021,7 @@ async function handleSaveAdminNotes(req, res) {
         const orderResults = await Promise.all(orderUpdates);
         const orderError = orderResults.find((result) => !!result?.error)?.error;
         if (orderError) {
-          throw new Error(`No se pudo actualizar el orden de pestañas: ${orderError.message}`);
+          throw new Error(`No se pudo actualizar el orden de pestaÃ±as: ${orderError.message}`);
         }
       }
 
@@ -1047,7 +1029,7 @@ async function handleSaveAdminNotes(req, res) {
         success: true,
         notes: {
           html: String(data?.html || activeIncomingTab.html || ""),
-          fileName: String(data?.file_name || activeIncomingTab.title || "Sin título"),
+          fileName: String(data?.file_name || activeIncomingTab.title || "Sin tÃ­tulo"),
           zoom: Number(data?.zoom) || activeIncomingTab.zoom || 100,
           wrap: data?.wrap !== false,
           tabs: finalTabs,
@@ -1060,7 +1042,7 @@ async function handleSaveAdminNotes(req, res) {
 
     const batchTabs = finalTabs.slice(0, ADMIN_NOTES_MAX_TABS);
     if (!batchTabs.length) {
-      const err = new Error("No se recibieron pestañas para guardar");
+      const err = new Error("No se recibieron pestaÃ±as para guardar");
       err.statusCode = 400;
       throw err;
     }
@@ -1084,7 +1066,7 @@ async function handleSaveAdminNotes(req, res) {
       .upsert(batchPayload, { onConflict: "id" });
 
     if (error) {
-      throw new Error(`No se pudieron guardar pestañas de notas admin: ${error.message}`);
+      throw new Error(`No se pudieron guardar pestaÃ±as de notas admin: ${error.message}`);
     }
 
     activeTab = batchTabs.find((tab) => tab.id === (payload.activeDocId || "")) || batchTabs[0] || null;
@@ -1093,7 +1075,7 @@ async function handleSaveAdminNotes(req, res) {
       success: true,
       notes: {
         html: String(activeTab?.html || ""),
-        fileName: String(activeTab?.title || "Sin título"),
+        fileName: String(activeTab?.title || "Sin tÃ­tulo"),
         zoom: Number(activeTab?.zoom) || 100,
         wrap: activeTab?.wrap !== false,
         tabs: batchTabs,
@@ -1113,7 +1095,7 @@ async function handleSaveAdminNotes(req, res) {
 
 async function handleDeleteAdminNote(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Método no permitido" });
+    return res.status(405).json({ error: "MÃ©todo no permitido" });
   }
 
   try {
@@ -1150,571 +1132,6 @@ async function handleDeleteAdminNote(req, res) {
     });
   }
 }
-
-    // Helper function to get authenticated user ID
-    async function getAuthenticatedUserId(req) {
-      try {
-        const authHeader = String(req.headers?.authorization || req.headers?.Authorization || "").trim();
-        if (!authHeader.startsWith("Bearer ")) {
-          const err = new Error("Token de autorización requerido");
-          err.statusCode = 401;
-          throw err;
-        }
-
-        const idToken = authHeader.substring(7);
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
-        return decodedToken.uid;
-      } catch (error) {
-        if (!error.statusCode) {
-          error.statusCode = 401;
-        }
-        throw error;
-      }
-    }
-
-    // Handler for getting user-scoped director notes
-    async function handleGetDirectorNotes(req, res) {
-      if (req.method !== "GET") {
-        return res.status(405).json({ error: "Método no permitido" });
-      }
-
-      try {
-        const userId = await getAuthenticatedUserId(req);
-        const USER_NOTES_TABLE = "user_notes";
-
-        const { data: rows, error } = await supabase
-          .from(USER_NOTES_TABLE)
-          .select("id, html, title, zoom, wrap, tab_order, updated_at, updated_by")
-          .eq("user_id", userId)
-          .eq("note_type", "director")
-          .order("tab_order", { ascending: true })
-          .order("updated_at", { ascending: false });
-
-        if (error) {
-          throw new Error(`No se pudieron cargar notas de director desde Supabase: ${error.message}`);
-        }
-
-        const normalizedRows = Array.isArray(rows) ? rows : [];
-        const DIRECTOR_NOTES_MAX_TABS = 30;
-
-        if (normalizedRows.length > 0) {
-          const tabs = normalizedRows
-            .slice(0, DIRECTOR_NOTES_MAX_TABS)
-            .map((row) => ({
-              id: String(row.id || "").trim(),
-              title: String(row.title || "Sin título"),
-              html: String(row.html || ""),
-              zoom: Number(row.zoom) || 100,
-              wrap: row.wrap !== false,
-            }))
-            .filter((tab) => !!tab.id);
-
-          const first = tabs[0] || null;
-
-          return res.status(200).json({
-            success: true,
-            notes: {
-              html: String(first?.html || ""),
-              fileName: String(first?.title || "Sin título"),
-              zoom: Number(first?.zoom) || 100,
-              wrap: first?.wrap !== false,
-              tabs,
-              activeDocId: first?.id || "",
-              updatedAt: normalizedRows[0]?.updated_at || null,
-              updatedBy: normalizedRows[0]?.updated_by || null,
-            },
-          });
-        }
-
-        return res.status(200).json({
-          success: true,
-          notes: {
-            html: "",
-            fileName: "Sin título",
-            zoom: 100,
-            wrap: true,
-            tabs: [],
-            activeDocId: "",
-            updatedAt: null,
-            updatedBy: null,
-          },
-        });
-      } catch (error) {
-        console.error("Error obteniendo notas de director:", error);
-        return res.status(error.statusCode || 500).json({
-          success: false,
-          error: error.message || "No se pudieron obtener las notas de director",
-        });
-      }
-    }
-
-    // Handler for saving user-scoped director notes
-    async function handleSaveDirectorNotes(req, res) {
-      if (req.method !== "POST") {
-        return res.status(405).json({ error: "Método no permitido" });
-      }
-
-      try {
-        const userId = await getAuthenticatedUserId(req);
-        const USER_NOTES_TABLE = "user_notes";
-        const body = req.body || {};
-        const DIRECTOR_NOTES_MAX_HTML = 2_000_000;
-        const DIRECTOR_NOTES_MAX_FILE_NAME = 180;
-        const DIRECTOR_NOTES_MAX_TABS = 30;
-
-        const payload = {
-          tabs: Array.isArray(body.tabs) ? body.tabs.slice(0, DIRECTOR_NOTES_MAX_TABS) : [],
-          activeDocId: String(body.activeDocId || "").trim().slice(0, 120),
-          tabsOrder: Array.isArray(body.tabsOrder) ? body.tabsOrder : [],
-          saveOnlyActive: !!body.saveOnlyActive,
-        };
-
-        payload.tabs = payload.tabs.map((tab) => ({
-          id: String(tab?.id || "").trim().slice(0, 120),
-          title: String(tab?.title || "Sin título").slice(0, DIRECTOR_NOTES_MAX_FILE_NAME),
-          html: String(tab?.html || "").slice(0, DIRECTOR_NOTES_MAX_HTML),
-          zoom: Math.min(300, Math.max(50, Number(tab?.zoom) || 100)),
-          wrap: tab?.wrap !== false,
-        }));
-
-        let finalTabs = payload.tabs.length ? [...payload.tabs] : [];
-        const finalOrder = payload.tabsOrder.length ? [...payload.tabsOrder] : finalTabs.map((tab) => tab.id);
-
-        if (payload.saveOnlyActive) {
-          const activeIncomingTab = payload.tabs.find((tab) => tab.id === (payload.activeDocId || "")) || payload.tabs[0] || null;
-          if (!activeIncomingTab) {
-            const err = new Error("No se recibió la pestaña activa para guardar");
-            err.statusCode = 400;
-            throw err;
-          }
-
-          const activeTabOrder = Math.max(0, finalOrder.indexOf(activeIncomingTab.id));
-
-          const { data, error } = await supabase
-            .from(USER_NOTES_TABLE)
-            .upsert({
-              id: activeIncomingTab.id,
-              user_id: userId,
-              note_type: "director",
-              title: activeIncomingTab.title,
-              html: activeIncomingTab.html,
-              zoom: activeIncomingTab.zoom,
-              wrap: activeIncomingTab.wrap,
-              tab_order: activeTabOrder,
-              updated_at: new Date().toISOString(),
-              updated_by: userId,
-            }, { onConflict: "id" })
-            .select("id, html, title, zoom, wrap, tab_order, updated_at, updated_by")
-            .single();
-
-          if (error) {
-            throw new Error(`No se pudo guardar la pestaña activa: ${error.message}`);
-          }
-
-          finalTabs = [activeIncomingTab];
-
-          const remainingOrderIds = finalOrder.filter((id) => id !== activeIncomingTab.id);
-          if (remainingOrderIds.length) {
-            const orderUpdates = remainingOrderIds.map((tabId, index) =>
-              supabase
-                .from(USER_NOTES_TABLE)
-                .update({ tab_order: index + 1 })
-                .eq("id", tabId)
-                .eq("user_id", userId),
-            );
-
-            const orderResults = await Promise.all(orderUpdates);
-            const orderError = orderResults.find((result) => !!result?.error)?.error;
-            if (orderError) {
-              throw new Error(`No se pudo actualizar el orden de pestañas: ${orderError.message}`);
-            }
-          }
-
-          return res.status(200).json({
-            success: true,
-            notes: {
-              html: String(data?.html || activeIncomingTab.html || ""),
-              fileName: String(data?.title || activeIncomingTab.title || "Sin título"),
-              zoom: Number(data?.zoom) || activeIncomingTab.zoom || 100,
-              wrap: data?.wrap !== false,
-              tabs: finalTabs,
-              activeDocId: activeIncomingTab.id,
-              updatedAt: data?.updated_at || null,
-              updatedBy: data?.updated_by || userId,
-            },
-          });
-        }
-
-        const batchTabs = finalTabs.slice(0, DIRECTOR_NOTES_MAX_TABS);
-        if (!batchTabs.length) {
-          const err = new Error("No se recibieron pestañas para guardar");
-          err.statusCode = 400;
-          throw err;
-        }
-
-        const batchPayload = batchTabs.map((tab, index) => {
-          const mappedOrder = finalOrder.indexOf(tab.id);
-          return {
-            id: tab.id,
-            user_id: userId,
-            note_type: "director",
-            title: tab.title,
-            html: tab.html,
-            zoom: tab.zoom,
-            wrap: tab.wrap,
-            tab_order: mappedOrder >= 0 ? mappedOrder : index,
-            updated_at: new Date().toISOString(),
-            updated_by: userId,
-          };
-        });
-
-        const { error } = await supabase
-          .from(USER_NOTES_TABLE)
-          .upsert(batchPayload, { onConflict: "id" });
-
-        if (error) {
-          throw new Error(`No se pudieron guardar pestañas de notas de director: ${error.message}`);
-        }
-
-        const activeTab = batchTabs.find((tab) => tab.id === (payload.activeDocId || "")) || batchTabs[0] || null;
-
-        return res.status(200).json({
-          success: true,
-          notes: {
-            html: String(activeTab?.html || ""),
-            fileName: String(activeTab?.title || "Sin título"),
-            zoom: Number(activeTab?.zoom) || 100,
-            wrap: activeTab?.wrap !== false,
-            tabs: batchTabs,
-            activeDocId: payload.activeDocId || activeTab?.id || "",
-            updatedAt: new Date().toISOString(),
-            updatedBy: userId,
-          },
-        });
-      } catch (error) {
-        console.error("Error guardando notas de director:", error);
-        return res.status(error.statusCode || 500).json({
-          success: false,
-          error: error.message || "No se pudieron guardar las notas de director",
-        });
-      }
-    }
-
-    // Handler for deleting user-scoped director notes
-    async function handleDeleteDirectorNote(req, res) {
-      if (req.method !== "POST") {
-        return res.status(405).json({ error: "Método no permitido" });
-      }
-
-      try {
-        const userId = await getAuthenticatedUserId(req);
-        const USER_NOTES_TABLE = "user_notes";
-        const body = req.body || {};
-        const tabId = String(body?.tabId || "").trim().slice(0, 120);
-
-        if (!tabId) {
-          return res.status(400).json({
-            success: false,
-            error: "tabId es requerido",
-          });
-        }
-
-        const { error } = await supabase
-          .from(USER_NOTES_TABLE)
-          .delete()
-          .eq("id", tabId)
-          .eq("user_id", userId)
-          .eq("note_type", "director");
-
-        if (error) {
-          throw new Error(`No se pudo eliminar la nota en la nube: ${error.message}`);
-        }
-
-        return res.status(200).json({
-          success: true,
-          tabId,
-          deletedBy: userId,
-        });
-      } catch (error) {
-        console.error("Error eliminando nota de director:", error);
-        return res.status(error.statusCode || 500).json({
-          success: false,
-          error: error.message || "No se pudo eliminar la nota de director",
-        });
-      }
-    }
-
-    // Handler for getting user-scoped conqui notes
-    async function handleGetConquiNotes(req, res) {
-      if (req.method !== "GET") {
-        return res.status(405).json({ error: "Método no permitido" });
-      }
-
-      try {
-        const userId = await getAuthenticatedUserId(req);
-        const USER_NOTES_TABLE = "user_notes";
-
-        const { data: rows, error } = await supabase
-          .from(USER_NOTES_TABLE)
-          .select("id, html, title, zoom, wrap, tab_order, updated_at, updated_by")
-          .eq("user_id", userId)
-          .eq("note_type", "conqui")
-          .order("tab_order", { ascending: true })
-          .order("updated_at", { ascending: false });
-
-        if (error) {
-          throw new Error(`No se pudieron cargar notas de conqui desde Supabase: ${error.message}`);
-        }
-
-        const normalizedRows = Array.isArray(rows) ? rows : [];
-        const CONQUI_NOTES_MAX_TABS = 30;
-
-        if (normalizedRows.length > 0) {
-          const tabs = normalizedRows
-            .slice(0, CONQUI_NOTES_MAX_TABS)
-            .map((row) => ({
-              id: String(row.id || "").trim(),
-              title: String(row.title || "Sin título"),
-              html: String(row.html || ""),
-              zoom: Number(row.zoom) || 100,
-              wrap: row.wrap !== false,
-            }))
-            .filter((tab) => !!tab.id);
-
-          const first = tabs[0] || null;
-
-          return res.status(200).json({
-            success: true,
-            notes: {
-              html: String(first?.html || ""),
-              fileName: String(first?.title || "Sin título"),
-              zoom: Number(first?.zoom) || 100,
-              wrap: first?.wrap !== false,
-              tabs,
-              activeDocId: first?.id || "",
-              updatedAt: normalizedRows[0]?.updated_at || null,
-              updatedBy: normalizedRows[0]?.updated_by || null,
-            },
-          });
-        }
-
-        return res.status(200).json({
-          success: true,
-          notes: {
-            html: "",
-            fileName: "Sin título",
-            zoom: 100,
-            wrap: true,
-            tabs: [],
-            activeDocId: "",
-            updatedAt: null,
-            updatedBy: null,
-          },
-        });
-      } catch (error) {
-        console.error("Error obteniendo notas de conqui:", error);
-        return res.status(error.statusCode || 500).json({
-          success: false,
-          error: error.message || "No se pudieron obtener las notas de conqui",
-        });
-      }
-    }
-
-    // Handler for saving user-scoped conqui notes
-    async function handleSaveConquiNotes(req, res) {
-      if (req.method !== "POST") {
-        return res.status(405).json({ error: "Método no permitido" });
-      }
-
-      try {
-        const userId = await getAuthenticatedUserId(req);
-        const USER_NOTES_TABLE = "user_notes";
-        const body = req.body || {};
-        const CONQUI_NOTES_MAX_HTML = 2_000_000;
-        const CONQUI_NOTES_MAX_FILE_NAME = 180;
-        const CONQUI_NOTES_MAX_TABS = 30;
-
-        const payload = {
-          tabs: Array.isArray(body.tabs) ? body.tabs.slice(0, CONQUI_NOTES_MAX_TABS) : [],
-          activeDocId: String(body.activeDocId || "").trim().slice(0, 120),
-          tabsOrder: Array.isArray(body.tabsOrder) ? body.tabsOrder : [],
-          saveOnlyActive: !!body.saveOnlyActive,
-        };
-
-        payload.tabs = payload.tabs.map((tab) => ({
-          id: String(tab?.id || "").trim().slice(0, 120),
-          title: String(tab?.title || "Sin título").slice(0, CONQUI_NOTES_MAX_FILE_NAME),
-          html: String(tab?.html || "").slice(0, CONQUI_NOTES_MAX_HTML),
-          zoom: Math.min(300, Math.max(50, Number(tab?.zoom) || 100)),
-          wrap: tab?.wrap !== false,
-        }));
-
-        let finalTabs = payload.tabs.length ? [...payload.tabs] : [];
-        const finalOrder = payload.tabsOrder.length ? [...payload.tabsOrder] : finalTabs.map((tab) => tab.id);
-
-        if (payload.saveOnlyActive) {
-          const activeIncomingTab = payload.tabs.find((tab) => tab.id === (payload.activeDocId || "")) || payload.tabs[0] || null;
-          if (!activeIncomingTab) {
-            const err = new Error("No se recibió la pestaña activa para guardar");
-            err.statusCode = 400;
-            throw err;
-          }
-
-          const activeTabOrder = Math.max(0, finalOrder.indexOf(activeIncomingTab.id));
-
-          const { data, error } = await supabase
-            .from(USER_NOTES_TABLE)
-            .upsert({
-              id: activeIncomingTab.id,
-              user_id: userId,
-              note_type: "conqui",
-              title: activeIncomingTab.title,
-              html: activeIncomingTab.html,
-              zoom: activeIncomingTab.zoom,
-              wrap: activeIncomingTab.wrap,
-              tab_order: activeTabOrder,
-              updated_at: new Date().toISOString(),
-              updated_by: userId,
-            }, { onConflict: "id" })
-            .select("id, html, title, zoom, wrap, tab_order, updated_at, updated_by")
-            .single();
-
-          if (error) {
-            throw new Error(`No se pudo guardar la pestaña activa: ${error.message}`);
-          }
-
-          finalTabs = [activeIncomingTab];
-
-          const remainingOrderIds = finalOrder.filter((id) => id !== activeIncomingTab.id);
-          if (remainingOrderIds.length) {
-            const orderUpdates = remainingOrderIds.map((tabId, index) =>
-              supabase
-                .from(USER_NOTES_TABLE)
-                .update({ tab_order: index + 1 })
-                .eq("id", tabId)
-                .eq("user_id", userId),
-            );
-
-            const orderResults = await Promise.all(orderUpdates);
-            const orderError = orderResults.find((result) => !!result?.error)?.error;
-            if (orderError) {
-              throw new Error(`No se pudo actualizar el orden de pestañas: ${orderError.message}`);
-            }
-          }
-
-          return res.status(200).json({
-            success: true,
-            notes: {
-              html: String(data?.html || activeIncomingTab.html || ""),
-              fileName: String(data?.title || activeIncomingTab.title || "Sin título"),
-              zoom: Number(data?.zoom) || activeIncomingTab.zoom || 100,
-              wrap: data?.wrap !== false,
-              tabs: finalTabs,
-              activeDocId: activeIncomingTab.id,
-              updatedAt: data?.updated_at || null,
-              updatedBy: data?.updated_by || userId,
-            },
-          });
-        }
-
-        const batchTabs = finalTabs.slice(0, CONQUI_NOTES_MAX_TABS);
-        if (!batchTabs.length) {
-          const err = new Error("No se recibieron pestañas para guardar");
-          err.statusCode = 400;
-          throw err;
-        }
-
-        const batchPayload = batchTabs.map((tab, index) => {
-          const mappedOrder = finalOrder.indexOf(tab.id);
-          return {
-            id: tab.id,
-            user_id: userId,
-            note_type: "conqui",
-            title: tab.title,
-            html: tab.html,
-            zoom: tab.zoom,
-            wrap: tab.wrap,
-            tab_order: mappedOrder >= 0 ? mappedOrder : index,
-            updated_at: new Date().toISOString(),
-            updated_by: userId,
-          };
-        });
-
-        const { error } = await supabase
-          .from(USER_NOTES_TABLE)
-          .upsert(batchPayload, { onConflict: "id" });
-
-        if (error) {
-          throw new Error(`No se pudieron guardar pestañas de notas de conqui: ${error.message}`);
-        }
-
-        const activeTab = batchTabs.find((tab) => tab.id === (payload.activeDocId || "")) || batchTabs[0] || null;
-
-        return res.status(200).json({
-          success: true,
-          notes: {
-            html: String(activeTab?.html || ""),
-            fileName: String(activeTab?.title || "Sin título"),
-            zoom: Number(activeTab?.zoom) || 100,
-            wrap: activeTab?.wrap !== false,
-            tabs: batchTabs,
-            activeDocId: payload.activeDocId || activeTab?.id || "",
-            updatedAt: new Date().toISOString(),
-            updatedBy: userId,
-          },
-        });
-      } catch (error) {
-        console.error("Error guardando notas de conqui:", error);
-        return res.status(error.statusCode || 500).json({
-          success: false,
-          error: error.message || "No se pudieron guardar las notas de conqui",
-        });
-      }
-    }
-
-    // Handler for deleting user-scoped conqui notes
-    async function handleDeleteConquiNote(req, res) {
-      if (req.method !== "POST") {
-        return res.status(405).json({ error: "Método no permitido" });
-      }
-
-      try {
-        const userId = await getAuthenticatedUserId(req);
-        const USER_NOTES_TABLE = "user_notes";
-        const body = req.body || {};
-        const tabId = String(body?.tabId || "").trim().slice(0, 120);
-
-        if (!tabId) {
-          return res.status(400).json({
-            success: false,
-            error: "tabId es requerido",
-          });
-        }
-
-        const { error } = await supabase
-          .from(USER_NOTES_TABLE)
-          .delete()
-          .eq("id", tabId)
-          .eq("user_id", userId)
-          .eq("note_type", "conqui");
-
-        if (error) {
-          throw new Error(`No se pudo eliminar la nota en la nube: ${error.message}`);
-        }
-
-        return res.status(200).json({
-          success: true,
-          tabId,
-          deletedBy: userId,
-        });
-      } catch (error) {
-        console.error("Error eliminando nota de conqui:", error);
-        return res.status(error.statusCode || 500).json({
-          success: false,
-          error: error.message || "No se pudo eliminar la nota de conqui",
-        });
-      }
-    }
 function notificationTokenDocId(token) {
   const normalizedToken = String(token || "").trim();
   const encoded = Buffer.from(normalizedToken)
@@ -1916,7 +1333,7 @@ async function getActiveTokenDocsForEmails(db, emails) {
 
 async function handleUpsertNotificationToken(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Método no permitido" });
+    return res.status(405).json({ error: "MÃ©todo no permitido" });
   }
 
   try {
@@ -1925,7 +1342,7 @@ async function handleUpsertNotificationToken(req, res) {
     const token = String(body.token || "").trim();
 
     if (!token || token.length < 20) {
-      return res.status(400).json({ success: false, error: "Token inválido" });
+      return res.status(400).json({ success: false, error: "Token invÃ¡lido" });
     }
 
     const tokenDocId = notificationTokenDocId(token);
@@ -1952,7 +1369,7 @@ async function handleUpsertNotificationToken(req, res) {
       tokenDocId,
     });
   } catch (error) {
-    console.error("Error guardando token de notificación:", error);
+    console.error("Error guardando token de notificaciÃ³n:", error);
     return res.status(error.statusCode || 500).json({
       success: false,
       error: error.message || "No se pudo guardar el token",
@@ -1962,7 +1379,7 @@ async function handleUpsertNotificationToken(req, res) {
 
 async function handleDisableNotificationToken(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Método no permitido" });
+    return res.status(405).json({ error: "MÃ©todo no permitido" });
   }
 
   try {
@@ -2002,7 +1419,7 @@ async function handleDisableNotificationToken(req, res) {
 
     return res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Error desactivando token de notificación:", error);
+    console.error("Error desactivando token de notificaciÃ³n:", error);
     return res.status(error.statusCode || 500).json({
       success: false,
       error: error.message || "No se pudo desactivar el token",
@@ -2012,7 +1429,7 @@ async function handleDisableNotificationToken(req, res) {
 
 async function handleSendTaskReminders(req, res) {
   if (!["GET", "POST"].includes(req.method || "")) {
-    return res.status(405).json({ error: "Método no permitido" });
+    return res.status(405).json({ error: "MÃ©todo no permitido" });
   }
 
   try {
@@ -2092,7 +1509,7 @@ async function handleSendTaskReminders(req, res) {
       const message = {
         tokens: tokenEntries.map((entry) => entry.token),
         notification: {
-          title: `⏰ Tarea por vencer: ${reminder.title}`,
+          title: `â° Tarea por vencer: ${reminder.title}`,
           body: "Tu tarea vence en menos de 24 horas. Entra ahora para enviarla.",
         },
         data: {
@@ -2186,7 +1603,7 @@ async function handleSendTaskReminders(req, res) {
 
 async function handleSendTestNotification(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Método no permitido" });
+    return res.status(405).json({ error: "MÃ©todo no permitido" });
   }
 
   try {
@@ -2196,7 +1613,7 @@ async function handleSendTestNotification(req, res) {
 
     const rawTargetEmail = normalizeEmail(body.targetEmail || requester.email || "");
     if (!rawTargetEmail) {
-      return res.status(400).json({ success: false, error: "No se encontró correo destino" });
+      return res.status(400).json({ success: false, error: "No se encontrÃ³ correo destino" });
     }
 
     const isSelfTarget = rawTargetEmail === requester.email;
@@ -2204,7 +1621,7 @@ async function handleSendTestNotification(req, res) {
       await requireAdminOrOwner(req, body);
     }
 
-    const title = String(body.title || "🔔 Notificación de prueba").trim().slice(0, 120);
+    const title = String(body.title || "ðŸ”” NotificaciÃ³n de prueba").trim().slice(0, 120);
     const message = String(
       body.message || "Push de prueba enviado correctamente desde Conquiguias World."
     ).trim().slice(0, 300);
@@ -2288,17 +1705,17 @@ async function handleSendTestNotification(req, res) {
       invalidTokensDisabled: invalidDocIds.length,
     });
   } catch (error) {
-    console.error("Error enviando notificación de prueba:", error);
+    console.error("Error enviando notificaciÃ³n de prueba:", error);
     return res.status(error.statusCode || 500).json({
       success: false,
-      error: error.message || "No se pudo enviar notificación de prueba",
+      error: error.message || "No se pudo enviar notificaciÃ³n de prueba",
     });
   }
 }
 
 async function handleNotifyPostApproved(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Método no permitido" });
+    return res.status(405).json({ error: "MÃ©todo no permitido" });
   }
 
   try {
@@ -2315,7 +1732,7 @@ async function handleNotifyPostApproved(req, res) {
     const postSnap = await postRef.get();
 
     if (!postSnap.exists) {
-      return res.status(404).json({ success: false, error: "Publicación no encontrada" });
+      return res.status(404).json({ success: false, error: "PublicaciÃ³n no encontrada" });
     }
 
     const postData = postSnap.data() || {};
@@ -2325,7 +1742,7 @@ async function handleNotifyPostApproved(req, res) {
         success: true,
         sent: 0,
         postId,
-        message: "La publicación aún no está aprobada",
+        message: "La publicaciÃ³n aÃºn no estÃ¡ aprobada",
       });
     }
 
@@ -2335,7 +1752,7 @@ async function handleNotifyPostApproved(req, res) {
         success: true,
         sent: 0,
         postId,
-        message: "La publicación no tiene correo de autor",
+        message: "La publicaciÃ³n no tiene correo de autor",
       });
     }
 
@@ -2351,10 +1768,10 @@ async function handleNotifyPostApproved(req, res) {
     }
 
     const authorName = String(postData.userName || "").trim();
-    const title = "✅ Tu publicación fue aprobada";
+    const title = "âœ… Tu publicaciÃ³n fue aprobada";
     const bodyMessage = authorName
-      ? `${authorName}, tu publicación ya está visible para todos.`
-      : "Tu publicación ya está visible para todos.";
+      ? `${authorName}, tu publicaciÃ³n ya estÃ¡ visible para todos.`
+      : "Tu publicaciÃ³n ya estÃ¡ visible para todos.";
 
     const pushMessage = {
       tokens: tokenDocs.map((entry) => entry.token),
@@ -2424,10 +1841,10 @@ async function handleNotifyPostApproved(req, res) {
       invalidTokensDisabled: invalidDocIds.length,
     });
   } catch (error) {
-    console.error("Error enviando notificación de aprobación:", error);
+    console.error("Error enviando notificaciÃ³n de aprobaciÃ³n:", error);
     return res.status(error.statusCode || 500).json({
       success: false,
-      error: error.message || "No se pudo enviar notificación de aprobación",
+      error: error.message || "No se pudo enviar notificaciÃ³n de aprobaciÃ³n",
     });
   }
 }
@@ -2563,7 +1980,7 @@ async function syncLivePost(ownerProfile) {
             : null,
       mediaType: "video/url",
       mediaUrl: LIVE_STREAM_URL,
-      description: existing.description || "🔴 Transmisión en vivo",
+      description: existing.description || "ðŸ”´ TransmisiÃ³n en vivo",
       timestamp: new Date().toISOString(),
       reactions: existing.reactions || { like: [], laugh: [], seven: [] },
       comments: existing.comments || [],
@@ -2579,7 +1996,7 @@ async function syncLivePost(ownerProfile) {
 
 async function handleCheckStream(req, res) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Método no permitido" });
+    return res.status(405).json({ error: "MÃ©todo no permitido" });
   }
 
   const now = Date.now();
@@ -2612,3 +2029,4 @@ async function handleCheckStream(req, res) {
 
   return res.status(200).json({ live, ownerProfile, livePostId: LIVE_POST_ID });
 }
+

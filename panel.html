@@ -10528,9 +10528,21 @@
       window.mostrarCertificacionCompleta = mostrarCertificacionCompleta;
       window.extraerNombreFirma = extraerNombreFirma;
 
+      async function getFormularioAuthHeaders() {
+        const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
+        if (!idToken) {
+          throw new Error('Sesión no válida. Inicia sesión nuevamente.');
+        }
+        return {
+          'Authorization': `Bearer ${idToken}`
+        };
+      }
+
       // 🔹 FUNCIONES PARA CERTIFICACIÓN COMPLETA
       async function verCertificacionCompleta(formularioId, visitanteId, rubricaExterna) {
         try {
+          const authHeaders = await getFormularioAuthHeaders();
+
           // Obtener la evaluación (preguntas)
           const resExamen = await fetch(`/api/formulario?action=obtenerEvaluacion&id=${formularioId}`);
           if (!resExamen.ok) {
@@ -10539,7 +10551,9 @@
           const examen = await resExamen.json();
 
           // Obtener el resultado del examen
-          const resResultados = await fetch(`/api/formulario?action=verRespuestas&id=${formularioId}`);
+          const resResultados = await fetch(`/api/formulario?action=verRespuestas&id=${formularioId}`, {
+            headers: authHeaders,
+          });
           if (!resResultados.ok) {
             throw new Error('No se pudo cargar los resultados');
           }
@@ -10754,7 +10768,8 @@
         btnImprimir.disabled = true;
 
         // Obtener el nombre del usuario desde las asistencias
-        fetch(`/api/formulario?action=verRespuestas&id=${formularioId}`)
+        getFormularioAuthHeaders()
+          .then(authHeaders => fetch(`/api/formulario?action=verRespuestas&id=${formularioId}`, { headers: authHeaders }))
           .then(res => res.json())
           .then(data => {
             const asistencias = data.asistencias || [];
@@ -22831,7 +22846,10 @@
         tabla.innerHTML = "<tr><td colspan='7' style='text-align:center'>Cargando...</td></tr>";
 
         try {
-          const res = await fetch("/api/formulario?action=listarFormularios");
+          const authHeaders = await getFormularioAuthHeaders();
+          const res = await fetch("/api/formulario?action=listarFormularios", {
+            headers: authHeaders,
+          });
           if (!res.ok) throw new Error("No se pudo cargar");
 
           const data = await res.json();
@@ -22934,7 +22952,7 @@
           });
         } catch (e) {
           console.error(e);
-          tabla.innerHTML = "<tr><td colspan='7'>❌ Error al cargar.</td></tr>";
+          tabla.innerHTML = `<tr><td colspan='7'>❌ Error al cargar: ${e.message || 'sin detalles'}.</td></tr>`;
         }
       }
 
@@ -23070,7 +23088,10 @@
 
         try {
           // 1. Obtener todos los formularios
-          const resp = await fetch("/api/formulario?action=listarFormularios");
+          const authHeaders = await getFormularioAuthHeaders();
+          const resp = await fetch("/api/formulario?action=listarFormularios", {
+            headers: authHeaders,
+          });
           if (!resp.ok) throw new Error("Error al cargar formularios");
 
           const formularios = await resp.json();
@@ -24043,7 +24064,10 @@
         if (!activeFormId) return;
 
         try {
-          const resp = await fetch('/api/formulario?action=listarFormularios');
+          const authHeaders = await getFormularioAuthHeaders();
+          const resp = await fetch('/api/formulario?action=listarFormularios', {
+            headers: authHeaders,
+          });
           if (!resp.ok) return;
           const formularios = await resp.json();
           const form = formularios?.[activeFormId] || null;
@@ -24802,7 +24826,10 @@
             if (e.target.value === 'VER_TODOS') {
               e.target.innerHTML = '<option value="">Cargando historial...</option>';
               try {
-                const r = await fetch("/api/formulario?action=listarFormularios");
+                const authHeaders = await getFormularioAuthHeaders();
+                const r = await fetch("/api/formulario?action=listarFormularios", {
+                  headers: authHeaders,
+                });
                 const forms = await r.json();
                 e.target.innerHTML = '<option value="">-- Historial Completo --</option>';
                 const optBack = document.createElement('option'); optBack.value = "VER_PENDIENTES"; optBack.textContent = "🔙 Volver a Solo Pendientes"; optBack.style.fontWeight = "bold"; optBack.style.color = "var(--accent-color)"; e.target.appendChild(optBack);

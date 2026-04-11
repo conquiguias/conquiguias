@@ -84,6 +84,96 @@
       display: none !important;
     }
 
+    body {
+      display: flex;
+      height: 100vh;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+
+    #sidebar {
+      width: 220px;
+      background: var(--bg-sidebar);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      box-shadow: 2px 0 5px var(--shadow-color);
+      border-right: 1px solid var(--border-color);
+      z-index: 2000;
+      position: relative;
+      overflow-y: auto;
+    }
+
+    #sidebar h2 {
+      text-align: center;
+      margin-bottom: 25px;
+      font-size: 22px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-primary);
+    }
+
+    #sidebar button {
+      padding: 12px 20px;
+      margin: 5px 10px;
+      border: none;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-primary);
+      cursor: pointer;
+      text-align: left;
+      font-size: 15px;
+      transition: background 0.3s, transform 0.2s;
+    }
+
+    #sidebar button:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(5px);
+    }
+
+    #sidebar button.active {
+      background: var(--accent-color);
+      font-weight: bold;
+    }
+
+    #sidebar #logoutBtn {
+      margin-top: auto;
+      background: var(--danger-color);
+    }
+
+    #sidebar #logoutBtn:hover {
+      background: var(--danger-hover);
+      transform: translateX(0);
+    }
+
+    #mobileMenuToggle {
+      display: none;
+    }
+
+    #mainContent {
+      flex: 1;
+      padding: 25px;
+      overflow-y: auto;
+      background: var(--bg-primary);
+    }
+
+    .card:not(.card-certificaciones) {
+      background: var(--bg-card);
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 6px 15px var(--shadow-color);
+      max-width: 650px;
+      margin: 20px auto;
+      transition: transform 0.3s, box-shadow 0.3s;
+      border: 1px solid var(--border-color);
+    }
+
+    .card:not(.card-certificaciones):hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px var(--shadow-color);
+    }
+
     .comment-meta {
       display: flex;
       align-items: center;

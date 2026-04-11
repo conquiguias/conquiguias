@@ -20418,11 +20418,27 @@
           }
         });
 
+        if (!isSharedAdminNotesScope()) {
+          const saveCloudBtn = document.querySelector('[data-notes-action="save-cloud"]');
+          if (saveCloudBtn) {
+            saveCloudBtn.disabled = true;
+            saveCloudBtn.style.opacity = '0.5';
+            saveCloudBtn.style.cursor = 'not-allowed';
+            saveCloudBtn.title = 'Usuarios normales solo pueden guardar localmente';
+          }
+        }
+
         document.querySelectorAll('[data-notes-action]').forEach(button => {
           button.addEventListener('click', (event) => {
             const action = event.currentTarget?.dataset?.notesAction;
             closeMenus();
-            if (action) runAdminNotesAction(action);
+            if (action) {
+              if (!isSharedAdminNotesScope() && (action === 'save-cloud')) {
+                notifyAdminNotesSave('warning', 'No disponible', 'Los usuarios normales solo pueden guardar localmente.');
+                return;
+              }
+              runAdminNotesAction(action);
+            }
           });
         });
 
@@ -20451,7 +20467,12 @@
           }
           if (event.ctrlKey && event.key.toLowerCase() === 's') {
             event.preventDefault();
-            void runAdminNotesAction('save-cloud');
+            if (isSharedAdminNotesScope()) {
+              void runAdminNotesAction('save-cloud');
+            } else {
+              void runAdminNotesAction('save-local');
+            }
+            return;
           }
           if (event.ctrlKey && event.key.toLowerCase() === 'n') {
             event.preventDefault();
@@ -20481,7 +20502,16 @@
         if (quickNew) quickNew.addEventListener('click', () => runAdminNotesAction('new'));
         if (quickOpen) quickOpen.addEventListener('click', () => runAdminNotesAction('open'));
         if (quickSave) quickSave.addEventListener('click', () => runAdminNotesAction('save-local'));
-        if (quickSaveCloud) quickSaveCloud.addEventListener('click', () => runAdminNotesAction('save-cloud'));
+        if (quickSaveCloud) {
+          if (!isSharedAdminNotesScope()) {
+            quickSaveCloud.disabled = true;
+            quickSaveCloud.style.opacity = '0.5';
+            quickSaveCloud.style.cursor = 'not-allowed';
+            quickSaveCloud.title = 'Usuarios normales solo pueden guardar localmente';
+          } else {
+            quickSaveCloud.addEventListener('click', () => runAdminNotesAction('save-cloud'));
+          }
+        }
         if (addTabBtn) addTabBtn.addEventListener('click', () => runAdminNotesAction('new'));
         if (titleInput) {
           titleInput.addEventListener('input', () => {

@@ -56,6 +56,8 @@ const REMINDER_HOUR_LOCAL = Number.isFinite(Number.parseInt(String(process.env.R
   ? Math.min(23, Math.max(0, Number.parseInt(String(process.env.REMINDER_HOUR_LOCAL || "0"), 10)))
   : 0;
 const ADMIN_NOTES_TABLE = "admin_shared_notes";
+const USER_NOTES_TABLE = "user_notes";
+const USER_NOTES_TYPE = "user_private";
 const ADMIN_NOTES_MAX_HTML = 2_000_000;
 const ADMIN_NOTES_MAX_FILE_NAME = 180;
 const ADMIN_NOTES_MAX_TABS = 30;
@@ -146,6 +148,15 @@ export default async function handler(req, res) {
         break;
       case "delete-admin-note":
         await handleDeleteAdminNote(req, res);
+        break;
+      case "get-user-notes":
+        await handleGetUserNotes(req, res);
+        break;
+      case "save-user-notes":
+        await handleSaveUserNotes(req, res);
+        break;
+      case "delete-user-note":
+        await handleDeleteUserNote(req, res);
         break;
       case "upsert-notification-token":
         await handleUpsertNotificationToken(req, res);
@@ -1132,6 +1143,256 @@ async function handleDeleteAdminNote(req, res) {
     });
   }
 }
+
+async function handleGetUserNotes(req, res) {
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
+  try {
+    const requester = await requireAuthenticated(req);
+    const userId = String(requester?.uid || "").trim();
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: "Usuario no autenticado" });
+    }
+
+    const { data: rows, error } = await supabase
+      .from(USER_NOTES_TABLE)
+      .select("id, html, title, zoom, wrap, tab_order, updated_at, updated_by")
+      .eq("user_id", userId)
+      .eq("note_type", USER_NOTES_TYPE)
+      .order("tab_order", { ascending: true })
+      .order("updated_at", { ascending: false });
+
+    if (error) {
+      throw new Error(`No se pudieron cargar notas de usuario desde Supabase: ${error.message}`);
+    }
+
+    const normalizedRows = Array.isArray(rows) ? rows : [];
+    const tabs = normalizedRows
+      .slice(0, ADMIN_NOTES_MAX_TABS)
+      .map((row) => ({
+        id: String(row.id || "").trim(),
+        title: String(row.title || "Sin tÃ­tulo"),
+        html: String(row.html || ""),
+        zoom: Number(row.zoom) || 100,
+        wrap: row.wrap !== false,
+      }))
+      .filter((tab) => !!tab.id);
+
+    const first = tabs[0] || null;
+
+    return res.status(200).json({
+      success: true,
+      notes: {
+        html: String(first?.html || ""),
+        fileName: String(first?.title || "Sin tÃ­tulo"),
+        zoom: Number(first?.zoom) || 100,
+        wrap: first?.wrap !== false,
+        tabs,
+        activeDocId: first?.id || "",
+        updatedAt: normalizedRows[0]?.updated_at || null,
+        updatedBy: normalizedRows[0]?.updated_by || null,
+      },
+    });
+  } catch (error) {
+    console.error("Error obteniendo notas de usuario:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || "No se pudieron obtener las notas de usuario",
+    });
+  }
+}
+
+async function handleSaveUserNotes(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
+  try {
+    const body = req.body || {};
+    const requester = await requireAuthenticated(req, body);
+    const userId = String(requester?.uid || "").trim();
+    const payload = sanitizeAdminNotesPayload(body);
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: "Usuario no autenticado" });
+    }
+
+    let finalTabs = payload.tabs.length ? [...payload.tabs] : [];
+    const finalOrder = payload.tabsOrder.length ? [...payload.tabsOrder] : finalTabs.map((tab) => tab.id);
+    let activeTab = finalTabs.find((tab) => tab.id === (payload.activeDocId || "")) || finalTabs[0] || null;
+
+    if (payload.saveOnlyActive) {
+      const activeIncomingTab = payload.tabs.find((tab) => tab.id === (payload.activeDocId || "")) || payload.tabs[0] || null;
+      if (!activeIncomingTab) {
+        const err = new Error("No se recibió la pestaña activa para guardar");
+        err.statusCode = 400;
+        throw err;
+      }
+
+      const activeTabOrder = Math.max(0, finalOrder.indexOf(activeIncomingTab.id));
+
+      const { data, error } = await supabase
+        .from(USER_NOTES_TABLE)
+        .upsert({
+          id: activeIncomingTab.id,
+          user_id: userId,
+          note_type: USER_NOTES_TYPE,
+          title: activeIncomingTab.title,
+          html: activeIncomingTab.html,
+          zoom: activeIncomingTab.zoom,
+          wrap: activeIncomingTab.wrap,
+          tab_order: activeTabOrder,
+          updated_at: new Date().toISOString(),
+          updated_by: requester?.email || userId,
+        }, { onConflict: "id" })
+        .select("id, html, title, zoom, wrap, tab_order, updated_at, updated_by")
+        .single();
+
+      if (error) {
+        throw new Error(`No se pudo guardar la pestaÃ±a activa: ${error.message}`);
+      }
+
+      finalTabs = [activeIncomingTab];
+      activeTab = activeIncomingTab;
+
+      const remainingOrderIds = finalOrder.filter((id) => id !== activeIncomingTab.id);
+      if (remainingOrderIds.length) {
+        const orderUpdates = remainingOrderIds.map((tabId, index) =>
+          supabase
+            .from(USER_NOTES_TABLE)
+            .update({ tab_order: index + 1 })
+            .eq("id", tabId)
+            .eq("user_id", userId)
+            .eq("note_type", USER_NOTES_TYPE),
+        );
+
+        const orderResults = await Promise.all(orderUpdates);
+        const orderError = orderResults.find((result) => !!result?.error)?.error;
+        if (orderError) {
+          throw new Error(`No se pudo actualizar el orden de pestaÃ±as: ${orderError.message}`);
+        }
+      }
+
+      return res.status(200).json({
+        success: true,
+        notes: {
+          html: String(data?.html || activeIncomingTab.html || ""),
+          fileName: String(data?.title || activeIncomingTab.title || "Sin título"),
+          zoom: Number(data?.zoom) || activeIncomingTab.zoom || 100,
+          wrap: data?.wrap !== false,
+          tabs: finalTabs,
+          activeDocId: activeIncomingTab.id,
+          updatedAt: data?.updated_at || null,
+          updatedBy: data?.updated_by || (requester?.email || userId),
+        },
+      });
+    }
+
+    const batchTabs = finalTabs.slice(0, ADMIN_NOTES_MAX_TABS);
+    if (!batchTabs.length) {
+      const err = new Error("No se recibieron pestañas para guardar");
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const batchPayload = batchTabs.map((tab, index) => {
+      const mappedOrder = finalOrder.indexOf(tab.id);
+      return {
+        id: tab.id,
+        user_id: userId,
+        note_type: USER_NOTES_TYPE,
+        title: tab.title,
+        html: tab.html,
+        zoom: tab.zoom,
+        wrap: tab.wrap,
+        tab_order: mappedOrder >= 0 ? mappedOrder : index,
+        updated_at: new Date().toISOString(),
+        updated_by: requester?.email || userId,
+      };
+    });
+
+    const { error } = await supabase
+      .from(USER_NOTES_TABLE)
+      .upsert(batchPayload, { onConflict: "id" });
+
+    if (error) {
+      throw new Error(`No se pudieron guardar pestañas de notas de usuario: ${error.message}`);
+    }
+
+    activeTab = batchTabs.find((tab) => tab.id === (payload.activeDocId || "")) || batchTabs[0] || null;
+
+    return res.status(200).json({
+      success: true,
+      notes: {
+        html: String(activeTab?.html || ""),
+        fileName: String(activeTab?.title || "Sin título"),
+        zoom: Number(activeTab?.zoom) || 100,
+        wrap: activeTab?.wrap !== false,
+        tabs: batchTabs,
+        activeDocId: payload.activeDocId || activeTab?.id || "",
+        updatedAt: new Date().toISOString(),
+        updatedBy: requester?.email || userId,
+      },
+    });
+  } catch (error) {
+    console.error("Error guardando notas de usuario:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || "No se pudieron guardar las notas de usuario",
+    });
+  }
+}
+
+async function handleDeleteUserNote(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "MÃ©todo no permitido" });
+  }
+
+  try {
+    const body = req.body || {};
+    const requester = await requireAuthenticated(req, body);
+    const userId = String(requester?.uid || "").trim();
+    const tabId = String(body?.tabId || "").trim().slice(0, 120);
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: "Usuario no autenticado" });
+    }
+
+    if (!tabId) {
+      return res.status(400).json({
+        success: false,
+        error: "tabId es requerido",
+      });
+    }
+
+    const { error } = await supabase
+      .from(USER_NOTES_TABLE)
+      .delete()
+      .eq("id", tabId)
+      .eq("user_id", userId)
+      .eq("note_type", USER_NOTES_TYPE);
+
+    if (error) {
+      throw new Error(`No se pudo eliminar la nota en la nube: ${error.message}`);
+    }
+
+    return res.status(200).json({
+      success: true,
+      tabId,
+      deletedBy: requester?.email || userId,
+    });
+  } catch (error) {
+    console.error("Error eliminando nota de usuario:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || "No se pudo eliminar la nota",
+    });
+  }
+}
+
 function notificationTokenDocId(token) {
   const normalizedToken = String(token || "").trim();
   const encoded = Buffer.from(normalizedToken)

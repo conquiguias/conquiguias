@@ -15240,7 +15240,7 @@
       let adminNotesDraggedDocId = null;
       let adminNotesTabDragHappened = false;
       let adminNotesSyncEnabled = false;
-      const ADMIN_NOTES_STORAGE_KEY = 'conquiguias_admin_notas_v1';
+      const ADMIN_NOTES_STORAGE_KEY_BASE = 'conquiguias_admin_notas_v1';
       const ADMIN_INSTRUCTORES_CACHE_MS = 2 * 60 * 1000;
       function activarTabAdmin(tabName) {
         const tabPublicaciones = document.getElementById('adminTabPublicaciones');
@@ -15495,6 +15495,39 @@
         }
       }
 
+      function isAdminNotesSharedScope() {
+        return !!window.canAccessAdminPanel;
+      }
+
+      function getAdminNotesIdentityKey() {
+        const rawIdentity = String(window.currentUserId || window.userData?.email || auth?.currentUser?.uid || auth?.currentUser?.email || 'anon')
+          .trim()
+          .toLowerCase();
+        return rawIdentity.replace(/[^a-z0-9_-]+/g, '_').slice(0, 96) || 'anon';
+      }
+
+      function getAdminNotesStorageKey() {
+        if (isAdminNotesSharedScope()) {
+          return `${ADMIN_NOTES_STORAGE_KEY_BASE}_shared`;
+        }
+        return `${ADMIN_NOTES_STORAGE_KEY_BASE}_user_${getAdminNotesIdentityKey()}`;
+      }
+
+      function getAdminNotesCloudActions() {
+        if (isAdminNotesSharedScope()) {
+          return {
+            get: 'get-admin-notes',
+            save: 'save-admin-notes',
+            delete: 'delete-admin-note',
+          };
+        }
+        return {
+          get: 'get-user-notes',
+          save: 'save-user-notes',
+          delete: 'delete-user-note',
+        };
+      }
+
       function saveAdminNotesToLocalStorage() {
         syncActiveAdminNotesDocFromEditor();
         if (!Array.isArray(adminNotesDocuments) || !adminNotesDocuments.length) return false;
@@ -15517,7 +15550,7 @@
             updatedAt: Date.now(),
             by: String(window.currentUserId || '').trim() || String(window.userData?.email || '').trim() || 'unknown'
           };
-          localStorage.setItem(ADMIN_NOTES_STORAGE_KEY, JSON.stringify(payload));
+          localStorage.setItem(getAdminNotesStorageKey(), JSON.stringify(payload));
           return true;
         } catch (error) {
           console.warn('No se pudo guardar notas admin localmente:', error);
@@ -15540,7 +15573,7 @@
             updatedAt: Date.now(),
             by: String(window.currentUserId || '').trim() || String(window.userData?.email || '').trim() || 'unknown'
           };
-          localStorage.setItem(ADMIN_NOTES_STORAGE_KEY, JSON.stringify(payload));
+          localStorage.setItem(getAdminNotesStorageKey(), JSON.stringify(payload));
           return true;
         } catch (error) {
           console.warn('No se pudo actualizar la caché completa de notas:', error);
@@ -15561,7 +15594,8 @@
         }
 
         try {
-          const response = await fetch('/api/social?action=delete-admin-note', {
+          const cloudActions = getAdminNotesCloudActions();
+          const response = await fetch(`/api/social?action=${encodeURIComponent(cloudActions.delete)}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -15585,7 +15619,6 @@
       }
 
       async function saveAdminNotesToSupabase({ notify = true, preserveDirty = false } = {}) {
-        if (!window.canAccessAdminPanel) return false;
         const editor = getAdminNotesEditor();
         if (!editor) return false;
         syncActiveAdminNotesDocFromEditor();
@@ -15603,7 +15636,8 @@
         try {
           const activeDoc = getActiveAdminNotesDoc() || createAdminNotesDocument();
           const docTitle = String(activeDoc.title || 'Sin título').trim() || 'Sin título';
-          const response = await fetch('/api/social?action=save-admin-notes', {
+          const cloudActions = getAdminNotesCloudActions();
+          const response = await fetch(`/api/social?action=${encodeURIComponent(cloudActions.save)}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -15829,8 +15863,6 @@
       }
 
       async function loadAdminNotesFromSupabase() {
-        if (!window.canAccessAdminPanel) return false;
-
         const idToken = await getAdminNotesAuthToken();
         if (!idToken) {
           setAdminNotesSyncState('Sin token · notas locales');
@@ -15839,7 +15871,8 @@
 
         try {
           setAdminNotesSyncState('Cargando desde la nube...');
-          const response = await fetch('/api/social?action=get-admin-notes', {
+          const cloudActions = getAdminNotesCloudActions();
+          const response = await fetch(`/api/social?action=${encodeURIComponent(cloudActions.get)}`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${idToken}`
@@ -15973,7 +16006,7 @@
 
       function loadAdminNotesFromStorage() {
         try {
-          const raw = localStorage.getItem(ADMIN_NOTES_STORAGE_KEY);
+          const raw = localStorage.getItem(getAdminNotesStorageKey());
           if (!raw) {
             replaceAdminNotesDocuments([createAdminNotesDocument({ title: 'Sin título' })]);
             setAdminNotesSyncState('Sincronización local');

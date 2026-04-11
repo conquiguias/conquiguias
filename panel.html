@@ -2914,6 +2914,30 @@
       white-space: nowrap;
     }
 
+    .scope-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      margin-left: 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border: 1.5px solid;
+    }
+
+    .scope-badge.private {
+      color: #dc2626;
+      border-color: #dc2626;
+      background: rgba(220, 38, 38, 0.08);
+    }
+
+    .scope-badge.shared {
+      color: #16a34a;
+      border-color: #16a34a;
+      background: rgba(22, 163, 74, 0.08);
+    }
+
     @media (max-width: 760px) {
       #adminNotesEditor,
       #directorNotesEditor,
@@ -5325,7 +5349,7 @@
 
     <!-- Bloc de Notas -->
     <div id="blocNotasSection" class="card hidden">
-      <h2><i class="fas fa-note-sticky" style="margin-right: 8px; color: var(--accent-color);"></i> Bloc De Notas</h2>
+      <h2><i class="fas fa-note-sticky" style="margin-right: 8px; color: var(--accent-color);"></i> Bloc De Notas<span id="blocNotasScopeBadge" class="scope-badge private">Privado</span></h2>
       <p style="margin-bottom: 12px; color: var(--text-secondary);">Espacio de notas personal privadas.</p>
       <div id="blocNotasMount"></div>
     </div>
@@ -6240,6 +6264,7 @@
             <div class="admin-notes-titletext">
               <input id="adminNotesTitleInput" type="text" value="Sin título" maxlength="120" aria-label="Nombre de la nota activa">
               <span class="admin-notes-title-suffix">- Bloc de notas</span>
+              <span id="adminNotesScopeBadgeTab" class="scope-badge shared">Compartido</span>
               <span id="adminNotesTitleDirty">*</span>
             </div>
             <div class="admin-notes-actions">
@@ -9657,6 +9682,7 @@
             return;
           }
           setAdminNotesScope('private');
+          updateBlocNotasScopeBadge();
           ensureBlocNotasMounted();
           mostrarSeccion(blocNotasSection, menuBlocNotas);
           initAdminNotesEditor();
@@ -17457,6 +17483,8 @@
         const prevScope = adminNotesScopeMode;
         if (prevScope === nextScope) {
           updateAdminNotesScopeState();
+          updateBlocNotasScopeBadge();
+          updateAdminNotesTabScopeBadge();
           return;
         }
 
@@ -17466,6 +17494,8 @@
 
         adminNotesScopeMode = nextScope;
         updateAdminNotesScopeState();
+        updateBlocNotasScopeBadge();
+        updateAdminNotesTabScopeBadge();
 
         if (adminNotesInitialized) {
           adminNotesDocuments = [];
@@ -17485,6 +17515,24 @@
         scopeEl.textContent = sharedScope ? 'Ámbito: Compartido' : 'Ámbito: Privado';
         scopeEl.style.color = sharedScope ? 'var(--success-color)' : 'var(--text-secondary)';
         scopeEl.style.fontWeight = sharedScope ? '600' : '500';
+      }
+
+      function updateBlocNotasScopeBadge() {
+        const badge = document.getElementById('blocNotasScopeBadge');
+        if (!badge) return;
+        const sharedScope = isSharedAdminNotesScope();
+        badge.classList.remove('private', 'shared');
+        badge.classList.add(sharedScope ? 'shared' : 'private');
+        badge.textContent = sharedScope ? 'Compartido' : 'Privado';
+      }
+
+      function updateAdminNotesTabScopeBadge() {
+        const badge = document.getElementById('adminNotesScopeBadgeTab');
+        if (!badge) return;
+        const sharedScope = isSharedAdminNotesScope();
+        badge.classList.remove('private', 'shared');
+        badge.classList.add(sharedScope ? 'shared' : 'private');
+        badge.textContent = sharedScope ? 'Compartido' : 'Privado';
       }
 
       function getNotesCloudActions() {
@@ -20643,6 +20691,8 @@
         updateAdminNotesTitle();
         updateAdminNotesStatus();
         updateAdminNotesScopeState();
+        updateBlocNotasScopeBadge();
+        updateAdminNotesTabScopeBadge();
         loadAdminNotesFromSupabase();
         adminNotesInitialized = true;
       }

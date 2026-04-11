@@ -2587,6 +2587,11 @@
       outline: none;
     }
 
+    #adminNotesTitleInput {
+      background: color-mix(in srgb, var(--bg-primary) 82%, black 18%);
+      border-color: var(--border-color);
+    }
+
     #adminNotesTitleInput:focus,
     #directorNotesTitleInput:focus,
     #conquiNotesTitleInput:focus {
@@ -2933,9 +2938,9 @@
     }
 
     .scope-badge.shared {
-      color: #dc2626;
-      border-color: #dc2626;
-      background: rgba(220, 38, 38, 0.08);
+      color: var(--success-color);
+      border-color: var(--success-color);
+      background: color-mix(in srgb, var(--success-color) 16%, transparent);
     }
 
     @media (max-width: 760px) {

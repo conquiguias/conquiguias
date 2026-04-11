@@ -5007,6 +5007,7 @@
       Conquiguias World</h2>
     <button id="menuInicio" class="active"><i class="fas fa-home" style="margin-right: 8px;"></i> Inicio</button>
     <button id="menuClubes"><i class="fas fa-users" style="margin-right: 8px;"></i> Clubes</button>
+    <button id="menuBlocNotas"><i class="fas fa-note-sticky" style="margin-right: 8px;"></i> Bloc de Notas</button>
     <button id="menuGrabaciones"><i class="fas fa-video" style="margin-right: 8px;"></i> Grabaciones de
       Especialidades</button>
     <button id="menuTareasExamenes"><i class="fas fa-tasks" style="margin-right: 8px;"></i> Tareas y Exámenes <span id="menuTareasPendingBadge" class="menu-tareas-notif-badge" aria-live="polite"></span></button>
@@ -5476,6 +5477,13 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Bloc de Notas -->
+    <div id="blocNotasSection" class="card hidden">
+      <h2><i class="fas fa-note-sticky" style="margin-right: 8px; color: var(--accent-color);"></i> Bloc De Notas</h2>
+      <p style="margin-bottom: 12px; color: var(--text-secondary);">Espacio de notas personal. Admin y propietario comparten notas; usuarios normales tienen notas privadas.</p>
+      <div id="blocNotasMount"></div>
     </div>
 
     <!-- Grabaciones de Especialidades -->
@@ -6177,7 +6185,7 @@
           <i class="fas fa-chart-line" style="margin-right: 6px;"></i>Estadísticas
         </button>
         <button id="adminTabNotas"
-          style="padding: 8px 16px; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;">
+          style="display:none; padding: 8px 16px; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;">
           <i class="fas fa-note-sticky" style="margin-right: 6px;"></i>Notas
         </button>
       </div>
@@ -7429,6 +7437,7 @@
       const menuGrabaciones = document.getElementById("menuGrabaciones");
       const menuAcerca = document.getElementById("menuAcerca");
       const menuDonar = document.getElementById("menuDonar");
+      const blocNotasSection = document.getElementById("blocNotasSection");
       const grabacionesSection = document.getElementById("grabacionesSection");
       const acercaSection = document.getElementById("acercaSection");
       const donarSection = document.getElementById("donarSection");
@@ -8483,11 +8492,11 @@
         const menuInstructorBtn = document.getElementById('menuInstructor');
         const menuAdminBtn = document.getElementById('menuAdmin');
 
-        [perfilSection, especialidadesSection, certificacionesSection, adminSectionEl, instructorSectionEl, tareasExamenesSectionEl].forEach((section) => {
+        [perfilSection, especialidadesSection, blocNotasSection, certificacionesSection, adminSectionEl, instructorSectionEl, tareasExamenesSectionEl].forEach((section) => {
           if (section) section.classList.add('hidden');
         });
 
-        [menuPerfil, menuEspecialidades, menuCertificaciones, menuInstructorBtn, menuAdminBtn, menuAcerca, menuDonar].forEach((button) => {
+        [menuPerfil, menuEspecialidades, menuBlocNotas, menuCertificaciones, menuInstructorBtn, menuAdminBtn, menuAcerca, menuDonar].forEach((button) => {
           if (button) button.classList.remove('active');
         });
 
@@ -9559,10 +9568,10 @@
         }
 
         // Incluir tareasExamenesSection y menuTareasExamenes en las listas para limpiar
-        [inicioSection, perfilSection, especialidadesSection, clubesSection, certificacionesSection, adminSection, instructorSection, tareasExamenesSection, grabacionesSection, acercaSection, donarSection].forEach(sec => {
+        [inicioSection, perfilSection, especialidadesSection, clubesSection, blocNotasSection, certificacionesSection, adminSection, instructorSection, tareasExamenesSection, grabacionesSection, acercaSection, donarSection].forEach(sec => {
           if (sec) sec.classList.add("hidden");
         });
-        [menuInicio, menuPerfil, menuEspecialidades, menuClubes, menuCertificaciones, menuAdmin, menuInstructor, menuTareasExamenes, menuGrabaciones, menuAcerca, menuDonar].forEach(btn => {
+        [menuInicio, menuPerfil, menuEspecialidades, menuClubes, menuBlocNotas, menuCertificaciones, menuAdmin, menuInstructor, menuTareasExamenes, menuGrabaciones, menuAcerca, menuDonar].forEach(btn => {
           if (btn) btn.classList.remove("active");
         });
 
@@ -9743,10 +9752,28 @@
 
       setupAboutTabs();
 
+      function ensureBlocNotasMounted() {
+        const notasView = document.getElementById('adminNotasView');
+        const notasMount = document.getElementById('blocNotasMount');
+        if (!notasView || !notasMount) return;
+        if (notasView.parentElement !== notasMount) {
+          notasMount.appendChild(notasView);
+        }
+        notasView.classList.remove('hidden');
+      }
+
       menuClubes.addEventListener("click", () => {
         mostrarSeccion(clubesSection, menuClubes);
         ensureEspecialidadesTabInitialized();
       });
+
+      if (menuBlocNotas && blocNotasSection) {
+        menuBlocNotas.addEventListener("click", () => {
+          ensureBlocNotasMounted();
+          mostrarSeccion(blocNotasSection, menuBlocNotas);
+          initAdminNotesEditor();
+        });
+      }
       ///////////////////////////////////////////
 
       const clubBtns = document.querySelectorAll(".clubBtn");
@@ -17489,8 +17516,23 @@
       let adminNotesDraggedDocId = null;
       let adminNotesTabDragHappened = false;
       let adminNotesSyncEnabled = false;
-      const ADMIN_NOTES_STORAGE_KEY = 'conquiguias_admin_notas_v1';
+      const ADMIN_NOTES_STORAGE_KEY_BASE = 'conquiguias_admin_notas_v1';
       const ADMIN_INSTRUCTORES_CACHE_MS = 2 * 60 * 1000;
+
+      function isSharedAdminNotesScope() {
+        return !!window.canAccessAdminPanel;
+      }
+
+      function getAdminNotesStorageKey() {
+        if (isSharedAdminNotesScope()) {
+          return ADMIN_NOTES_STORAGE_KEY_BASE;
+        }
+        const rawIdentity = String(window.currentUserId || window.userData?.email || auth?.currentUser?.uid || auth?.currentUser?.email || 'anon')
+          .trim()
+          .toLowerCase();
+        const safeIdentity = rawIdentity.replace(/[^a-z0-9_-]+/g, '_').slice(0, 96) || 'anon';
+        return `${ADMIN_NOTES_STORAGE_KEY_BASE}_private_${safeIdentity}`;
+      }
 
       // Director del Club Notes
       let directorNotesDocuments = [];
@@ -19775,7 +19817,7 @@
             updatedAt: Date.now(),
             by: String(window.currentUserId || '').trim() || String(window.userData?.email || '').trim() || 'unknown'
           };
-          localStorage.setItem(ADMIN_NOTES_STORAGE_KEY, JSON.stringify(payload));
+          localStorage.setItem(getAdminNotesStorageKey(), JSON.stringify(payload));
           return true;
         } catch (error) {
           console.warn('No se pudo guardar notas admin localmente:', error);
@@ -19798,7 +19840,7 @@
             updatedAt: Date.now(),
             by: String(window.currentUserId || '').trim() || String(window.userData?.email || '').trim() || 'unknown'
           };
-          localStorage.setItem(ADMIN_NOTES_STORAGE_KEY, JSON.stringify(payload));
+          localStorage.setItem(getAdminNotesStorageKey(), JSON.stringify(payload));
           return true;
         } catch (error) {
           console.warn('No se pudo actualizar la caché completa de notas:', error);
@@ -19843,7 +19885,15 @@
       }
 
       async function saveAdminNotesToSupabase({ notify = true, preserveDirty = false } = {}) {
-        if (!window.canAccessAdminPanel) return false;
+        if (!isSharedAdminNotesScope()) {
+          const cacheSaved = saveAdminNotesToLocalStorage();
+          adminNotesSyncEnabled = false;
+          setAdminNotesSyncState('Privado · guardado local');
+          if (notify) {
+            notifyAdminNotesSave(cacheSaved ? 'info' : 'error', cacheSaved ? 'Notas privadas' : 'Error al guardar', cacheSaved ? 'Guardado local privado completado.' : 'No se pudo guardar localmente.');
+          }
+          return cacheSaved;
+        }
         const editor = getAdminNotesEditor();
         if (!editor) return false;
         syncActiveAdminNotesDocFromEditor();
@@ -20087,7 +20137,11 @@
       }
 
       async function loadAdminNotesFromSupabase() {
-        if (!window.canAccessAdminPanel) return false;
+        if (!isSharedAdminNotesScope()) {
+          adminNotesSyncEnabled = false;
+          setAdminNotesSyncState('Privado · notas locales');
+          return false;
+        }
 
         const idToken = await getAdminNotesAuthToken();
         if (!idToken) {
@@ -20172,9 +20226,10 @@
       async function saveAdminNotesLocalAndCloud({ notify = true } = {}) {
         const activeDoc = getActiveAdminNotesDoc();
         const docTitle = String(activeDoc?.title || adminNotesFileName || 'Sin título').trim() || 'Sin título';
+        const shouldSyncCloud = isSharedAdminNotesScope();
         const computerSaved = await saveAdminNotesToComputer({ markClean: false });
         const cacheSaved = saveAdminNotesToLocalStorage();
-        const cloudSaved = await saveAdminNotesToSupabase({ notify: false });
+        const cloudSaved = shouldSyncCloud ? await saveAdminNotesToSupabase({ notify: false }) : true;
         if (cloudSaved) {
           if (activeDoc) {
             activeDoc.dirty = false;
@@ -20231,10 +20286,10 @@
 
       function loadAdminNotesFromStorage() {
         try {
-          const raw = localStorage.getItem(ADMIN_NOTES_STORAGE_KEY);
+          const raw = localStorage.getItem(getAdminNotesStorageKey());
           if (!raw) {
             replaceAdminNotesDocuments([createAdminNotesDocument({ title: 'Sin título' })]);
-            setAdminNotesSyncState('Sincronización local');
+            setAdminNotesSyncState(isSharedAdminNotesScope() ? 'Sincronización local' : 'Privado · notas locales');
             return;
           }
           const data = JSON.parse(raw);
@@ -20245,11 +20300,11 @@
             replaceAdminNotesDocuments([createAdminNotesDocument({ title: 'Sin título' })]);
           }
 
-          setAdminNotesSyncState('Notas locales cargadas');
+          setAdminNotesSyncState(isSharedAdminNotesScope() ? 'Notas locales cargadas' : 'Privado · notas locales cargadas');
         } catch (error) {
           console.warn('No se pudieron cargar notas admin:', error);
           replaceAdminNotesDocuments([createAdminNotesDocument({ title: 'Sin título' })]);
-          setAdminNotesSyncState('Sincronización local');
+          setAdminNotesSyncState(isSharedAdminNotesScope() ? 'Sincronización local' : 'Privado · notas locales');
         }
       }
 

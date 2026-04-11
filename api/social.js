@@ -787,14 +787,14 @@ function sanitizeVisitorKey(value) {
 
 function sanitizeAdminNotesPayload(input = {}) {
   const html = String(input?.html || "");
-  const fileNameRaw = String(input?.fileName || "Sin tÃ­tulo").trim();
-  const fileName = fileNameRaw.slice(0, ADMIN_NOTES_MAX_FILE_NAME) || "Sin tÃ­tulo";
+  const fileNameRaw = String(input?.fileName || "Sin tí­tulo").trim();
+  const fileName = fileNameRaw.slice(0, ADMIN_NOTES_MAX_FILE_NAME) || "Sin título";
   const zoomValue = Number.parseInt(String(input?.zoom ?? "100"), 10);
   const zoom = Number.isFinite(zoomValue) ? Math.min(300, Math.max(50, zoomValue)) : 100;
   const wrap = input?.wrap !== false;
-
+  
   if (html.length > ADMIN_NOTES_MAX_HTML) {
-    const error = new Error("El contenido de notas excede el tamaÃ±o permitido");
+    const error = new Error("El contenido de notas excede el tamaño permitido");
     error.statusCode = 413;
     throw error;
   }
@@ -803,8 +803,8 @@ function sanitizeAdminNotesPayload(input = {}) {
   const tabs = tabsInput
     .map((tab, index) => {
       const tabHtml = String(tab?.html || "");
-      const tabTitleRaw = String(tab?.title || `Sin tÃ­tulo ${index + 1}`).trim();
-      const tabTitle = tabTitleRaw.slice(0, ADMIN_NOTES_MAX_FILE_NAME) || `Sin tÃ­tulo ${index + 1}`;
+      const tabTitleRaw = String(tab?.title || `Sin título ${index + 1}`).trim();
+      const tabTitle = tabTitleRaw.slice(0, ADMIN_NOTES_MAX_FILE_NAME) || `Sin título ${index + 1}`;
       const tabIdRaw = String(tab?.id || `tab_${index + 1}`).trim();
       const tabId = tabIdRaw.slice(0, 120) || `tab_${index + 1}`;
       const tabZoomValue = Number.parseInt(String(tab?.zoom ?? "100"), 10);
@@ -835,7 +835,7 @@ function sanitizeAdminNotesPayload(input = {}) {
 
   const tabsHtmlLength = tabs.reduce((sum, tab) => sum + String(tab?.html || "").length, 0);
   if (tabsHtmlLength > ADMIN_NOTES_MAX_HTML) {
-    const error = new Error("El contenido total de pestaÃ±as excede el tamaÃ±o permitido");
+    const error = new Error("El contenido total de pestañas excede el tamaño permitido");
     error.statusCode = 413;
     throw error;
   }
@@ -849,7 +849,7 @@ function sanitizeAdminNotesPayload(input = {}) {
 
 async function handleTrackPlatformVisit(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "MÃ©todo no permitido" });
+    return res.status(405).json({ error: "Método no permitido" });
   }
 
   try {
@@ -902,7 +902,7 @@ async function handleTrackPlatformVisit(req, res) {
 
 async function handleGetPlatformAnalytics(req, res) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "MÃ©todo no permitido" });
+    return res.status(405).json({ error: "Método no permitido" });
   }
 
   try {
@@ -929,17 +929,17 @@ async function handleGetPlatformAnalytics(req, res) {
       rows,
     });
   } catch (error) {
-    console.error("Error obteniendo analÃ­ticas de plataforma:", error);
+    console.error("Error obteniendo analíticas de plataforma:", error);
     return res.status(error.statusCode || 500).json({
       success: false,
-      error: error.message || "No se pudieron obtener las analÃ­ticas",
+      error: error.message || "No se pudieron obtener las analíticas",
     });
   }
 }
 
 async function handleGetAdminNotes(req, res) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "MÃ©todo no permitido" });
+    return res.status(405).json({ error: "Método no permitido" });
   }
 
   try {
@@ -963,7 +963,7 @@ async function handleGetAdminNotes(req, res) {
         .slice(0, ADMIN_NOTES_MAX_TABS)
         .map((row) => ({
           id: String(row.id || "").trim(),
-          title: String(row.file_name || "Sin tÃ­tulo"),
+          title: String(row.file_name || "Sin título"),
           html: String(row.html || ""),
           zoom: Number(row.zoom) || 100,
           wrap: row.wrap !== false,
@@ -976,7 +976,7 @@ async function handleGetAdminNotes(req, res) {
         success: true,
         notes: {
           html: String(first?.html || ""),
-          fileName: String(first?.title || "Sin tÃ­tulo"),
+          fileName: String(first?.title || "Sin título"),
           zoom: Number(first?.zoom) || 100,
           wrap: first?.wrap !== false,
           tabs,
@@ -991,7 +991,7 @@ async function handleGetAdminNotes(req, res) {
       success: true,
       notes: {
         html: "",
-        fileName: "Sin tÃ­tulo",
+        fileName: "Sin título",
         zoom: 100,
         wrap: true,
         tabs: [],
@@ -1011,7 +1011,7 @@ async function handleGetAdminNotes(req, res) {
 
 async function handleSaveAdminNotes(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "MÃ©todo no permitido" });
+    return res.status(405).json({ error: "Método no permitido" });
   }
 
   try {
@@ -1026,7 +1026,7 @@ async function handleSaveAdminNotes(req, res) {
     if (payload.saveOnlyActive) {
       const activeIncomingTab = payload.tabs.find((tab) => tab.id === (payload.activeDocId || "")) || payload.tabs[0] || null;
       if (!activeIncomingTab) {
-        const err = new Error("No se recibiÃ³ la pestaÃ±a activa para guardar");
+        const err = new Error("No se recibiÃ³ la pestaña activa para guardar");
         err.statusCode = 400;
         throw err;
       }
@@ -1049,7 +1049,7 @@ async function handleSaveAdminNotes(req, res) {
         .single();
 
       if (error) {
-        throw new Error(`No se pudo guardar la pestaÃ±a activa: ${error.message}`);
+        throw new Error(`No se pudo guardar la pestaña activa: ${error.message}`);
       }
 
       finalTabs = [activeIncomingTab];
@@ -1067,7 +1067,7 @@ async function handleSaveAdminNotes(req, res) {
         const orderResults = await Promise.all(orderUpdates);
         const orderError = orderResults.find((result) => !!result?.error)?.error;
         if (orderError) {
-          throw new Error(`No se pudo actualizar el orden de pestaÃ±as: ${orderError.message}`);
+          throw new Error(`No se pudo actualizar el orden de pestañas: ${orderError.message}`);
         }
       }
 
@@ -1075,7 +1075,7 @@ async function handleSaveAdminNotes(req, res) {
         success: true,
         notes: {
           html: String(data?.html || activeIncomingTab.html || ""),
-          fileName: String(data?.file_name || activeIncomingTab.title || "Sin tÃ­tulo"),
+          fileName: String(data?.file_name || activeIncomingTab.title || "Sin título"),
           zoom: Number(data?.zoom) || activeIncomingTab.zoom || 100,
           wrap: data?.wrap !== false,
           tabs: finalTabs,
@@ -1088,7 +1088,7 @@ async function handleSaveAdminNotes(req, res) {
 
     const batchTabs = finalTabs.slice(0, ADMIN_NOTES_MAX_TABS);
     if (!batchTabs.length) {
-      const err = new Error("No se recibieron pestaÃ±as para guardar");
+      const err = new Error("No se recibieron pestañas para guardar");
       err.statusCode = 400;
       throw err;
     }
@@ -1112,7 +1112,7 @@ async function handleSaveAdminNotes(req, res) {
       .upsert(batchPayload, { onConflict: "id" });
 
     if (error) {
-      throw new Error(`No se pudieron guardar pestaÃ±as de notas admin: ${error.message}`);
+      throw new Error(`No se pudieron guardar pestañas de notas admin: ${error.message}`);
     }
 
     activeTab = batchTabs.find((tab) => tab.id === (payload.activeDocId || "")) || batchTabs[0] || null;
@@ -1121,7 +1121,7 @@ async function handleSaveAdminNotes(req, res) {
       success: true,
       notes: {
         html: String(activeTab?.html || ""),
-        fileName: String(activeTab?.title || "Sin tÃ­tulo"),
+        fileName: String(activeTab?.title || "Sin título"),
         zoom: Number(activeTab?.zoom) || 100,
         wrap: activeTab?.wrap !== false,
         tabs: batchTabs,
@@ -1209,7 +1209,7 @@ async function handleGetUserNotes(req, res) {
       .slice(0, ADMIN_NOTES_MAX_TABS)
       .map((row) => ({
         id: String(row.id || "").trim(),
-        title: String(row.title || "Sin tÃ­tulo"),
+        title: String(row.title || "Sin título"),
         html: String(row.html || ""),
         zoom: Number(row.zoom) || 100,
         wrap: row.wrap !== false,
@@ -1222,7 +1222,7 @@ async function handleGetUserNotes(req, res) {
       success: true,
       notes: {
         html: String(first?.html || ""),
-        fileName: String(first?.title || "Sin tÃ­tulo"),
+        fileName: String(first?.title || "Sin título"),
         zoom: Number(first?.zoom) || 100,
         wrap: first?.wrap !== false,
         tabs,
@@ -1291,7 +1291,7 @@ async function handleSaveUserNotes(req, res) {
         if (isUserNotesTypeConstraintError(error)) {
           throw createUserNotesTypeConstraintError(error, userNotesType);
         }
-        throw new Error(`No se pudo guardar la pestaÃ±a activa: ${error.message}`);
+        throw new Error(`No se pudo guardar la pestaña activa: ${error.message}`);
       }
 
       finalTabs = [activeIncomingTab];
@@ -1311,7 +1311,7 @@ async function handleSaveUserNotes(req, res) {
         const orderResults = await Promise.all(orderUpdates);
         const orderError = orderResults.find((result) => !!result?.error)?.error;
         if (orderError) {
-          throw new Error(`No se pudo actualizar el orden de pestaÃ±as: ${orderError.message}`);
+          throw new Error(`No se pudo actualizar el orden de pestañas: ${orderError.message}`);
         }
       }
 

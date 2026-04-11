@@ -16272,6 +16272,7 @@
             const updates = {
               description: newDescription,
               updatedAt: new Date().toISOString(),
+              status: postData?.status === 'approved' ? 'approved' : String(postData?.status || 'approved').toLowerCase(),
             };
 
             if (editMode === 'radio') {

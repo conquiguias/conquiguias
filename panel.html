@@ -2933,9 +2933,9 @@
     }
 
     .scope-badge.shared {
-      color: #16a34a;
-      border-color: #16a34a;
-      background: rgba(22, 163, 74, 0.08);
+      color: #dc2626;
+      border-color: #dc2626;
+      background: rgba(220, 38, 38, 0.08);
     }
 
     @media (max-width: 760px) {
@@ -6264,7 +6264,6 @@
             <div class="admin-notes-titletext">
               <input id="adminNotesTitleInput" type="text" value="Sin título" maxlength="120" aria-label="Nombre de la nota activa">
               <span class="admin-notes-title-suffix">- Bloc de notas</span>
-              <span id="adminNotesScopeBadgeTab" class="scope-badge shared">Compartido</span>
               <span id="adminNotesTitleDirty">*</span>
             </div>
             <div class="admin-notes-actions">
@@ -17484,7 +17483,6 @@
         if (prevScope === nextScope) {
           updateAdminNotesScopeState();
           updateBlocNotasScopeBadge();
-          updateAdminNotesTabScopeBadge();
           return;
         }
 
@@ -17495,7 +17493,6 @@
         adminNotesScopeMode = nextScope;
         updateAdminNotesScopeState();
         updateBlocNotasScopeBadge();
-        updateAdminNotesTabScopeBadge();
 
         if (adminNotesInitialized) {
           adminNotesDocuments = [];
@@ -17519,15 +17516,6 @@
 
       function updateBlocNotasScopeBadge() {
         const badge = document.getElementById('blocNotasScopeBadge');
-        if (!badge) return;
-        const sharedScope = isSharedAdminNotesScope();
-        badge.classList.remove('private', 'shared');
-        badge.classList.add(sharedScope ? 'shared' : 'private');
-        badge.textContent = sharedScope ? 'Compartido' : 'Privado';
-      }
-
-      function updateAdminNotesTabScopeBadge() {
-        const badge = document.getElementById('adminNotesScopeBadgeTab');
         if (!badge) return;
         const sharedScope = isSharedAdminNotesScope();
         badge.classList.remove('private', 'shared');
@@ -20692,7 +20680,6 @@
         updateAdminNotesStatus();
         updateAdminNotesScopeState();
         updateBlocNotasScopeBadge();
-        updateAdminNotesTabScopeBadge();
         loadAdminNotesFromSupabase();
         adminNotesInitialized = true;
       }

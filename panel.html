@@ -5326,7 +5326,7 @@
     <!-- Bloc de Notas -->
     <div id="blocNotasSection" class="card hidden">
       <h2><i class="fas fa-note-sticky" style="margin-right: 8px; color: var(--accent-color);"></i> Bloc De Notas</h2>
-      <p style="margin-bottom: 12px; color: var(--text-secondary);">Espacio de notas personal. Admin y propietario comparten notas; usuarios normales tienen notas privadas.</p>
+      <p style="margin-bottom: 12px; color: var(--text-secondary);">Espacio de notas personal. En este apartado todos usan notas privadas, incluyendo admin y propietario.</p>
       <div id="blocNotasMount"></div>
     </div>
 
@@ -6029,7 +6029,7 @@
           <i class="fas fa-chart-line" style="margin-right: 6px;"></i>Estadísticas
         </button>
         <button id="adminTabNotas"
-          style="display:none; padding: 8px 16px; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;">
+          style="padding: 8px 16px; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;">
           <i class="fas fa-note-sticky" style="margin-right: 6px;"></i>Notas
         </button>
       </div>
@@ -6313,6 +6313,7 @@
             <span id="adminNotesCharCount">0 caracteres</span>
             <span id="adminNotesWrapState">Con ajuste de línea</span>
             <span id="adminNotesZoom">100%</span>
+            <span id="adminNotesScopeState">Ámbito: Privado</span>
             <span id="adminNotesSyncState">Sincronización local</span>
             <span>Windows (CRLF)</span>
             <span>UTF-8</span>
@@ -9634,6 +9635,16 @@
         notasView.classList.remove('hidden');
       }
 
+      function ensureAdminNotasMounted() {
+        const notasView = document.getElementById('adminNotasView');
+        const adminSection = document.getElementById('adminSection');
+        if (!notasView || !adminSection) return;
+        if (notasView.parentElement !== adminSection) {
+          adminSection.appendChild(notasView);
+        }
+        notasView.classList.remove('hidden');
+      }
+
       menuClubes.addEventListener("click", () => {
         mostrarSeccion(clubesSection, menuClubes);
         ensureEspecialidadesTabInitialized();
@@ -9645,6 +9656,7 @@
             mostrarMensaje('info', 'Sesión requerida', 'Bloc de Notas está disponible solo para usuarios con sesión iniciada.');
             return;
           }
+          setAdminNotesScope('private');
           ensureBlocNotasMounted();
           mostrarSeccion(blocNotasSection, menuBlocNotas);
           initAdminNotesEditor();
@@ -17432,11 +17444,47 @@
       let adminNotesDraggedDocId = null;
       let adminNotesTabDragHappened = false;
       let adminNotesSyncEnabled = false;
+      let adminNotesScopeMode = 'private';
       const ADMIN_NOTES_STORAGE_KEY_BASE = 'conquiguias_admin_notas_v1';
       const ADMIN_INSTRUCTORES_CACHE_MS = 2 * 60 * 1000;
 
       function isSharedAdminNotesScope() {
-        return !!window.canAccessAdminPanel;
+        return adminNotesScopeMode === 'shared';
+      }
+
+      function setAdminNotesScope(scope = 'private') {
+        const nextScope = String(scope || '').trim().toLowerCase() === 'shared' ? 'shared' : 'private';
+        const prevScope = adminNotesScopeMode;
+        if (prevScope === nextScope) {
+          updateAdminNotesScopeState();
+          return;
+        }
+
+        if (adminNotesInitialized) {
+          saveAdminNotesToLocalStorage();
+        }
+
+        adminNotesScopeMode = nextScope;
+        updateAdminNotesScopeState();
+
+        if (adminNotesInitialized) {
+          adminNotesDocuments = [];
+          adminNotesActiveDocId = null;
+          adminNotesDocCounter = 0;
+          loadAdminNotesFromStorage();
+          updateAdminNotesTitle();
+          updateAdminNotesStatus();
+          void loadAdminNotesFromSupabase();
+        }
+      }
+
+      function updateAdminNotesScopeState() {
+        const scopeEl = document.getElementById('adminNotesScopeState');
+        if (!scopeEl) return;
+        const sharedScope = isSharedAdminNotesScope();
+        scopeEl.textContent = sharedScope ? 'Ámbito: Compartido' : 'Ámbito: Privado';
+        scopeEl.style.color = sharedScope ? 'var(--success-color)' : 'var(--text-secondary)';
+        scopeEl.style.fontWeight = sharedScope ? '600' : '500';
       }
 
       function getNotesCloudActions() {
@@ -19527,6 +19575,8 @@
             loadAdminPlatformAnalytics();
           }
         } else if (isNotas) {
+          setAdminNotesScope('shared');
+          ensureAdminNotasMounted();
           initAdminNotesEditor();
         }
       }
@@ -19696,7 +19746,14 @@
       function setAdminNotesSyncState(message) {
         const syncEl = document.getElementById('adminNotesSyncState');
         if (!syncEl) return;
-        syncEl.textContent = String(message || '').trim() || 'Sincronización local';
+        const rawMessage = String(message || '').trim() || 'Sincronización local';
+        const hasScopePrefix = /^(privado|compartido)\s*·/i.test(rawMessage);
+        if (hasScopePrefix) {
+          syncEl.textContent = rawMessage;
+          return;
+        }
+        const scopePrefix = isSharedAdminNotesScope() ? 'Compartido' : 'Privado';
+        syncEl.textContent = `${scopePrefix} · ${rawMessage}`;
       }
 
       function notifyAdminNotesSave(type = 'info', title = 'Notas', message = '') {
@@ -20478,25 +20535,11 @@
           }
         });
 
-        if (!isSharedAdminNotesScope()) {
-          const saveCloudBtn = document.querySelector('[data-notes-action="save-cloud"]');
-          if (saveCloudBtn) {
-            saveCloudBtn.disabled = true;
-            saveCloudBtn.style.opacity = '0.5';
-            saveCloudBtn.style.cursor = 'not-allowed';
-            saveCloudBtn.title = 'Usuarios normales solo pueden guardar localmente';
-          }
-        }
-
         document.querySelectorAll('[data-notes-action]').forEach(button => {
           button.addEventListener('click', (event) => {
             const action = event.currentTarget?.dataset?.notesAction;
             closeMenus();
             if (action) {
-              if (!isSharedAdminNotesScope() && (action === 'save-cloud')) {
-                notifyAdminNotesSave('warning', 'No disponible', 'Los usuarios normales solo pueden guardar localmente.');
-                return;
-              }
               runAdminNotesAction(action);
             }
           });
@@ -20527,11 +20570,7 @@
           }
           if (event.ctrlKey && event.key.toLowerCase() === 's') {
             event.preventDefault();
-            if (isSharedAdminNotesScope()) {
-              void runAdminNotesAction('save-cloud');
-            } else {
-              void runAdminNotesAction('save-local');
-            }
+            void runAdminNotesAction('save-cloud');
             return;
           }
           if (event.ctrlKey && event.key.toLowerCase() === 'n') {
@@ -20603,6 +20642,7 @@
         loadAdminNotesFromStorage();
         updateAdminNotesTitle();
         updateAdminNotesStatus();
+        updateAdminNotesScopeState();
         loadAdminNotesFromSupabase();
         adminNotesInitialized = true;
       }

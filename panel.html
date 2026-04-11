@@ -5306,175 +5306,19 @@
 
       <!-- TAB 3: Director del Club -->
       <div id="tab-director-club" class="tab-content">
-        <div class="director-notes-app">
-          <div class="director-notes-titlebar">
-            <div class="director-notes-titletext">
-              <input id="directorNotesTitleInput" type="text" value="Sin título" maxlength="120" aria-label="Nombre de la nota activa">
-              <span class="director-notes-title-suffix">- Bloc de notas</span>
-              <span id="directorNotesTitleDirty">*</span>
-            </div>
-            <div class="director-notes-actions">
-              <button type="button" id="directorNotesQuickNew" title="Nuevo (Ctrl+N)"><i class="fas fa-file"></i></button>
-              <button type="button" id="directorNotesQuickOpen" title="Abrir TXT"><i class="fas fa-folder-open"></i></button>
-              <button type="button" id="directorNotesQuickSave" title="Guardar local + nube"><i class="fas fa-floppy-disk"></i></button>
-              <button type="button" id="directorNotesQuickSaveCloud" title="Guardar solo en nube (Ctrl+S)"><i class="fas fa-cloud-arrow-up"></i></button>
-            </div>
-          </div>
-
-          <div class="director-notes-menubar">
-            <div class="director-notes-menu" data-notes-menu="archivo">
-              <button type="button" class="director-notes-menu-btn">Archivo</button>
-              <div class="director-notes-menu-items">
-                <button type="button" data-notes-action="new">Nuevo</button>
-                <button type="button" data-notes-action="open">Abrir...</button>
-                <button type="button" data-notes-action="save-local">Guardar local + nube</button>
-                <button type="button" data-notes-action="save-cloud">Guardar solo en nube</button>
-              </div>
-            </div>
-            <div class="director-notes-menu" data-notes-menu="editar">
-              <button type="button" class="director-notes-menu-btn">Editar</button>
-              <div class="director-notes-menu-items">
-                <button type="button" data-notes-action="undo">Deshacer</button>
-                <button type="button" data-notes-action="redo">Rehacer</button>
-                <button type="button" data-notes-action="cut">Cortar</button>
-                <button type="button" data-notes-action="copy">Copiar</button>
-                <button type="button" data-notes-action="paste">Pegar</button>
-                <button type="button" data-notes-action="selectall">Seleccionar todo</button>
-              </div>
-            </div>
-            <div class="director-notes-menu" data-notes-menu="ver">
-              <button type="button" class="director-notes-menu-btn">Ver</button>
-              <div class="director-notes-menu-items">
-                <button type="button" data-notes-action="zoom-in">Aumentar zoom</button>
-                <button type="button" data-notes-action="zoom-out">Reducir zoom</button>
-                <button type="button" data-notes-action="zoom-reset">Restablecer zoom</button>
-                <button type="button" data-notes-action="toggle-wrap">Ajuste de línea</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="director-notes-tabsbar">
-            <div id="directorNotesTabs" class="director-notes-tabs"></div>
-            <button type="button" id="directorNotesAddTabBtn" class="director-notes-tab-add" title="Nueva pestaña">+</button>
-          </div>
-
-          <div class="director-notes-toolbar">
-            <select id="directorNotesHeading" aria-label="Formato de encabezado">
-              <option value="P" selected>Párrafo</option>
-              <option value="H1">H1</option>
-              <option value="H2">H2</option>
-              <option value="H3">H3</option>
-            </select>
-            <button type="button" data-notes-action="unordered-list" title="Lista con viñetas"><i class="fas fa-list-ul"></i></button>
-            <button type="button" data-notes-action="bold" title="Negrita"><i class="fas fa-bold"></i></button>
-            <button type="button" data-notes-action="italic" title="Cursiva"><i class="fas fa-italic"></i></button>
-            <button type="button" data-notes-action="strike" title="Tachado"><i class="fas fa-strikethrough"></i></button>
-            <button type="button" data-notes-action="link" title="Insertar enlace"><i class="fas fa-link"></i></button>
-            <button type="button" data-notes-action="table" title="Insertar tabla"><i class="fas fa-table"></i></button>
-            <button type="button" data-notes-action="clear-format" title="Limpiar formato"><i class="fas fa-eraser"></i></button>
-          </div>
-
-          <div class="director-notes-editor-wrap">
-            <div id="directorNotesEditor" contenteditable="true" spellcheck="true"></div>
-            <input type="file" id="directorNotesOpenFile" accept=".txt,text/plain" class="hidden">
-          </div>
-
-          <div class="director-notes-statusbar">
-            <span id="directorNotesLineCol">Ln 1, Col 1</span>
-            <span id="directorNotesCharCount">0 caracteres</span>
-            <span id="directorNotesWrapState">Con ajuste de línea</span>
-            <span id="directorNotesZoom">100%</span>
-            <span id="directorNotesSyncState">Sincronización local</span>
-            <span>Windows (CRLF)</span>
-            <span>UTF-8</span>
-          </div>
+        <div style="padding: 20px; text-align: center; background: var(--bg-secondary); border-radius: 8px; border: 1px dashed var(--border-color);">
+          <i class="fas fa-arrow-right" style="color: var(--accent-color); font-size: 24px; margin-bottom: 12px; display: block;"></i>
+          <h3 style="margin: 12px 0 8px 0; color: var(--text-primary);">Editor movido</h3>
+          <p style="margin: 0; color: var(--text-secondary); font-size: 14px;">Este contenedor fue movido a <strong>Bloc de Notas</strong> para mejor organización.</p>
         </div>
       </div>
 
       <!-- TAB 4: Conqui/guía del Club -->
       <div id="tab-conqui-club" class="tab-content">
-        <div class="conqui-notes-app">
-          <div class="conqui-notes-titlebar">
-            <div class="conqui-notes-titletext">
-              <input id="conquiNotesTitleInput" type="text" value="Sin título" maxlength="120" aria-label="Nombre de la nota activa">
-              <span class="conqui-notes-title-suffix">- Bloc de notas</span>
-              <span id="conquiNotesTitleDirty">*</span>
-            </div>
-            <div class="conqui-notes-actions">
-              <button type="button" id="conquiNotesQuickNew" title="Nuevo (Ctrl+N)"><i class="fas fa-file"></i></button>
-              <button type="button" id="conquiNotesQuickOpen" title="Abrir TXT"><i class="fas fa-folder-open"></i></button>
-              <button type="button" id="conquiNotesQuickSave" title="Guardar local + nube"><i class="fas fa-floppy-disk"></i></button>
-              <button type="button" id="conquiNotesQuickSaveCloud" title="Guardar solo en nube (Ctrl+S)"><i class="fas fa-cloud-arrow-up"></i></button>
-            </div>
-          </div>
-
-          <div class="conqui-notes-menubar">
-            <div class="conqui-notes-menu" data-notes-menu="archivo">
-              <button type="button" class="conqui-notes-menu-btn">Archivo</button>
-              <div class="conqui-notes-menu-items">
-                <button type="button" data-notes-action="new">Nuevo</button>
-                <button type="button" data-notes-action="open">Abrir...</button>
-                <button type="button" data-notes-action="save-local">Guardar local + nube</button>
-                <button type="button" data-notes-action="save-cloud">Guardar solo en nube</button>
-              </div>
-            </div>
-            <div class="conqui-notes-menu" data-notes-menu="editar">
-              <button type="button" class="conqui-notes-menu-btn">Editar</button>
-              <div class="conqui-notes-menu-items">
-                <button type="button" data-notes-action="undo">Deshacer</button>
-                <button type="button" data-notes-action="redo">Rehacer</button>
-                <button type="button" data-notes-action="cut">Cortar</button>
-                <button type="button" data-notes-action="copy">Copiar</button>
-                <button type="button" data-notes-action="paste">Pegar</button>
-                <button type="button" data-notes-action="selectall">Seleccionar todo</button>
-              </div>
-            </div>
-            <div class="conqui-notes-menu" data-notes-menu="ver">
-              <button type="button" class="conqui-notes-menu-btn">Ver</button>
-              <div class="conqui-notes-menu-items">
-                <button type="button" data-notes-action="zoom-in">Aumentar zoom</button>
-                <button type="button" data-notes-action="zoom-out">Reducir zoom</button>
-                <button type="button" data-notes-action="zoom-reset">Restablecer zoom</button>
-                <button type="button" data-notes-action="toggle-wrap">Ajuste de línea</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="conqui-notes-tabsbar">
-            <div id="conquiNotesTabs" class="conqui-notes-tabs"></div>
-            <button type="button" id="conquiNotesAddTabBtn" class="conqui-notes-tab-add" title="Nueva pestaña">+</button>
-          </div>
-
-          <div class="conqui-notes-toolbar">
-            <select id="conquiNotesHeading" aria-label="Formato de encabezado">
-              <option value="P" selected>Párrafo</option>
-              <option value="H1">H1</option>
-              <option value="H2">H2</option>
-              <option value="H3">H3</option>
-            </select>
-            <button type="button" data-notes-action="unordered-list" title="Lista con viñetas"><i class="fas fa-list-ul"></i></button>
-            <button type="button" data-notes-action="bold" title="Negrita"><i class="fas fa-bold"></i></button>
-            <button type="button" data-notes-action="italic" title="Cursiva"><i class="fas fa-italic"></i></button>
-            <button type="button" data-notes-action="strike" title="Tachado"><i class="fas fa-strikethrough"></i></button>
-            <button type="button" data-notes-action="link" title="Insertar enlace"><i class="fas fa-link"></i></button>
-            <button type="button" data-notes-action="table" title="Insertar tabla"><i class="fas fa-table"></i></button>
-            <button type="button" data-notes-action="clear-format" title="Limpiar formato"><i class="fas fa-eraser"></i></button>
-          </div>
-
-          <div class="conqui-notes-editor-wrap">
-            <div id="conquiNotesEditor" contenteditable="true" spellcheck="true"></div>
-            <input type="file" id="conquiNotesOpenFile" accept=".txt,text/plain" class="hidden">
-          </div>
-
-          <div class="conqui-notes-statusbar">
-            <span id="conquiNotesLineCol">Ln 1, Col 1</span>
-            <span id="conquiNotesCharCount">0 caracteres</span>
-            <span id="conquiNotesWrapState">Con ajuste de línea</span>
-            <span id="conquiNotesZoom">100%</span>
-            <span id="conquiNotesSyncState">Sincronización local</span>
-            <span>Windows (CRLF)</span>
-            <span>UTF-8</span>
-          </div>
+        <div style="padding: 20px; text-align: center; background: var(--bg-secondary); border-radius: 8px; border: 1px dashed var(--border-color);">
+          <i class="fas fa-arrow-right" style="color: var(--accent-color); font-size: 24px; margin-bottom: 12px; display: block;"></i>
+          <h3 style="margin: 12px 0 8px 0; color: var(--text-primary);">Editor movido</h3>
+          <p style="margin: 0; color: var(--text-secondary); font-size: 14px;">Este contenedor fue movido a <strong>Bloc de Notas</strong> para mejor organización.</p>
         </div>
       </div>
     </div>

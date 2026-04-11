@@ -137,6 +137,111 @@
       font-weight: bold;
     }
 
+    #menuAdmin,
+    #menuTareasExamenes {
+      position: relative;
+      overflow: visible;
+    }
+
+    .menu-admin-notif-badge,
+    .menu-tareas-notif-badge {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      min-width: 20px;
+      height: 20px;
+      padding: 0 6px;
+      border-radius: 999px;
+      background: #ef4444;
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 20px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+      pointer-events: none;
+      display: none;
+    }
+
+    #cornerToastHost {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 16000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+      max-width: min(360px, calc(100vw - 24px));
+    }
+
+    .corner-toast {
+      pointer-events: auto;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-card);
+      background: color-mix(in srgb, var(--bg-card) 80%, transparent);
+      color: var(--text-primary);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+      padding: 12px 14px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      cursor: pointer;
+      animation: toastSlideIn 220ms ease-out;
+    }
+
+    .corner-toast__icon {
+      color: #38bdf8;
+      margin-top: 2px;
+      font-size: 15px;
+      flex: 0 0 auto;
+    }
+
+    .corner-toast__title {
+      font-size: 14px;
+      font-weight: 700;
+      margin: 0 0 4px;
+    }
+
+    .corner-toast__message {
+      font-size: 13px;
+      line-height: 1.35;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .corner-toast__action {
+      font-size: 12px;
+      font-weight: 600;
+      color: #60a5fa;
+      margin-top: 6px;
+    }
+
+    .corner-toast__close {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 14px;
+      cursor: pointer;
+      margin-left: 4px;
+      line-height: 1;
+      flex: 0 0 auto;
+    }
+
+    @keyframes toastSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-6px) translateX(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) translateX(0);
+      }
+    }
+
     #sidebar #logoutBtn {
       margin-top: auto;
       background: var(--danger-color);

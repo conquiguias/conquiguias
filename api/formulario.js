@@ -278,6 +278,10 @@ module.exports = async function handler(req, res) {
     }
   } catch (error) {
     console.error("Error en API formulario:", error);
+    const statusCode = Number(error?.statusCode) || 500;
+    if (statusCode >= 400 && statusCode < 500) {
+      return res.status(statusCode).json({ error: error.message });
+    }
     res
       .status(500)
       .json({ error: "Error interno del servidor: " + error.message });

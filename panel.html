@@ -19729,27 +19729,19 @@
       }
 
       async function saveAdminNotesToSupabase({ notify = true, preserveDirty = false } = {}) {
-        if (!isSharedAdminNotesScope()) {
-          const cacheSaved = saveAdminNotesToLocalStorage();
-          adminNotesSyncEnabled = false;
-          setAdminNotesSyncState('Privado · guardado local');
-          if (notify) {
-            notifyAdminNotesSave(cacheSaved ? 'info' : 'error', cacheSaved ? 'Notas privadas' : 'Error al guardar', cacheSaved ? 'Guardado local privado completado.' : 'No se pudo guardar localmente.');
-          }
-          return cacheSaved;
-        }
         const editor = getAdminNotesEditor();
         if (!editor) return false;
         syncActiveAdminNotesDocFromEditor();
 
         const idToken = await getAdminNotesAuthToken();
         if (!idToken) {
+          const cacheSaved = saveAdminNotesToLocalStorage();
           adminNotesSyncEnabled = false;
           setAdminNotesSyncState('Sin token · guardado local');
           if (notify) {
             notifyAdminNotesSave('error', 'Error al guardar en nube', 'No hay sesión activa para validar el guardado.');
           }
-          return false;
+          return cacheSaved;
         }
 
         try {
@@ -19784,6 +19776,16 @@
 
           const payload = await response.json().catch(() => ({}));
           if (!response.ok || !payload?.success) {
+            const isPermissionError = response.status === 403 || response.status === 401;
+            if (isPermissionError && !isSharedAdminNotesScope()) {
+              const cacheSaved = saveAdminNotesToLocalStorage();
+              adminNotesSyncEnabled = false;
+              setAdminNotesSyncState('Privado · guardado local');
+              if (notify) {
+                notifyAdminNotesSave('info', 'Notas privadas', 'Solo puedes guardar localmente.');
+              }
+              return cacheSaved;
+            }
             throw new Error(payload?.error || 'No fue posible guardar en la nube');
           }
 
@@ -19800,6 +19802,17 @@
           }
           return true;
         } catch (error) {
+          const isPermissionError = error?.message?.includes('permiso') || error?.message?.includes('autorized');
+          if (isPermissionError && !isSharedAdminNotesScope()) {
+            const cacheSaved = saveAdminNotesToLocalStorage();
+            adminNotesSyncEnabled = false;
+            setAdminNotesSyncState('Privado · guardado local');
+            if (notify) {
+              notifyAdminNotesSave('info', 'Notas privadas', 'Solo puedes guardar localmente.');
+            }
+            return cacheSaved;
+          }
+
           adminNotesSyncEnabled = false;
           const activeDoc = getActiveAdminNotesDoc();
           const docTitle = String(activeDoc?.title || adminNotesFileName || 'Sin título').trim() || 'Sin título';
@@ -19981,15 +19994,10 @@
       }
 
       async function loadAdminNotesFromSupabase() {
-        if (!isSharedAdminNotesScope()) {
-          adminNotesSyncEnabled = false;
-          setAdminNotesSyncState('Privado · notas locales');
-          return false;
-        }
-
         const idToken = await getAdminNotesAuthToken();
         if (!idToken) {
-          setAdminNotesSyncState('Sin token · notas locales');
+          adminNotesSyncEnabled = false;
+          setAdminNotesSyncState(isSharedAdminNotesScope() ? 'Sin token · notas locales' : 'Privado · notas locales');
           return false;
         }
 
@@ -20004,6 +20012,12 @@
 
           const payload = await response.json().catch(() => ({}));
           if (!response.ok || !payload?.success) {
+            const isPermissionError = response.status === 403 || response.status === 401;
+            if (isPermissionError && !isSharedAdminNotesScope()) {
+              adminNotesSyncEnabled = false;
+              setAdminNotesSyncState('Privado · notas locales');
+              return false;
+            }
             throw new Error(payload?.error || 'No fue posible cargar notas de la nube');
           }
 
@@ -20027,12 +20041,12 @@
           }
 
           adminNotesSyncEnabled = true;
-          setAdminNotesSyncState('Sincronizado en la nube');
+          setAdminNotesSyncState(isSharedAdminNotesScope() ? 'Sincronizado en la nube' : 'Privado · notas locales');
           return true;
         } catch (error) {
           adminNotesSyncEnabled = false;
-          setAdminNotesSyncState('No disponible · usando local');
-          console.warn('No se pudieron cargar notas admin desde Supabase:', error);
+          setAdminNotesSyncState(isSharedAdminNotesScope() ? 'No disponible · usando local' : 'Privado · notas locales');
+          console.warn('No se pudieron cargar notas admin:', error);
           return false;
         }
       }

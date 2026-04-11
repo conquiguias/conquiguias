@@ -2536,14 +2536,18 @@
       background: rgba(239, 68, 68, 0.05) !important;
     }
 
-    .admin-notes-app {
+    .admin-notes-app,
+    .director-notes-app,
+    .conqui-notes-app {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: 10px;
       overflow: hidden;
     }
 
-    .admin-notes-titlebar {
+    .admin-notes-titlebar,
+    .director-notes-titlebar,
+    .conqui-notes-titlebar {
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -2556,7 +2560,9 @@
       font-weight: 600;
     }
 
-    .admin-notes-titletext {
+    .admin-notes-titletext,
+    .director-notes-titletext,
+    .conqui-notes-titletext {
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -2565,7 +2571,9 @@
       margin-right: 10px;
     }
 
-    #adminNotesTitleInput {
+    #adminNotesTitleInput,
+    #directorNotesTitleInput,
+    #conquiNotesTitleInput {
       background: transparent;
       border: 1px solid transparent;
       color: var(--text-primary);
@@ -2579,30 +2587,40 @@
       outline: none;
     }
 
-    #adminNotesTitleInput:focus {
+    #adminNotesTitleInput:focus,
+    #directorNotesTitleInput:focus,
+    #conquiNotesTitleInput:focus {
       border-color: var(--accent-color);
       background: var(--bg-primary);
     }
 
-    .admin-notes-title-suffix {
+    .admin-notes-title-suffix,
+    .director-notes-title-suffix,
+    .conqui-notes-title-suffix {
       color: var(--text-secondary);
       font-weight: 600;
       white-space: nowrap;
     }
 
-    #adminNotesTitleDirty {
+    #adminNotesTitleDirty,
+    #directorNotesTitleDirty,
+    #conquiNotesTitleDirty {
       color: var(--warning-color);
       visibility: hidden;
       font-weight: 700;
       white-space: nowrap;
     }
 
-    .admin-notes-actions {
+    .admin-notes-actions,
+    .director-notes-actions,
+    .conqui-notes-actions {
       display: flex;
       gap: 6px;
     }
 
-    .admin-notes-actions button {
+    .admin-notes-actions button,
+    .director-notes-actions button,
+    .conqui-notes-actions button {
       border: 1px solid var(--border-color);
       background: var(--bg-primary);
       color: var(--text-primary);
@@ -2614,7 +2632,9 @@
       margin-top: 0;
     }
 
-    .admin-notes-menubar {
+    .admin-notes-menubar,
+    .director-notes-menubar,
+    .conqui-notes-menubar {
       display: flex;
       gap: 6px;
       align-items: center;
@@ -2624,11 +2644,15 @@
       flex-wrap: wrap;
     }
 
-    .admin-notes-menu {
+    .admin-notes-menu,
+    .director-notes-menu,
+    .conqui-notes-menu {
       position: relative;
     }
 
-    .admin-notes-menu-btn {
+    .admin-notes-menu-btn,
+    .director-notes-menu-btn,
+    .conqui-notes-menu-btn {
       background: transparent;
       border: none;
       color: var(--text-primary);
@@ -2641,11 +2665,17 @@
     }
 
     .admin-notes-menu-btn:hover,
-    .admin-notes-menu.open .admin-notes-menu-btn {
+    .admin-notes-menu.open .admin-notes-menu-btn,
+    .director-notes-menu-btn:hover,
+    .director-notes-menu.open .director-notes-menu-btn,
+    .conqui-notes-menu-btn:hover,
+    .conqui-notes-menu.open .conqui-notes-menu-btn {
       background: var(--bg-secondary);
     }
 
-    .admin-notes-menu-items {
+    .admin-notes-menu-items,
+    .director-notes-menu-items,
+    .conqui-notes-menu-items {
       display: none;
       position: absolute;
       top: 100%;
@@ -2659,11 +2689,15 @@
       z-index: 30;
     }
 
-    .admin-notes-menu.open .admin-notes-menu-items {
+    .admin-notes-menu.open .admin-notes-menu-items,
+    .director-notes-menu.open .director-notes-menu-items,
+    .conqui-notes-menu.open .conqui-notes-menu-items {
       display: block;
     }
 
-    .admin-notes-menu-items button {
+    .admin-notes-menu-items button,
+    .director-notes-menu-items button,
+    .conqui-notes-menu-items button {
       width: 100%;
       margin: 0;
       margin-top: 0;
@@ -2677,11 +2711,15 @@
       cursor: pointer;
     }
 
-    .admin-notes-menu-items button:hover {
+    .admin-notes-menu-items button:hover,
+    .director-notes-menu-items button:hover,
+    .conqui-notes-menu-items button:hover {
       background: var(--bg-secondary);
     }
 
-    .admin-notes-toolbar {
+    .admin-notes-toolbar,
+    .director-notes-toolbar,
+    .conqui-notes-toolbar {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -2691,7 +2729,9 @@
       background: var(--bg-secondary);
     }
 
-    .admin-notes-tabsbar {
+    .admin-notes-tabsbar,
+    .director-notes-tabsbar,
+    .conqui-notes-tabsbar {
       display: flex;
       align-items: center;
       gap: 6px;
@@ -2700,7 +2740,9 @@
       padding: 6px 8px;
     }
 
-    .admin-notes-tabs {
+    .admin-notes-tabs,
+    .director-notes-tabs,
+    .conqui-notes-tabs {
       display: flex;
       align-items: stretch;
       gap: 6px;
@@ -2709,7 +2751,9 @@
       padding-bottom: 2px;
     }
 
-    .admin-notes-tab {
+    .admin-notes-tab,
+    .director-notes-tab,
+    .conqui-notes-tab {
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -2728,27 +2772,37 @@
       font-size: 12px;
     }
 
-    .admin-notes-tab.active {
+    .admin-notes-tab.active,
+    .director-notes-tab.active,
+    .conqui-notes-tab.active {
       background: var(--bg-primary);
       border-color: var(--accent-color);
     }
 
-    .admin-notes-tab.dragging {
+    .admin-notes-tab.dragging,
+    .director-notes-tab.dragging,
+    .conqui-notes-tab.dragging {
       opacity: 0.45;
     }
 
-    .admin-notes-tab.drag-over {
+    .admin-notes-tab.drag-over,
+    .director-notes-tab.drag-over,
+    .conqui-notes-tab.drag-over {
       border-color: var(--accent-color);
       box-shadow: inset 0 0 0 1px var(--accent-color);
     }
 
-    .admin-notes-tab-name {
+    .admin-notes-tab-name,
+    .director-notes-tab-name,
+    .conqui-notes-tab-name {
       overflow: hidden;
       text-overflow: ellipsis;
       flex: 1;
     }
 
-    .admin-notes-tab-close {
+    .admin-notes-tab-close,
+    .director-notes-tab-close,
+    .conqui-notes-tab-close {
       border: none;
       background: transparent;
       color: var(--text-secondary);
@@ -2762,11 +2816,15 @@
       line-height: 1;
     }
 
-    .admin-notes-tab-close:hover {
+    .admin-notes-tab-close:hover,
+    .director-notes-tab-close:hover,
+    .conqui-notes-tab-close:hover {
       color: var(--danger-color);
     }
 
-    .admin-notes-tab-add {
+    .admin-notes-tab-add,
+    .director-notes-tab-add,
+    .conqui-notes-tab-add {
       border: 1px solid var(--border-color);
       background: var(--bg-secondary);
       color: var(--text-primary);
@@ -2778,7 +2836,11 @@
     }
 
     .admin-notes-toolbar select,
-    .admin-notes-toolbar button {
+    .admin-notes-toolbar button,
+    .director-notes-toolbar select,
+    .director-notes-toolbar button,
+    .conqui-notes-toolbar select,
+    .conqui-notes-toolbar button {
       margin-top: 0;
       width: auto;
       background: var(--bg-primary);
@@ -2790,17 +2852,23 @@
       cursor: pointer;
     }
 
-    .admin-notes-toolbar button {
+    .admin-notes-toolbar button,
+    .director-notes-toolbar button,
+    .conqui-notes-toolbar button {
       min-width: 36px;
       text-align: center;
     }
 
-    .admin-notes-editor-wrap {
+    .admin-notes-editor-wrap,
+    .director-notes-editor-wrap,
+    .conqui-notes-editor-wrap {
       padding: 10px;
       background: var(--bg-card);
     }
 
-    #adminNotesEditor {
+    #adminNotesEditor,
+    #directorNotesEditor,
+    #conquiNotesEditor {
       min-height: 350px;
       max-height: 62vh;
       overflow: auto;
@@ -2817,13 +2885,17 @@
       word-break: break-word;
     }
 
-    #adminNotesEditor.admin-notes-nowrap {
+    #adminNotesEditor.admin-notes-nowrap,
+    #directorNotesEditor.director-notes-nowrap,
+    #conquiNotesEditor.conqui-notes-nowrap {
       white-space: pre;
       overflow-x: auto;
       word-break: normal;
     }
 
-    .admin-notes-statusbar {
+    .admin-notes-statusbar,
+    .director-notes-statusbar,
+    .conqui-notes-statusbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -2836,16 +2908,22 @@
       flex-wrap: wrap;
     }
 
-    .admin-notes-statusbar span {
+    .admin-notes-statusbar span,
+    .director-notes-statusbar span,
+    .conqui-notes-statusbar span {
       white-space: nowrap;
     }
 
     @media (max-width: 760px) {
-      #adminNotesEditor {
+      #adminNotesEditor,
+      #directorNotesEditor,
+      #conquiNotesEditor {
         min-height: 280px;
       }
 
-      .admin-notes-toolbar {
+      .admin-notes-toolbar,
+      .director-notes-toolbar,
+      .conqui-notes-toolbar {
         gap: 6px;
       }
     }
@@ -17448,7 +17526,8 @@
 
       function createDirectorNotesDocument({ id = null, title = 'Sin título', html = '', zoom = 100, wrap = true, dirty = false, fileHandle = null } = {}) {
         directorNotesDocCounter += 1;
-        const nextId = String(id || `doc_${Date.now()}_${directorNotesDocCounter}`).trim();
+        const uidPart = String(window.currentUserId || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const nextId = String(id || `director_${uidPart}_${Date.now()}_${directorNotesDocCounter}`).trim();
         const safeTitle = (String(title || 'Sin título').trim() || 'Sin título').slice(0, 120);
         const safeZoom = Math.min(300, Math.max(50, Number(zoom) || 100));
         return {
@@ -18430,7 +18509,8 @@
 
       function createConquiNotesDocument({ id = null, title = 'Sin título', html = '', zoom = 100, wrap = true, dirty = false, fileHandle = null } = {}) {
         conquiNotesDocCounter += 1;
-        const nextId = String(id || `doc_${Date.now()}_${conquiNotesDocCounter}`).trim();
+        const uidPart = String(window.currentUserId || 'unknown').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const nextId = String(id || `conqui_${uidPart}_${Date.now()}_${conquiNotesDocCounter}`).trim();
         const safeTitle = (String(title || 'Sin título').trim() || 'Sin título').slice(0, 120);
         const safeZoom = Math.min(300, Math.max(50, Number(zoom) || 100));
         return {

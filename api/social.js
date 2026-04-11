@@ -147,26 +147,25 @@ export default async function handler(req, res) {
       case "delete-admin-note":
         await handleDeleteAdminNote(req, res);
         break;
+      case "get-director-notes":
+        await handleGetDirectorNotes(req, res);
+        break;
+      case "save-director-notes":
+        await handleSaveDirectorNotes(req, res);
+        break;
+      case "delete-director-note":
+        await handleDeleteDirectorNote(req, res);
+        break;
+      case "get-conqui-notes":
+        await handleGetConquiNotes(req, res);
+        break;
+      case "save-conqui-notes":
+        await handleSaveConquiNotes(req, res);
+        break;
+      case "delete-conqui-note":
+        await handleDeleteConquiNote(req, res);
+        break;
       case "upsert-notification-token":
-              case "get-director-notes":
-                await handleGetDirectorNotes(req, res);
-                break;
-              case "save-director-notes":
-                await handleSaveDirectorNotes(req, res);
-                break;
-              case "delete-director-note":
-                await handleDeleteDirectorNote(req, res);
-                break;
-              case "get-conqui-notes":
-                await handleGetConquiNotes(req, res);
-                break;
-              case "save-conqui-notes":
-                await handleSaveConquiNotes(req, res);
-                break;
-              case "delete-conqui-note":
-                await handleDeleteConquiNote(req, res);
-                break;
-              case "upsert-notification-token":
         await handleUpsertNotificationToken(req, res);
         break;
       case "disable-notification-token":
@@ -1148,6 +1147,9 @@ async function handleDeleteAdminNote(req, res) {
     return res.status(error.statusCode || 500).json({
       success: false,
       error: error.message || "No se pudo eliminar la nota",
+    });
+  }
+}
 
     // Helper function to get authenticated user ID
     async function getAuthenticatedUserId(req) {
@@ -1713,10 +1715,6 @@ async function handleDeleteAdminNote(req, res) {
         });
       }
     }
-    });
-  }
-}
-
 function notificationTokenDocId(token) {
   const normalizedToken = String(token || "").trim();
   const encoded = Buffer.from(normalizedToken)

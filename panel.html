@@ -15965,6 +15965,45 @@
         return 'basic';
       }
 
+      function getEditableTvMode(post) {
+        const normalizedPostKind = getNormalizedPostKind(post);
+        if (normalizedPostKind === 'video') return 'video';
+        if (normalizedPostKind === 'tv') return 'tv';
+
+        const mediaUrl = String(post?.mediaUrl || '').trim().toLowerCase();
+        const mediaType = String(post?.mediaType || '').trim().toLowerCase();
+
+        if (!mediaUrl && mediaType !== 'video/url') return 'tv';
+
+        const looksLikeLiveStream = /(?:m3u8|m3u|hls|live|stream|tv)/i.test(mediaUrl);
+        const looksLikeVideoFile = /\.(?:mp4|webm|mov|mkv|avi|gifv)(?:$|[?#&])/i.test(mediaUrl);
+        const looksLikeYouTube = /(?:youtube\.com|youtu\.be|youtube-nocookie\.com)/i.test(mediaUrl);
+
+        if (looksLikeVideoFile || looksLikeYouTube) return 'video';
+        if (looksLikeLiveStream) return 'tv';
+
+        return mediaType === 'video/url' ? 'video' : 'tv';
+      }
+
+      function getEditableRadioMode(post) {
+        const normalizedPostKind = getNormalizedPostKind(post);
+        if (normalizedPostKind === 'musica') return 'musica';
+        if (normalizedPostKind === 'radio') return 'radio';
+
+        const tags = Array.isArray(post?.tags) ? post.tags : [];
+        const normalizedTags = tags
+          .flatMap((value) => String(value || '').split(/[,;|\s]+/g))
+          .map((value) => canonicalizeTag(value))
+          .filter(Boolean);
+        const description = canonicalizeTag(post?.description || '');
+
+        if (normalizedTags.includes('musica') || normalizedTags.includes('music') || description.includes('musica')) {
+          return 'musica';
+        }
+
+        return 'radio';
+      }
+
       function setEditPostPreview(previewEl, src) {
         if (!previewEl) return;
         const cleanSrc = String(src || '').trim();
@@ -16064,7 +16103,7 @@
         if (tvCoverInput) tvCoverInput.value = '';
 
         if (editMode === 'radio') {
-          const radioMode = getNormalizedPostKind(postData) === 'musica' ? 'musica' : 'radio';
+          const radioMode = getEditableRadioMode(postData);
           if (radioModeSelect) radioModeSelect.value = radioMode;
           if (radioNameInput) radioNameInput.value = String(postData?.radioname || postData?.description || '').trim();
           if (radioUrlInput) radioUrlInput.value = String(postData?.mediaUrl || '').trim();
@@ -16077,7 +16116,7 @@
         }
 
         if (editMode === 'tv') {
-          const tvMode = getNormalizedPostKind(postData) === 'video' ? 'video' : 'tv';
+          const tvMode = getEditableTvMode(postData);
           if (tvModeSelect) tvModeSelect.value = tvMode;
           if (tvUrlInput) tvUrlInput.value = String(postData?.mediaUrl || '').trim();
           setEditPostPreview(tvCoverPreview, postData?.posterUrl || postData?.thumbnailUrl || '');

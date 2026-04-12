@@ -454,9 +454,12 @@ async function handleObtenerEvaluacion(req, res) {
 }
 
 async function handleVerRespuestas(req, res) {
-  await verifyAuthenticatedUser(req);
+  const requester = await verifyAuthenticatedUser(req);
 
   const { id } = req.query;
+  const requesterEmail = normalizeEmail(requester?.email || "");
+  const requesterUid = String(requester?.uid || "").trim();
+  const canViewAll = isAdminEmail(requesterEmail);
 
   // Consultas paralelas a las tablas "respuestas" y "evaluaciones"
   const { data: respData } = await supabase
@@ -470,10 +473,52 @@ async function handleVerRespuestas(req, res) {
     .eq("especialidad_id", id)
     .single();
 
+  const asistenciasRaw = Array.isArray(respData?.contenido_respuestas)
+    ? respData.contenido_respuestas
+    : [];
+  const examenesRaw = Array.isArray(evalData?.contenido_resultados)
+    ? evalData.contenido_resultados
+    : [];
+  const tareasRaw =
+    evalData?.contenido_tareas && typeof evalData.contenido_tareas === "object"
+      ? evalData.contenido_tareas
+      : {};
+
+  if (canViewAll) {
+    return res.status(200).json({
+      asistencias: asistenciasRaw,
+      examenes: examenesRaw,
+      tareas: tareasRaw,
+    });
+  }
+
+  const belongsToRequester = (item = {}) => {
+    const email = normalizeEmail(item?.correo || item?.email || "");
+    const visitanteId = String(item?.visitanteId || "").trim();
+    if (requesterEmail && email && email === requesterEmail) return true;
+    if (requesterUid && visitanteId && visitanteId === requesterUid) return true;
+    return false;
+  };
+
+  const asistencias = asistenciasRaw.filter(belongsToRequester);
+  const examenes = examenesRaw.filter(belongsToRequester);
+
+  const tareas = {};
+  Object.entries(tareasRaw).forEach(([key, value]) => {
+    const normalizedKey = String(key || "").trim().toLowerCase();
+    const keyMatchesEmail = !!requesterEmail && normalizedKey === requesterEmail;
+    const keyMatchesUid = !!requesterUid && key === requesterUid;
+    const valueMatchesRequester = belongsToRequester(value || {});
+
+    if (keyMatchesEmail || keyMatchesUid || valueMatchesRequester) {
+      tareas[key] = value;
+    }
+  });
+
   res.status(200).json({
-    asistencias: respData?.contenido_respuestas || [],
-    examenes: evalData?.contenido_resultados || [],
-    tareas: evalData?.contenido_tareas || {},
+    asistencias,
+    examenes,
+    tareas,
   });
 }
 

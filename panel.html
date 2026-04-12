@@ -10379,6 +10379,7 @@
           let countCompleted = 0;
 
           data.forEach((item, index) => {
+            window.certificacionesRowById[item.id] = item;
             countTotal++;
 
             // Determinar estado
@@ -10545,11 +10546,12 @@
       window.imprimirExamenCompleto = imprimirExamenCompleto;
       window.mostrarCertificacionCompleta = mostrarCertificacionCompleta;
       window.extraerNombreFirma = extraerNombreFirma;
+      window.certificacionesRowById = window.certificacionesRowById || {};
 
       // 🔹 FUNCIONES PARA CERTIFICACIÓN COMPLETA
       async function verCertificacionCompleta(formularioId, visitanteId, rubricaExterna) {
         try {
-          const authHeaders = await getFormularioAuthHeaders();
+          const certRow = window.certificacionesRowById?.[formularioId] || null;
 
           // Obtener la evaluación (preguntas)
           const resExamen = await fetch(`/api/formulario?action=obtenerEvaluacion&id=${formularioId}`);
@@ -10558,16 +10560,7 @@
           }
           const examen = await resExamen.json();
 
-          // Obtener el resultado del examen
-          const resResultados = await fetch(`/api/formulario?action=verRespuestas&id=${formularioId}`, {
-            headers: authHeaders,
-          });
-          if (!resResultados.ok) {
-            throw new Error('No se pudo cargar los resultados');
-          }
-          const data = await resResultados.json();
-          const resultadosExamen = data.examenes || [];
-          const resultado = resultadosExamen.find(e => e.visitanteId === visitanteId);
+          const resultado = certRow?.miExamen || null;
 
           if (!resultado) {
             mostrarMensaje("error", "Error", "No se encontraron resultados para este examen.");
@@ -10775,10 +10768,9 @@
         btnImprimir.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando certificado...';
         btnImprimir.disabled = true;
 
-        // Obtener el nombre del usuario desde las asistencias
-        getFormularioAuthHeaders()
-          .then(authHeaders => fetch(`/api/formulario?action=verRespuestas&id=${formularioId}`, { headers: authHeaders }))
-          .then(res => res.json())
+        // Obtener el nombre del usuario sin pedir respuestas completas al servidor
+        const certRow = window.certificacionesRowById?.[formularioId] || null;
+        Promise.resolve({ asistencias: [], tareas: certRow?.tareas || {} })
           .then(data => {
             const asistencias = data.asistencias || [];
             const asistenciaUsuario = asistencias.find(a =>
@@ -10808,10 +10800,8 @@
             const ventanaImpresion = window.open('', '_blank');
             const respuestasUsuario = resultado.respuestas || {};
 
-            // Intentar obtener info de tarea
-            const tareasMap = data.tareas || {};
-            const emailKey = resultado.correo ? resultado.correo.toLowerCase() : null;
-            const miTarea = (emailKey && tareasMap[emailKey]) || tareasMap[resultado.visitanteId];
+            // Intentar obtener info de tarea solo desde la fila en caché
+            const miTarea = certRow?.miTarea || null;
             if (miTarea) {
               formulario.miTarea = miTarea;
             }
@@ -24594,6 +24584,8 @@
             tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 20px;">No tienes especialidades registradas aún.</td></tr>';
             return;
           }
+
+          window.certificacionesRowById = {};
 
           // Agrupar y filtrar únicos (Copiar lógica de arriba para integridad)
           const mapUnicos = new Map();

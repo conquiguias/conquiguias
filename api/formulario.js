@@ -1393,6 +1393,10 @@ async function handleObtenerEstadoUsuario(req, res) {
 
     if (misA.length === 0) return; // Si no participó de ninguna forma, skip
 
+    const nombreParticipante =
+      misA.find((a) => typeof a?.nombre === "string" && a.nombre.trim() !== "")
+        ?.nombre?.trim() || null;
+
     // Filtrar mis exámenes (usando email O cualquiera de los IDs encontrados)
     const eData = evals?.find((x) => x.especialidad_id === id);
     const resData = eData?.contenido_resultados || [];
@@ -1438,6 +1442,7 @@ async function handleObtenerEstadoUsuario(req, res) {
       id,
       titulo: form.titulo,
       creado: form.creado,
+      nombreParticipante,
       asistencias: misA.map((a) => a.asistenciaNumero),
       tomaAsistencia: form.tomaAsistencia,
       configTarea: form.tarea,

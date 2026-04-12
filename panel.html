@@ -8222,6 +8222,11 @@
           return;
         }
 
+        if (!window.taskPendingWatcherEnabled) {
+          stopTaskPendingWatcher();
+          return;
+        }
+
         if (document.visibilityState !== 'visible') {
           stopTaskPendingWatcher();
           return;
@@ -8229,7 +8234,6 @@
 
         if (taskPendingPollTimer) return;
 
-        refreshTaskPendingBadge();
         taskPendingPollTimer = setInterval(() => {
           if (document.visibilityState !== 'visible') return;
           refreshTaskPendingBadge();
@@ -8343,7 +8347,9 @@
           updateTaskPendingBadge(0);
           stopTaskPendingWatcher();
         } else {
-          startTaskPendingWatcher();
+          window.taskPendingWatcherEnabled = false;
+          updateTaskPendingBadge(0);
+          stopTaskPendingWatcher();
         }
 
         if (menuInstructorBtn) {
@@ -10779,7 +10785,11 @@
             );
 
             let nombreUsuario = 'Nombre no encontrado';
-            if (asistenciaUsuario && asistenciaUsuario.nombre) {
+            if (certRow && certRow.nombreParticipante && String(certRow.nombreParticipante).trim() !== '') {
+              nombreUsuario = String(certRow.nombreParticipante).trim();
+            } else if (resultado && resultado.nombre && String(resultado.nombre).trim() !== '') {
+              nombreUsuario = String(resultado.nombre).trim();
+            } else if (asistenciaUsuario && asistenciaUsuario.nombre) {
               nombreUsuario = asistenciaUsuario.nombre.trim();
             } else {
               const user = auth.currentUser;
@@ -23220,8 +23230,11 @@
       if (menuTareas) {
         menuTareas.addEventListener('click', () => {
           mostrarSeccion(sectionTareas, menuTareas);
+          window.taskPendingWatcherEnabled = true;
+          window.refreshTaskPendingBadge?.();
           window.ensureTaskReminderPush?.(true);
           window.cargarTareasExamenes();
+          window.startTaskPendingWatcher?.();
         });
       }
 
@@ -24738,34 +24751,15 @@
 
       window.addEventListener('load', () => {
         triggerPushSetupOnEntry();
-
-        // Listener específico para Certificaciones
-        const menuCert = document.getElementById('menuCertificaciones');
-        if (menuCert) {
-          menuCert.addEventListener('click', () => {
-            setTimeout(cargarTablaCertificacionesCorrecta, 100);
-          });
-        }
-
-        // Listener específico para Tareas y Exámenes
-        const menuTareas = document.getElementById('menuTareasExamenes');
-        if (menuTareas) {
-          menuTareas.addEventListener('click', () => {
-            window.ensureTaskReminderPush?.(true);
-            setTimeout(() => {
-              if (typeof window.cargarTareasExamenes === 'function') {
-                window.cargarTareasExamenes();
-              }
-            }, 100);
-          });
-        }
       });
 
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
           window.ensureTaskReminderPush?.(false);
-          window.startTaskPendingWatcher?.();
-          window.refreshTaskPendingBadge?.();
+          if (window.taskPendingWatcherEnabled) {
+            window.startTaskPendingWatcher?.();
+            window.refreshTaskPendingBadge?.();
+          }
           if (window.canAccessAdminPanel) {
             window.startAdminPendingWatcher?.();
             window.refreshAdminPendingStatus?.({ notify: true });

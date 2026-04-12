@@ -4485,9 +4485,17 @@
       transition: all 0.2s ease;
       font-weight: 600;
       text-underline-offset: 2px;
+      color: var(--accent-color);
+      text-decoration-color: var(--accent-color);
+    }
+
+    .post-description a:visited {
+      color: var(--accent-color);
+      text-decoration-color: var(--accent-color);
     }
 
     .post-description a:hover {
+      color: var(--accent-hover);
       opacity: 0.8;
       text-decoration: none !important;
     }
@@ -16060,19 +16068,25 @@
       function getEditableTvMode(post) {
         const normalizedPostKind = getNormalizedPostKind(post);
         if (normalizedPostKind === 'video') return 'video';
-        if (normalizedPostKind === 'tv') return 'tv';
 
         const mediaUrl = String(post?.mediaUrl || '').trim().toLowerCase();
         const mediaType = String(post?.mediaType || '').trim().toLowerCase();
+        const tags = getPostTagSet(post);
+        const description = normalizeTagValue(post?.description || '');
 
         if (!mediaUrl && mediaType !== 'video/url') return 'tv';
 
-        const looksLikeLiveStream = /(?:m3u8|m3u|hls|live|stream|tv)/i.test(mediaUrl);
+        const looksLikeVodStream = /(?:\/vod\/|hs-vod|[?&]vod=|\bvod\b|rumble\.com\/.*\/vod\/)/i.test(mediaUrl);
+        const looksLikeLiveStream = /(?:\/hls\/|\blive\b|\bstream\b|[?&]live=|[?&]stream=)/i.test(mediaUrl);
         const looksLikeVideoFile = /\.(?:mp4|webm|mov|mkv|avi|gifv)(?:$|[?#&])/i.test(mediaUrl);
         const looksLikeYouTube = /(?:youtube\.com|youtu\.be|youtube-nocookie\.com)/i.test(mediaUrl);
+        const looksLikeVideoByTag = tags.has('video') || description.includes('#video');
+        const looksLikeTvByTag = tags.has('tv') || tags.has('television') || description.includes('#tv') || description.includes('#television');
 
-        if (looksLikeVideoFile || looksLikeYouTube) return 'video';
+        if (looksLikeVodStream || looksLikeVideoFile || looksLikeYouTube || looksLikeVideoByTag) return 'video';
+        if (normalizedPostKind === 'tv') return 'tv';
         if (looksLikeLiveStream) return 'tv';
+        if (looksLikeTvByTag) return 'tv';
 
         return mediaType === 'video/url' ? 'video' : 'tv';
       }
@@ -16088,9 +16102,16 @@
           .map((value) => canonicalizeTag(value))
           .filter(Boolean);
         const description = canonicalizeTag(post?.description || '');
+        const mediaUrl = String(post?.mediaUrl || '').trim().toLowerCase();
+        const looksLikeMusicFile = /\.(?:mp3|m4a|aac|wav|flac|ogg|opus)(?:$|[?#&])/i.test(mediaUrl);
+        const looksLikePlaylistOrRadio = /\.(?:m3u8?|pls|xspf)(?:$|[?#&])/i.test(mediaUrl) || /\blive\b|\bstream\b|shoutcast|icecast/i.test(mediaUrl);
 
-        if (normalizedTags.includes('musica') || normalizedTags.includes('music') || description.includes('musica')) {
+        if (normalizedTags.includes('musica') || normalizedTags.includes('music') || description.includes('musica') || description.includes('music') || looksLikeMusicFile) {
           return 'musica';
+        }
+
+        if (normalizedTags.includes('radio') || description.includes('radio') || looksLikePlaylistOrRadio) {
+          return 'radio';
         }
 
         return 'radio';
@@ -16410,6 +16431,15 @@
               const nextMode = radioModeSelect?.value === 'musica' ? 'musica' : 'radio';
               const nextName = String(radioNameInput?.value || '').trim();
               const nextUrl = String(radioUrlInput?.value || '').trim();
+              const originalRadioMode = getEditableRadioMode(postData || {});
+              const modeChanged = nextMode !== originalRadioMode;
+              const preservedRadioTags = (Array.isArray(postData?.tags) ? postData.tags : [])
+                .filter((tag) => {
+                  const normalized = canonicalizeTag(tag);
+                  return normalized !== 'radio' && normalized !== 'musica' && normalized !== 'music';
+                });
+              const nextRadioTag = nextMode === 'musica' ? 'musica' : 'radio';
+              const mergedRadioTags = [...preservedRadioTags, nextRadioTag];
 
               if (!nextName) {
                 mostrarMensaje('info', 'Nombre requerido', nextMode === 'musica' ? 'Escribe el nombre de la música.' : 'Escribe el nombre de la radio.');
@@ -16440,7 +16470,7 @@
                 mediaUrl: nextUrl,
                 mediaType: 'audio/url',
                 postKind: nextMode,
-                tags: [nextMode],
+                tags: mergedRadioTags,
                 radioname: nextName,
                 coverimage: profileImage,
                 radiocover: coverImage,
@@ -16450,6 +16480,15 @@
             } else if (editMode === 'tv') {
               const nextMode = tvModeSelect?.value === 'video' ? 'video' : 'tv';
               const nextUrl = String(tvUrlInput?.value || '').trim();
+              const originalTvMode = getEditableTvMode(postData || {});
+              const modeChanged = nextMode !== originalTvMode;
+              const preservedTvTags = (Array.isArray(postData?.tags) ? postData.tags : [])
+                .filter((tag) => {
+                  const normalized = canonicalizeTag(tag);
+                  return normalized !== 'tv' && normalized !== 'television' && normalized !== 'video';
+                });
+              const nextTvTag = nextMode === 'video' ? 'video' : 'television';
+              const mergedTvTags = [...preservedTvTags, nextTvTag];
 
               if (!nextUrl) {
                 mostrarMensaje('error', 'URL requerida', nextMode === 'video' ? 'Ingresa la URL para Video.' : 'Ingresa la URL para TV.');
@@ -16463,9 +16502,9 @@
 
               Object.assign(updates, {
                 mediaUrl: nextUrl,
-                mediaType: inferUrlMediaType(nextUrl),
-                postKind: 'tv',
-                tags: ['television'],
+                mediaType: modeChanged ? inferUrlMediaType(nextUrl) : String(postData?.mediaType || inferUrlMediaType(nextUrl)),
+                postKind: nextMode,
+                tags: mergedTvTags,
                 posterUrl: coverImage,
                 thumbnailUrl: '',
               });

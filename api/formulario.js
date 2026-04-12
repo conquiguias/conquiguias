@@ -50,6 +50,48 @@ function normalizeEmail(value) {
     .toLowerCase();
 }
 
+function maskEmailPartial(value) {
+  const email = normalizeEmail(value);
+  if (!email) return "";
+
+  const [localPart, domain] = email.split("@");
+  if (!localPart || !domain) return email;
+
+  const visible = localPart.slice(0, 2);
+  const hiddenLength = Math.max(3, localPart.length - 2);
+  return `${visible}${"*".repeat(hiddenLength)}@${domain}`;
+}
+
+function maskNamePartial(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+
+  const parts = text.split(/\s+/).filter(Boolean);
+  if (parts.length <= 1) return parts[0];
+
+  return `${parts[0]} ${parts
+    .slice(1)
+    .map((part) => "*".repeat(Math.max(3, part.length)))
+    .join(" ")}`;
+}
+
+function maskPublicUserData(record = {}) {
+  if (!record || typeof record !== "object") return record;
+
+  const masked = { ...record };
+  if (Object.prototype.hasOwnProperty.call(masked, "nombre")) {
+    masked.nombre = maskNamePartial(masked.nombre);
+  }
+  if (Object.prototype.hasOwnProperty.call(masked, "correo")) {
+    masked.correo = maskEmailPartial(masked.correo);
+  }
+  if (Object.prototype.hasOwnProperty.call(masked, "email")) {
+    masked.email = maskEmailPartial(masked.email);
+  }
+
+  return masked;
+}
+
 const TASK_PDF_SIGNED_URL_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 async function withFreshTaskSignedUrl(task) {
@@ -482,10 +524,17 @@ async function handleVerRespuestas(req, res) {
       ? evalData.contenido_tareas
       : {};
 
+  const asistenciasPublicas = asistenciasRaw.map((item) => maskPublicUserData(item));
+  const examenesPublicos = examenesRaw.map((item) => maskPublicUserData(item));
+  const tareasPublicas = {};
+  Object.entries(tareasRaw).forEach(([key, value]) => {
+    tareasPublicas[key] = maskPublicUserData(value);
+  });
+
   res.status(200).json({
-    asistencias: asistenciasRaw,
-    examenes: examenesRaw,
-    tareas: tareasRaw,
+    asistencias: asistenciasPublicas,
+    examenes: examenesPublicos,
+    tareas: tareasPublicas,
   });
 }
 

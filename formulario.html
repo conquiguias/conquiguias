@@ -1142,19 +1142,6 @@
         return "***-" + t.slice(-4);
       }
 
-      function ocultarNombreParcial(nombre) {
-        const texto = String(nombre || "").trim();
-        if (!texto) return "Anónimo";
-
-        const partes = texto.split(/\s+/).filter(Boolean);
-        if (partes.length <= 1) return partes[0];
-
-        return `${partes[0]} ${partes
-          .slice(1)
-          .map((palabra) => "*".repeat(Math.max(3, palabra.length)))
-          .join(" ")}`;
-      }
-
       async function cargarRespuestas() {
         const tbody = document.querySelector("#tablaRespuestas tbody");
         try {
@@ -1273,8 +1260,8 @@
             const fila = `
               <tr style="${esYo ? "background:#eff6ff;" : ""}">
                 <td>${idx + 1}</td>
-                <td>${ocultarNombreParcial(r.nombre)}</td>
-                <td>${esYo ? r.correo : ocultarEmail(r.correo)}</td>
+                <td>${r.nombre || "Anónimo"}</td>
+                <td>${r.correo || "***@***.***"}</td>
                 <td>${new Date(r.fecha).toLocaleDateString()}</td>
                 <td>${r.asistencias.join(", ")}</td>
                 <td>${labelTarea}</td>

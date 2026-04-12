@@ -1,4 +1,98 @@
 const admin = require("firebase-admin");
+const crypto = require("crypto");
+
+const OWNER_EMAIL = String(process.env.OWNER_EMAIL || "")
+  .trim()
+  .toLowerCase();
+const ADMIN_EMAILS = Array.from(
+  new Set(
+    [
+      OWNER_EMAIL,
+      ...String(process.env.ADMIN_EMAILS || "")
+        .split(",")
+        .map((email) => String(email || "").trim().toLowerCase())
+        .filter(Boolean),
+    ].filter(Boolean),
+  ),
+);
+
+function normalizeEmail(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function getBearerToken(req) {
+  const authHeader =
+    req?.headers?.authorization || req?.headers?.Authorization || "";
+  if (typeof authHeader !== "string") return "";
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : "";
+}
+
+async function verifyAuthUser(req, data = {}) {
+  const idToken = String(data?.idToken || "").trim() || getBearerToken(req);
+  if (!idToken) {
+    const error = new Error("Token de autenticación requerido");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  try {
+    return await admin.auth().verifyIdToken(idToken);
+  } catch (_error) {
+    const error = new Error("Token de autenticación inválido");
+    error.statusCode = 401;
+    throw error;
+  }
+}
+
+function isAdminOrOwnerEmail(email) {
+  const normalized = normalizeEmail(email);
+  return !!normalized && ADMIN_EMAILS.includes(normalized);
+}
+
+function resolveAdminSessionSecret() {
+  return String(
+    process.env.ADMIN_SESSION_SECRET ||
+      process.env.FIREBASE_PRIVATE_KEY ||
+      process.env.FIREBASE_PRIVATE_KEY_ID ||
+      "",
+  ).trim();
+}
+
+function toBase64Url(input) {
+  return Buffer.from(String(input), "utf8")
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function signAdminSessionPayload(payloadJson, secret) {
+  return crypto
+    .createHmac("sha256", secret)
+    .update(payloadJson)
+    .digest("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function createAdminSessionToken(email) {
+  const secret = resolveAdminSessionSecret();
+  if (!secret) return "";
+
+  const payload = {
+    email: normalizeEmail(email),
+    exp: Date.now() + 60 * 60 * 1000,
+    ver: 1,
+  };
+  const payloadJson = JSON.stringify(payload);
+  const payloadEncoded = toBase64Url(payloadJson);
+  const signature = signAdminSessionPayload(payloadJson, secret);
+  return `${payloadEncoded}.${signature}`;
+}
 
 // 🔐 Inicializar Firebase Admin
 if (!admin.apps.length) {
@@ -55,11 +149,16 @@ module.exports = async (req, res) => {
   res.setHeader("Strict-Transport-Security", "max-age=31536000");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   
-  // 🔐 CORS: Solo permitir nuestro dominio
-  const allowedOrigin = process.env.APP_BASE_URL || "https://conquiguias.xyz";
-  const origin = req.headers.origin || allowedOrigin;
-  const isAllowed = origin === allowedOrigin || origin.endsWith(".vercel.app");
-  
+  // 🔐 CORS: Solo permitir orígenes explícitamente autorizados
+  const primaryOrigin = process.env.APP_BASE_URL || "https://conquiguias.xyz";
+  const extraOrigins = String(process.env.ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+  const allowedOrigins = Array.from(new Set([primaryOrigin, ...extraOrigins]));
+  const origin = String(req.headers.origin || "").trim();
+  const isAllowed = !!origin && allowedOrigins.includes(origin);
+
   if (isAllowed) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
@@ -174,13 +273,26 @@ module.exports = async (req, res) => {
 
     // 🔹 VERIFICAR ESTADO DE USUARIO
     else if (action === "checkAuth") {
-      const { uid } = data;
+      const { uid } = data || {};
+      const decodedToken = await verifyAuthUser(req, data || {});
+      const requesterUid = String(decodedToken?.uid || "").trim();
+      const requesterEmail = normalizeEmail(decodedToken?.email || "");
+      const targetUid = String(uid || requesterUid).trim();
 
-      const user = await admin.auth().getUser(uid);
+      if (!targetUid) {
+        return res.status(400).json({ error: "UID no válido" });
+      }
+
+      const canInspectOthers = isAdminOrOwnerEmail(requesterEmail);
+      if (!canInspectOthers && targetUid !== requesterUid) {
+        return res.status(403).json({ error: "No autorizado" });
+      }
+
+      const user = await admin.auth().getUser(targetUid);
       const userDoc = await admin
         .firestore()
         .collection("usuarios")
-        .doc(uid)
+        .doc(targetUid)
         .get();
 
       return res.status(200).json({
@@ -368,12 +480,22 @@ module.exports = async (req, res) => {
 
     // 🔹 VERIFICAR CONTRASEÑA ADMIN (Simulada/Hardcoded por solicitud)
     else if (action === "verifyAdminPassword") {
-      const { password } = data;
-      // En producción, usar variables de entorno: process.env.ADMIN_PASSWORD
-      const SERVER_ADMIN_PASS = "Arcan24@";
+      const { email, password } = data || {};
+      const normalizedEmail = normalizeEmail(email);
+      const serverAdminPass = String(process.env.ADMIN_PASSWORD || "");
 
-      if (password === SERVER_ADMIN_PASS) {
-        return res.status(200).json({ success: true });
+      if (!serverAdminPass) {
+        return res.status(503).json({ error: "ADMIN_PASSWORD no configurado" });
+      }
+
+      const isAllowedAdmin = isAdminOrOwnerEmail(normalizedEmail);
+      if (!isAllowedAdmin) {
+        return res.status(403).json({ error: "Correo no autorizado" });
+      }
+
+      if (String(password || "") === serverAdminPass) {
+        const adminSessionToken = createAdminSessionToken(normalizedEmail);
+        return res.status(200).json({ success: true, adminSessionToken });
       } else {
         return res.status(401).json({ error: "Contraseña incorrecta" });
       }
@@ -409,6 +531,8 @@ module.exports = async (req, res) => {
   } catch (error) {
     console.error("Error en API auth:", error);
 
+    const statusCode = Number(error?.statusCode) || 400;
+
     let errorMessage = "Error interno del servidor";
     if (error.code === "auth/email-already-exists") {
       errorMessage = "Este correo electrónico ya está registrado";
@@ -418,6 +542,6 @@ module.exports = async (req, res) => {
       errorMessage = "La contraseña debe tener al menos 6 caracteres";
     }
 
-    return res.status(400).json({ error: errorMessage });
+    return res.status(statusCode).json({ error: error.message || errorMessage });
   }
 };

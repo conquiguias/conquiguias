@@ -1,6 +1,7 @@
 const { createClient } = require("@supabase/supabase-js");
 const admin = require("firebase-admin");
 const busboy = require("busboy");
+const crypto = require("crypto");
 
 // 🔐 Configuración Supabase - SOLO desde variables de entorno
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -152,6 +153,106 @@ async function verifyAuthenticatedUser(req) {
   });
 }
 
+function isAdminEmail(email) {
+  const normalized = normalizeEmail(email);
+  if (!normalized) return false;
+  return getAdminEmails().includes(normalized);
+}
+
+function resolveAdminSessionSecret() {
+  return String(
+    process.env.ADMIN_SESSION_SECRET ||
+      process.env.FIREBASE_PRIVATE_KEY ||
+      process.env.FIREBASE_PRIVATE_KEY_ID ||
+      "",
+  ).trim();
+}
+
+function decodeBase64Url(value) {
+  const normalized = String(value || "")
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
+  const padLength = (4 - (normalized.length % 4)) % 4;
+  const padded = normalized + "=".repeat(padLength);
+  return Buffer.from(padded, "base64").toString("utf8");
+}
+
+function signAdminSessionPayload(payloadJson, secret) {
+  return crypto
+    .createHmac("sha256", secret)
+    .update(payloadJson)
+    .digest("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function verifyAdminSessionToken(token) {
+  const rawToken = String(token || "").trim();
+  if (!rawToken) return null;
+
+  const secret = resolveAdminSessionSecret();
+  if (!secret) return null;
+
+  const [payloadEncoded, signature] = rawToken.split(".");
+  if (!payloadEncoded || !signature) return null;
+
+  let payloadJson;
+  let payload;
+  try {
+    payloadJson = decodeBase64Url(payloadEncoded);
+    payload = JSON.parse(payloadJson);
+  } catch (_error) {
+    return null;
+  }
+
+  const expectedSignature = signAdminSessionPayload(payloadJson, secret);
+  if (signature !== expectedSignature) return null;
+
+  const exp = Number(payload?.exp || 0);
+  if (!Number.isFinite(exp) || Date.now() > exp) return null;
+
+  const email = normalizeEmail(payload?.email || "");
+  if (!isAdminEmail(email)) return null;
+
+  return {
+    uid: "",
+    email,
+  };
+}
+
+async function verifyAdminOrOwner(req, body = {}) {
+  let requester = null;
+
+  try {
+    requester = await verifyAuthenticatedUserFromBody({
+      ...body,
+      __headers: req?.headers || {},
+    });
+  } catch (_error) {
+    const adminSessionToken =
+      req?.headers?.["x-admin-session"] ||
+      req?.headers?.["X-Admin-Session"] ||
+      body?.adminSessionToken ||
+      "";
+    requester = verifyAdminSessionToken(adminSessionToken);
+  }
+
+  if (!requester) {
+    const error = new Error("Token de autenticación requerido");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  if (!isAdminEmail(requester.email)) {
+    const error = new Error("No autorizado");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  return requester;
+}
+
 // Cache en memoria simple para Serverless (persiste mientras la instancia esté caliente)
 const memoryCache = new Map();
 const CACHE_TTL = 60 * 1000; // 1 minuto por defecto para datos dinámicos
@@ -168,10 +269,16 @@ function setSecurityHeaders(res) {
 
 // 🔐 Set CORS headers
 function setCORSHeaders(req, res) {
-  const allowedOrigin = process.env.APP_BASE_URL || "https://conquiguias.xyz";
-  const origin = req.headers.origin || allowedOrigin;
-  const isAllowed = origin === allowedOrigin || origin.endsWith(".vercel.app");
-  
+  const primaryOrigin = process.env.APP_BASE_URL || "https://conquiguias.xyz";
+  const extraOrigins = String(process.env.ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+  const allowedOrigins = Array.from(new Set([primaryOrigin, ...extraOrigins]));
+
+  const origin = String(req.headers.origin || "").trim();
+  const isAllowed = !!origin && allowedOrigins.includes(origin);
+
   if (isAllowed) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
@@ -371,6 +478,8 @@ async function handleVerRespuestas(req, res) {
 }
 
 async function handleListarEntregas(req, res) {
+  await verifyAdminOrOwner(req);
+
   const { id } = req.query;
   const { data, error } = await supabase
     .from("evaluaciones")
@@ -385,6 +494,8 @@ async function handleListarEntregas(req, res) {
 }
 
 async function handleListarFormulariosPendientes(req, res) {
+  await verifyAdminOrOwner(req);
+
   const { data: evalData, error } = await supabase
     .from("evaluaciones")
     .select("especialidad_id, contenido_tareas");
@@ -467,6 +578,8 @@ async function handleListarFormulariosPendientes(req, res) {
 // --- HANDLERS POST (Lógica idéntica pero guardando en Supabase) ---
 
 async function handleGuardarFormulario(req, res) {
+  await verifyAdminOrOwner(req, req.body || {});
+
   const {
     id,
     titulo,
@@ -666,6 +779,8 @@ async function handleGuardar(req, res) {
 }
 
 async function handleGuardarEvaluacion(req, res) {
+  await verifyAdminOrOwner(req, req.body || {});
+
   const { id, evaluation } = req.body;
   await supabase
     .from("evaluaciones")
@@ -705,14 +820,9 @@ async function handleGuardarResultadoExamen(req, res) {
 }
 
 async function handleActualizarEstadoAsistencia(req, res) {
-  const { id, asistencia, activo, adminEmail } = req.body;
-  const adminEmails = getAdminEmails();
-  const isAdmin =
-    !!adminEmail && adminEmails.includes(normalizeEmail(adminEmail));
+  await verifyAdminOrOwner(req, req.body || {});
 
-  if (!isAdmin) {
-    return res.status(403).json({ error: "No autorizado" });
-  }
+  const { id, asistencia, activo } = req.body;
 
   const { data: fData } = await supabase
     .from("formularios")
@@ -739,10 +849,9 @@ async function handleActualizarEstadoAsistencia(req, res) {
 
 async function handleCalificarTareas(req, res) {
   try {
+    const requester = await verifyAdminOrOwner(req, req.body || {});
     const { id, tareas, targetVisitanteId } = req.body || {};
-    const requesterEmail = normalizeEmail(
-      req.body?.requesterEmail || req.body?.adminEmail || "",
-    );
+    const requesterEmail = normalizeEmail(requester?.email || "");
     const isOwner = requesterEmail === normalizeEmail(OWNER_EMAIL);
 
     if (!id || !tareas || typeof tareas !== "object") {
@@ -792,6 +901,8 @@ async function handleCalificarTareas(req, res) {
 }
 
 async function handleEliminarFormulario(req, res) {
+  await verifyAdminOrOwner(req, req.body || {});
+
   const { id } = req.body;
   // Borrado en cascada manual (aunque FKs podrian hacerlo, aqui aseguramos)
   await supabase.from("respuestas").delete().eq("especialidad_id", id);
@@ -803,6 +914,8 @@ async function handleEliminarFormulario(req, res) {
 }
 
 async function handleLimpiarFormulariosVencidos(req, res) {
+  await verifyAdminOrOwner(req, req.body || {});
+
   const { data: forms } = await supabase
     .from("formularios")
     .select("id, creado");
@@ -856,6 +969,8 @@ async function handleListarImagenes(req, res, repo) {
 }
 
 async function handleSubirImagen(req, res, repo) {
+  await verifyAdminOrOwner(req, req.body || {});
+
   const { carpeta, nombre, contenido } = req.body;
   const path = `images/${encodeURIComponent(carpeta)}/${encodeURIComponent(nombre)}`;
 
@@ -880,6 +995,8 @@ async function handleSubirImagen(req, res, repo) {
 }
 
 async function handleEliminarImagen(req, res, repo) {
+  await verifyAdminOrOwner(req, req.body || {});
+
   const { carpeta, nombre } = req.body;
   const path = `images/${carpeta}/${nombre}`;
 
@@ -899,6 +1016,8 @@ async function handleEliminarImagen(req, res, repo) {
 }
 
 async function handleListarArchivosPDF(req, res, repo) {
+  await verifyAdminOrOwner(req);
+
   // Leer PDFs desde metadatos guardados en Supabase
   const { data: formData } = await supabase
     .from("formularios")
@@ -1037,6 +1156,8 @@ async function handleSubirTarea(req, res, repo) {
 }
 
 async function handleEliminarTodasTareasPDF(req, res, repo) {
+  await verifyAdminOrOwner(req, req.body || {});
+
   let eliminados = 0;
   let errores = 0;
 
@@ -1089,14 +1210,9 @@ async function handleEliminarTodasTareasPDF(req, res, repo) {
 }
 
 async function handleEliminarTareasPDF(req, res, repo) {
+  await verifyAdminOrOwner(req, req.body || {});
+
   const { ruta, ident, especialidadId } = req.body;
-  const requesterEmail = normalizeEmail(
-    req.body?.requesterEmail || req.body?.adminEmail || "",
-  );
-  const adminEmails = getAdminEmails();
-  if (!requesterEmail || !adminEmails.includes(requesterEmail)) {
-    return res.status(403).json({ error: "No autorizado" });
-  }
 
   const normalizedRuta = String(ruta || "").trim();
   const normalizedIdent = String(ident || "").trim();
@@ -1165,7 +1281,19 @@ async function handleEliminarTareasPDF(req, res, repo) {
 }
 
 async function handleObtenerEstadoUsuario(req, res) {
-  const { visitanteId, email } = req.body;
+  const requester = await verifyAuthenticatedUser(req);
+  const requesterEmail = normalizeEmail(requester?.email || "");
+  const requesterUid = String(requester?.uid || "").trim();
+  const canQueryAnyUser = isAdminEmail(requesterEmail);
+
+  const requestedVisitanteId = String(req.body?.visitanteId || "").trim();
+  const requestedEmail = normalizeEmail(req.body?.email || "");
+  const visitanteId = canQueryAnyUser
+    ? requestedVisitanteId
+    : requesterUid;
+  const email = canQueryAnyUser
+    ? requestedEmail
+    : requesterEmail;
 
   // Leemos TODO de Supabase de un golpe (como hacia antes con GH)
   const { data: docs } = await supabase.from("formularios").select("id, data");

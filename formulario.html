@@ -783,6 +783,7 @@
       let currentIdFormulario = new URLSearchParams(location.search).get("id");
       let isAdmin = false;
       let adminEmail = ""; // Email del admin autenticado
+      let adminSessionToken = "";
       let pollInterval = null;
       let estadoAsistencias = { 1: false, 2: false };
       let misAsistencias = []; // [1, 2]
@@ -922,8 +923,10 @@
           });
 
           if (res.ok) {
+            const payload = await res.json().catch(() => ({}));
             isAdmin = true;
             adminEmail = email; // Guardar email del admin autenticado
+            adminSessionToken = String(payload?.adminSessionToken || "").trim();
             document.getElementById("modalLoginAdmin").style.display = "none";
             document.getElementById("panelAdmin").style.display = "block";
             document.getElementById("admin-float-btn").style.display = "none";
@@ -945,6 +948,7 @@
       function cerrarSesionAdmin() {
         isAdmin = false;
         adminEmail = ""; // Limpiar email al cerrar sesión
+        adminSessionToken = "";
         document.getElementById("panelAdmin").style.display = "none";
         document.getElementById("admin-float-btn").style.display = "flex";
       }
@@ -966,12 +970,17 @@
             "/api/formulario?action=actualizarEstadoAsistencia",
             {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                ...(adminSessionToken
+                  ? { "X-Admin-Session": adminSessionToken }
+                  : {}),
+              },
               body: JSON.stringify({
                 id: currentIdFormulario,
                 asistencia: num,
                 activo: nuevoEstado,
-                adminEmail: adminEmail, // Enviar email del admin autenticado
+                adminSessionToken,
               }),
             },
           );
@@ -1113,8 +1122,12 @@
       async function cargarRespuestas() {
         const tbody = document.querySelector("#tablaRespuestas tbody");
         try {
+          const authHeaders = adminSessionToken
+            ? { "X-Admin-Session": adminSessionToken }
+            : {};
           const res = await fetch(
             `/api/formulario?action=verRespuestas&id=${currentIdFormulario}`,
+            { headers: authHeaders },
           );
           if (!res.ok) return;
 

@@ -21018,7 +21018,10 @@
       }
 
       async function cargarEspecialidadesPendientesParaAsignacion() {
-        const res = await fetch('/api/formulario?action=listarFormulariosPendientes');
+        const authHeaders = await getFormularioAuthHeaders();
+        const res = await fetch('/api/formulario?action=listarFormulariosPendientes', {
+          headers: authHeaders,
+        });
         if (!res.ok) throw new Error('No se pudieron cargar especialidades pendientes');
         adminPendingSpecialties = await res.json();
       }
@@ -22360,9 +22363,10 @@
             e.stopPropagation();
             if (confirm(`¿Estás seguro de eliminar "${nombreLimpio}" permanentemente?`)) {
               try {
+                const authHeaders = await getFormularioAuthHeaders();
                 const res = await fetch('/api/formulario?action=eliminarImagen', {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: { 'Content-Type': 'application/json', ...authHeaders },
                   body: JSON.stringify({ carpeta, nombre: imagen.nombre })
                 });
                 if (res.ok) {
@@ -22462,9 +22466,10 @@
           mensaje.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subiendo imagen...';
 
           try {
+            const authHeaders = await getFormularioAuthHeaders();
             const res = await fetch('/api/formulario?action=subirImagen', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', ...authHeaders },
               body: JSON.stringify({
                 carpeta,
                 nombre: nombreArchivo,
@@ -22759,9 +22764,10 @@
           let id = instructorPrefix + "-" + generarIdAlfanumerico();
 
           try {
+            const authHeaders = await getFormularioAuthHeaders();
             const response = await fetch("/api/formulario?action=guardarFormulario", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: { "Content-Type": "application/json", ...authHeaders },
               body: JSON.stringify({
                 id,
                 titulo,
@@ -23047,9 +23053,10 @@
         }
         if (confirm(`¿Estás seguro de eliminar el formulario "${id}"? Esta acción borrará todas las asistencias y resultados asociados.`)) {
           try {
+            const authHeaders = await getFormularioAuthHeaders();
             const res = await fetch('/api/formulario?action=eliminarFormulario', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', ...authHeaders },
               body: JSON.stringify({ id })
             });
 
@@ -23106,7 +23113,10 @@
               }
               try {
                 // Obtener las entregas de esta especialidad
-                const resEntregas = await fetch(`/api/formulario?action=listarEntregas&id=${id}`);
+                const authHeaders = await getFormularioAuthHeaders();
+                const resEntregas = await fetch(`/api/formulario?action=listarEntregas&id=${id}`, {
+                  headers: authHeaders,
+                });
                 let entregas = {};
 
                 if (resEntregas.ok) {
@@ -23820,7 +23830,10 @@
 
         try {
           // 1. Cargar Formularios Pendientes
-          const resp = await fetch("/api/formulario?action=listarFormulariosPendientes");
+          const authHeaders = await getFormularioAuthHeaders();
+          const resp = await fetch("/api/formulario?action=listarFormulariosPendientes", {
+            headers: authHeaders,
+          });
           let pendientes = [];
           if (resp.ok) pendientes = await resp.json();
 
@@ -23907,7 +23920,10 @@
 
         try {
           // ... obtener datos ...
-          const res = await fetch(`/api/formulario?action=listarEntregas&id=${formId}`);
+          const authHeaders = await getFormularioAuthHeaders();
+          const res = await fetch(`/api/formulario?action=listarEntregas&id=${formId}`, {
+            headers: authHeaders,
+          });
 
           if (res.ok) {
             const data = await res.json();
@@ -24939,7 +24955,10 @@
         document.getElementById('infoTotalSize').textContent = 'Calculando...';
 
         try {
-          const resp = await fetch('/api/formulario?action=listarArchivosPDF');
+          const authHeaders = await getFormularioAuthHeaders();
+          const resp = await fetch('/api/formulario?action=listarArchivosPDF', {
+            headers: authHeaders,
+          });
           if (!resp.ok) throw new Error("Error listando archivos");
           const archivos = await resp.json();
 
@@ -24981,9 +25000,10 @@
               btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
               btn.disabled = true;
               try {
+                const authHeaders = await getFormularioAuthHeaders();
                 const resp = await fetch('/api/formulario?action=eliminarTareasPDF', {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: { 'Content-Type': 'application/json', ...authHeaders },
                   body: JSON.stringify({ ruta, ident, especialidadId })
                 });
                 const res = await resp.json();
@@ -25027,8 +25047,10 @@
         btn.disabled = true;
 
         try {
+          const authHeaders = await getFormularioAuthHeaders();
           const resp = await fetch('/api/formulario?action=eliminarTodasTareasPDF', {
-            method: 'POST'
+            method: 'POST',
+            headers: authHeaders,
           });
           const res = await resp.json();
 
@@ -25081,7 +25103,10 @@
 
         try {
           // Usar nuevo endpoint
-          const r = await fetch(`/api/formulario?action=listarEntregas&id=${formId}`);
+          const authHeaders = await getFormularioAuthHeaders();
+          const r = await fetch(`/api/formulario?action=listarEntregas&id=${formId}`, {
+            headers: authHeaders,
+          });
           if (!r.ok) throw new Error("Error al cargar entregas");
           currentEntregasData = await r.json();
           window.datosEntregasGlobal = currentEntregasData; // Sincronizar para enviarNotasBackend
@@ -25195,14 +25220,14 @@
         // Ojo: calificarTareas requiere recibir TODO el JSON de tareas.
 
         try {
+          const authHeaders = await getFormularioAuthHeaders();
           const resp = await fetch('/api/formulario?action=calificarTareas', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...authHeaders },
             body: JSON.stringify({
               id: currentEvaluandoFormId,
               tareas: currentEntregasData,
-              targetVisitanteId: window.currentEvaluandoId,
-              requesterEmail: String((window.userData?.email || (typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.email : '') || '')).trim().toLowerCase()
+              targetVisitanteId: window.currentEvaluandoId
             })
           });
 
@@ -25256,16 +25281,15 @@
         }
 
         try {
-          const requesterEmail = String((window.userData?.email || (typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.email : '') || '')).trim().toLowerCase();
+          const authHeaders = await getFormularioAuthHeaders();
 
           const resp = await fetch('/api/formulario?action=eliminarTareasPDF', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...authHeaders },
             body: JSON.stringify({
               ruta: entregaActual.storagePath || '',
               ident: evalId,
               especialidadId: formId,
-              requesterEmail,
             })
           });
 

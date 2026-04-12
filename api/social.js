@@ -110,11 +110,16 @@ export default async function handler(req, res) {
   // ðŸ” Apply security headers to all responses
   setSecurityHeaders(res);
   
-  // ðŸ” CORS - Restrict to allowed origins only (NOT wildcard)
-  const allowedOrigin = process.env.APP_BASE_URL || "https://conquiguias.xyz";
-  const origin = req.headers.origin || allowedOrigin;
-  const isAllowed = origin === allowedOrigin || origin.endsWith(".vercel.app");
-  
+  // ðŸ” CORS - Restrict to explicit allowlist only
+  const primaryOrigin = process.env.APP_BASE_URL || "https://conquiguias.xyz";
+  const extraOrigins = String(process.env.ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+  const allowedOrigins = Array.from(new Set([primaryOrigin, ...extraOrigins]));
+  const origin = String(req.headers.origin || "").trim();
+  const isAllowed = !!origin && allowedOrigins.includes(origin);
+
   if (isAllowed) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }

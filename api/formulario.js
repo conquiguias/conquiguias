@@ -454,12 +454,19 @@ async function handleObtenerEvaluacion(req, res) {
 }
 
 async function handleVerRespuestas(req, res) {
-  const requester = await verifyAuthenticatedUser(req);
+  let requester = null;
+  try {
+    requester = await verifyAuthenticatedUser(req);
+  } catch (error) {
+    requester = null;
+  }
 
   const { id } = req.query;
-  const requesterEmail = normalizeEmail(requester?.email || "");
-  const requesterUid = String(requester?.uid || "").trim();
-  const canViewAll = isAdminEmail(requesterEmail);
+  const bodyEmail = normalizeEmail(req.body?.email || "");
+  const bodyVisitanteId = String(req.body?.visitanteId || "").trim();
+  const requesterEmail = normalizeEmail(requester?.email || bodyEmail);
+  const requesterUid = String(requester?.uid || bodyVisitanteId || "").trim();
+  const canViewAll = !!requester && isAdminEmail(requesterEmail);
 
   // Consultas paralelas a las tablas "respuestas" y "evaluaciones"
   const { data: respData } = await supabase
@@ -499,6 +506,10 @@ async function handleVerRespuestas(req, res) {
     if (requesterUid && visitanteId && visitanteId === requesterUid) return true;
     return false;
   };
+
+  if (!requesterEmail && !requesterUid) {
+    return res.status(200).json({ asistencias: [], examenes: [], tareas: {} });
+  }
 
   const asistencias = asistenciasRaw.filter(belongsToRequester);
   const examenes = examenesRaw.filter(belongsToRequester);

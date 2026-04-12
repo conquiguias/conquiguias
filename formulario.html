@@ -788,6 +788,15 @@
       let estadoAsistencias = { 1: false, 2: false };
       let misAsistencias = []; // [1, 2]
 
+      const storageVisitanteKey = `form_visitante_${currentIdFormulario || "default"}`;
+      const storageEmailKey = `form_email_${currentIdFormulario || "default"}`;
+
+      const savedVisitanteId = localStorage.getItem(storageVisitanteKey);
+      if (savedVisitanteId) visitanteId = savedVisitanteId;
+
+      const savedUserEmail = localStorage.getItem(storageEmailKey);
+      if (savedUserEmail) userEmail = savedUserEmail;
+
       function normalizarEmail(value) {
         return (value || "").trim().toLowerCase();
       }
@@ -1084,6 +1093,10 @@
             if (responseData.visitanteId) {
               visitanteId = responseData.visitanteId;
             }
+              localStorage.setItem(storageVisitanteKey, visitanteId);
+              if (userEmail) {
+                localStorage.setItem(storageEmailKey, userEmail);
+              }
             if (Array.isArray(responseData.misAsistencias)) {
               misAsistencias = [
                 ...new Set(
@@ -1143,18 +1156,18 @@
       }
 
       async function cargarRespuestas() {
-        if (!isAdmin || !adminSessionToken) {
-          return;
-        }
-
         const tbody = document.querySelector("#tablaRespuestas tbody");
         try {
-          const authHeaders = adminSessionToken
-            ? { "X-Admin-Session": adminSessionToken }
-            : {};
           const res = await fetch(
             `/api/formulario?action=verRespuestas&id=${currentIdFormulario}`,
-            { headers: authHeaders },
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                visitanteId,
+                email: userEmail || null,
+              }),
+            },
           );
           if (!res.ok) return;
 

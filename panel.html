@@ -13266,6 +13266,8 @@
           const publishMode = radioModeSelect?.value === 'musica' ? 'musica' : 'radio';
           const streamUrl = (radioStreamUrlInput?.value || '').trim();
           const radioName = (radioNameInput?.value || '').trim();
+          const requiredCategoryHashtag = publishMode === 'musica' ? '#musica' : '#radio';
+          const normalizedPublishDescription = ensureCategoryHashtag(description, requiredCategoryHashtag);
 
           if (!streamUrl) {
             mostrarMensaje('error', 'URL requerida', 'Ingresa la URL de transmisión para radio o música.');
@@ -13306,7 +13308,7 @@
               ...buildCurrentUserRoleSnapshot(),
               mediaUrl: streamUrl,
               mediaType: 'audio/url',
-              description: description || (publishMode === 'musica' ? '#musica' : '#radio'),
+              description: normalizedPublishDescription,
               timestamp: new Date().toISOString(),
               imgurData: { id: null, deletehash: null },
               reactions: { like: [], laugh: [], seven: [] },
@@ -13358,7 +13360,7 @@
                 type: publishMode,
                 name: radioName,
                 url: streamUrl,
-                description: description || (publishMode === 'musica' ? '#musica' : '#radio'),
+                description: normalizedPublishDescription,
                 createdAt: new Date().toISOString(),
                 status: 'pending'
               });
@@ -13397,7 +13399,8 @@
             uploadBtn.textContent = 'Publicando...';
 
             const normalizedTvMode = tvMode === 'video' ? 'video' : 'tv';
-            const tvDefaultDescription = normalizedTvMode === 'video' ? '#video' : '#television';
+            const requiredCategoryHashtag = normalizedTvMode === 'video' ? '#video' : '#television';
+            const normalizedTvDescription = ensureCategoryHashtag(description, requiredCategoryHashtag);
             const tvDefaultTags = normalizedTvMode === 'video' ? ['video'] : ['television'];
 
             const postData = {
@@ -13410,7 +13413,7 @@
               ...buildCurrentUserRoleSnapshot(),
               mediaUrl: tvUrl,
               mediaType: inferUrlMediaType(tvUrl),
-              description: description || tvDefaultDescription,
+              description: normalizedTvDescription,
               timestamp: new Date().toISOString(),
               imgurData: { id: null, deletehash: null },
               reactions: { like: [], laugh: [], seven: [] },
@@ -13697,7 +13700,7 @@
         { key: 'conquis',          label: 'Conquis',          tags: ['conquis', 'conqui', 'conquistadores', 'conquistador'] },
         { key: 'panoleta',         label: 'Pañoleta',         tags: ['panoleta', 'pañoleta', 'panuelo', 'pañuelo'] },
         { key: 'post-adventistas', label: 'Post Adventistas', tags: ['postadventistas', 'post-adventistas', 'post adventistas', 'adventistas', 'adventista'] },
-        { key: 'television',       label: 'Televisión',       tags: ['television', 'tv', 'tele', 'video'] },
+        { key: 'television',       label: 'Televisión',       tags: ['television', 'tv', 'tele'] },
         { key: 'radio',            label: 'Radio',            tags: ['radio'] },
         { key: 'musica',           label: 'Música',           tags: ['musica', 'música', 'music', 'musica cristiana', 'musica adventista'] },
         { key: 'podcast',          label: 'Podcast',          tags: ['podcast', 'potcast', 'pod cast'] },
@@ -13772,6 +13775,23 @@
         return matches.map(tag => normalizeTagValue(tag.replace(/^#/, ''))).filter(Boolean);
       }
 
+      function ensureCategoryHashtag(description, hashtag) {
+        const requiredTag = String(hashtag || '').trim().replace(/^#*/, '');
+        if (!requiredTag) return String(description || '').trim();
+
+        const rawDescription = String(description || '').trim();
+        const requiredCanonical = canonicalizeTag(requiredTag);
+        const existingHashtags = new Set(extractPostHashtags(rawDescription).map(canonicalizeTag));
+
+        if (existingHashtags.has(requiredCanonical)) {
+          return rawDescription;
+        }
+
+        const normalizedRequired = `#${normalizeTagValue(requiredTag)}`;
+        if (!rawDescription) return normalizedRequired;
+        return `${rawDescription}\n\n${normalizedRequired}`;
+      }
+
       function canonicalizeTag(value) {
         return normalizeTagValue(value).replace(/[^a-z0-9]/g, '');
       }
@@ -13826,6 +13846,24 @@
         return new Set([...descriptionTags, ...extraTags].map(canonicalizeTag).filter(Boolean));
       }
 
+      function getPostCategoryHashtagSet(post) {
+        const descriptionTags = extractPostHashtags(post?.description || '');
+        const explicitHashtagTags = [
+          post?.hashtags,
+          post?.etiquetas,
+          post?.tags,
+        ]
+          .flatMap((value) => {
+            if (Array.isArray(value)) return value;
+            if (typeof value === 'string') return value.split(/[\s,;|]+/);
+            return [];
+          })
+          .map((value) => normalizeTagValue(String(value || '').replace(/^#/, '')))
+          .filter(Boolean);
+
+        return new Set([...descriptionTags, ...explicitHashtagTags].map(canonicalizeTag).filter(Boolean));
+      }
+
       function postMatchesActiveCategory(post) {
         if (activeFeedCategory === 'recientes') return true;
 
@@ -13833,11 +13871,8 @@
         const allowedCanonicalTags = getCategoryCanonicalTags(activeFeedCategory);
         if (allowedCanonicalTags.size === 0) return true;
 
-        const postTags = getPostTagSet(post);
+        const postTags = getPostCategoryHashtagSet(post);
         const normalizedPostKind = getNormalizedPostKind(post);
-        const normalizedDescription = normalizeTagValue(String(post?.description || ''));
-        const normalizedMediaType = normalizeTagValue(String(post?.mediaType || ''));
-        const activeCategoryCanonical = canonicalizeTag(activeFeedCategory);
         const debugRawFields = {
           category: String(post?.category || '').trim(),
           categoria: String(post?.categoria || '').trim(),
@@ -13850,26 +13885,12 @@
           postKind: String(post?.postKind || '').trim(),
         };
 
-        if (normalizedPostKind && allowedCanonicalTags.has(normalizedPostKind)) {
-          logCategoryFilterDecision({
-            category: categoryForDebug,
-            matched: true,
-            reason: 'postKind-in-allowed-tags',
-            id: post?.id || '',
-            postKind: normalizedPostKind,
-            tags: Array.from(postTags),
-            description: String(post?.description || '').slice(0, 80),
-            raw: debugRawFields,
-          });
-          return true;
-        }
-
         for (const tag of postTags) {
           if (allowedCanonicalTags.has(tag)) {
             logCategoryFilterDecision({
               category: categoryForDebug,
               matched: true,
-              reason: 'post-tag-in-allowed-tags',
+              reason: 'hashtag-in-allowed-tags',
               id: post?.id || '',
               postKind: normalizedPostKind,
               tags: Array.from(postTags),
@@ -13880,70 +13901,10 @@
           }
         }
 
-        if (activeCategoryCanonical && normalizedPostKind.includes(activeCategoryCanonical)) {
-          logCategoryFilterDecision({
-            category: categoryForDebug,
-            matched: true,
-            reason: 'postKind-includes-category-slug',
-            id: post?.id || '',
-            postKind: normalizedPostKind,
-            tags: Array.from(postTags),
-            description: String(post?.description || '').slice(0, 80),
-            raw: debugRawFields,
-          });
-          return true;
-        }
-
-        if (activeFeedCategory === 'radio') {
-          if (normalizedPostKind === 'radio') {
-            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'radio-postKind-radio', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80), raw: debugRawFields });
-            return true;
-          }
-          if (normalizedMediaType === 'audiourl' || normalizedMediaType.startsWith('audio')) {
-            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'radio-mediaType-audio', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80), raw: debugRawFields });
-            return true;
-          }
-          if (String(post?.radioname || '').trim() || String(post?.radiocover || '').trim()) {
-            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'radio-legacy-fields', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80), raw: debugRawFields });
-            return true;
-          }
-          if (normalizedDescription.includes('#radio')) {
-            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'radio-hashtag', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80), raw: debugRawFields });
-            return true;
-          }
-        }
-
-        if (activeFeedCategory === 'television') {
-          if (normalizedPostKind === 'tv' || normalizedPostKind === 'television' || normalizedPostKind === 'video') {
-            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'tv-postKind-tv-television-video', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80), raw: debugRawFields });
-            return true;
-          }
-          if (normalizedMediaType === 'videourl' || normalizedMediaType.startsWith('video')) {
-            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'tv-mediaType-video', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80), raw: debugRawFields });
-            return true;
-          }
-          if (normalizedDescription.includes('#television') || normalizedDescription.includes('#tv') || normalizedDescription.includes('#video')) {
-            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'tv-hashtag', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80), raw: debugRawFields });
-            return true;
-          }
-          if ((String(post?.posterUrl || '').trim() || String(post?.thumbnailUrl || '').trim()) &&
-              (normalizedDescription.includes('#television') || normalizedDescription.includes('#tv') || normalizedDescription.includes('#video'))) {
-            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'tv-cover-and-hashtag', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80), raw: debugRawFields });
-            return true;
-          }
-        }
-
-        if (activeFeedCategory === 'musica') {
-          if (normalizedPostKind === 'musica' || normalizedPostKind === 'music') return true;
-          if (normalizedDescription.includes('#musica') || normalizedDescription.includes('#musicaadventista') || normalizedDescription.includes('#music')) {
-            return true;
-          }
-        }
-
         logCategoryFilterDecision({
           category: categoryForDebug,
           matched: false,
-          reason: 'no-category-match',
+          reason: 'no-hashtag-match',
           id: post?.id || '',
           postKind: normalizedPostKind,
           tags: Array.from(postTags),
@@ -16452,6 +16413,8 @@
 
             if (editMode === 'radio') {
               const nextMode = radioModeSelect?.value === 'musica' ? 'musica' : 'radio';
+              const requiredRadioHashtag = nextMode === 'musica' ? '#musica' : '#radio';
+              updates.description = ensureCategoryHashtag(newDescription, requiredRadioHashtag);
               const nextName = String(radioNameInput?.value || '').trim();
               const nextUrl = String(radioUrlInput?.value || '').trim();
               const originalRadioMode = getEditableRadioMode(postData || {});
@@ -16515,6 +16478,8 @@
               const nextMode = tvModeSelect?.value === 'video' ? 'video' : 'tv';
               const nextUrl = String(tvUrlInput?.value || '').trim();
               const originalTvMode = getEditableTvMode(postData || {});
+              const fallbackTvHashtag = originalTvMode === 'video' ? '#video' : '#television';
+              updates.description = ensureCategoryHashtag(newDescription, fallbackTvHashtag);
               const modeTouched = tvModeSelect?.dataset.userTouched === '1';
               const previousUrl = String(postData?.mediaUrl || '').trim();
               const urlChanged = nextUrl !== previousUrl;
@@ -16547,6 +16512,8 @@
                 const effectiveTvTag = effectiveTvMode === 'video' ? 'video' : 'television';
                 const effectiveTvTags = [...preservedTvTags, effectiveTvTag];
                 const modeChanged = effectiveTvMode !== originalTvMode;
+                const requiredTvHashtag = effectiveTvMode === 'video' ? '#video' : '#television';
+                updates.description = ensureCategoryHashtag(newDescription, requiredTvHashtag);
 
                 let coverImage = String(postData?.posterUrl || postData?.thumbnailUrl || '').trim();
                 if (coverChanged) {

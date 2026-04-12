@@ -75,8 +75,18 @@ function maskNamePartial(value) {
     .join(" ")}`;
 }
 
-function maskPublicUserData(record = {}) {
+function maskPublicUserData(record = {}, requester = {}) {
   if (!record || typeof record !== "object") return record;
+
+  const requesterEmail = normalizeEmail(requester?.email || "");
+  const requesterUid = String(requester?.visitanteId || "").trim();
+  const recordEmail = normalizeEmail(record?.correo || record?.email || "");
+  const recordUid = String(record?.visitanteId || "").trim();
+  const isOwnRecord =
+    (!!requesterEmail && !!recordEmail && requesterEmail === recordEmail) ||
+    (!!requesterUid && !!recordUid && requesterUid === recordUid);
+
+  if (isOwnRecord) return { ...record };
 
   const masked = { ...record };
   if (Object.prototype.hasOwnProperty.call(masked, "nombre")) {
@@ -500,6 +510,8 @@ async function handleObtenerEvaluacion(req, res) {
 
 async function handleVerRespuestas(req, res) {
   const { id } = req.query;
+  const requesterEmail = normalizeEmail(req.body?.email || "");
+  const requesterVisitanteId = String(req.body?.visitanteId || "").trim();
 
   // Consultas paralelas a las tablas "respuestas" y "evaluaciones"
   const { data: respData } = await supabase
@@ -524,11 +536,16 @@ async function handleVerRespuestas(req, res) {
       ? evalData.contenido_tareas
       : {};
 
-  const asistenciasPublicas = asistenciasRaw.map((item) => maskPublicUserData(item));
-  const examenesPublicos = examenesRaw.map((item) => maskPublicUserData(item));
+  const requester = {
+    email: requesterEmail,
+    visitanteId: requesterVisitanteId,
+  };
+
+  const asistenciasPublicas = asistenciasRaw.map((item) => maskPublicUserData(item, requester));
+  const examenesPublicos = examenesRaw.map((item) => maskPublicUserData(item, requester));
   const tareasPublicas = {};
   Object.entries(tareasRaw).forEach(([key, value]) => {
-    tareasPublicas[key] = maskPublicUserData(value);
+    tareasPublicas[key] = maskPublicUserData(value, requester);
   });
 
   res.status(200).json({

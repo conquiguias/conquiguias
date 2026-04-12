@@ -457,19 +457,7 @@ async function handleObtenerEvaluacion(req, res) {
 }
 
 async function handleVerRespuestas(req, res) {
-  let requester = null;
-  try {
-    requester = await verifyAuthenticatedUser(req);
-  } catch (error) {
-    requester = null;
-  }
-
   const { id } = req.query;
-  const bodyEmail = normalizeEmail(req.body?.email || "");
-  const bodyVisitanteId = String(req.body?.visitanteId || "").trim();
-  const requesterEmail = normalizeEmail(requester?.email || bodyEmail);
-  const requesterUid = String(requester?.uid || bodyVisitanteId || "").trim();
-  const canViewAll = !!requester && isAdminEmail(requesterEmail);
 
   // Consultas paralelas a las tablas "respuestas" y "evaluaciones"
   const { data: respData } = await supabase
@@ -494,45 +482,10 @@ async function handleVerRespuestas(req, res) {
       ? evalData.contenido_tareas
       : {};
 
-  if (canViewAll) {
-    return res.status(200).json({
-      asistencias: asistenciasRaw,
-      examenes: examenesRaw,
-      tareas: tareasRaw,
-    });
-  }
-
-  const belongsToRequester = (item = {}) => {
-    const email = normalizeEmail(item?.correo || item?.email || "");
-    const visitanteId = String(item?.visitanteId || "").trim();
-    if (requesterEmail && email && email === requesterEmail) return true;
-    if (requesterUid && visitanteId && visitanteId === requesterUid) return true;
-    return false;
-  };
-
-  if (!requesterEmail && !requesterUid) {
-    return res.status(200).json({ asistencias: [], examenes: [], tareas: {} });
-  }
-
-  const asistencias = asistenciasRaw.filter(belongsToRequester);
-  const examenes = examenesRaw.filter(belongsToRequester);
-
-  const tareas = {};
-  Object.entries(tareasRaw).forEach(([key, value]) => {
-    const normalizedKey = String(key || "").trim().toLowerCase();
-    const keyMatchesEmail = !!requesterEmail && normalizedKey === requesterEmail;
-    const keyMatchesUid = !!requesterUid && key === requesterUid;
-    const valueMatchesRequester = belongsToRequester(value || {});
-
-    if (keyMatchesEmail || keyMatchesUid || valueMatchesRequester) {
-      tareas[key] = value;
-    }
-  });
-
   res.status(200).json({
-    asistencias,
-    examenes,
-    tareas,
+    asistencias: asistenciasRaw,
+    examenes: examenesRaw,
+    tareas: tareasRaw,
   });
 }
 

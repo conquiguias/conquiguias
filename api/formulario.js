@@ -366,6 +366,9 @@ module.exports = async function handler(req, res) {
         case "obtenerEstadoUsuario":
           await handleObtenerEstadoUsuario(req, res);
           break;
+        case "verRespuestas":
+          await handleVerRespuestas(req, res);
+          break;
         case "eliminarImagen":
           await handleEliminarImagen(req, res, repo);
           break;

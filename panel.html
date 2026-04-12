@@ -70,10 +70,9 @@
 
     /* Reset básico */
     * {
-      box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      box-sizing: border-box;
     }
 
     /* Body y contenedor principal */
@@ -7350,6 +7349,18 @@
         return result;
       }
 
+      window.getFormularioAuthHeaders = async function () {
+        const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
+        if (!idToken) {
+          throw new Error('Sesión no válida. Inicia sesión nuevamente.');
+        }
+        return {
+          'Authorization': `Bearer ${idToken}`
+        };
+      };
+
+      const getFormularioAuthHeaders = (...args) => window.getFormularioAuthHeaders(...args);
+
       // Elementos UI
       const inicioNombre = document.getElementById("inicioNombre");
       const inicioFoto = document.getElementById("inicioFoto");
@@ -8165,9 +8176,11 @@
         const identity = resolveCurrentUserIdentity();
         if (!identity.visitanteId || !identity.email) return 0;
 
+        const authHeaders = await window.getFormularioAuthHeaders();
+
         const resp = await fetch('/api/formulario?action=obtenerEstadoUsuario', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
           body: JSON.stringify({ visitanteId: identity.visitanteId, email: identity.email })
         });
 
@@ -10297,15 +10310,19 @@
           if (!user || !user.email) return;
 
           const vid = localStorage.getItem('visitanteId');
+          const authHeaders = await window.getFormularioAuthHeaders();
 
           const res = await fetch('/api/formulario?action=obtenerEstadoUsuario', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...authHeaders },
             body: JSON.stringify({ visitanteId: vid, email: user.email })
           });
 
           if (!res.ok) throw new Error("Error de conexión");
           const rawData = await res.json();
+          if (!Array.isArray(rawData)) {
+            throw new Error('Respuesta inválida del servidor');
+          }
 
           if (!rawData || rawData.length === 0) {
             if (loading) loading.style.display = 'none';
@@ -10527,16 +10544,6 @@
       window.imprimirExamenCompleto = imprimirExamenCompleto;
       window.mostrarCertificacionCompleta = mostrarCertificacionCompleta;
       window.extraerNombreFirma = extraerNombreFirma;
-
-      async function getFormularioAuthHeaders() {
-        const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
-        if (!idToken) {
-          throw new Error('Sesión no válida. Inicia sesión nuevamente.');
-        }
-        return {
-          'Authorization': `Bearer ${idToken}`
-        };
-      }
 
       // 🔹 FUNCIONES PARA CERTIFICACIÓN COMPLETA
       async function verCertificacionCompleta(formularioId, visitanteId, rubricaExterna) {
@@ -23285,12 +23292,20 @@
         if (!email) email = localStorage.getItem('userEmail');
 
         try {
+          const authHeaders = await window.getFormularioAuthHeaders();
           const resp = await fetch('/api/formulario?action=obtenerEstadoUsuario', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...authHeaders },
             body: JSON.stringify({ visitanteId: userId, email: email })
           });
+          if (!resp.ok) {
+            const payload = await resp.json().catch(() => ({}));
+            throw new Error(payload.error || 'No se pudo cargar estado de usuario');
+          }
           const data = await resp.json();
+          if (!Array.isArray(data)) {
+            throw new Error('Respuesta inválida del servidor');
+          }
           const userPendingTasksCount = countTaskSpecialtiesNotDelivered(data);
           updateTaskPendingBadge(userPendingTasksCount);
           lastTaskPendingCount = userPendingTasksCount;
@@ -24559,14 +24574,18 @@
             return;
           }
 
+          const authHeaders = await window.getFormularioAuthHeaders();
           const resp = await fetch('/api/formulario?action=obtenerEstadoUsuario', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...authHeaders },
             body: JSON.stringify({ visitanteId, email })
           });
 
           if (!resp.ok) throw new Error('Error al cargar datos');
           const data = await resp.json();
+          if (!Array.isArray(data)) {
+            throw new Error('Respuesta inválida del servidor');
+          }
 
           tbody.innerHTML = ''; // Limpiar ahora sí
 

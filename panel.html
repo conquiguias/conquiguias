@@ -4479,25 +4479,26 @@
       word-wrap: break-word;
     }
 
-    .post-description a {
+    .post-card .post-description a,
+    .post-card .post-description a:link,
+    .post-card .post-description a:visited,
+    .post-card .post-description a:active,
+    .post-card .post-description a:focus {
       margin: 0%;
       padding: 0%;
       transition: all 0.2s ease;
       font-weight: 600;
       text-underline-offset: 2px;
-      color: var(--accent-color);
-      text-decoration-color: var(--accent-color);
+      color: var(--accent-color) !important;
+      text-decoration-color: var(--accent-color) !important;
     }
 
-    .post-description a:visited {
-      color: var(--accent-color);
-      text-decoration-color: var(--accent-color);
-    }
-
-    .post-description a:hover {
-      color: var(--accent-hover);
-      opacity: 0.8;
-      text-decoration: none !important;
+    .post-card .post-description a:hover,
+    .post-card .post-description a:focus-visible {
+      color: var(--accent-hover) !important;
+      text-decoration-color: var(--accent-hover) !important;
+      opacity: 0.95;
+      text-decoration: underline;
     }
 
     /* Contador de caracteres */
@@ -16217,7 +16218,10 @@
 
         if (editMode === 'radio') {
           const radioMode = getEditableRadioMode(postData);
-          if (radioModeSelect) radioModeSelect.value = radioMode;
+          if (radioModeSelect) {
+            radioModeSelect.value = radioMode;
+            radioModeSelect.dataset.userTouched = '0';
+          }
           if (radioNameInput) radioNameInput.value = String(postData?.radioname || postData?.description || '').trim();
           if (radioUrlInput) radioUrlInput.value = String(postData?.mediaUrl || '').trim();
           setEditPostPreview(radioProfilePreview, postData?.coverimage || postData?.userPhoto || '');
@@ -16230,7 +16234,10 @@
 
         if (editMode === 'tv') {
           const tvMode = getEditableTvMode(postData);
-          if (tvModeSelect) tvModeSelect.value = tvMode;
+          if (tvModeSelect) {
+            tvModeSelect.value = tvMode;
+            tvModeSelect.dataset.userTouched = '0';
+          }
           if (tvUrlInput) tvUrlInput.value = String(postData?.mediaUrl || '').trim();
           setEditPostPreview(tvCoverPreview, postData?.posterUrl || postData?.thumbnailUrl || '');
           syncEditPostTvModeUI(modal);
@@ -16386,8 +16393,14 @@
           if (event.target === modal) closeModal();
         });
 
-        radioModeSelect?.addEventListener('change', () => syncEditPostRadioModeUI(modal));
-        tvModeSelect?.addEventListener('change', () => syncEditPostTvModeUI(modal));
+        radioModeSelect?.addEventListener('change', () => {
+          radioModeSelect.dataset.userTouched = '1';
+          syncEditPostRadioModeUI(modal);
+        });
+        tvModeSelect?.addEventListener('change', () => {
+          tvModeSelect.dataset.userTouched = '1';
+          syncEditPostTvModeUI(modal);
+        });
         radioProfileInput?.addEventListener('change', () => updateEditPostFilePreview(radioProfileInput, radioProfilePreview));
         radioCoverInput?.addEventListener('change', () => updateEditPostFilePreview(radioCoverInput, radioCoverPreview));
         tvCoverInput?.addEventListener('change', () => updateEditPostFilePreview(tvCoverInput, tvCoverPreview));
@@ -16426,13 +16439,22 @@
               updatedAt: new Date().toISOString(),
               status: postData?.status === 'approved' ? 'approved' : String(postData?.status || 'approved').toLowerCase(),
             };
+            let shouldCompactVisualUpdates = false;
 
             if (editMode === 'radio') {
               const nextMode = radioModeSelect?.value === 'musica' ? 'musica' : 'radio';
               const nextName = String(radioNameInput?.value || '').trim();
               const nextUrl = String(radioUrlInput?.value || '').trim();
               const originalRadioMode = getEditableRadioMode(postData || {});
-              const modeChanged = nextMode !== originalRadioMode;
+              const modeTouched = radioModeSelect?.dataset.userTouched === '1';
+              const modeChanged = modeTouched && nextMode !== originalRadioMode;
+              const previousName = String(postData?.radioname || postData?.description || '').trim();
+              const previousUrl = String(postData?.mediaUrl || '').trim();
+              const urlChanged = nextUrl !== previousUrl;
+              const nameChanged = nextName !== previousName;
+              const profileChanged = !!radioProfileInput?.files?.[0];
+              const coverChanged = !!radioCoverInput?.files?.[0];
+              const mediaChanged = modeChanged || urlChanged || nameChanged || profileChanged || coverChanged;
               const preservedRadioTags = (Array.isArray(postData?.tags) ? postData.tags : [])
                 .filter((tag) => {
                   const normalized = canonicalizeTag(tag);
@@ -16441,79 +16463,107 @@
               const nextRadioTag = nextMode === 'musica' ? 'musica' : 'radio';
               const mergedRadioTags = [...preservedRadioTags, nextRadioTag];
 
-              if (!nextName) {
-                mostrarMensaje('info', 'Nombre requerido', nextMode === 'musica' ? 'Escribe el nombre de la música.' : 'Escribe el nombre de la radio.');
-                return;
+              if (mediaChanged) {
+                if (!nextName) {
+                  mostrarMensaje('info', 'Nombre requerido', nextMode === 'musica' ? 'Escribe el nombre de la música.' : 'Escribe el nombre de la radio.');
+                  return;
+                }
+
+                if (!nextUrl) {
+                  mostrarMensaje('error', 'URL requerida', 'Ingresa la URL para radio o música.');
+                  return;
+                }
+
+                let profileImage = String(postData?.coverimage || '').trim() || (nextMode === 'musica'
+                  ? DEFAULT_MUSIC_PROFILE_IMAGE
+                  : (window.userData?.fotoURL || DEFAULT_RADIO_PROFILE_IMAGE));
+                let coverImage = String(postData?.radiocover || postData?.posterUrl || postData?.thumbnailUrl || '').trim() || (nextMode === 'musica'
+                  ? DEFAULT_MUSIC_COVER_IMAGE
+                  : DEFAULT_RADIO_COVER_IMAGE);
+
+                if (profileChanged) {
+                  profileImage = await optimizeImageForFirestore(await fileToBase64(radioProfileInput.files[0]), 140000);
+                }
+
+                if (coverChanged) {
+                  coverImage = await optimizeImageForFirestore(await fileToBase64(radioCoverInput.files[0]), 220000);
+                }
+
+                Object.assign(updates, {
+                  mediaUrl: nextUrl,
+                  mediaType: 'audio/url',
+                  postKind: nextMode,
+                  tags: mergedRadioTags,
+                  radioname: nextName,
+                  coverimage: profileImage,
+                  radiocover: coverImage,
+                  posterUrl: '',
+                  thumbnailUrl: '',
+                });
+                shouldCompactVisualUpdates = true;
               }
-
-              if (!nextUrl) {
-                mostrarMensaje('error', 'URL requerida', 'Ingresa la URL para radio o música.');
-                return;
-              }
-
-              let profileImage = String(postData?.coverimage || '').trim() || (nextMode === 'musica'
-                ? DEFAULT_MUSIC_PROFILE_IMAGE
-                : (window.userData?.fotoURL || DEFAULT_RADIO_PROFILE_IMAGE));
-              let coverImage = String(postData?.radiocover || postData?.posterUrl || postData?.thumbnailUrl || '').trim() || (nextMode === 'musica'
-                ? DEFAULT_MUSIC_COVER_IMAGE
-                : DEFAULT_RADIO_COVER_IMAGE);
-
-              if (radioProfileInput?.files?.[0]) {
-                profileImage = await optimizeImageForFirestore(await fileToBase64(radioProfileInput.files[0]), 140000);
-              }
-
-              if (radioCoverInput?.files?.[0]) {
-                coverImage = await optimizeImageForFirestore(await fileToBase64(radioCoverInput.files[0]), 220000);
-              }
-
-              Object.assign(updates, {
-                mediaUrl: nextUrl,
-                mediaType: 'audio/url',
-                postKind: nextMode,
-                tags: mergedRadioTags,
-                radioname: nextName,
-                coverimage: profileImage,
-                radiocover: coverImage,
-                posterUrl: '',
-                thumbnailUrl: '',
-              });
             } else if (editMode === 'tv') {
               const nextMode = tvModeSelect?.value === 'video' ? 'video' : 'tv';
               const nextUrl = String(tvUrlInput?.value || '').trim();
               const originalTvMode = getEditableTvMode(postData || {});
-              const modeChanged = nextMode !== originalTvMode;
+              const modeTouched = tvModeSelect?.dataset.userTouched === '1';
+              const previousUrl = String(postData?.mediaUrl || '').trim();
+              const urlChanged = nextUrl !== previousUrl;
+              const coverChanged = !!tvCoverInput?.files?.[0];
+              const mediaChanged = modeTouched || urlChanged || coverChanged;
               const preservedTvTags = (Array.isArray(postData?.tags) ? postData.tags : [])
                 .filter((tag) => {
                   const normalized = canonicalizeTag(tag);
                   return normalized !== 'tv' && normalized !== 'television' && normalized !== 'video';
                 });
-              const nextTvTag = nextMode === 'video' ? 'video' : 'television';
-              const mergedTvTags = [...preservedTvTags, nextTvTag];
+              if (mediaChanged) {
+                if (!nextUrl) {
+                  mostrarMensaje('error', 'URL requerida', nextMode === 'video' ? 'Ingresa la URL para Video.' : 'Ingresa la URL para TV.');
+                  return;
+                }
 
-              if (!nextUrl) {
-                mostrarMensaje('error', 'URL requerida', nextMode === 'video' ? 'Ingresa la URL para Video.' : 'Ingresa la URL para TV.');
-                return;
+                const requestedTvTag = nextMode === 'video' ? 'video' : 'television';
+                const requestedTvTags = [...preservedTvTags, requestedTvTag];
+                const inferredTvMode = getEditableTvMode({
+                  ...(postData || {}),
+                  mediaUrl: nextUrl,
+                  mediaType: inferUrlMediaType(nextUrl),
+                  description: newDescription,
+                  tags: requestedTvTags,
+                  postKind: nextMode,
+                });
+                const effectiveTvMode = nextMode === 'tv' && inferredTvMode === 'video'
+                  ? 'video'
+                  : nextMode;
+                const effectiveTvTag = effectiveTvMode === 'video' ? 'video' : 'television';
+                const effectiveTvTags = [...preservedTvTags, effectiveTvTag];
+                const modeChanged = effectiveTvMode !== originalTvMode;
+
+                let coverImage = String(postData?.posterUrl || postData?.thumbnailUrl || '').trim();
+                if (coverChanged) {
+                  coverImage = await optimizeImageForFirestore(await fileToBase64(tvCoverInput.files[0]), 240000);
+                }
+
+                Object.assign(updates, {
+                  mediaUrl: nextUrl,
+                  mediaType: (urlChanged || modeChanged)
+                    ? inferUrlMediaType(nextUrl)
+                    : String(postData?.mediaType || inferUrlMediaType(nextUrl)),
+                  postKind: effectiveTvMode,
+                  tags: effectiveTvTags,
+                  posterUrl: coverImage,
+                  thumbnailUrl: '',
+                });
+                shouldCompactVisualUpdates = true;
               }
-
-              let coverImage = String(postData?.posterUrl || postData?.thumbnailUrl || '').trim() || DEFAULT_TV_COVER_IMAGE;
-              if (tvCoverInput?.files?.[0]) {
-                coverImage = await optimizeImageForFirestore(await fileToBase64(tvCoverInput.files[0]), 240000);
-              }
-
-              Object.assign(updates, {
-                mediaUrl: nextUrl,
-                mediaType: modeChanged ? inferUrlMediaType(nextUrl) : String(postData?.mediaType || inferUrlMediaType(nextUrl)),
-                postKind: nextMode,
-                tags: mergedTvTags,
-                posterUrl: coverImage,
-                thumbnailUrl: '',
-              });
             }
 
-            Object.assign(updates, await buildCompactVisualUpdates({
-              ...(postData || {}),
-              ...updates,
-            }, editMode));
+            if (shouldCompactVisualUpdates) {
+              Object.assign(updates, await buildCompactVisualUpdates({
+                ...(postData || {}),
+                ...updates,
+              }, editMode));
+            }
 
             try {
               await updateDoc(doc(db, 'posts', postId), updates);

@@ -13697,7 +13697,7 @@
         { key: 'conquis',          label: 'Conquis',          tags: ['conquis', 'conqui', 'conquistadores', 'conquistador'] },
         { key: 'panoleta',         label: 'Pañoleta',         tags: ['panoleta', 'pañoleta', 'panuelo', 'pañuelo'] },
         { key: 'post-adventistas', label: 'Post Adventistas', tags: ['postadventistas', 'post-adventistas', 'post adventistas', 'adventistas', 'adventista'] },
-        { key: 'television',       label: 'Televisión',       tags: ['television', 'tv', 'tele'] },
+        { key: 'television',       label: 'Televisión',       tags: ['television', 'tv', 'tele', 'video'] },
         { key: 'radio',            label: 'Radio',            tags: ['radio'] },
         { key: 'musica',           label: 'Música',           tags: ['musica', 'música', 'music', 'musica cristiana', 'musica adventista'] },
         { key: 'podcast',          label: 'Podcast',          tags: ['podcast', 'potcast', 'pod cast'] },
@@ -13836,6 +13836,7 @@
         const postTags = getPostTagSet(post);
         const normalizedPostKind = getNormalizedPostKind(post);
         const normalizedDescription = normalizeTagValue(String(post?.description || ''));
+        const normalizedMediaType = normalizeTagValue(String(post?.mediaType || ''));
         const activeCategoryCanonical = canonicalizeTag(activeFeedCategory);
         const debugRawFields = {
           category: String(post?.category || '').trim(),
@@ -13898,6 +13899,10 @@
             logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'radio-postKind-radio', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80), raw: debugRawFields });
             return true;
           }
+          if (normalizedMediaType === 'audiourl' || normalizedMediaType.startsWith('audio')) {
+            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'radio-mediaType-audio', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80), raw: debugRawFields });
+            return true;
+          }
           if (String(post?.radioname || '').trim() || String(post?.radiocover || '').trim()) {
             logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'radio-legacy-fields', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80), raw: debugRawFields });
             return true;
@@ -13909,16 +13914,20 @@
         }
 
         if (activeFeedCategory === 'television') {
-          if (normalizedPostKind === 'tv' || normalizedPostKind === 'television') {
-            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'tv-postKind-tv-television', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80), raw: debugRawFields });
+          if (normalizedPostKind === 'tv' || normalizedPostKind === 'television' || normalizedPostKind === 'video') {
+            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'tv-postKind-tv-television-video', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80), raw: debugRawFields });
             return true;
           }
-          if (normalizedDescription.includes('#television') || normalizedDescription.includes('#tv')) {
+          if (normalizedMediaType === 'videourl' || normalizedMediaType.startsWith('video')) {
+            logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'tv-mediaType-video', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80), raw: debugRawFields });
+            return true;
+          }
+          if (normalizedDescription.includes('#television') || normalizedDescription.includes('#tv') || normalizedDescription.includes('#video')) {
             logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'tv-hashtag', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80), raw: debugRawFields });
             return true;
           }
           if ((String(post?.posterUrl || '').trim() || String(post?.thumbnailUrl || '').trim()) &&
-              (normalizedDescription.includes('#television') || normalizedDescription.includes('#tv'))) {
+              (normalizedDescription.includes('#television') || normalizedDescription.includes('#tv') || normalizedDescription.includes('#video'))) {
             logCategoryFilterDecision({ category: categoryForDebug, matched: true, reason: 'tv-cover-and-hashtag', id: post?.id || '', postKind: normalizedPostKind, tags: Array.from(postTags), description: String(post?.description || '').slice(0, 80), raw: debugRawFields });
             return true;
           }

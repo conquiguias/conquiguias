@@ -12096,6 +12096,44 @@
         return 'video/url';
       }
 
+      function normalizePostMediaForRender(postLike) {
+        const post = postLike && typeof postLike === 'object' ? { ...postLike } : {};
+
+        const resolvedMediaUrl = [
+          post.mediaUrl,
+          post.streamurl,
+          post.streamUrl,
+          post.url,
+          post.videoUrl,
+          post.videoURL,
+          post.audioUrl,
+          post.audioURL,
+          post.sourceUrl,
+        ]
+          .map((value) => String(value || '').trim())
+          .find(Boolean) || '';
+
+        const existingMediaType = String(post.mediaType || '').trim().toLowerCase();
+        let resolvedMediaType = existingMediaType;
+        if (!resolvedMediaType && resolvedMediaUrl) {
+          const normalizedKind = getNormalizedPostKind(post);
+          if (normalizedKind === 'radio' || normalizedKind === 'musica') {
+            resolvedMediaType = 'audio/url';
+          } else {
+            resolvedMediaType = inferUrlMediaType(resolvedMediaUrl);
+          }
+        }
+
+        if (resolvedMediaUrl) {
+          post.mediaUrl = resolvedMediaUrl;
+        }
+        if (resolvedMediaType) {
+          post.mediaType = resolvedMediaType;
+        }
+
+        return post;
+      }
+
       function shouldPreferLunaRadio(post) {
         const mediaType = String(post?.mediaType || '').toLowerCase();
         const mediaUrl = String(post?.mediaUrl || '').toLowerCase();
@@ -14708,6 +14746,7 @@
       // 🔹 Mostrar publicación en el feed - VERSIÓN MEJORADA
       // 🔹 Mostrar publicación en el feed - VERSIÓN CON REACCIONES EXCLUSIVAS
       function displayPost(post, postId, targetFeed) {
+        post = normalizePostMediaForRender(post);
         const feedDestino = targetFeed || feed;
         const { currentUserId, isAdmin } = window;
         const postElement = document.createElement('div');

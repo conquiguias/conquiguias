@@ -12101,13 +12101,23 @@
 
         const resolvedMediaUrl = [
           post.mediaUrl,
+          post.mediaURL,
           post.streamurl,
           post.streamUrl,
+          post.stream,
+          post.streamURL,
+          post.stream_link,
           post.url,
+          post.link,
+          post.href,
+          post.src,
           post.videoUrl,
           post.videoURL,
+          post.video,
           post.audioUrl,
           post.audioURL,
+          post.audio,
+          post.source,
           post.sourceUrl,
         ]
           .map((value) => String(value || '').trim())
@@ -12117,7 +12127,15 @@
         let resolvedMediaType = existingMediaType;
         if (!resolvedMediaType && resolvedMediaUrl) {
           const normalizedKind = getNormalizedPostKind(post);
-          if (normalizedKind === 'radio' || normalizedKind === 'musica') {
+          const hashtagTags = extractPostHashtags(post?.description || '').map(canonicalizeTag);
+          const structuredTags = [post?.hashtags, post?.etiquetas, post?.tags]
+            .flatMap((value) => Array.isArray(value) ? value : (typeof value === 'string' ? value.split(/[\s,;|]+/) : []))
+            .map((value) => canonicalizeTag(String(value || '').replace(/^#/, '')))
+            .filter(Boolean);
+          const tagSet = new Set([...hashtagTags, ...structuredTags]);
+          const looksAudioByTag = tagSet.has('radio') || tagSet.has('musica') || tagSet.has('music');
+
+          if (normalizedKind === 'radio' || normalizedKind === 'musica' || looksAudioByTag) {
             resolvedMediaType = 'audio/url';
           } else {
             resolvedMediaType = inferUrlMediaType(resolvedMediaUrl);

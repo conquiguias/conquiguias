@@ -1084,6 +1084,16 @@
             if (responseData.visitanteId) {
               visitanteId = responseData.visitanteId;
             }
+            if (Array.isArray(responseData.misAsistencias)) {
+              misAsistencias = [
+                ...new Set(
+                  responseData.misAsistencias
+                    .map((n) => Number(n))
+                    .filter((n) => [1, 2].includes(n)),
+                ),
+              ].sort((a, b) => a - b);
+              actualizarUI();
+            }
 
             alert(
               responseData.message || "✅ Asistencia registrada correctamente",
@@ -1119,7 +1129,24 @@
         return "***-" + t.slice(-4);
       }
 
+      function ocultarNombreParcial(nombre) {
+        const texto = String(nombre || "").trim();
+        if (!texto) return "Anónimo";
+
+        const partes = texto.split(/\s+/).filter(Boolean);
+        if (partes.length <= 1) return partes[0];
+
+        return `${partes[0]} ${partes
+          .slice(1)
+          .map((palabra) => "*".repeat(Math.max(3, palabra.length)))
+          .join(" ")}`;
+      }
+
       async function cargarRespuestas() {
+        if (!isAdmin || !adminSessionToken) {
+          return;
+        }
+
         const tbody = document.querySelector("#tablaRespuestas tbody");
         try {
           const authHeaders = adminSessionToken
@@ -1233,7 +1260,7 @@
             const fila = `
               <tr style="${esYo ? "background:#eff6ff;" : ""}">
                 <td>${idx + 1}</td>
-                <td>${r.nombre || "Anónimo"}</td>
+                <td>${ocultarNombreParcial(r.nombre)}</td>
                 <td>${esYo ? r.correo : ocultarEmail(r.correo)}</td>
                 <td>${new Date(r.fecha).toLocaleDateString()}</td>
                 <td>${r.asistencias.join(", ")}</td>

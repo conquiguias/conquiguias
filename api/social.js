@@ -2525,7 +2525,6 @@ async function handleCheckStream(req, res) {
   const publicOwnerProfile = {
     name: String(ownerProfile?.name || "Admin").trim() || "Admin",
     photo: String(ownerProfile?.photo || "").trim(),
-    age: Number.isFinite(ownerProfile?.age) ? ownerProfile.age : null,
   };
 
   return res.status(200).json({

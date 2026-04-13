@@ -70,6 +70,7 @@ const ADMIN_NOTES_MAX_TABS = 30;
 const DELETE_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const DELETE_RATE_LIMIT_MAX_REQUESTS = 20;
 const deleteRateLimitStore = new Map();
+const SECURITY_RATE_LIMITS_COLLECTION = "security_rate_limits";
 
 function resolveUserNotesType() {
   if (USER_NOTES_ALLOWED_TYPES.has(USER_NOTES_TYPE)) {
@@ -254,6 +255,9 @@ export default async function handler(req, res) {
         break;
       case "check-stream":
         await handleCheckStream(req, res);
+        break;
+      case "cleanup-rate-limits":
+        await handleCleanupRateLimits(req, res);
         break;
       default:
         res.status(400).json({ error: "AcciÃ³n no vÃ¡lida" });
@@ -1580,6 +1584,79 @@ async function resolveReminderJobAccess(req) {
 
   const actor = await requireAdminOrOwner(req);
   return { mode: "admin", actor };
+}
+
+async function resolveMaintenanceJobAccess(req) {
+  if (isCronSecretAuthorized(req)) {
+    return { mode: "cron", actor: "vercel-cron" };
+  }
+
+  const actor = await requireAdminOrOwner(req);
+  return { mode: "admin", actor };
+}
+
+async function handleCleanupRateLimits(req, res) {
+  if (!["GET", "POST"].includes(req.method || "")) {
+    return res.status(405).json({ error: "MÃ©todo no permitido" });
+  }
+
+  try {
+    const access = await resolveMaintenanceJobAccess(req);
+    const payload = req.method === "POST" ? (req.body || {}) : (req.query || {});
+    const requestedBatchSize = Number.parseInt(String(payload?.batchSize || payload?.limit || "500"), 10);
+    const requestedBatches = Number.parseInt(String(payload?.maxBatches || "4"), 10);
+
+    const batchSize = Number.isFinite(requestedBatchSize)
+      ? Math.max(1, Math.min(requestedBatchSize, 1000))
+      : 500;
+    const maxBatches = Number.isFinite(requestedBatches)
+      ? Math.max(1, Math.min(requestedBatches, 20))
+      : 4;
+
+    const db = admin.firestore();
+    const now = Date.now();
+    let deleted = 0;
+    let batches = 0;
+
+    for (let index = 0; index < maxBatches; index += 1) {
+      const expiredSnap = await db
+        .collection(SECURITY_RATE_LIMITS_COLLECTION)
+        .where("expiresAtMs", "<=", now)
+        .limit(batchSize)
+        .get();
+
+      if (expiredSnap.empty) break;
+
+      const writer = db.bulkWriter();
+      expiredSnap.docs.forEach((docSnap) => {
+        writer.delete(docSnap.ref);
+      });
+      await writer.close();
+
+      deleted += expiredSnap.size;
+      batches += 1;
+
+      if (expiredSnap.size < batchSize) break;
+    }
+
+    return res.status(200).json({
+      success: true,
+      mode: access.mode,
+      actor: access.actor,
+      deleted,
+      batches,
+      batchSize,
+      maxBatches,
+      collection: SECURITY_RATE_LIMITS_COLLECTION,
+      checkedAtMs: now,
+    });
+  } catch (error) {
+    console.error("Error limpiando rate limits expirados:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || "No se pudieron limpiar los rate limits expirados",
+    });
+  }
 }
 
 function normalizeTaskDeadline(formData = {}) {

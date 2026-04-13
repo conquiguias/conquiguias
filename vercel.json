@@ -53,6 +53,10 @@
     {
       "path": "/api/social?action=send-task-reminders",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/social?action=cleanup-rate-limits",
+      "schedule": "30 6 * * *"
     }
   ]
 }

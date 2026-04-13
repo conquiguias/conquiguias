@@ -16,10 +16,114 @@ const ADMIN_EMAILS = Array.from(
   ),
 );
 
+const AUTH_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const authRateLimitStore = new Map();
+const SECURITY_RATE_LIMITS_COLLECTION = "security_rate_limits";
+
 function normalizeEmail(value) {
   return String(value || "")
     .trim()
     .toLowerCase();
+}
+
+function getRequesterIp(req) {
+  const forwardedFor = String(req?.headers?.["x-forwarded-for"] || "").trim();
+  if (forwardedFor) {
+    return String(forwardedFor.split(",")[0] || "").trim();
+  }
+  return String(req?.socket?.remoteAddress || "").trim();
+}
+
+function consumeRateLimit(key, limit, windowMs = AUTH_RATE_LIMIT_WINDOW_MS) {
+  const safeKey = String(key || "").trim();
+  if (!safeKey) return;
+
+  const now = Date.now();
+  const existing = authRateLimitStore.get(safeKey) || {
+    count: 0,
+    windowStart: now,
+  };
+
+  if (now - existing.windowStart >= windowMs) {
+    authRateLimitStore.set(safeKey, { count: 1, windowStart: now });
+    return;
+  }
+
+  if (existing.count >= limit) {
+    const error = new Error("Demasiados intentos. Intenta más tarde");
+    error.statusCode = 429;
+    throw error;
+  }
+
+  existing.count += 1;
+  authRateLimitStore.set(safeKey, existing);
+}
+
+function isValidEmailFormat(value) {
+  const email = normalizeEmail(value);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function timingSafeStringCompare(left, right) {
+  const a = Buffer.from(String(left || ""), "utf8");
+  const b = Buffer.from(String(right || ""), "utf8");
+  const maxLen = Math.max(a.length, b.length, 1);
+  const pa = Buffer.alloc(maxLen);
+  const pb = Buffer.alloc(maxLen);
+  a.copy(pa);
+  b.copy(pb);
+  const sameBytes = crypto.timingSafeEqual(pa, pb);
+  return sameBytes && a.length === b.length;
+}
+
+function getRateLimitDocId(scope, key) {
+  const payload = `${String(scope || "").trim()}::${String(key || "").trim()}`;
+  return crypto.createHash("sha256").update(payload).digest("hex");
+}
+
+async function consumePersistentRateLimit(scope, key, limit, windowMs) {
+  const safeScope = String(scope || "").trim();
+  const safeKey = String(key || "").trim();
+  if (!safeScope || !safeKey) return;
+
+  const maxRequests = Math.max(1, Number(limit) || 1);
+  const ttlWindowMs = Math.max(1000, Number(windowMs) || AUTH_RATE_LIMIT_WINDOW_MS);
+  const now = Date.now();
+
+  const db = admin.firestore();
+  const docId = getRateLimitDocId(safeScope, safeKey);
+  const docRef = db.collection(SECURITY_RATE_LIMITS_COLLECTION).doc(docId);
+
+  await db.runTransaction(async (transaction) => {
+    const snap = await transaction.get(docRef);
+    const data = snap.exists ? snap.data() || {} : {};
+
+    const previousWindowStart = Number(data.windowStartMs || 0);
+    const previousCount = Number(data.count || 0);
+    const stillInWindow = previousWindowStart > 0 && now - previousWindowStart < ttlWindowMs;
+
+    let nextCount = stillInWindow ? previousCount + 1 : 1;
+    let nextWindowStart = stillInWindow ? previousWindowStart : now;
+
+    if (nextCount > maxRequests) {
+      const error = new Error("Demasiados intentos. Intenta más tarde");
+      error.statusCode = 429;
+      throw error;
+    }
+
+    transaction.set(
+      docRef,
+      {
+        scope: safeScope,
+        keyHash: getRateLimitDocId("key", safeKey),
+        windowStartMs: nextWindowStart,
+        count: nextCount,
+        expiresAtMs: nextWindowStart + ttlWindowMs,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+  });
 }
 
 function getBearerToken(req) {
@@ -201,6 +305,12 @@ module.exports = async (req, res) => {
         fileName,
       } = data;
 
+      const normalizedEmail = normalizeEmail(email);
+      const requesterIp = getRequesterIp(req) || "unknown";
+
+      await consumePersistentRateLimit("register_ip", requesterIp, 10, 10 * 60 * 1000);
+      await consumePersistentRateLimit("register_email", normalizedEmail || "unknown", 4, 30 * 60 * 1000);
+
       // Validaciones
       if (!nombre || !apellido || !email || !password) {
         return res
@@ -208,9 +318,13 @@ module.exports = async (req, res) => {
           .json({ error: "Todos los campos son obligatorios" });
       }
 
+      if (!isValidEmailFormat(normalizedEmail)) {
+        return res.status(400).json({ error: "El formato del correo electrónico no es válido" });
+      }
+
       // Crear usuario en Auth
       const userRecord = await admin.auth().createUser({
-        email: email,
+        email: normalizedEmail,
         password: password,
         displayName: `${nombre} ${apellido}`,
         emailVerified: false,
@@ -248,7 +362,7 @@ module.exports = async (req, res) => {
         edad,
         sexo,
         pais,
-        email,
+        email: normalizedEmail,
         fotoURL,
         emailVerificado: false,
         creado: admin.firestore.FieldValue.serverTimestamp(),
@@ -259,7 +373,7 @@ module.exports = async (req, res) => {
       // Enviar verificación de email
       const verificationLink = await admin
         .auth()
-        .generateEmailVerificationLink(email);
+        .generateEmailVerificationLink(normalizedEmail);
 
       // Aquí podrías integrar SendGrid o otro servicio de email
       console.log("Link de verificación:", verificationLink);
@@ -312,14 +426,30 @@ module.exports = async (req, res) => {
     else if (action === "resendVerification") {
       const { email } = data;
 
-      const verificationLink = await admin
-        .auth()
-        .generateEmailVerificationLink(email);
-      console.log("Nuevo link de verificación:", verificationLink);
+      const normalizedEmail = normalizeEmail(email);
+      const requesterIp = getRequesterIp(req) || "unknown";
+      consumeRateLimit(`resendVerification:ip:${requesterIp}`, 12);
+      consumeRateLimit(`resendVerification:email:${normalizedEmail || "unknown"}`, 4);
+
+      if (!isValidEmailFormat(normalizedEmail)) {
+        return res.status(200).json({
+          success: true,
+          message: "Si el correo existe, se enviará un enlace de verificación",
+        });
+      }
+
+      try {
+        const verificationLink = await admin
+          .auth()
+          .generateEmailVerificationLink(normalizedEmail);
+        console.log("Nuevo link de verificación:", verificationLink);
+      } catch (_error) {
+        // Respuesta uniforme para evitar enumeración de cuentas
+      }
 
       return res.status(200).json({
         success: true,
-        message: "Email de verificación reenviado",
+        message: "Si el correo existe, se enviará un enlace de verificación",
       });
     }
 
@@ -327,12 +457,28 @@ module.exports = async (req, res) => {
     else if (action === "resetPassword") {
       const { email } = data;
 
-      const resetLink = await admin.auth().generatePasswordResetLink(email);
-      console.log("Link de recuperación:", resetLink);
+      const normalizedEmail = normalizeEmail(email);
+      const requesterIp = getRequesterIp(req) || "unknown";
+      consumeRateLimit(`resetPassword:ip:${requesterIp}`, 12);
+      consumeRateLimit(`resetPassword:email:${normalizedEmail || "unknown"}`, 4);
+
+      if (!isValidEmailFormat(normalizedEmail)) {
+        return res.status(200).json({
+          success: true,
+          message: "Si el correo existe, se enviará un enlace de recuperación",
+        });
+      }
+
+      try {
+        const resetLink = await admin.auth().generatePasswordResetLink(normalizedEmail);
+        console.log("Link de recuperación:", resetLink);
+      } catch (_error) {
+        // Respuesta uniforme para evitar enumeración de cuentas
+      }
 
       return res.status(200).json({
         success: true,
-        message: "Email de recuperación enviado",
+        message: "Si el correo existe, se enviará un enlace de recuperación",
       });
     }
 
@@ -483,6 +629,10 @@ module.exports = async (req, res) => {
       const { email, password } = data || {};
       const normalizedEmail = normalizeEmail(email);
       const serverAdminPass = String(process.env.ADMIN_PASSWORD || "");
+      const requesterIp = getRequesterIp(req) || "unknown";
+
+      consumeRateLimit(`verifyAdminPassword:ip:${requesterIp}`, 15);
+      consumeRateLimit(`verifyAdminPassword:email:${normalizedEmail || "unknown"}`, 6);
 
       if (!serverAdminPass) {
         return res.status(503).json({ error: "ADMIN_PASSWORD no configurado" });
@@ -493,7 +643,7 @@ module.exports = async (req, res) => {
         return res.status(403).json({ error: "Correo no autorizado" });
       }
 
-      if (String(password || "") === serverAdminPass) {
+      if (timingSafeStringCompare(String(password || ""), serverAdminPass)) {
         const adminSessionToken = createAdminSessionToken(normalizedEmail);
         return res.status(200).json({ success: true, adminSessionToken });
       } else {

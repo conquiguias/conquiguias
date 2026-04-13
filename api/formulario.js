@@ -103,6 +103,66 @@ function maskPublicUserData(record = {}, requester = {}) {
 }
 
 const TASK_PDF_SIGNED_URL_TTL_SECONDS = 7 * 24 * 60 * 60;
+const SECURITY_RATE_LIMITS_COLLECTION = "security_rate_limits";
+
+function getRequesterIp(req) {
+  const forwardedFor = String(req?.headers?.["x-forwarded-for"] || "").trim();
+  if (forwardedFor) {
+    return String(forwardedFor.split(",")[0] || "").trim();
+  }
+  return String(req?.socket?.remoteAddress || "").trim();
+}
+
+function getRateLimitDocId(scope, key) {
+  const payload = `${String(scope || "").trim()}::${String(key || "").trim()}`;
+  return crypto.createHash("sha256").update(payload).digest("hex");
+}
+
+async function consumePersistentRateLimit(scope, key, limit, windowMs) {
+  const safeScope = String(scope || "").trim();
+  const safeKey = String(key || "").trim();
+  if (!safeScope || !safeKey) return;
+
+  const maxRequests = Math.max(1, Number(limit) || 1);
+  const ttlWindowMs = Math.max(1000, Number(windowMs) || 60 * 1000);
+  const now = Date.now();
+
+  const db = admin.firestore();
+  const docRef = db
+    .collection(SECURITY_RATE_LIMITS_COLLECTION)
+    .doc(getRateLimitDocId(safeScope, safeKey));
+
+  await db.runTransaction(async (transaction) => {
+    const snap = await transaction.get(docRef);
+    const data = snap.exists ? snap.data() || {} : {};
+
+    const previousWindowStart = Number(data.windowStartMs || 0);
+    const previousCount = Number(data.count || 0);
+    const stillInWindow = previousWindowStart > 0 && now - previousWindowStart < ttlWindowMs;
+
+    const nextCount = stillInWindow ? previousCount + 1 : 1;
+    const nextWindowStart = stillInWindow ? previousWindowStart : now;
+
+    if (nextCount > maxRequests) {
+      const error = new Error("Demasiados intentos. Intenta más tarde");
+      error.statusCode = 429;
+      throw error;
+    }
+
+    transaction.set(
+      docRef,
+      {
+        scope: safeScope,
+        keyHash: getRateLimitDocId("key", safeKey),
+        windowStartMs: nextWindowStart,
+        count: nextCount,
+        expiresAtMs: nextWindowStart + ttlWindowMs,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+  });
+}
 
 async function withFreshTaskSignedUrl(task) {
   if (!task || typeof task !== "object") return task;
@@ -509,9 +569,10 @@ async function handleObtenerEvaluacion(req, res) {
 }
 
 async function handleVerRespuestas(req, res) {
+  const requesterAuth = await verifyAuthenticatedUser(req);
   const { id } = req.query;
-  const requesterEmail = normalizeEmail(req.body?.email || "");
-  const requesterVisitanteId = String(req.body?.visitanteId || "").trim();
+  const requesterEmail = normalizeEmail(requesterAuth?.email || "");
+  const requesterVisitanteId = String(requesterAuth?.uid || "").trim();
 
   // Consultas paralelas a las tablas "respuestas" y "evaluaciones"
   const { data: respData } = await supabase
@@ -725,6 +786,8 @@ async function handleGuardar(req, res) {
 
   const asistenciaNum = Number(asistenciaNumero);
   const correoNormalizado = (correo || "").trim().toLowerCase();
+  const ip = getRequesterIp(req) || "unknown";
+  const visitanteKey = String(visitanteId || "").trim();
 
   if (!id) {
     return res.status(400).json({ error: "❌ Falta el ID del formulario." });
@@ -746,6 +809,22 @@ async function handleGuardar(req, res) {
       .json({
         error: "❌ El nombre es obligatorio para la primera asistencia.",
       });
+  }
+
+  await consumePersistentRateLimit("guardar_asistencia_ip", ip, 20, 10 * 60 * 1000);
+  await consumePersistentRateLimit(
+    "guardar_asistencia_email_form",
+    `${id}::${correoNormalizado}`,
+    6,
+    10 * 60 * 1000,
+  );
+  if (visitanteKey) {
+    await consumePersistentRateLimit(
+      "guardar_asistencia_visitante_form",
+      `${id}::${visitanteKey}`,
+      8,
+      10 * 60 * 1000,
+    );
   }
 
   // 1. Verificar estado activo desde Supabase

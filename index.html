@@ -208,7 +208,6 @@
         const resetPasswordForm = document.getElementById("resetPasswordForm");
         const loginBtn = document.getElementById("loginBtn");
         const googleLoginBtn = document.getElementById("googleLoginBtn");
-        const appleLoginBtn = document.getElementById("appleLoginBtn");
         const registerBtn = document.getElementById("registerBtn");
         const resetPasswordBtn = document.getElementById("resetPasswordBtn");
         const registerPasswordInput = document.getElementById("passwordX");
@@ -520,55 +519,6 @@
               "error",
               "⚠️ No se pudo iniciar con Google",
               "Verifica que Google esté habilitado en Firebase Authentication y que tu dominio esté autorizado.",
-            );
-          }
-        });
-
-        appleLoginBtn?.addEventListener("click", async () => {
-          showLoader(appleLoginBtn, "⏳ Conectando con Apple...");
-
-          try {
-            const authInstance = await ensureFirebaseAuth();
-            const { OAuthProvider, signInWithPopup, signInWithRedirect } =
-              await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
-
-            const provider = new OAuthProvider("apple.com");
-            provider.addScope("email");
-            provider.addScope("name");
-
-            const result = await signInWithPopup(authInstance, provider);
-            await syncSocialProfile(result.user);
-
-            showLoader(appleLoginBtn, "✅ Redirigiendo...");
-            setTimeout(() => {
-              window.location.href = "/";
-            }, 700);
-          } catch (error) {
-            if (
-              error?.code === "auth/popup-blocked" ||
-              error?.code === "auth/popup-closed-by-user"
-            ) {
-              try {
-                const authInstance = await ensureFirebaseAuth();
-                const { OAuthProvider, signInWithRedirect } =
-                  await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
-                const provider = new OAuthProvider("apple.com");
-                provider.addScope("email");
-                provider.addScope("name");
-                await signInWithRedirect(authInstance, provider);
-                return;
-              } catch (redirectError) {
-                hideLoader(appleLoginBtn, "Continuar con Apple");
-                console.error(redirectError);
-              }
-            }
-
-            hideLoader(appleLoginBtn, "Continuar con Apple");
-            console.error(error);
-            mostrarMensaje(
-              "error",
-              "⚠️ No se pudo iniciar con Apple",
-              "Verifica que Apple esté habilitado en Firebase Authentication y que tu dominio esté autorizado.",
             );
           }
         });
@@ -1269,10 +1219,6 @@
             <button type="button" id="googleLoginBtn" style="font-size: 18px">
               <i class="fab fa-google" style="margin-right: 8px"></i>Continuar
               con Google
-            </button>
-            <button type="button" id="appleLoginBtn" style="font-size: 18px; margin-top: 10px; background: #111827; border: 1px solid var(--border-color); color: var(--text-primary);">
-              <i class="fab fa-apple" style="margin-right: 8px"></i>Continuar
-              con Apple
             </button>
             <div class="guest-access-note">
               También puedes

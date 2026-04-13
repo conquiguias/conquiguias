@@ -541,6 +541,11 @@
       box-shadow: 0 10px 20px var(--shadow-color);
     }
 
+    #inicioSection.card {
+      width: 100%;
+      max-width: none;
+    }
+
     /* Inputs y selects */
     input,
     select,
@@ -3621,6 +3626,11 @@
       }
 
       #mainContent {
+
+    #mainContent>.card:not(.card-certificaciones) {
+      width: 100%;
+      max-width: none !important;
+    }
         padding: 0px;
         margin-top: 0;
         width: 100%;

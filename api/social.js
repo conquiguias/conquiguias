@@ -67,6 +67,9 @@ const USER_NOTES_ALLOWED_TYPES = new Set(
 const ADMIN_NOTES_MAX_HTML = 2_000_000;
 const ADMIN_NOTES_MAX_FILE_NAME = 180;
 const ADMIN_NOTES_MAX_TABS = 30;
+const DELETE_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const DELETE_RATE_LIMIT_MAX_REQUESTS = 20;
+const deleteRateLimitStore = new Map();
 
 function resolveUserNotesType() {
   if (USER_NOTES_ALLOWED_TYPES.has(USER_NOTES_TYPE)) {
@@ -104,6 +107,42 @@ function setSecurityHeaders(res) {
   res.setHeader("X-XSS-Protection", "1; mode=block");
   res.setHeader("Strict-Transport-Security", "max-age=31536000");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+}
+
+function getRequesterIp(req) {
+  const forwardedFor = String(req.headers["x-forwarded-for"] || "").trim();
+  if (forwardedFor) {
+    const firstIp = forwardedFor.split(",")[0] || "";
+    return String(firstIp).trim();
+  }
+  return String(req.socket?.remoteAddress || "").trim();
+}
+
+function enforceDeleteRateLimit(identityKey) {
+  const key = String(identityKey || "").trim();
+  if (!key) {
+    const error = new Error("No se pudo identificar la solicitud");
+    error.statusCode = 429;
+    throw error;
+  }
+
+  const now = Date.now();
+  const existing = deleteRateLimitStore.get(key) || { count: 0, windowStart: now };
+  const isExpired = now - existing.windowStart >= DELETE_RATE_LIMIT_WINDOW_MS;
+
+  if (isExpired) {
+    deleteRateLimitStore.set(key, { count: 1, windowStart: now });
+    return;
+  }
+
+  if (existing.count >= DELETE_RATE_LIMIT_MAX_REQUESTS) {
+    const error = new Error("Demasiadas solicitudes de eliminación. Intenta de nuevo en unos segundos");
+    error.statusCode = 429;
+    throw error;
+  }
+
+  existing.count += 1;
+  deleteRateLimitStore.set(key, existing);
 }
 
 export default async function handler(req, res) {
@@ -234,13 +273,22 @@ async function handleDelete(req, res) {
     return res.status(405).json({ error: "MÃ©todo no permitido" });
   }
 
-  const { deletehash } = req.body;
-
-  if (!deletehash) {
-    return res.status(400).json({ error: "Deletehash requerido" });
-  }
-
   try {
+    const body = req.body || {};
+    const requester = await requireAuthenticated(req, body);
+    const identityKey = requester.uid || requester.email || getRequesterIp(req) || "anonymous";
+    enforceDeleteRateLimit(identityKey);
+
+    const deletehash = String(body.deletehash || "").trim();
+
+    if (!deletehash) {
+      return res.status(400).json({ error: "Deletehash requerido" });
+    }
+
+    if (!/^[a-zA-Z0-9_-]{5,200}$/.test(deletehash)) {
+      return res.status(400).json({ error: "Deletehash invÃ¡lido" });
+    }
+
     const response = await fetch(
       `https://api.imgur.com/3/image/${deletehash}`,
       {
@@ -255,13 +303,13 @@ async function handleDelete(req, res) {
       throw new Error("Error al eliminar imagen de Imgur");
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Imagen eliminada correctamente",
     });
   } catch (error) {
     console.error("Error en delete:", error);
-    res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       success: false,
       error: error.message || "Error al eliminar la imagen",
     });
@@ -309,6 +357,43 @@ async function handleGetAdmins(req, res) {
 
 function normalizeEmail(value) {
   return (value || "").trim().toLowerCase();
+}
+
+function maskEmail(email) {
+  const normalized = normalizeEmail(email);
+  if (!normalized) return "";
+  const [localPart, domainPart = ""] = normalized.split("@");
+  if (!localPart || !domainPart) return "***";
+
+  const safeLocal =
+    localPart.length <= 2
+      ? `${localPart[0] || "*"}*`
+      : `${localPart.slice(0, 2)}***${localPart.slice(-1)}`;
+
+  const domainPieces = domainPart.split(".").filter(Boolean);
+  const domainName = domainPieces[0] || "";
+  const domainTld = domainPieces.slice(1).join(".");
+  const safeDomainName = domainName
+    ? `${domainName[0]}***${domainName.slice(-1)}`
+    : "***";
+  const safeDomain = domainTld ? `${safeDomainName}.${domainTld}` : safeDomainName;
+
+  return `${safeLocal}@${safeDomain}`;
+}
+
+function buildTargetEmailResponse(email, { canExpose = false } = {}) {
+  const normalized = normalizeEmail(email);
+  if (!normalized) return {};
+  const masked = maskEmail(normalized);
+  if (canExpose) {
+    return {
+      targetEmail: normalized,
+      targetEmailMasked: masked,
+    };
+  }
+  return {
+    targetEmailMasked: masked,
+  };
 }
 
 function getAdminEmails() {
@@ -445,6 +530,23 @@ function sanitizeAssignments(input) {
   return sanitized;
 }
 
+function sanitizeOwnInstructorAssignment(rawAssignment, requester) {
+  if (!rawAssignment || typeof rawAssignment !== "object") return null;
+
+  const assignmentEmail = normalizeEmail(rawAssignment.email || requester?.email || "");
+  const assignmentUserId = String(rawAssignment.userId || requester?.uid || "").trim();
+  const assignmentName = String(rawAssignment.name || assignmentEmail || "Instructor").trim();
+  const especialidades = sanitizeSpecialties(rawAssignment.especialidades);
+
+  return {
+    userId: assignmentUserId,
+    email: assignmentEmail,
+    name: assignmentName,
+    especialidades,
+    updatedAt: rawAssignment.updatedAt || null,
+  };
+}
+
 async function handleGetInstructorAssignments(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "MÃ©todo no permitido" });
@@ -509,12 +611,12 @@ async function handleGetMyInstructorAssignment(req, res) {
       }
     }
 
+    const safeAssignment = sanitizeOwnInstructorAssignment(assignment, requester);
+
     res.status(200).json({
       success: true,
-      ownerEmail: data.ownerEmail || OWNER_EMAIL,
-      admins: getAdminEmails(),
       assignmentKey,
-      assignment: assignment || null,
+      assignment: safeAssignment,
     });
   } catch (error) {
     console.error("Error obteniendo asignaciÃ³n del instructor actual:", error);
@@ -724,19 +826,23 @@ async function handleGetPaypalDonations(req, res) {
 
     // Si type=user, filtrar por usuario actual (sin requerir admin)
     // Si type=all o cualquier otra cosa, requerir admin y devolver todas
+    let canExposeDonorEmail = false;
     if (type === "user") {
       // Usuario puede ver solo sus donaciones
       query = query.where("donorUserId", "==", userId).limit(safeLimit);
+      canExposeDonorEmail = false;
     } else {
       // Solo admin/owner puede ver todas
       await requireAdminOrOwner(req);
       query = query.orderBy("approvedAt", "desc").limit(safeLimit);
+      canExposeDonorEmail = true;
     }
 
     const snapshot = await query.get();
 
     let donations = snapshot.docs.map((docSnap) => {
       const data = docSnap.data() || {};
+      const donorEmail = normalizeEmail(data.donorEmail || "");
       return {
         id: docSnap.id,
         subscriptionId: String(data.subscriptionId || docSnap.id || "").trim(),
@@ -745,7 +851,8 @@ async function handleGetPaypalDonations(req, res) {
         intent: String(data.intent || "subscription").trim(),
         status: String(data.status || "approved").trim(),
         donorUserId: String(data.donorUserId || "").trim(),
-        donorEmail: normalizeEmail(data.donorEmail || ""),
+        ...(canExposeDonorEmail ? { donorEmail } : {}),
+        donorEmailMasked: maskEmail(donorEmail),
         donorName: String(data.donorName || "").trim(),
         isGuestSession: !!data.isGuestSession,
         approvedAt: String(data.approvedAt || "").trim(),
@@ -1928,6 +2035,8 @@ async function handleSendTestNotification(req, res) {
     if (!isSelfTarget) {
       await requireAdminOrOwner(req, body);
     }
+    const requesterIsAdmin = getAdminEmails().includes(requester.email);
+    const canExposeTargetEmail = requesterIsAdmin;
 
     const title = String(body.title || "ðŸ”” NotificaciÃ³n de prueba").trim().slice(0, 120);
     const message = String(
@@ -1940,7 +2049,7 @@ async function handleSendTestNotification(req, res) {
       return res.status(200).json({
         success: true,
         sent: 0,
-        targetEmail: rawTargetEmail,
+        ...buildTargetEmailResponse(rawTargetEmail, { canExpose: canExposeTargetEmail }),
         message: "No hay tokens push activos para este usuario",
       });
     }
@@ -2007,7 +2116,7 @@ async function handleSendTestNotification(req, res) {
 
     return res.status(200).json({
       success: true,
-      targetEmail: rawTargetEmail,
+      ...buildTargetEmailResponse(rawTargetEmail, { canExpose: canExposeTargetEmail }),
       sent: result.successCount,
       failed: result.failureCount,
       invalidTokensDisabled: invalidDocIds.length,
@@ -2144,6 +2253,7 @@ async function handleNotifyPostApproved(req, res) {
       success: true,
       postId,
       targetEmail,
+      targetEmailMasked: maskEmail(targetEmail),
       sent: result.successCount,
       failed: result.failureCount,
       invalidTokensDisabled: invalidDocIds.length,
@@ -2335,6 +2445,16 @@ async function handleCheckStream(req, res) {
     });
   }
 
-  return res.status(200).json({ live, ownerProfile, livePostId: LIVE_POST_ID });
+  const publicOwnerProfile = {
+    name: String(ownerProfile?.name || "Admin").trim() || "Admin",
+    photo: String(ownerProfile?.photo || "").trim(),
+    age: Number.isFinite(ownerProfile?.age) ? ownerProfile.age : null,
+  };
+
+  return res.status(200).json({
+    live,
+    ownerProfile: publicOwnerProfile,
+    livePostId: LIVE_POST_ID,
+  });
 }
 

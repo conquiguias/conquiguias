@@ -7935,15 +7935,6 @@
           }
 
           const payload = await response.json();
-          OWNER_EMAIL = normalizeEmail(payload?.ownerEmail || OWNER_EMAIL || '');
-          const assignmentAdmins = Array.isArray(payload?.admins)
-            ? payload.admins.map(normalizeEmail).filter(Boolean)
-            : [];
-          window.ADMIN_EMAILS = Array.from(new Set([
-            ...(Array.isArray(window.ADMIN_EMAILS) ? window.ADMIN_EMAILS.map(normalizeEmail).filter(Boolean) : []),
-            ...assignmentAdmins,
-            OWNER_EMAIL
-          ]));
 
           if (payload?.assignment && payload?.assignmentKey) {
             const assignment = payload.assignment;
@@ -9296,7 +9287,7 @@
           adminDonacionesBody.innerHTML = donations.map((item) => {
             const approvedAt = formatDonationDate(item?.approvedAt);
             const donorName = escapeHtml(String(item?.donorName || "Sin nombre"));
-            const donorEmail = escapeHtml(String(item?.donorEmail || "Sin correo"));
+            const donorEmail = escapeHtml(String(item?.donorEmail || item?.donorEmailMasked || "Sin correo"));
             const planId = escapeHtml(String(item?.planId || "—"));
             const subscriptionId = escapeHtml(String(item?.subscriptionId || item?.id || "—"));
 
@@ -9371,7 +9362,7 @@
           donacionesUserBody.innerHTML = donations.map((item) => {
             const approvedAt = formatDonationDate(item?.approvedAt);
             const donorName = escapeHtml(String(item?.donorName || "Sin nombre"));
-            const donorEmail = escapeHtml(String(item?.donorEmail || "Sin correo"));
+            const donorEmail = escapeHtml(String(item?.donorEmail || item?.donorEmailMasked || "Sin correo"));
             const planId = escapeHtml(String(item?.planId || "—"));
             const subscriptionId = escapeHtml(String(item?.subscriptionId || item?.id || "—"));
 
@@ -17175,10 +17166,12 @@
           // 1. Eliminar de Imgur si existe deletehash
           if (imgurDeletehash && imgurDeletehash !== 'undefined') {
             try {
+              const deleteIdToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
               const deleteResponse = await fetch(`/api/social?action=delete`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
+                  ...(deleteIdToken ? { 'Authorization': `Bearer ${deleteIdToken}` } : {})
                 },
                 body: JSON.stringify({ deletehash: imgurDeletehash })
               });
@@ -21742,10 +21735,12 @@
           // 1. Eliminar de Imgur si existe deletehash
           if (deletehash && deletehash !== 'undefined') {
             try {
+              const deleteIdToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
               await fetch(`/api/social?action=delete`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
+                  ...(deleteIdToken ? { 'Authorization': `Bearer ${deleteIdToken}` } : {})
                 },
                 body: JSON.stringify({ deletehash })
               });

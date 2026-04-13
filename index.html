@@ -210,6 +210,60 @@
         const googleLoginBtn = document.getElementById("googleLoginBtn");
         const registerBtn = document.getElementById("registerBtn");
         const resetPasswordBtn = document.getElementById("resetPasswordBtn");
+        const registerPasswordInput = document.getElementById("passwordX");
+        const registerPasswordRules = document.getElementById(
+          "registerPasswordRules",
+        );
+
+        const PASSWORD_RULES = [
+          {
+            label: "Mínimo 6 caracteres",
+            test: (value) => String(value || "").length >= 6,
+          },
+          {
+            label: "Al menos una mayúscula",
+            test: (value) => /[A-Z]/.test(String(value || "")),
+          },
+          {
+            label: "Al menos una minúscula",
+            test: (value) => /[a-z]/.test(String(value || "")),
+          },
+          {
+            label: "Al menos un número",
+            test: (value) => /\d/.test(String(value || "")),
+          },
+          {
+            label: "Al menos un carácter especial",
+            test: (value) => /[^A-Za-z0-9]/.test(String(value || "")),
+          },
+        ];
+
+        function getPasswordRuleResults(passwordValue) {
+          return PASSWORD_RULES.map((rule) => ({
+            label: rule.label,
+            ok: rule.test(passwordValue),
+          }));
+        }
+
+        function renderPasswordRules(container, passwordValue) {
+          if (!container) return;
+          const results = getPasswordRuleResults(passwordValue);
+          container.innerHTML = results
+            .map(
+              (result) => `
+                <li class="password-rule-item ${result.ok ? "ok" : ""}">
+                  <span class="password-rule-icon">${result.ok ? "✓" : "✖"}</span>
+                  <span>${result.label}</span>
+                </li>
+              `,
+            )
+            .join("");
+        }
+
+        renderPasswordRules(registerPasswordRules, "");
+        registerPasswordInput?.addEventListener("input", () => {
+          renderPasswordRules(registerPasswordRules, registerPasswordInput.value);
+        });
 
         let app;
         let auth;
@@ -339,22 +393,36 @@
                 "Debes verificar tu correo electrónico antes de ingresar al panel. ¿Quieres reenviar el correo de verificación?",
                 async () => {
                   try {
-                    await sendEmailVerification(userCredential.user);
+                    const idToken = await userCredential.user.getIdToken(true);
+                    await callAPI("resendVerification", {
+                      email,
+                      idToken,
+                    });
                     mostrarMensaje(
                       "info",
                       "📧 Verificación reenviada",
                       "Revisa tu bandeja de entrada y la carpeta de spam.",
                     );
                   } catch (verificationError) {
-                    console.error(
-                      "Error reenviando verificación:",
-                      verificationError,
-                    );
-                    mostrarMensaje(
-                      "error",
-                      "❌ No se pudo reenviar",
-                      "No se pudo reenviar el correo de verificación. Inténtalo de nuevo más tarde.",
-                    );
+                    try {
+                      await sendEmailVerification(userCredential.user);
+                      mostrarMensaje(
+                        "info",
+                        "📧 Verificación reenviada",
+                        "Revisa tu bandeja de entrada y la carpeta de spam.",
+                      );
+                    } catch (fallbackError) {
+                      console.error(
+                        "Error reenviando verificación:",
+                        verificationError,
+                        fallbackError,
+                      );
+                      mostrarMensaje(
+                        "error",
+                        "❌ No se pudo reenviar",
+                        "No se pudo reenviar el correo de verificación. Inténtalo de nuevo más tarde.",
+                      );
+                    }
                   }
                 },
               );
@@ -462,6 +530,19 @@
               return;
             }
 
+            const passwordResults = getPasswordRuleResults(password);
+            const firstFailedRule = passwordResults.find((rule) => !rule.ok);
+            if (firstFailedRule) {
+              hideLoader(registerBtn, "Registrar");
+              renderPasswordRules(registerPasswordRules, password);
+              mostrarMensaje(
+                "info",
+                "⚠️ Contraseña inválida",
+                `La contraseña no cumple: ${firstFailedRule.label}.`,
+              );
+              return;
+            }
+
             updateLoader(registerBtn, "⏳ Procesando imagen...");
             const fotoBase64 = await fileToBase64(foto);
             const fileName = foto.name;
@@ -516,6 +597,7 @@
               verificationMessage,
               () => {
                 registerForm.reset();
+                renderPasswordRules(registerPasswordRules, "");
                 toggleForms();
               },
             );
@@ -906,6 +988,43 @@
         margin: 0;
       }
 
+      .password-toggle-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        user-select: none;
+      }
+
+      .password-rules {
+        list-style: none;
+        margin: 6px 0 0;
+        padding: 0;
+        text-align: left;
+        font-size: 12px;
+      }
+
+      .password-rule-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 4px 0;
+        color: #ef4444;
+      }
+
+      .password-rule-item.ok {
+        color: #10b981;
+      }
+
+      .password-rule-icon {
+        font-weight: 700;
+        width: 14px;
+        text-align: center;
+        flex: 0 0 14px;
+      }
+
       /* Input File */
       input[type="file"] {
         border: 1px dashed var(--border-color);
@@ -1147,8 +1266,12 @@
                 autocomplete="new-password"
                 required
               />
-              <input class="chkShow" id="chkShowX" type="checkbox" />
+              <label class="password-toggle-label" for="chkShowX">
+                <input class="chkShow" id="chkShowX" type="checkbox" />
+                <span>Ver</span>
+              </label>
             </div>
+            <ul id="registerPasswordRules" class="password-rules" aria-live="polite"></ul>
             <h2 style="margin: 0%">Subir Foto:</h2>
             <input
               type="file"

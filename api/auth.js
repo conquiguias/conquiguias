@@ -19,6 +19,9 @@ const ADMIN_EMAILS = Array.from(
 const AUTH_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const authRateLimitStore = new Map();
 const SECURITY_RATE_LIMITS_COLLECTION = "security_rate_limits";
+const FIREBASE_WEB_API_KEY = String(
+  process.env.FIREBASE_API_KEY || "AIzaSyB1YTwZM8wKlxZ8HhXb7EUse8YyLmcfeS8",
+).trim();
 
 function normalizeEmail(value) {
   return String(value || "")
@@ -62,6 +65,82 @@ function consumeRateLimit(key, limit, windowMs = AUTH_RATE_LIMIT_WINDOW_MS) {
 function isValidEmailFormat(value) {
   const email = normalizeEmail(value);
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function validateStrongPassword(value) {
+  const password = String(value || "");
+
+  if (password.length < 6) {
+    return {
+      ok: false,
+      message: "La contraseña debe tener al menos 6 caracteres",
+    };
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    return {
+      ok: false,
+      message: "La contraseña debe incluir al menos una letra mayúscula",
+    };
+  }
+
+  if (!/[a-z]/.test(password)) {
+    return {
+      ok: false,
+      message: "La contraseña debe incluir al menos una letra minúscula",
+    };
+  }
+
+  if (!/\d/.test(password)) {
+    return {
+      ok: false,
+      message: "La contraseña debe incluir al menos un número",
+    };
+  }
+
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    return {
+      ok: false,
+      message: "La contraseña debe incluir al menos un carácter especial",
+    };
+  }
+
+  return { ok: true, message: "" };
+}
+
+async function sendFirebaseOobCode({ requestType, email, idToken }) {
+  const safeRequestType = String(requestType || "").trim();
+  if (!safeRequestType) {
+    throw new Error("requestType requerido");
+  }
+
+  if (!FIREBASE_WEB_API_KEY) {
+    throw new Error("FIREBASE_API_KEY no configurado");
+  }
+
+  const payload = {
+    requestType: safeRequestType,
+  };
+
+  const safeEmail = normalizeEmail(email);
+  const safeIdToken = String(idToken || "").trim();
+
+  if (safeEmail) payload.email = safeEmail;
+  if (safeIdToken) payload.idToken = safeIdToken;
+
+  const response = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${encodeURIComponent(FIREBASE_WEB_API_KEY)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+
+  if (!response.ok) {
+    const responseText = await response.text().catch(() => "");
+    throw new Error(`Firebase OOB error ${response.status}: ${responseText}`);
+  }
 }
 
 function timingSafeStringCompare(left, right) {
@@ -322,6 +401,11 @@ module.exports = async (req, res) => {
         return res.status(400).json({ error: "El formato del correo electrónico no es válido" });
       }
 
+      const passwordValidation = validateStrongPassword(password);
+      if (!passwordValidation.ok) {
+        return res.status(400).json({ error: passwordValidation.message });
+      }
+
       // Crear usuario en Auth
       const userRecord = await admin.auth().createUser({
         email: normalizedEmail,
@@ -370,14 +454,6 @@ module.exports = async (req, res) => {
 
       await incrementDailyAnalytics("newRegistrations", 1);
 
-      // Enviar verificación de email
-      const verificationLink = await admin
-        .auth()
-        .generateEmailVerificationLink(normalizedEmail);
-
-      // Aquí podrías integrar SendGrid o otro servicio de email
-      console.log("Link de verificación:", verificationLink);
-
       return res.status(200).json({
         success: true,
         message: "Usuario registrado correctamente. Debe verificar su correo para continuar.",
@@ -424,7 +500,7 @@ module.exports = async (req, res) => {
 
     // 🔹 REENVIAR VERIFICACIÓN DE EMAIL
     else if (action === "resendVerification") {
-      const { email } = data;
+      const { email, idToken } = data || {};
 
       const normalizedEmail = normalizeEmail(email);
       const requesterIp = getRequesterIp(req) || "unknown";
@@ -439,10 +515,13 @@ module.exports = async (req, res) => {
       }
 
       try {
-        const verificationLink = await admin
-          .auth()
-          .generateEmailVerificationLink(normalizedEmail);
-        console.log("Nuevo link de verificación:", verificationLink);
+        const safeIdToken = String(idToken || "").trim();
+        if (safeIdToken) {
+          await sendFirebaseOobCode({
+            requestType: "VERIFY_EMAIL",
+            idToken: safeIdToken,
+          });
+        }
       } catch (_error) {
         // Respuesta uniforme para evitar enumeración de cuentas
       }
@@ -470,8 +549,10 @@ module.exports = async (req, res) => {
       }
 
       try {
-        const resetLink = await admin.auth().generatePasswordResetLink(normalizedEmail);
-        console.log("Link de recuperación:", resetLink);
+        await sendFirebaseOobCode({
+          requestType: "PASSWORD_RESET",
+          email: normalizedEmail,
+        });
       } catch (_error) {
         // Respuesta uniforme para evitar enumeración de cuentas
       }
@@ -559,10 +640,9 @@ module.exports = async (req, res) => {
           .json({ error: "Token y nueva contraseña son obligatorios" });
       }
 
-      if (String(newPassword).length < 6) {
-        return res
-          .status(400)
-          .json({ error: "La contraseña debe tener al menos 6 caracteres" });
+      const passwordValidation = validateStrongPassword(newPassword);
+      if (!passwordValidation.ok) {
+        return res.status(400).json({ error: passwordValidation.message });
       }
 
       const decodedToken = await admin.auth().verifyIdToken(idToken);

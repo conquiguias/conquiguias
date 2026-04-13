@@ -644,6 +644,68 @@
       color: var(--text-secondary);
     }
 
+    .password-input-with-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .password-input-with-toggle input[type="password"],
+    .password-input-with-toggle input[type="text"] {
+      flex: 1;
+      margin: 8px 0;
+    }
+
+    .password-visibility-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    .password-rules {
+      list-style: none;
+      margin: 2px 0 8px;
+      padding: 0;
+      font-size: 12px;
+    }
+
+    .password-rule-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 3px 0;
+      color: var(--danger-color);
+    }
+
+    .password-rule-item.ok {
+      color: var(--success-color);
+    }
+
+    .password-rule-icon {
+      font-weight: 700;
+      width: 14px;
+      text-align: center;
+      flex: 0 0 14px;
+    }
+
+    .password-match-status {
+      margin: 4px 0 8px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .password-match-status.ok {
+      color: var(--success-color);
+    }
+
+    .password-match-status.error {
+      color: var(--danger-color);
+    }
+
     /* FIX SCROLL */
     #instructorSection,
     #main-content,
@@ -5488,8 +5550,16 @@
         <input type="text" id="pais" placeholder="País" required>
 
         <h3 id="passwordSectionTitle">Contraseña:</h3>
-        <input type="password" id="newPassword" placeholder="Nueva contraseña (mínimo 6 caracteres)">
+        <div class="password-input-with-toggle">
+          <input type="password" id="newPassword" placeholder="Nueva contraseña (mínimo 6 caracteres)">
+          <label class="password-visibility-toggle" for="showProfilePasswords">
+            <input type="checkbox" id="showProfilePasswords">
+            <span>Ver</span>
+          </label>
+        </div>
+        <ul id="profilePasswordRules" class="password-rules" aria-live="polite"></ul>
         <input type="password" id="confirmPassword" placeholder="Confirmar nueva contraseña">
+        <p id="passwordMatchStatus" class="password-match-status" aria-live="polite"></p>
         <p id="passwordSectionHelp" style="margin-top: 8px; font-size: 12px; color: #666;">
           Si completas estos campos, tu contraseña se actualizará.
         </p>
@@ -7423,6 +7493,9 @@
       const paisInput = document.getElementById("pais");
       const newPasswordInput = document.getElementById("newPassword");
       const confirmPasswordInput = document.getElementById("confirmPassword");
+      const showProfilePasswordsInput = document.getElementById("showProfilePasswords");
+      const profilePasswordRules = document.getElementById("profilePasswordRules");
+      const passwordMatchStatus = document.getElementById("passwordMatchStatus");
       const passwordSectionTitle = document.getElementById("passwordSectionTitle");
       const passwordSectionHelp = document.getElementById("passwordSectionHelp");
       const listaEspecialidades = document.getElementById("listaEspecialidades");
@@ -7441,6 +7514,102 @@
       const cuerpoTablaCertificaciones = document.getElementById("cuerpoTablaCertificaciones");
       const totalEspecialidades = document.getElementById("totalEspecialidades");
       const especialidadesCompletadas = document.getElementById("especialidadesCompletadas");
+
+      const PROFILE_PASSWORD_RULES = [
+        {
+          label: "Mínimo 6 caracteres",
+          test: (value) => String(value || "").length >= 6,
+        },
+        {
+          label: "Al menos una mayúscula",
+          test: (value) => /[A-Z]/.test(String(value || "")),
+        },
+        {
+          label: "Al menos una minúscula",
+          test: (value) => /[a-z]/.test(String(value || "")),
+        },
+        {
+          label: "Al menos un número",
+          test: (value) => /\d/.test(String(value || "")),
+        },
+        {
+          label: "Al menos un carácter especial",
+          test: (value) => /[^A-Za-z0-9]/.test(String(value || "")),
+        },
+      ];
+
+      function getProfilePasswordRuleResults(passwordValue) {
+        return PROFILE_PASSWORD_RULES.map((rule) => ({
+          label: rule.label,
+          ok: rule.test(passwordValue),
+        }));
+      }
+
+      function renderProfilePasswordRules(passwordValue) {
+        if (!profilePasswordRules) return;
+        const results = getProfilePasswordRuleResults(passwordValue);
+        profilePasswordRules.innerHTML = results
+          .map(
+            (result) => `
+              <li class="password-rule-item ${result.ok ? "ok" : ""}">
+                <span class="password-rule-icon">${result.ok ? "✓" : "✖"}</span>
+                <span>${result.label}</span>
+              </li>
+            `,
+          )
+          .join("");
+        return results;
+      }
+
+      function updateProfilePasswordValidationState() {
+        const newPassword = String(newPasswordInput?.value || "");
+        const confirmPassword = String(confirmPasswordInput?.value || "");
+        const allEmpty = !newPassword && !confirmPassword;
+
+        const ruleResults = renderProfilePasswordRules(newPassword) || [];
+        const hasRuleErrors = ruleResults.some((rule) => !rule.ok);
+
+        if (!passwordMatchStatus) return;
+
+        passwordMatchStatus.classList.remove("ok", "error");
+        if (allEmpty) {
+          passwordMatchStatus.textContent = "";
+          return;
+        }
+
+        if (!confirmPassword) {
+          passwordMatchStatus.classList.add("error");
+          passwordMatchStatus.textContent = "✖ Confirma la nueva contraseña.";
+          return;
+        }
+
+        if (newPassword !== confirmPassword) {
+          passwordMatchStatus.classList.add("error");
+          passwordMatchStatus.textContent = "✖ Las contraseñas no coinciden.";
+          return;
+        }
+
+        if (hasRuleErrors) {
+          passwordMatchStatus.classList.add("error");
+          passwordMatchStatus.textContent = "✖ La contraseña aún no cumple todas las reglas.";
+          return;
+        }
+
+        passwordMatchStatus.classList.add("ok");
+        passwordMatchStatus.textContent = "✓ Las contraseñas coinciden y cumplen las reglas.";
+      }
+
+      if (showProfilePasswordsInput) {
+        showProfilePasswordsInput.addEventListener("change", (event) => {
+          const isVisible = !!event?.target?.checked;
+          if (newPasswordInput) newPasswordInput.type = isVisible ? "text" : "password";
+          if (confirmPasswordInput) confirmPasswordInput.type = isVisible ? "text" : "password";
+        });
+      }
+
+      newPasswordInput?.addEventListener("input", updateProfilePasswordValidationState);
+      confirmPasswordInput?.addEventListener("input", updateProfilePasswordValidationState);
+      updateProfilePasswordValidationState();
 
       function syncMobileLayoutOffset() {
         if (!sidebar || !mobileMenuToggle) return;
@@ -8612,12 +8781,23 @@
             async () => {
               // Reenviar verificación
               try {
-                await sendEmailVerification(user);
+                const idToken = await user.getIdToken(true);
+                await callAuthAPI("resendVerification", {
+                  email: user.email,
+                  idToken,
+                });
                 mostrarMensaje("info", "<i class='fas fa-envelope'></i> Correo reenviado",
                   "Te hemos enviado nuevamente el correo de verificación. " +
                   "Revisa tu bandeja de entrada y la carpeta de spam.");
               } catch (error) {
-                console.error("Error reenviando verificación:", error);
+                try {
+                  await sendEmailVerification(user);
+                  mostrarMensaje("info", "<i class='fas fa-envelope'></i> Correo reenviado",
+                    "Te hemos enviado nuevamente el correo de verificación. " +
+                    "Revisa tu bandeja de entrada y la carpeta de spam.");
+                } catch (fallbackError) {
+                  console.error("Error reenviando verificación:", error, fallbackError);
+                }
               }
 
               // Cerrar sesión y volver al panel principal
@@ -8880,12 +9060,22 @@
 
         try {
           if (newPassword || confirmPassword) {
-            if (newPassword.length < 6) {
-              mostrarMensaje("info", "⚠️ Contraseña inválida", "La contraseña debe tener al menos 6 caracteres.");
+            const passwordRuleResults = getProfilePasswordRuleResults(newPassword);
+            const firstFailedRule = passwordRuleResults.find((rule) => !rule.ok);
+            if (firstFailedRule) {
+              updateProfilePasswordValidationState();
+              mostrarMensaje("info", "⚠️ Contraseña inválida", `La contraseña no cumple: ${firstFailedRule.label}.`);
+              return;
+            }
+
+            if (!confirmPassword) {
+              updateProfilePasswordValidationState();
+              mostrarMensaje("info", "⚠️ Falta confirmar", "Debes confirmar la nueva contraseña.");
               return;
             }
 
             if (newPassword !== confirmPassword) {
+              updateProfilePasswordValidationState();
               mostrarMensaje("info", "⚠️ Contraseñas no coinciden", "Verifica que ambas contraseñas sean iguales.");
               return;
             }
@@ -8946,6 +9136,12 @@
 
           newPasswordInput.value = "";
           confirmPasswordInput.value = "";
+          if (showProfilePasswordsInput) {
+            showProfilePasswordsInput.checked = false;
+          }
+          newPasswordInput.type = "password";
+          confirmPasswordInput.type = "password";
+          updateProfilePasswordValidationState();
 
           mostrarMensaje("info", "✅ Información actualizada correctamente.", "", () => {
             window.location.reload();

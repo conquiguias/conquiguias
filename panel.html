@@ -23827,6 +23827,8 @@
           detalleContainer.style.fontSize = '14px';
           detalleContainer.style.lineHeight = '1.6';
           detalleContainer.style.color = 'var(--text-primary)';
+          detalleContainer.style.textAlign = 'left';
+          detalleContainer.style.whiteSpace = 'pre-wrap';
 
           const modalBody = document.querySelector('#modalSubirTarea .modal-content') || document.querySelector('#modalSubirTarea > div');
           const tituloEl = document.querySelector('#modalSubirTarea h3');
@@ -23837,7 +23839,7 @@
 
         // Formatear saltos de línea si los hay
         const detalleFormateado = (detalle || 'Sin instrucciones adicionales.').replace(/\n/g, '<br>');
-        detalleContainer.innerHTML = `<strong style="color:var(--accent-color); display:block; margin-bottom:5px;"><i class="fas fa-info-circle"></i> Instrucciones de la tarea:</strong>${detalleFormateado}`;
+        detalleContainer.innerHTML = `<strong style="color:var(--accent-color); display:block; margin-bottom:5px; text-align:left;"><i class="fas fa-info-circle"></i> Instrucciones de la tarea:</strong><div style="text-align:left;">${detalleFormateado}</div>`;
 
         const btn = document.getElementById('btnEnviarTareaReal');
         // Clonar boton para eliminar listeners anteriores

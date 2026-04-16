@@ -265,6 +265,34 @@ async function verifyAuthenticatedUser(req) {
   });
 }
 
+function resolveRequesterFromPublicPayload(req) {
+  const body = req?.body || {};
+  const query = req?.query || {};
+
+  const email = normalizeEmail(body?.email || query?.email || "");
+  const uid = String(body?.visitanteId || query?.visitanteId || "").trim();
+
+  if (!email && !uid) return null;
+
+  return {
+    uid,
+    email,
+  };
+}
+
+async function resolveRequesterForResponses(req) {
+  try {
+    return await verifyAuthenticatedUser(req);
+  } catch (_error) {
+    const fallbackRequester = resolveRequesterFromPublicPayload(req);
+    if (fallbackRequester) return fallbackRequester;
+
+    const error = new Error("Token de autenticación o identificador requerido");
+    error.statusCode = 401;
+    throw error;
+  }
+}
+
 function isAdminEmail(email) {
   const normalized = normalizeEmail(email);
   if (!normalized) return false;
@@ -569,7 +597,7 @@ async function handleObtenerEvaluacion(req, res) {
 }
 
 async function handleVerRespuestas(req, res) {
-  const requesterAuth = await verifyAuthenticatedUser(req);
+  const requesterAuth = await resolveRequesterForResponses(req);
   const { id } = req.query;
   const requesterEmail = normalizeEmail(requesterAuth?.email || "");
   const requesterVisitanteId = String(requesterAuth?.uid || "").trim();

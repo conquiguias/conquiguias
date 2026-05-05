@@ -11090,8 +11090,17 @@
                             text-align: center;
                             margin-bottom: 30px;
                             border-bottom: 2px solid #2c3e50;
-                            padding-bottom: 20px;
+                            padding: 10px 110px 20px;
                             position: relative;
+                            min-height: 100px;
+                        }
+                        .logo-conquiguias-examen {
+                            position: absolute;
+                            top: 10px;
+                            left: 10px;
+                            max-width: 110px;
+                            max-height: 90px;
+                            object-fit: contain;
                         }
                         .imagen-especialidad-examen {
                             position: absolute;
@@ -11099,6 +11108,7 @@
                             right: 10px;
                             max-width: 80px;
                             max-height: 80px;
+                            object-fit: contain;
                         }
                         .resumen-examen {
                             background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
@@ -11171,6 +11181,15 @@
                             max-width: 180px;
                             max-height: 180px;
                             z-index: 1;
+                        }
+                        .logo-conquiquias-certificado {
+                            position: absolute;
+                            top: 250px;
+                            left: 20px;
+                            max-width: 180px;
+                            max-height: 180px;
+                            z-index: 1;
+                            object-fit: contain;
                         }
                         .certificacion-header {
                             width: 100%;
@@ -11489,6 +11508,7 @@
       <!-- SECCIÓN DEL EXAMEN -->
       <div class="examen-section">
         <div class="header-examen">
+          <img src="/images/logo%20oficial%20conquiguias%20world%20vectorial.png" class="logo-conquiguias-examen" alt="Conquiguias World">
           <h1 style="color: #2c3e50; margin-bottom: 10px; font-size: 28px;">Conquiguias World</h1>
           <h2 style="color: #34495e; margin-bottom: 10px; font-size: 22px;">${formulario.titulo}</h2>
           ${formulario.imagenEspecialidad ? ('<img src="' + formulario.imagenEspecialidad + '" class="imagen-especialidad-examen" alt="Especialidad">') : ''}
@@ -11653,6 +11673,11 @@
 
         ${formulario.imagenEspecialidad ? `<img src="${formulario.imagenEspecialidad}"
           class="imagen-especialidad-certificado" alt="Especialidad">` : ''}
+
+        <div class="certificacion-contenido">
+
+        <img src="/images/logo%20oficial%20conquiguias%20world%20vectorial.png"
+          class="logo-conquiquias-certificado" alt="Conquiguias World">
 
         <div class="certificacion-contenido">
           <div class="certificacion-header">

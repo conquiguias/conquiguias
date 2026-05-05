@@ -52,3 +52,41 @@ END
 $$;
 
 SELECT 'user_notes note_type constraint updated: private' AS status;
+
+-- ==========================================================
+-- Also enable RLS on public.user_notes to satisfy Supabase
+-- Security Advisor and keep direct client access blocked.
+-- The backend uses the Supabase service role, so it continues
+-- to work normally.
+-- ==========================================================
+
+ALTER TABLE public.user_notes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS user_notes_select_policy ON public.user_notes;
+CREATE POLICY user_notes_select_policy
+  ON public.user_notes
+  FOR SELECT
+  TO authenticated
+  USING (false);
+
+DROP POLICY IF EXISTS user_notes_insert_policy ON public.user_notes;
+CREATE POLICY user_notes_insert_policy
+  ON public.user_notes
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (false);
+
+DROP POLICY IF EXISTS user_notes_update_policy ON public.user_notes;
+CREATE POLICY user_notes_update_policy
+  ON public.user_notes
+  FOR UPDATE
+  TO authenticated
+  USING (false)
+  WITH CHECK (false);
+
+DROP POLICY IF EXISTS user_notes_delete_policy ON public.user_notes;
+CREATE POLICY user_notes_delete_policy
+  ON public.user_notes
+  FOR DELETE
+  TO authenticated
+  USING (false);

@@ -108,10 +108,19 @@
     #sidebar h2 {
       text-align: center;
       margin-bottom: 25px;
-      font-size: 22px;
+      font-size: 0;
       letter-spacing: 1px;
       text-transform: uppercase;
       color: var(--text-primary);
+      padding: 10px 0;
+    }
+
+    #sidebar .logo-sidebar {
+      height: 50px;
+      max-width: 90%;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto;
     }
 
     #sidebar button {
@@ -5137,9 +5146,9 @@
       <span><i class="fas fa-bars"></i> Menú</span>
       <i class="fas fa-chevron-down"></i>
     </button>
-    <h2
-      style="font-family: 'Great Vibes', cursive; font-size: 28px; text-transform: none; color: white; margin-bottom: 10px; margin-top: 20px;">
-      Conquiguias World</h2>
+    <h2 style="font-family: 'Great Vibes', cursive; font-size: 28px; text-transform: none; color: white; margin-bottom: 10px; margin-top: 20px;">
+      <img src="/images/logo oficial conquiguias world vectorial.png" alt="Conquiguias World" class="logo-sidebar">
+    </h2>
     <button id="menuInicio" class="active"><i class="fas fa-home" style="margin-right: 8px;"></i> Inicio</button>
     <button id="menuClubes"><i class="fas fa-users" style="margin-right: 8px;"></i> Clubes</button>
     <button id="menuBlocNotas"><i class="fas fa-note-sticky" style="margin-right: 8px;"></i> Bloc de Notas</button>

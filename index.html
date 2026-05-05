@@ -792,12 +792,20 @@
       }
 
       .site-title-large {
-        font-size: 4rem;
+        font-size: 0;
         font-weight: 800;
         color: var(--text-primary);
         line-height: 1.1;
         margin-bottom: 15px;
         letter-spacing: -1px;
+      }
+
+      .logo-brand {
+        height: 120px;
+        max-width: 100%;
+        object-fit: contain;
+        margin-bottom: 10px;
+        filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
       }
 
       .tagline-large {
@@ -1162,7 +1170,11 @@
           margin-bottom: 20px;
         }
         .site-title-large {
-          font-size: 2.8rem;
+          font-size: 0;
+        }
+
+        .logo-brand {
+          height: 80px;
         }
         .tagline-large {
           font-size: 1.2rem;
@@ -1176,7 +1188,7 @@
     <div class="main-wrapper">
       <!-- Columna Izquierda: Branding -->
       <div class="branding-section">
-        <div class="site-title-large">Conquiguias World</div>
+        <img src="/images/logo oficial conquiguias world vectorial.png" alt="Conquiguias World" class="logo-brand">
         <div class="tagline-large">
           Plataforma de Conquistadores y Guías Mayores
         </div>

@@ -105,22 +105,39 @@
       /* Permitir scroll vertical */
     }
 
+    #sidebar {
+      width: 220px;
+      background: var(--bg-sidebar);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      box-shadow: 2px 0 5px var(--shadow-color);
+      border-right: 1px solid var(--border-color);
+      z-index: 2000;
+      position: relative;
+      overflow-y: auto;
+      max-height: 100vh;
+    }
+
     #sidebar h2 {
       text-align: center;
-      margin-bottom: 25px;
+      margin-bottom: 8px;
       font-size: 0;
       letter-spacing: 1px;
       text-transform: uppercase;
       color: var(--text-primary);
-      padding: 10px 0;
+      padding: 0;
+      overflow: hidden;
     }
 
     #sidebar .logo-sidebar {
-      height: 50px;
-      max-width: 90%;
-      object-fit: contain;
+      height: 150px;
+      max-width: none;
+      object-fit: cover;
       display: block;
-      margin: 0 auto;
+      margin: -16px auto -12px;
+      clip-path: inset(18% 8% 18% 8%);
     }
 
     #sidebar button {

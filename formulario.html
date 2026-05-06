@@ -19,6 +19,19 @@
     <meta name="twitter:description" content="Registro de asistencia de Conquiguias World." />
     <meta name="twitter:image" content="/logo1.png" />
     <link rel="stylesheet" href="/scrollbar-theme.css" />
+    <script>
+      (function () {
+        const noop = () => {};
+        if (window.console) {
+          window.console.log = noop;
+          window.console.info = noop;
+          window.console.warn = noop;
+          window.console.error = noop;
+          window.console.debug = noop;
+          window.console.clear = noop;
+        }
+      })();
+    </script>
     <link
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap"
       rel="stylesheet"

@@ -259,6 +259,9 @@ export default async function handler(req, res) {
       case "cleanup-rate-limits":
         await handleCleanupRateLimits(req, res);
         break;
+            case "get-or-create-certificate-code":
+        await handleGetOrCreateCertificateCode(req, res);
+        break;
       default:
         res.status(400).json({ error: "AcciÃ³n no vÃ¡lida" });
     }
@@ -320,10 +323,156 @@ async function handleDelete(req, res) {
   }
 }
 
+
 async function handleGetClientId(req, res) {
   res.status(200).json({
     clientId: process.env.IMGUR_CLIENT_ID,
   });
+}
+
+// ===== CERTIFICATE CODE HANDLER =====
+/**
+ * Handle get-or-create certificate registration code
+ * GET: Query and return existing code if found
+ * POST: Create new certificate registration with generated unique 9-digit code
+ */
+async function handleGetOrCreateCertificateCode(req, res) {
+  if (!['GET', 'POST'].includes(req.method)) {
+    return res.status(405).json({ error: 'Método no permitido' });
+  }
+
+  try {
+    const requester = await requireAuthenticated(req);
+    const userEmail = String(requester?.email || '').trim().toLowerCase();
+    const userId = String(requester?.uid || '').trim();
+
+    if (!userEmail || !userId) {
+      return res.status(401).json({ success: false, error: 'Usuario no autenticado' });
+    }
+
+    const body = req.body || {};
+    const nombreEspecialidad = String(body.nombreEspecialidad || '').trim();
+    const nombreUsuario = String(body.nombreUsuario || '').trim();
+    const nombreInstructor = String(body.nombreInstructor || '').trim();
+    const fechaEspecialidad = body.fechaEspecialidad ? new Date(body.fechaEspecialidad) : new Date();
+    const notaExamen = Number(body.notaExamen) || 0;
+    const notaTarea = Number(body.notaTarea) || null;
+    const calificaciones = body.calificaciones || {};
+
+    if (!nombreEspecialidad || !nombreUsuario) {
+      return res.status(400).json({
+        success: false,
+        error: 'nombreEspecialidad y nombreUsuario son requeridos'
+      });
+    }
+
+    // 1. QUERY: Check if certificate already exists
+    const { data: existingRecords, error: queryError } = await supabase
+      .from('especialidades_registradas')
+      .select('codigo_9digitos, id, created_at')
+      .eq('correo_electronico', userEmail)
+      .eq('nombre_especialidad', nombreEspecialidad)
+      .limit(1);
+
+    if (queryError) {
+      throw new Error(`Error verificando registro: ${queryError.message}`);
+    }
+
+    // If record exists, return existing code
+    if (existingRecords && existingRecords.length > 0) {
+      return res.status(200).json({
+        success: true,
+        codigo: existingRecords[0].codigo_9digitos,
+        isNew: false,
+        createdAt: existingRecords[0].created_at
+      });
+    }
+
+    // 2. GENERATE: Create unique 9-digit code
+    const generatedCode = await generateUnique9DigitCode();
+
+    if (!generatedCode) {
+      throw new Error('No se pudo generar código único después de múltiples intentos');
+    }
+
+    // 3. CREATE: Insert new certificate registration
+    const { data: newRecord, error: insertError } = await supabase
+      .from('especialidades_registradas')
+      .insert([{
+        nombre_especialidad: nombreEspecialidad,
+        nombre_usuario: nombreUsuario,
+        nombre_instructor: nombreInstructor,
+        fecha_especialidad: fechaEspecialidad.toISOString(),
+        correo_electronico: userEmail,
+        codigo_9digitos: generatedCode,
+        nota_examen: notaExamen,
+        nota_tarea: notaTarea,
+        calificaciones: calificaciones,
+        created_at: new Date().toISOString()
+      }])
+      .select('id, codigo_9digitos, created_at');
+
+    if (insertError) {
+      // If code was duplicate, retry (should be rare)
+      if (insertError.message.includes('unique') || insertError.message.includes('duplicate')) {
+        console.warn('Code collision detected, retrying...');
+        return handleGetOrCreateCertificateCode(req, res); // Retry
+      }
+      throw new Error(`Error creando registro: ${insertError.message}`);
+    }
+
+    if (!newRecord || newRecord.length === 0) {
+      throw new Error('No se pudo crear el registro de certificado');
+    }
+
+    return res.status(201).json({
+      success: true,
+      codigo: newRecord[0].codigo_9digitos,
+      isNew: true,
+      createdAt: newRecord[0].created_at
+    });
+
+  } catch (error) {
+    console.error('Error en get-or-create-certificate-code:', error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || 'Error procesando código de certificado'
+    });
+  }
+}
+
+/**
+ * Generate a unique 9-digit random code that doesn't exist in database
+ * Attempts up to 10 times to avoid collisions
+ */
+async function generateUnique9DigitCode() {
+  const maxAttempts = 10;
+  
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    // Generate random 9-digit number (100000000 to 999999999)
+    const randomCode = String(Math.floor(Math.random() * 900000000) + 100000000);
+    
+    // Check if code already exists
+    const { data: existing, error } = await supabase
+      .from('especialidades_registradas')
+      .select('codigo_9digitos')
+      .eq('codigo_9digitos', randomCode)
+      .limit(1);
+
+    if (error) {
+      console.error('Error checking code uniqueness:', error);
+      continue;
+    }
+
+    // If no match, code is unique
+    if (!existing || existing.length === 0) {
+      return randomCode;
+    }
+  }
+
+  // Failed to generate unique code after max attempts
+  console.error('Failed to generate unique code after', maxAttempts, 'attempts');
+  return null;
 }
 
 export const config = {

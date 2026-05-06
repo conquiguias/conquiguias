@@ -11005,15 +11005,62 @@
 
         // Configurar event listeners para los botones SOLO si aprobó
         if (aprobado) {
-          document.getElementById('btnImprimirExamen').addEventListener('click', () => {
-            imprimirExamenCompleto(examen, resultado, formulario, formularioId, rubricaExterna);
+          document.getElementById('btnImprimirExamen').addEventListener('click', async () => {
+            await imprimirExamenCompleto(examen, resultado, formulario, formularioId, rubricaExterna);
           });
 
         }
 
       }
 
-      function imprimirExamenCompleto(examen, resultado, formulario, formularioId, rubricaImpresion) {
+      // ===== CERTIFICATE CODE FUNCTIONS =====
+      /**
+       * Fetch or create certificate registration code from backend
+       * @param {string} nombreEspecialidad - Name of the specialty
+       * @param {string} nombreUsuario - Name of the user
+       * @param {object} formulario - Form data with title and metadata
+       * @returns {Promise<string>} The 9-digit certificate code
+       */
+      async function obtenerOCrearCodigoCertificado(nombreEspecialidad, nombreUsuario, formulario = {}) {
+        try {
+          const idToken = await auth.currentUser?.getIdToken();
+          if (!idToken) {
+            throw new Error('No hay sesión activa');
+          }
+
+          const response = await fetch('/api/social?action=get-or-create-certificate-code', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${idToken}`
+            },
+            body: JSON.stringify({
+              nombreEspecialidad: nombreEspecialidad || formulario.titulo || 'Sin especialidad',
+              nombreUsuario: nombreUsuario,
+              nombreInstructor: formulario.nombreInstructor || '',
+              fechaEspecialidad: formulario.creado || new Date().toISOString(),
+              notaExamen: formulario.notaExamen || 0,
+              notaTarea: formulario.notaTarea || null,
+              calificaciones: formulario.calificaciones || {}
+            })
+          });
+
+          const payload = await response.json().catch(() => ({}));
+
+          if (!response.ok || !payload?.success) {
+            throw new Error(payload?.error || 'No se pudo obtener el código de certificado');
+          }
+
+          console.log('✓ Código de certificado obtenido:', payload.codigo, payload.isNew ? '(Nuevo)' : '(Existente)');
+          return payload.codigo;
+
+        } catch (error) {
+          console.error('Error obteniendo código de certificado:', error);
+          throw error;
+        }
+      }
+
+      async function imprimirExamenCompleto(examen, resultado, formulario, formularioId, rubricaImpresion) {
         const btnImprimir = document.getElementById('btnImprimirExamen');
         const textoOriginal = btnImprimir.innerHTML;
 
@@ -11021,72 +11068,85 @@
         btnImprimir.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando certificado...';
         btnImprimir.disabled = true;
 
-        // Obtener el nombre del usuario sin pedir respuestas completas al servidor
-        const certRow = window.certificacionesRowById?.[formularioId] || null;
-        Promise.resolve({ asistencias: [], tareas: certRow?.tareas || {} })
-          .then(data => {
-            const asistencias = data.asistencias || [];
-            const asistenciaUsuario = asistencias.find(a =>
-              (a.visitanteId === resultado.visitanteId || (a.correo && resultado.correo && a.correo === resultado.correo)) &&
-              a.nombre && a.nombre.trim() !== ''
-            );
+        try {
+          // Obtener el nombre del usuario sin pedir respuestas completas al servidor
+          const certRow = window.certificacionesRowById?.[formularioId] || null;
+          const asistencias = [];
+          const asistenciaUsuario = asistencias.find(a =>
+            (a.visitanteId === resultado.visitanteId || (a.correo && resultado.correo && a.correo === resultado.correo)) &&
+            a.nombre && a.nombre.trim() !== ''
+          );
 
-            let nombreUsuario = 'Nombre no encontrado';
-            if (certRow && certRow.nombreParticipante && String(certRow.nombreParticipante).trim() !== '') {
-              nombreUsuario = String(certRow.nombreParticipante).trim();
-            } else if (resultado && resultado.nombre && String(resultado.nombre).trim() !== '') {
-              nombreUsuario = String(resultado.nombre).trim();
-            } else if (asistenciaUsuario && asistenciaUsuario.nombre) {
-              nombreUsuario = asistenciaUsuario.nombre.trim();
+          let nombreUsuario = 'Nombre no encontrado';
+          if (certRow && certRow.nombreParticipante && String(certRow.nombreParticipante).trim() !== '') {
+            nombreUsuario = String(certRow.nombreParticipante).trim();
+          } else if (resultado && resultado.nombre && String(resultado.nombre).trim() !== '') {
+            nombreUsuario = String(resultado.nombre).trim();
+          } else if (asistenciaUsuario && asistenciaUsuario.nombre) {
+            nombreUsuario = asistenciaUsuario.nombre.trim();
+          } else {
+            const user = auth.currentUser;
+            if (user && user.displayName) {
+              nombreUsuario = user.displayName;
             } else {
-              const user = auth.currentUser;
-              if (user && user.displayName) {
-                nombreUsuario = user.displayName;
-              } else {
-                const email = user.email;
-                if (email) {
-                  nombreUsuario = email.split('@')[0];
-                  nombreUsuario = nombreUsuario.split('.').map(word =>
-                    word.charAt(0).toUpperCase() + word.slice(1)
-                  ).join(' ');
-                }
+              const email = user.email;
+              if (email) {
+                nombreUsuario = email.split('@')[0];
+                nombreUsuario = nombreUsuario.split('.').map(word =>
+                  word.charAt(0).toUpperCase() + word.slice(1)
+                ).join(' ');
               }
             }
+          }
 
-            // Crear ventana de impresión
-            const ventanaImpresion = window.open('', '_blank');
-            const respuestasUsuario = resultado.respuestas || {};
+          // 🆕 OBTAIN CERTIFICATE CODE
+          let codigoCertificado = 'N/A';
+          try {
+            codigoCertificado = await obtenerOCrearCodigoCertificado(
+              formulario.titulo,
+              nombreUsuario,
+              formulario
+            );
+          } catch (codeError) {
+            console.warn('Warning: Could not obtain certificate code:', codeError);
+            // Continue even if code generation fails
+            codigoCertificado = 'ERROR-' + Math.floor(Math.random() * 1000000);
+          }
 
-            // Intentar obtener info de tarea solo desde la fila en caché
-            const miTarea = certRow?.miTarea || null;
-            if (miTarea) {
-              formulario.miTarea = miTarea;
+          // Crear ventana de impresión
+          const ventanaImpresion = window.open('', '_blank');
+          const respuestasUsuario = resultado.respuestas || {};
+
+          // Intentar obtener info de tarea solo desde la fila en caché
+          const miTarea = certRow?.miTarea || null;
+          if (miTarea) {
+            formulario.miTarea = miTarea;
+          }
+
+          // Calcular estadísticas del examen
+          let correctas = 0;
+          let total = examen.length;
+
+          examen.forEach((pregunta, idx) => {
+            let respuestaUsuario = respuestasUsuario[pregunta.id];
+            if (respuestaUsuario === undefined) respuestaUsuario = respuestasUsuario[String(idx)];
+            if (respuestaUsuario === undefined) respuestaUsuario = respuestasUsuario[idx];
+
+            const opcionSeleccionada = pregunta.options.find(opt => opt.id === respuestaUsuario);
+            if (opcionSeleccionada && opcionSeleccionada.correct) {
+              correctas++;
             }
+          });
 
-            // Calcular estadísticas del examen
-            let correctas = 0;
-            let total = examen.length;
+          const porcentaje = (correctas / total) * 100;
+          const aprobado = porcentaje >= 70;
 
-            examen.forEach((pregunta, idx) => {
-              let respuestaUsuario = respuestasUsuario[pregunta.id];
-              if (respuestaUsuario === undefined) respuestaUsuario = respuestasUsuario[String(idx)];
-              if (respuestaUsuario === undefined) respuestaUsuario = respuestasUsuario[idx];
+          // Formatear fecha
+          const fechaCreacion = new Date(formulario.creado);
+          const opcionesFecha = { year: 'numeric', month: 'long', day: 'numeric' };
+          const fechaFormateada = fechaCreacion.toLocaleDateString('es-ES', opcionesFecha);
 
-              const opcionSeleccionada = pregunta.options.find(opt => opt.id === respuestaUsuario);
-              if (opcionSeleccionada && opcionSeleccionada.correct) {
-                correctas++;
-              }
-            });
-
-            const porcentaje = (correctas / total) * 100;
-            const aprobado = porcentaje >= 70;
-
-            // Formatear fecha
-            const fechaCreacion = new Date(formulario.creado);
-            const opcionesFecha = { year: 'numeric', month: 'long', day: 'numeric' };
-            const fechaFormateada = fechaCreacion.toLocaleDateString('es-ES', opcionesFecha);
-
-            let contenidoImpresion = `
+          let contenidoImpresion = `
                 <!DOCTYPE html>
                 <html>
                 <head>
@@ -11715,6 +11775,19 @@
               impartido por <strong>${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma1) || 'el instructor')}</strong>,<br>
               el ${fechaFormateada}.
             </div>
+
+            <!-- 🆕 CERTIFICATE REGISTRATION CODE -->
+            <div style="text-align: center; margin-top: 20px; padding: 15px; border: 2px solid #d4af37; border-radius: 8px; background: #f9f7f3;">
+              <div style="font-size: 12px; color: #666; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;">
+                Especialidad Registrada
+              </div>
+              <div style="font-size: 18px; font-weight: bold; color: #2c3e50; font-family: 'Courier New', monospace; letter-spacing: 2px;">
+                ${codigoCertificado}
+              </div>
+              <div style="font-size: 10px; color: #999; margin-top: 5px;">
+                Código de verificación único para este registro
+              </div>
+            </div>
           </div>
 
           <div class="firmas-container">
@@ -11830,14 +11903,13 @@
             btnImprimir.innerHTML = textoOriginal;
             btnImprimir.disabled = false;
 
-          })
-          .catch(error => {
-            console.error('Error al obtener asistencias:', error);
-            // Restaurar botón en caso de error
-            btnImprimir.innerHTML = textoOriginal;
-            btnImprimir.disabled = false;
-            mostrarMensaje("error", "Error", "No se pudo generar el certificado: " + error.message);
-          });
+        } catch (error) {
+          console.error('Error al generar certificado:', error);
+          // Restaurar botón en caso de error
+          btnImprimir.innerHTML = textoOriginal;
+          btnImprimir.disabled = false;
+          mostrarMensaje("error", "Error", "No se pudo generar el certificado: " + error.message);
+        }
       }
 
       // Función auxiliar para extraer nombres de las firmas desde la URL

@@ -333,8 +333,8 @@ async function handleGetClientId(req, res) {
 // ===== CERTIFICATE CODE HANDLER =====
 /**
  * Handle get-or-create certificate registration code
- * GET: Query and return existing code if found
- * POST: Create new certificate registration with generated unique 9-digit code
+ * New behavior: one row per `nombre_especialidad` with a JSONB `usuarios` array
+ * Each element in `usuarios` contains user metadata and a unique `codigo_9digitos`.
  */
 async function handleGetOrCreateCertificateCode(req, res) {
   if (!['GET', 'POST'].includes(req.method)) {
@@ -360,117 +360,179 @@ async function handleGetOrCreateCertificateCode(req, res) {
     const calificaciones = body.calificaciones || {};
 
     if (!nombreEspecialidad || !nombreUsuario) {
-      return res.status(400).json({
-        success: false,
-        error: 'nombreEspecialidad y nombreUsuario son requeridos'
-      });
+      return res.status(400).json({ success: false, error: 'nombreEspecialidad y nombreUsuario son requeridos' });
     }
 
-    // 1. QUERY: Check if certificate already exists
-    const { data: existingRecords, error: queryError } = await supabase
+    // 1) Try to find an existing specialty row
+    const { data: foundRows, error: findError } = await supabase
       .from('especialidades_registradas')
-      .select('codigo_9digitos, id, created_at')
-      .eq('correo_electronico', userEmail)
+      .select('*')
       .eq('nombre_especialidad', nombreEspecialidad)
       .limit(1);
 
-    if (queryError) {
-      throw new Error(`Error verificando registro: ${queryError.message}`);
+    if (findError) {
+      throw new Error(`Error verificando especialidad: ${findError.message}`);
     }
 
-    // If record exists, return existing code
-    if (existingRecords && existingRecords.length > 0) {
-      return res.status(200).json({
-        success: true,
-        codigo: existingRecords[0].codigo_9digitos,
-        isNew: false,
-        createdAt: existingRecords[0].created_at
-      });
-    }
-
-    // 2. GENERATE: Create unique 9-digit code
-    const generatedCode = await generateUnique9DigitCode();
-
-    if (!generatedCode) {
-      throw new Error('No se pudo generar código único después de múltiples intentos');
-    }
-
-    // 3. CREATE: Insert new certificate registration
-    const { data: newRecord, error: insertError } = await supabase
-      .from('especialidades_registradas')
-      .insert([{
-        nombre_especialidad: nombreEspecialidad,
-        nombre_usuario: nombreUsuario,
-        nombre_instructor: nombreInstructor,
-        fecha_especialidad: fechaEspecialidad.toISOString(),
-        correo_electronico: userEmail,
-        codigo_9digitos: generatedCode,
-        nota_examen: notaExamen,
-        nota_tarea: notaTarea,
-        calificaciones: calificaciones,
-        created_at: new Date().toISOString()
-      }])
-      .select('id, codigo_9digitos, created_at');
-
-    if (insertError) {
-      // If code was duplicate, retry (should be rare)
-      if (insertError.message.includes('unique') || insertError.message.includes('duplicate')) {
-        console.warn('Code collision detected, retrying...');
-        return handleGetOrCreateCertificateCode(req, res); // Retry
-      }
-      throw new Error(`Error creando registro: ${insertError.message}`);
-    }
-
-    if (!newRecord || newRecord.length === 0) {
-      throw new Error('No se pudo crear el registro de certificado');
-    }
-
-    return res.status(201).json({
-      success: true,
-      codigo: newRecord[0].codigo_9digitos,
-      isNew: true,
-      createdAt: newRecord[0].created_at
+    // Helper to build new user object
+    const buildUserObject = (code) => ({
+      nombre_usuario: nombreUsuario,
+      correo_electronico: userEmail,
+      nombre_instructor: nombreInstructor || null,
+      codigo_9digitos: code,
+      nota_examen: Number(notaExamen) || 0,
+      nota_tarea: Number(notaTarea) || null,
+      calificaciones: calificaciones || {},
+      created_at: new Date().toISOString(),
     });
+
+    // If specialty row exists
+    if (Array.isArray(foundRows) && foundRows.length > 0) {
+      const row = foundRows[0];
+
+      // Normalize existing users array (support legacy single-row fields)
+      const existingUsuarios = Array.isArray(row.usuarios) ? row.usuarios : [];
+
+      // If legacy row stores nombre_usuario / correo_electronico at top level, include it in array for lookup
+      if (!existingUsuarios.length && (row.nombre_usuario || row.correo_electronico)) {
+        const legacyUser = {
+          nombre_usuario: String(row.nombre_usuario || '').trim() || null,
+          correo_electronico: String(row.correo_electronico || '').trim().toLowerCase() || null,
+          nombre_instructor: String(row.nombre_instructor || '').trim() || null,
+          codigo_9digitos: String(row.codigo_9digitos || '').trim() || null,
+          nota_examen: Number(row.nota_examen) || 0,
+          nota_tarea: row.nota_tarea == null ? null : Number(row.nota_tarea),
+          calificaciones: row.calificaciones || {},
+          created_at: row.created_at || new Date().toISOString(),
+        };
+
+        if (legacyUser.nombre_usuario || legacyUser.correo_electronico) {
+          existingUsuarios.push(legacyUser);
+        }
+      }
+
+      // 2) Check if user already present in usuarios array (by email or by name)
+      const foundUser = existingUsuarios.find((u) => {
+        const uEmail = String(u?.correo_electronico || '').trim().toLowerCase();
+        const uName = String(u?.nombre_usuario || '').trim();
+        return (uEmail && uEmail === userEmail) || (uName && uName === nombreUsuario);
+      });
+
+      if (foundUser) {
+        // Return the existing code for this user
+        return res.status(200).json({ success: true, codigo: String(foundUser.codigo_9digitos || ''), isNew: false, createdAt: foundUser.created_at || row.created_at || null });
+      }
+
+      // 3) User not found in this specialty row -> create a new user entry and append
+      const newCode = await generateUnique9DigitCode();
+      if (!newCode) throw new Error('No se pudo generar código único');
+
+      const newUser = buildUserObject(newCode);
+      const updatedUsuarios = existingUsuarios.concat([newUser]);
+
+      // Update the row with the new usuarios array
+      const { data: updateData, error: updateError } = await supabase
+        .from('especialidades_registradas')
+        .update({ usuarios: updatedUsuarios, updated_at: new Date().toISOString() })
+        .eq('id', row.id)
+        .select('id');
+
+      if (updateError) {
+        // Retry on duplicate/code collision
+        if (String(updateError.message || '').toLowerCase().includes('duplicate') || String(updateError.message || '').toLowerCase().includes('unique')) {
+          console.warn('Collision detected updating usuarios array, retrying...');
+          return handleGetOrCreateCertificateCode(req, res);
+        }
+        throw new Error(`Error actualizando especialidad: ${updateError.message}`);
+      }
+
+      return res.status(201).json({ success: true, codigo: newCode, isNew: true });
+    }
+
+    // 4) No specialty row exists -> create a new row with usuarios array containing this user
+    const newCode = await generateUnique9DigitCode();
+    if (!newCode) throw new Error('No se pudo generar código único');
+
+    const firstUser = buildUserObject(newCode);
+    const insertPayload = {
+      nombre_especialidad: nombreEspecialidad,
+      fecha_especialidad: fechaEspecialidad.toISOString(),
+      usuarios: [firstUser],
+      // Keep top-level fields for backward compatibility
+      nombre_usuario: nombreUsuario,
+      correo_electronico: userEmail,
+      nombre_instructor: nombreInstructor || null,
+      codigo_9digitos: newCode,
+      nota_examen: Number(notaExamen) || 0,
+      nota_tarea: Number(notaTarea) || null,
+      calificaciones: calificaciones || {},
+      created_at: new Date().toISOString(),
+    };
+
+    const { data: inserted, error: insertErr } = await supabase
+      .from('especialidades_registradas')
+      .insert([insertPayload])
+      .select('id, nombre_especialidad');
+
+    if (insertErr) {
+      if (String(insertErr.message || '').toLowerCase().includes('duplicate') || String(insertErr.message || '').toLowerCase().includes('unique')) {
+        console.warn('Collision detected on insert, retrying...');
+        return handleGetOrCreateCertificateCode(req, res);
+      }
+      throw new Error(`Error creando especialidad: ${insertErr.message}`);
+    }
+
+    return res.status(201).json({ success: true, codigo: newCode, isNew: true });
 
   } catch (error) {
     console.error('Error en get-or-create-certificate-code:', error);
-    return res.status(error.statusCode || 500).json({
-      success: false,
-      error: error.message || 'Error procesando código de certificado'
-    });
+    return res.status(error.statusCode || 500).json({ success: false, error: error.message || 'Error procesando código de certificado' });
   }
 }
 
 /**
- * Generate a unique 9-digit random code that doesn't exist in database
- * Attempts up to 10 times to avoid collisions
+ * Generate a unique 9-digit random code that doesn't exist in database (including all usuarios arrays)
  */
 async function generateUnique9DigitCode() {
-  const maxAttempts = 10;
-  
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    // Generate random 9-digit number (100000000 to 999999999)
-    const randomCode = String(Math.floor(Math.random() * 900000000) + 100000000);
-    
-    // Check if code already exists
-    const { data: existing, error } = await supabase
-      .from('especialidades_registradas')
-      .select('codigo_9digitos')
-      .eq('codigo_9digitos', randomCode)
-      .limit(1);
+  const maxAttempts = 20;
 
-    if (error) {
-      console.error('Error checking code uniqueness:', error);
-      continue;
+  // Helper: fetch all existing codes (top-level and inside usuarios arrays)
+  async function fetchExistingCodesSet() {
+    const codes = new Set();
+    try {
+      const { data: rows, error } = await supabase
+        .from('especialidades_registradas')
+        .select('codigo_9digitos, usuarios');
+
+      if (error) {
+        console.error('Error fetching existing codes:', error);
+        return codes;
+      }
+
+      for (const r of Array.isArray(rows) ? rows : []) {
+        const top = String(r?.codigo_9digitos || '').trim();
+        if (top) codes.add(top);
+        if (Array.isArray(r?.usuarios)) {
+          for (const u of r.usuarios) {
+            const c = String((u && (u.codigo_9digitos || u.codigo)) || '').trim();
+            if (c) codes.add(c);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching codes:', err);
     }
 
-    // If no match, code is unique
-    if (!existing || existing.length === 0) {
-      return randomCode;
-    }
+    return codes;
   }
 
-  // Failed to generate unique code after max attempts
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const randomCode = String(Math.floor(Math.random() * 900000000) + 100000000);
+    const existing = await fetchExistingCodesSet();
+    if (!existing.has(randomCode)) return randomCode;
+    // else continue and retry
+  }
+
   console.error('Failed to generate unique code after', maxAttempts, 'attempts');
   return null;
 }

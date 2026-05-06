@@ -11249,7 +11249,8 @@
         document.getElementById('resultEspecialidad').textContent = specialty?.nombre_especialidad || 'N/A';
         document.getElementById('resultNombreUsuario').textContent = user?.nombre_usuario || 'N/A';
         document.getElementById('resultCorreo').textContent = user?.correo_electronico || 'N/A';
-        document.getElementById('resultInstructor').textContent = user?.nombre_instructor || 'No especificado';
+        const nombreInstructor = user?.nombre_instructor ? decodeURIComponent(user.nombre_instructor) : 'No especificado';
+        document.getElementById('resultInstructor').textContent = nombreInstructor;
         document.getElementById('resultCodigo').textContent = user?.codigo_9digitos || 'N/A';
 
         if (user?.created_at) {

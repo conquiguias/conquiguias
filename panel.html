@@ -5656,107 +5656,106 @@
               tienes certificaciones</h3>
             <p>Participa en especialidades para ver tus certificaciones aquí.</p>
           </div>
-           <!-- 🔍 Contenedor de Búsqueda de Certificado -->
-           <div id="certificadoSearchContainer" style="margin-top: 40px; padding: 20px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; display: none;">
-             <h3 style="color: var(--text-primary); margin-bottom: 15px;">
-               <i class="fas fa-search" style="margin-right: 8px; color: var(--accent-color);"></i>
-               Buscar Certificación por Código
-             </h3>
-           
-             <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-               <input 
-                 type="text" 
-                 id="inputCodigoCertificado" 
-                 placeholder="Ingresa el código de 9 dígitos" 
-                 maxlength="9"
-                 inputmode="numeric"
-                 pattern="[0-9]{9}"
-                 style="flex: 1; min-width: 250px; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--input-bg); color: var(--text-primary); font-size: 14px;"
-               >
-               <button 
-                 id="btnBuscarCertificado" 
-                 style="padding: 10px 20px; background: var(--accent-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 8px;"
-               >
-                 <i class="fas fa-search"></i>
-                 Buscar
-               </button>
-             </div>
-           
-             <!-- Área de resultados -->
-             <div id="certificadoSearchResults" style="display: none; margin-top: 20px; padding: 20px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px;">
-               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                 <div>
-                   <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500; display: block; margin-bottom: 5px;">Especialidad</label>
-                   <p id="resultEspecialidad" style="color: var(--text-primary); font-weight: 500;">N/A</p>
-                 </div>
-                 <div>
-                   <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500; display: block; margin-bottom: 5px;">Participante</label>
-                   <p id="resultNombreUsuario" style="color: var(--text-primary); font-weight: 500;">N/A</p>
-                 </div>
-                 <div>
-                   <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500; display: block; margin-bottom: 5px;">Correo</label>
-                   <p id="resultCorreo" style="color: var(--text-primary);">N/A</p>
-                 </div>
-                 <div>
-                   <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500; display: block; margin-bottom: 5px;">Instructor</label>
-                   <p id="resultInstructor" style="color: var(--text-primary);">N/A</p>
-                 </div>
-                 <div>
-                   <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500; display: block; margin-bottom: 5px;">Código</label>
-                   <p id="resultCodigo" style="color: var(--text-primary); font-weight: 500; font-family: monospace;">N/A</p>
-                 </div>
-                 <div>
-                   <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500; display: block; margin-bottom: 5px;">Fecha de Registro</label>
-                   <p id="resultFecha" style="color: var(--text-primary);">N/A</p>
-                 </div>
-               </div>
-               
-               <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
-                 <h4 style="color: var(--text-primary); margin-bottom: 15px;">Calificaciones</h4>
-                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                   <div>
-                     <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500; display: block; margin-bottom: 5px;">Examen</label>
-                     <p id="examenResp" style="color: var(--text-primary);">No disponible</p>
-                   </div>
-                   <div>
-                     <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500; display: block; margin-bottom: 5px;">Tarea</label>
-                     <p id="tareaResp" style="color: var(--text-primary);">No entregada</p>
-                   </div>
-                   <div>
-                     <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500; display: block; margin-bottom: 5px;">Nota Examen</label>
-                     <p id="notaExamenResp" style="color: var(--text-primary);">N/A</p>
-                   </div>
-                   <div>
-                     <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500; display: block; margin-bottom: 5px;">Nota Tarea</label>
-                     <p id="notaTareaResp" style="color: var(--text-primary);">N/A</p>
-                   </div>
-                 </div>
-               </div>
-             </div>
-             
-             <div id="certificadoSearchNoResults" style="display: none; padding: 20px; text-align: center; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; margin-top: 20px;">
-               <i class="fas fa-search" style="font-size: 32px; color: var(--text-secondary); margin-bottom: 10px; display: block;"></i>
-               <p style="color: var(--text-secondary);">No se encontró ningún registro con ese código de 9 dígitos.</p>
-             </div>
-             
-             <div id="certificadoSearchError" style="display: none; padding: 15px; background: #ffe6e6; border: 1px solid #ffcccc; border-radius: 4px; color: #c33; margin-top: 15px; display: flex; align-items: center; gap: 10px;">
-               <i class="fas fa-exclamation-circle"></i>
-               <span id="certificadoSearchErrorMsg"></span>
-             </div>
-             
-             <div id="certificadoSearchLoading" style="display: none; text-align: center; padding: 20px; margin-top: 20px;">
-               <div style="display: inline-block; position: relative; width: 30px; height: 30px;">
-                 <div style="position: absolute; border: 3px solid var(--border-color); opacity: 0.1; border-radius: 50%; width: 100%; height: 100%; top: 0; left: 0;"></div>
-                 <div style="position: absolute; border: 3px solid var(--accent-color); border-radius: 50%; width: 100%; height: 100%; top: 0; left: 0; border-top-color: transparent; border-right-color: transparent; border-bottom-color: transparent; animation: spin 0.6s linear infinite;"></div>
-               </div>
-               <p style="margin-top: 10px; color: var(--text-secondary);">Buscando certificación...</p>
-             </div>
-           </div>
         </div>
       </div>
     </div>
 
-    <!-- 🔹 SECCIÓN TAREAS Y EXÁMENES (ALUMNO) -->
+    <!-- � SECCIÓN DE BÚSQUEDA DE CERTIFICADO -->
+    <div id="certificadoSearchSection" class="card hidden" style="margin-top: 30px;">
+      <h2><i class="fas fa-search" style="margin-right: 8px; color: var(--accent-color);"></i> Buscar Certificación por Código</h2>
+      <div id="certificadoSearchContainer">
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+          <input 
+            type="text" 
+            id="inputCodigoCertificado" 
+            placeholder="Ingresa el código de 9 dígitos" 
+            maxlength="9"
+            inputmode="numeric"
+            pattern="[0-9]{9}"
+            style="flex: 1; min-width: 250px; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--input-bg); color: var(--text-primary); font-size: 14px;"
+          >
+          <button 
+            id="btnBuscarCertificado" 
+            style="padding: 10px 20px; background: var(--accent-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 8px;"
+          >
+            <i class="fas fa-search"></i>
+            Buscar
+          </button>
+        </div>
+        
+        <!-- Área de resultados -->
+        <div id="certificadoSearchResults" style="display: none; margin-top: 20px; padding: 20px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500; display: block; margin-bottom: 5px;">Especialidad</label>
+              <p id="resultEspecialidad" style="color: var(--text-primary); font-weight: 500;">N/A</p>
+            </div>
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500; display: block; margin-bottom: 5px;">Participante</label>
+              <p id="resultNombreUsuario" style="color: var(--text-primary); font-weight: 500;">N/A</p>
+            </div>
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500; display: block; margin-bottom: 5px;">Correo</label>
+              <p id="resultCorreo" style="color: var(--text-primary);">N/A</p>
+            </div>
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500; display: block; margin-bottom: 5px;">Instructor</label>
+              <p id="resultInstructor" style="color: var(--text-primary);">N/A</p>
+            </div>
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500; display: block; margin-bottom: 5px;">Código</label>
+              <p id="resultCodigo" style="color: var(--text-primary); font-weight: 500; font-family: monospace;">N/A</p>
+            </div>
+            <div>
+              <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500; display: block; margin-bottom: 5px;">Fecha de Registro</label>
+              <p id="resultFecha" style="color: var(--text-primary);">N/A</p>
+            </div>
+          </div>
+          
+          <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+            <h4 style="color: var(--text-primary); margin-bottom: 15px;">Calificaciones</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+              <div>
+                <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500; display: block; margin-bottom: 5px;">Examen</label>
+                <p id="examenResp" style="color: var(--text-primary);">No disponible</p>
+              </div>
+              <div>
+                <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500; display: block; margin-bottom: 5px;">Tarea</label>
+                <p id="tareaResp" style="color: var(--text-primary);">No entregada</p>
+              </div>
+              <div>
+                <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500; display: block; margin-bottom: 5px;">Nota Examen</label>
+                <p id="notaExamenResp" style="color: var(--text-primary);">N/A</p>
+              </div>
+              <div>
+                <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500; display: block; margin-bottom: 5px;">Nota Tarea</label>
+                <p id="notaTareaResp" style="color: var(--text-primary);">N/A</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div id="certificadoSearchNoResults" style="display: none; padding: 20px; text-align: center; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; margin-top: 20px;">
+          <i class="fas fa-search" style="font-size: 32px; color: var(--text-secondary); margin-bottom: 10px; display: block;"></i>
+          <p style="color: var(--text-secondary);">No se encontró ningún registro con ese código de 9 dígitos.</p>
+        </div>
+        
+        <div id="certificadoSearchError" style="display: none; padding: 15px; background: #ffe6e6; border: 1px solid #ffcccc; border-radius: 4px; color: #c33; margin-top: 15px; display: flex; align-items: center; gap: 10px;">
+          <i class="fas fa-exclamation-circle"></i>
+          <span id="certificadoSearchErrorMsg"></span>
+        </div>
+        
+        <div id="certificadoSearchLoading" style="display: none; text-align: center; padding: 20px; margin-top: 20px;">
+          <div style="display: inline-block; position: relative; width: 30px; height: 30px;">
+            <div style="position: absolute; border: 3px solid var(--border-color); opacity: 0.1; border-radius: 50%; width: 100%; height: 100%; top: 0; left: 0;"></div>
+            <div style="position: absolute; border: 3px solid var(--accent-color); border-radius: 50%; width: 100%; height: 100%; top: 0; left: 0; border-top-color: transparent; border-right-color: transparent; border-bottom-color: transparent; animation: spin 0.6s linear infinite;"></div>
+          </div>
+          <p style="margin-top: 10px; color: var(--text-secondary);">Buscando certificación...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- �🔹 SECCIÓN TAREAS Y EXÁMENES (ALUMNO) -->
     <div id="tareasExamenesSection" class="card hidden">
       <h2><i class="fas fa-tasks" style="margin-right: 8px; color: var(--accent-color);"></i> Tareas y Exámenes</h2>
       <p>Gestiona tus entregas y evaluaciones pendientes.</p>
@@ -10650,12 +10649,12 @@
         const loading = document.getElementById("certificacionesLoading");
         const content = document.getElementById("certificacionesContent");
         const sinCert = document.getElementById("sinCertificaciones");
-        const searchContainer = document.getElementById("certificadoSearchContainer");
+        const searchSection = document.getElementById("certificadoSearchSection");
 
         if (loading) loading.style.display = 'block';
         if (content) content.style.display = 'none';
         if (sinCert) sinCert.style.display = 'none';
-        if (searchContainer) searchContainer.style.display = 'none';
+        if (searchSection) searchSection.classList.add('hidden');
 
         try {
           const user = auth.currentUser;
@@ -10679,7 +10678,7 @@
           if (!rawData || rawData.length === 0) {
             if (loading) loading.style.display = 'none';
             if (sinCert) sinCert.style.display = 'block';
-            if (searchContainer) searchContainer.style.display = 'block';
+            if (searchSection) searchSection.classList.remove('hidden');
             return;
           }
 
@@ -10701,7 +10700,7 @@
 
           if (loading) loading.style.display = 'none';
           if (content) content.style.display = 'block';
-          if (searchContainer) searchContainer.style.display = 'block';
+          if (searchSection) searchSection.classList.remove('hidden');
 
           // 🔹 RECONSTRUCCIÓN TOTAL DE LA TABLA PARA EVITAR DESALINEACIÓN DE CACHÉ
           const tablaContainer = document.getElementById("tablaCertificaciones"); // Usamos la referencia a la tabla

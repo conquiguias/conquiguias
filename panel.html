@@ -11180,6 +11180,7 @@
 
       // ===== CERTIFICATE SEARCH BY CODE =====
       async function buscarCertificadoPorCodigo(codigo) {
+        let btnBuscar = document.getElementById('btnBuscarCertificado');
         try {
           const respuestaInput = document.getElementById('inputCodigoCertificado');
           const codigoLimpio = String(codigo || respuestaInput.value).trim();
@@ -11189,10 +11190,20 @@
             return;
           }
 
-          document.getElementById('certificadoSearchLoading').style.display = 'block';
-          document.getElementById('certificadoSearchResults').style.display = 'none';
-          document.getElementById('certificadoSearchNoResults').style.display = 'none';
-          document.getElementById('certificadoSearchError').style.display = 'none';
+          // UI: mostrar loading y deshabilitar botón
+          const loadingEl = document.getElementById('certificadoSearchLoading');
+          const resultsEl = document.getElementById('certificadoSearchResults');
+          const noResultsEl = document.getElementById('certificadoSearchNoResults');
+          const errorEl = document.getElementById('certificadoSearchError');
+
+          if (btnBuscar) { btnBuscar.disabled = true; btnBuscar.style.opacity = '0.7'; }
+          if (loadingEl) loadingEl.style.display = 'block';
+          if (resultsEl) resultsEl.style.display = 'none';
+          if (noResultsEl) noResultsEl.style.display = 'none';
+          if (errorEl) errorEl.style.display = 'none';
+          if (document.getElementById('certificadoSearchErrorMsg')) document.getElementById('certificadoSearchErrorMsg').textContent = '';
+
+          console.log('Buscar certificado por código:', codigoLimpio);
 
           const urlSearch = new URL('/api/social?action=search-certificate-by-code', window.location.origin);
           urlSearch.searchParams.set('codigo_9digitos', codigoLimpio);
@@ -11200,28 +11211,35 @@
           const respuesta = await fetch(urlSearch.toString(), {
             method: 'GET',
             headers: {
-              'Content-Type': 'application/json'
-            }
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            credentials: 'same-origin'
           });
 
           const datos = await respuesta.json().catch(() => ({}));
 
-          document.getElementById('certificadoSearchLoading').style.display = 'none';
+          if (loadingEl) loadingEl.style.display = 'none';
 
           if (!respuesta.ok || !datos?.success) {
             if (respuesta.status === 404) {
-              document.getElementById('certificadoSearchNoResults').style.display = 'block';
+              if (noResultsEl) noResultsEl.style.display = 'block';
             } else {
               mostrarErrorBusquedaCertificado(datos?.error || 'Error en la búsqueda');
             }
             return;
           }
 
+          console.log('Resultado búsqueda:', datos);
           mostrarResultadosBusqueda(datos);
 
         } catch (error) {
           console.error('Error buscando certificado:', error);
           mostrarErrorBusquedaCertificado('Error en la búsqueda. Intenta de nuevo.');
+        } finally {
+          if (btnBuscar) { btnBuscar.disabled = false; btnBuscar.style.opacity = ''; }
+          const loadingElFinal = document.getElementById('certificadoSearchLoading');
+          if (loadingElFinal) loadingElFinal.style.display = 'none';
         }
       }
 
@@ -11281,22 +11299,32 @@
         document.getElementById('certificadoSearchLoading').style.display = 'none';
       }
 
-      document.addEventListener('DOMContentLoaded', () => {
-        const btnBuscar = document.getElementById('btnBuscarCertificado');
-        const inputCodigo = document.getElementById('inputCodigoCertificado');
+      (function attachCertificateSearchHandlers(){
+        function attach(){
+          const btnBuscar = document.getElementById('btnBuscarCertificado');
+          const inputCodigo = document.getElementById('inputCodigoCertificado');
 
-        if (btnBuscar) {
-          btnBuscar.addEventListener('click', () => buscarCertificadoPorCodigo());
+          if (btnBuscar && !btnBuscar._certificateSearchAttached) {
+            btnBuscar.addEventListener('click', () => buscarCertificadoPorCodigo());
+            btnBuscar._certificateSearchAttached = true;
+          }
+
+          if (inputCodigo && !inputCodigo._certificateSearchAttached) {
+            inputCodigo.addEventListener('keypress', (e) => {
+              if (e.key === 'Enter') {
+                buscarCertificadoPorCodigo();
+              }
+            });
+            inputCodigo._certificateSearchAttached = true;
+          }
         }
 
-        if (inputCodigo) {
-          inputCodigo.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-              buscarCertificadoPorCodigo();
-            }
-          });
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', attach);
+        } else {
+          attach();
         }
-      });
+      })();
       // ===== END CERTIFICATE SEARCH =====
 
       async function imprimirExamenCompleto(examen, resultado, formulario, formularioId, rubricaImpresion) {

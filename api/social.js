@@ -262,6 +262,9 @@ export default async function handler(req, res) {
             case "get-or-create-certificate-code":
         await handleGetOrCreateCertificateCode(req, res);
         break;
+             case "search-certificate-by-code":
+               await handleSearchCertificateByCode(req, res);
+               break;
       default:
         res.status(400).json({ error: "AcciÃ³n no vÃ¡lida" });
     }
@@ -527,6 +530,78 @@ async function generateUnique9DigitCode() {
   console.error('Failed to generate unique code after', maxAttempts, 'attempts');
   return null;
 }
+
+  /**
+   * Search certificate registration by 9-digit code
+   */
+  async function handleSearchCertificateByCode(req, res) {
+    if (req.method !== 'GET' && req.method !== 'POST') {
+      return res.status(405).json({ error: 'Método no permitido' });
+    }
+
+    try {
+      const body = req.method === 'POST' ? (req.body || {}) : {};
+      const query = req.method === 'GET' ? (req.query || {}) : {};
+      const codigoSearching = String(body.codigo_9digitos || query.codigo_9digitos || '').trim();
+
+      if (!codigoSearching || codigoSearching.length !== 9 || !/^\d+$/.test(codigoSearching)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Código debe ser un número de 9 dígitos'
+        });
+      }
+
+      const { data: especialidades, error: queryError } = await supabase
+        .from('especialidades_registradas')
+        .select('id, nombre_especialidad, fecha_especialidad, usuarios, created_at');
+
+      if (queryError) {
+        throw new Error(`Error buscando especialidades: ${queryError.message}`);
+      }
+
+      let foundUser = null;
+      let foundEspecialidad = null;
+
+      for (const espec of Array.isArray(especialidades) ? especialidades : []) {
+        if (!Array.isArray(espec.usuarios)) continue;
+
+        const user = espec.usuarios.find(
+          (u) => String(u?.codigo_9digitos || '').trim() === codigoSearching
+        );
+
+        if (user) {
+          foundUser = user;
+          foundEspecialidad = espec;
+          break;
+        }
+      }
+
+      if (!foundUser || !foundEspecialidad) {
+        return res.status(404).json({
+          success: false,
+          error: 'No se encontró registro de especialidad con ese código'
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        specialty: {
+          id: foundEspecialidad.id,
+          nombre_especialidad: foundEspecialidad.nombre_especialidad,
+          fecha_especialidad: foundEspecialidad.fecha_especialidad,
+          created_at: foundEspecialidad.created_at,
+        },
+        user: foundUser
+      });
+
+    } catch (error) {
+      console.error('Error en search-certificate-by-code:', error);
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        error: error.message || 'Error buscando certificado'
+      });
+    }
+  }
 
 export const config = {
   api: {

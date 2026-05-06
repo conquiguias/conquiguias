@@ -22,35 +22,74 @@
   <meta name="twitter:image" content="/logo1.png">
   <link rel="stylesheet" href="/scrollbar-theme.css">
   <script>
-    (function(){
+    (function () {
       const noop = () => {};
-      if (typeof window !== 'undefined' && window.console) {
+      if (window.console) {
         window.console.log = noop;
+        window.console.info = noop;
         window.console.warn = noop;
         window.console.error = noop;
         window.console.debug = noop;
+        window.console.clear = noop;
       }
     })();
   </script>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Great+Vibes&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6829228334766526" crossorigin="anonymous"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Great+Vibes&family=Montserrat:wght@300;500;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <script src="lib/html2pdf.bundle.min.js"></script>
   <!-- Clappr Video Player - versión estable -->
   <script src="lib/clappr.js"></script>
+  <script src="lib/clappr-pip-plugin.js"></script>
   <script src="lib/level-selector.js"></script>
   <script src="lib/clappr-playback-rate.js"></script>
   <script src="lib/dashShakaPlayBack.js"></script>
+  <script src="lib/hlsjs-playback.js"></script>
   <script src="lib/clappr-youtube-playback.js"></script>
   <script src="lib/audio-track-selector.js"></script>
   <script src="lib/jquery-3.2.1.min.js"></script>
   <script src="lib/lunaradio.min.js"></script>
   <script src="lib/rocket-loader.min.js" data-cf-settings="3bc5e4e5245e387f3290c38f-|49" defer></script>
+  
   <script>
     // Globals initialized before modules
+    window.isAdmin = false;
     window.userData = null;
     window.currentUserId = null;
   </script>
-
   <style>
+    /* ============================================
+   RESET Y VARIABLES PARA MODO NOCHE
+   ============================================ */
+    :root {
+      /* Colores principales modo noche */
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: #1e293b;
+      --bg-sidebar: #1e293b;
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --accent-color: #3b82f6;
+      --accent-hover: #2563eb;
+      --danger-color: #ef4444;
+      --danger-hover: #dc2626;
+      --success-color: #10b981;
+      --warning-color: #f59e0b;
+      --border-color: #334155;
+      --shadow-color: rgba(0, 0, 0, 0.3);
+      --shadow-light: rgba(0, 0, 0, 0.1);
+    }
+
+    /* Reset básico */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Montserrat", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+
     /* Body y contenedor principal */
     body {
       display: flex;
@@ -5645,7 +5684,7 @@
         </div>
         
         <!-- Área de resultados -->
-        <div id="certificadoSearchResults" style="display: none; margin-top: 20px; padding: 20px; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px;">
+        <div id="certificadoSearchResults" style="display: none; margin-top: 20px; padding: 18px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
             <div>
               <label style="font-size: 12px; color: var(--text-secondary); font-weight: 500; display: block; margin-bottom: 5px;">Especialidad</label>
@@ -5696,14 +5735,14 @@
           </div>
         </div>
         
-        <div id="certificadoSearchNoResults" style="display: none; padding: 20px; text-align: center; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 8px; margin-top: 20px;">
-          <i class="fas fa-search" style="font-size: 32px; color: var(--text-secondary); margin-bottom: 10px; display: block;"></i>
-          <p style="color: var(--text-secondary);">No se encontró ningún registro con ese código de 9 dígitos.</p>
+        <div id="certificadoSearchNoResults" style="display: none; padding: 18px; text-align: center; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; margin-top: 20px;">
+          <i class="fas fa-search" style="font-size: 28px; color: var(--text-secondary); margin-bottom: 8px; display: block;"></i>
+          <p style="color: var(--text-secondary); margin: 0;">No se encontró ningún registro con ese código de 9 dígitos.</p>
         </div>
         
-        <div id="certificadoSearchError" style="display: none; padding: 15px; background: #ffe6e6; border: 1px solid #ffcccc; border-radius: 4px; color: #c33; margin-top: 15px; display: flex; align-items: center; gap: 10px;">
-          <i class="fas fa-exclamation-circle"></i>
-          <span id="certificadoSearchErrorMsg"></span>
+        <div id="certificadoSearchError" style="display: none; padding: 12px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); margin-top: 15px; display: flex; align-items: center; gap: 10px;">
+          <i class="fas fa-exclamation-circle" style="color: var(--accent-color);"></i>
+          <span id="certificadoSearchErrorMsg" style="color: var(--text-primary);"></span>
         </div>
         
         <div id="certificadoSearchLoading" style="display: none; text-align: center; padding: 20px; margin-top: 20px;">
@@ -8716,7 +8755,7 @@
         const menuInstructorBtn = document.getElementById('menuInstructor');
         const menuAdminBtn = document.getElementById('menuAdmin');
 
-        [perfilSection, especialidadesSection, blocNotasSection, certificacionesSection, adminSectionEl, instructorSectionEl, tareasExamenesSectionEl].forEach((section) => {
+        [perfilSection, especialidadesSection, blocNotasSection, certificacionesSection, certificadoSearchSection, adminSectionEl, instructorSectionEl, tareasExamenesSectionEl].forEach((section) => {
           if (section) section.classList.add('hidden');
         });
 
@@ -9812,7 +9851,6 @@
         pausarTodosLosVideos();
         const instructorSection = document.getElementById("instructorSection");
         const menuInstructor = document.getElementById("menuInstructor");
-         const certificadoSearchSection = document.getElementById("certificadoSearchSection");
 
         if (seccion === instructorSection && window.isMobileInstructorAccessBlocked && window.isMobileInstructorAccessBlocked()) {
           notifyInstructorDesktopOnly();
@@ -9820,18 +9858,14 @@
         }
 
         // Incluir tareasExamenesSection y menuTareasExamenes en las listas para limpiar
-        [inicioSection, perfilSection, especialidadesSection, clubesSection, blocNotasSection, certificacionesSection, adminSection, instructorSection, tareasExamenesSection, grabacionesSection, acercaSection, donarSection].forEach(sec => {
+        [inicioSection, perfilSection, especialidadesSection, clubesSection, blocNotasSection, certificacionesSection, certificadoSearchSection, adminSection, instructorSection, tareasExamenesSection, grabacionesSection, acercaSection, donarSection].forEach(sec => {
           if (sec) sec.classList.add("hidden");
         });
-          if (certificadoSearchSection) certificadoSearchSection.classList.add("hidden");
         [menuInicio, menuPerfil, menuEspecialidades, menuClubes, menuBlocNotas, menuCertificaciones, menuAdmin, menuInstructor, menuTareasExamenes, menuGrabaciones, menuAcerca, menuDonar].forEach(btn => {
           if (btn) btn.classList.remove("active");
         });
 
         seccion.classList.remove("hidden");
-          if (seccion === certificacionesSection && certificadoSearchSection) {
-            certificadoSearchSection.classList.remove("hidden");
-          }
         botonActivo.classList.add("active");
       }
 

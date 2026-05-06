@@ -11397,8 +11397,8 @@
                           .firma-vacia .linea-firma { margin-top: 0; }
                           .firma-vacia .nombre-firma { min-height: 30px; }
                           .decoracion-abajo { height: 170px; margin-top: -40px; margin-bottom: -40px; }
-                          .imagen-especialidad-certificado { top: 200px; right: 20px; max-width: 170px; max-height: 170px; transform: translateY(-4%); }
-                          .logo-conquiquias-certificado { top: 200px; left: 20px; max-width: 170px; max-height: 170px; transform: translateY(-12%); }
+                          .imagen-especialidad-certificado { top: 230px; right: 20px; max-width: 170px; max-height: 170px; transform: translateY(-4%); }
+                          .logo-conquiquias-certificado { top: 230px; left: 20px; max-width: 170px; max-height: 170px; transform: translateY(-4%); }
                             .no-print { display: none !important; }
                         }
                         
@@ -11669,6 +11669,9 @@
 
       <!-- CERTIFICADO - HOJA COMPLETA SEPARADA -->
       <div class="certificacion-page">
+        <img src="/images/logo%20oficial%20conquiguias%20world%20vectorial.png"
+          class="logo-conquiquias-certificado" alt="Conquiguias World">
+          
         <!-- AGREGAR LAS IMÁGENES DECORATIVAS -->
         <img src="https://raw.githubusercontent.com/conquiguias/conquiguias-data/main/images/decoracion/izquierda.png" class="decoracion-certificado decoracion-izquierda"
           alt="Decoración izquierda">
@@ -11679,11 +11682,6 @@
 
         ${formulario.imagenEspecialidad ? `<img src="${formulario.imagenEspecialidad}"
           class="imagen-especialidad-certificado" alt="Especialidad">` : ''}
-
-        <div class="certificacion-contenido">
-
-        <img src="/images/logo%20oficial%20conquiguias%20world%20vectorial.png"
-          class="logo-conquiquias-certificado" alt="Conquiguias World">
 
         <div class="certificacion-contenido">
           <div class="certificacion-header">
@@ -11699,7 +11697,7 @@
             <div class="nombre-usuario">${nombreUsuario}</div>
 
             <div class="texto-certificacion">
-              Por haber participado en la especialidad:<br>
+              Por haber participado y completado la especialidad:<br>
               <strong style="color: #2c3e50; font-size: 22px;">"${formulario.titulo}"</strong><br>
               impartido por <strong>${limpiarTextoCertificado(extraerNombreFirma(formulario.imagenFirma1) || 'el instructor')}</strong>,<br>
               el ${fechaFormateada}.

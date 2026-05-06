@@ -8,14 +8,6 @@ CREATE TABLE IF NOT EXISTS public.especialidades_registradas (
     nombre_especialidad TEXT NOT NULL UNIQUE,
     fecha_especialidad TIMESTAMP,
     usuarios JSONB NOT NULL DEFAULT '[]'::jsonb,
-    -- Legacy fields (for backward compatibility)
-    nombre_usuario TEXT,
-    nombre_instructor TEXT,
-    correo_electronico TEXT,
-    codigo_9digitos VARCHAR(9),
-    nota_tarea DECIMAL(10, 2),
-    nota_examen DECIMAL(10, 2),
-    calificaciones JSONB,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );

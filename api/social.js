@@ -366,7 +366,7 @@ async function handleGetOrCreateCertificateCode(req, res) {
     // 1) Try to find an existing specialty row
     const { data: foundRows, error: findError } = await supabase
       .from('especialidades_registradas')
-      .select('*')
+      .select('id, nombre_especialidad, fecha_especialidad, usuarios, created_at, updated_at')
       .eq('nombre_especialidad', nombreEspecialidad)
       .limit(1);
 
@@ -458,21 +458,14 @@ async function handleGetOrCreateCertificateCode(req, res) {
       nombre_especialidad: nombreEspecialidad,
       fecha_especialidad: fechaEspecialidad.toISOString(),
       usuarios: [firstUser],
-      // Keep top-level fields for backward compatibility
-      nombre_usuario: nombreUsuario,
-      correo_electronico: userEmail,
-      nombre_instructor: nombreInstructor || null,
-      codigo_9digitos: newCode,
-      nota_examen: Number(notaExamen) || 0,
-      nota_tarea: Number(notaTarea) || null,
-      calificaciones: calificaciones || {},
       created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
     const { data: inserted, error: insertErr } = await supabase
       .from('especialidades_registradas')
       .insert([insertPayload])
-      .select('id, nombre_especialidad');
+      .select('id, nombre_especialidad, usuarios, created_at');
 
     if (insertErr) {
       if (String(insertErr.message || '').toLowerCase().includes('duplicate') || String(insertErr.message || '').toLowerCase().includes('unique')) {
@@ -502,7 +495,7 @@ async function generateUnique9DigitCode() {
     try {
       const { data: rows, error } = await supabase
         .from('especialidades_registradas')
-        .select('codigo_9digitos, usuarios');
+        .select('usuarios');
 
       if (error) {
         console.error('Error fetching existing codes:', error);
@@ -510,8 +503,6 @@ async function generateUnique9DigitCode() {
       }
 
       for (const r of Array.isArray(rows) ? rows : []) {
-        const top = String(r?.codigo_9digitos || '').trim();
-        if (top) codes.add(top);
         if (Array.isArray(r?.usuarios)) {
           for (const u of r.usuarios) {
             const c = String((u && (u.codigo_9digitos || u.codigo)) || '').trim();

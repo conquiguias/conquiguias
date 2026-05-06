@@ -11021,12 +11021,30 @@
        * @param {object} formulario - Form data with title and metadata
        * @returns {Promise<string>} The 9-digit certificate code
        */
-      async function obtenerOCrearCodigoCertificado(nombreEspecialidad, nombreUsuario, formulario = {}) {
+      async function obtenerOCrearCodigoCertificado(nombreEspecialidad, nombreUsuario, formulario = {}, datosExtra = {}) {
         try {
           const idToken = await auth.currentUser?.getIdToken();
           if (!idToken) {
             throw new Error('No hay sesión activa');
           }
+
+          const nombreInstructor = String(
+            datosExtra.nombreInstructor
+            || formulario.nombreInstructor
+            || formulario.instructor
+            || formulario.director
+            || extraerNombreFirma(formulario.imagenFirma1)
+            || extraerNombreFirma(formulario.imagenFirma2)
+            || extraerNombreFirma(formulario.imagenFirma3)
+            || ''
+          ).trim();
+
+          const notaTarea = datosExtra.notaTarea ?? formulario.notaTarea ?? null;
+          const notaExamen = datosExtra.notaExamen ?? formulario.notaExamen ?? 0;
+          const calificaciones = {
+            ...(formulario.calificaciones && typeof formulario.calificaciones === 'object' ? formulario.calificaciones : {}),
+            ...(datosExtra.calificaciones && typeof datosExtra.calificaciones === 'object' ? datosExtra.calificaciones : {}),
+          };
 
           const response = await fetch('/api/social?action=get-or-create-certificate-code', {
             method: 'POST',
@@ -11037,11 +11055,11 @@
             body: JSON.stringify({
               nombreEspecialidad: nombreEspecialidad || formulario.titulo || 'Sin especialidad',
               nombreUsuario: nombreUsuario,
-              nombreInstructor: formulario.nombreInstructor || '',
+              nombreInstructor,
               fechaEspecialidad: formulario.creado || new Date().toISOString(),
-              notaExamen: formulario.notaExamen || 0,
-              notaTarea: formulario.notaTarea || null,
-              calificaciones: formulario.calificaciones || {}
+              notaExamen,
+              notaTarea,
+              calificaciones
             })
           });
 
@@ -11099,25 +11117,6 @@
             }
           }
 
-          // 🆕 OBTAIN CERTIFICATE CODE
-          let codigoCertificado = 'N/A';
-          try {
-            codigoCertificado = await obtenerOCrearCodigoCertificado(
-              formulario.titulo,
-              nombreUsuario,
-              formulario
-            );
-          } catch (codeError) {
-            console.warn('Warning: Could not obtain certificate code:', codeError);
-            // Continue even if code generation fails
-            codigoCertificado = 'ERROR-' + Math.floor(Math.random() * 1000000);
-          }
-
-          // Crear ventana de impresión
-          const ventanaImpresion = window.open('', '_blank');
-          const respuestasUsuario = resultado.respuestas || {};
-
-          // Intentar obtener info de tarea solo desde la fila en caché
           const miTarea = certRow?.miTarea || null;
           if (miTarea) {
             formulario.miTarea = miTarea;
@@ -11126,6 +11125,8 @@
           // Calcular estadísticas del examen
           let correctas = 0;
           let total = examen.length;
+
+          const respuestasUsuario = resultado.respuestas || {};
 
           examen.forEach((pregunta, idx) => {
             let respuestaUsuario = respuestasUsuario[pregunta.id];
@@ -11138,8 +11139,57 @@
             }
           });
 
-          const porcentaje = (correctas / total) * 100;
+          const porcentaje = total > 0 ? (correctas / total) * 100 : 0;
           const aprobado = porcentaje >= 70;
+
+          const nombreInstructor = String(
+            formulario.nombreInstructor
+            || formulario.instructor
+            || formulario.director
+            || extraerNombreFirma(formulario.imagenFirma1)
+            || extraerNombreFirma(formulario.imagenFirma2)
+            || extraerNombreFirma(formulario.imagenFirma3)
+            || ''
+          ).trim();
+
+          const calificacionesCertificado = {
+            examen: {
+              correctas,
+              total,
+              porcentaje: Number(porcentaje.toFixed(1)),
+              aprobado,
+            },
+            tarea: miTarea ? {
+              nota: miTarea.nota ?? null,
+              estado: miTarea.estado || null,
+              rubrica: miTarea.rubrica || null,
+            } : null,
+            instructor: nombreInstructor || null,
+            especialidad: formulario.titulo || null,
+          };
+
+          // 🆕 OBTAIN CERTIFICATE CODE
+          let codigoCertificado = 'N/A';
+          try {
+            codigoCertificado = await obtenerOCrearCodigoCertificado(
+              formulario.titulo,
+              nombreUsuario,
+              formulario,
+              {
+                nombreInstructor,
+                notaExamen: porcentaje,
+                notaTarea: miTarea ? miTarea.nota : null,
+                calificaciones: calificacionesCertificado,
+              }
+            );
+          } catch (codeError) {
+            console.warn('Warning: Could not obtain certificate code:', codeError);
+            // Continue even if code generation fails
+            codigoCertificado = 'ERROR-' + Math.floor(Math.random() * 1000000);
+          }
+
+          // Crear ventana de impresión
+          const ventanaImpresion = window.open('', '_blank');
 
           // Formatear fecha
           const fechaCreacion = new Date(formulario.creado);
@@ -11298,7 +11348,7 @@
                             font-family: "Great Vibes", cursive;
                             font-size: 40px;
                             font-weight: bold;
-                            margin: 30px 0;
+                            margin: 10px 0;
                             padding: 20px;
                             border-bottom: 3px solid #2c3e50;
                             display: inline-block;
@@ -11309,12 +11359,12 @@
                         .linea-separadora {
                             width: 400px;
                             border-top: 2px solid #2c3e50;
-                            margin: 30px auto;
+                            margin: 10px auto;
                         }
                         .texto-certificacion {
                             font-size: 20px;
                             line-height: 1.8;
-                            margin: 40px 0;
+                            margin: 0px 0;
                             max-width: 600px;
                             width: 100%;
                             margin-left: auto;
@@ -11456,7 +11506,7 @@
                           .certificacion-header { margin-bottom: 28px; }
                           .certificacion-titulo { margin-bottom: 8px; }
                           .certificacion-cuerpo { width: 100%; max-width: 760px; display: flex; flex-direction: column; align-items: center; text-align: center; }
-                          .texto-certificacion { width: 100%; max-width: 600px; margin: 28px auto 12px auto; text-align: center !important; }
+                          .texto-certificacion { width: 100%; max-width: 600px; margin: 0px auto 12px auto; text-align: center !important; }
                           .firmas-container { margin-top: 30px; padding-bottom: 14px; }
                           .firmas-divider { margin: 10px auto 8px auto; }
                           .firmas-row { gap: 14px; }
@@ -11776,8 +11826,8 @@
               el ${fechaFormateada}.
             </div>
 
-            <!-- 🆕 CERTIFICATE REGISTRATION CODE -->
-            <div style="text-align: center; margin-top: 20px; padding: 15px; border: 2px solid #d4af37; border-radius: 8px; background: #f9f7f3;">
+            <!-- CERTIFICATE REGISTRATION CODE -->
+            <div style="text-align: center; margin-top: 0px; padding: 15px; border: 2px solid #d4af37; border-radius: 8px; background: #f9f7f3;">
               <div style="font-size: 12px; color: #666; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;">
                 Especialidad Registrada
               </div>

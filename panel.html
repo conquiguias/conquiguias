@@ -5676,6 +5676,7 @@
           >
           <button 
             id="btnBuscarCertificado" 
+            type="button"
             style="padding: 10px 20px; background: var(--accent-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 8px;"
           >
             <i class="fas fa-search"></i>
@@ -5740,9 +5741,9 @@
           <p style="color: var(--text-secondary); margin: 0;">No se encontró ningún registro con ese código de 9 dígitos.</p>
         </div>
         
-        <div id="certificadoSearchError" style="display: none; padding: 12px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); margin-top: 15px; display: flex; align-items: center; gap: 10px;">
-          <i class="fas fa-exclamation-circle" style="color: var(--accent-color);"></i>
-          <span id="certificadoSearchErrorMsg" style="color: var(--text-primary);"></span>
+        <div id="certificadoSearchError" style="display: none; padding: 12px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); margin-top: 15px; display: flex; align-items: center; gap: 10px; width: 100%;">
+          <i class="fas fa-exclamation-circle" style="color: var(--accent-color); flex: 0 0 auto;"></i>
+          <span id="certificadoSearchErrorMsg" style="color: var(--text-secondary); display: block; width: 100%; font-size: 14px;"></span>
         </div>
         
         <div id="certificadoSearchLoading" style="display: none; text-align: center; padding: 20px; margin-top: 20px;">

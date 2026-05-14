@@ -7914,11 +7914,113 @@
       let taskPendingPollTimer = null;
       let lastTaskPendingCount = null;
       const TASK_PENDING_POLL_MS = 30 * 60 * 1000;
-      let certificacionesCache = null;
-      let certificacionesCacheTime = 0;
+      let estadoUsuarioCache = null;
+      let estadoUsuarioCacheTime = 0;
       const CACHE_DURATION = 5 * 60 * 1000;
+      const certificacionEvaluacionCache = new Map();
       let instructorAssignmentsConfig = {};
       const postAuthorMetaCache = new Map();
+
+      function getAcademicCacheKey() {
+        const uid = String(
+          currentUserId ||
+          localStorage.getItem('visitanteId') ||
+          auth?.currentUser?.uid ||
+          ''
+        ).trim();
+        const email = String(
+          userData?.email ||
+          auth?.currentUser?.email ||
+          localStorage.getItem('userEmail') ||
+          ''
+        ).trim().toLowerCase();
+
+        return `${uid || 'anon'}::${email || 'no-email'}`;
+      }
+
+      function isFreshCache(cacheTime, ttlMs = CACHE_DURATION) {
+        return Number.isFinite(cacheTime) && cacheTime > 0 && (Date.now() - cacheTime) < ttlMs;
+      }
+
+      function invalidateEstadoUsuarioCache() {
+        estadoUsuarioCache = null;
+        estadoUsuarioCacheTime = 0;
+      }
+
+      window.invalidateEstadoUsuarioCache = invalidateEstadoUsuarioCache;
+
+      function invalidateCertificacionEvaluacionCache(formularioId = null) {
+        const safeId = String(formularioId || '').trim();
+        if (!safeId) {
+          certificacionEvaluacionCache.clear();
+          return;
+        }
+        certificacionEvaluacionCache.delete(safeId);
+      }
+
+      window.invalidateCertificacionEvaluacionCache = invalidateCertificacionEvaluacionCache;
+
+      async function getEstadoUsuarioConCache(forceReload = false) {
+        const cacheKey = getAcademicCacheKey();
+        if (!forceReload && estadoUsuarioCache?.key === cacheKey && Array.isArray(estadoUsuarioCache?.data) && isFreshCache(estadoUsuarioCacheTime)) {
+          return estadoUsuarioCache.data;
+        }
+
+        const authHeaders = await window.getFormularioAuthHeaders();
+        const visitanteId = String(
+          currentUserId ||
+          localStorage.getItem('visitanteId') ||
+          auth?.currentUser?.uid ||
+          ''
+        ).trim();
+        const email = String(
+          userData?.email ||
+          auth?.currentUser?.email ||
+          localStorage.getItem('userEmail') ||
+          ''
+        ).trim();
+
+        const resp = await fetch('/api/formulario?action=obtenerEstadoUsuario', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
+          body: JSON.stringify({ visitanteId, email })
+        });
+
+        if (!resp.ok) {
+          const payload = await resp.json().catch(() => ({}));
+          throw new Error(payload.error || 'No se pudo cargar estado de usuario');
+        }
+
+        const data = await resp.json();
+        if (!Array.isArray(data)) {
+          throw new Error('Respuesta inválida del servidor');
+        }
+
+        estadoUsuarioCache = { key: cacheKey, data };
+        estadoUsuarioCacheTime = Date.now();
+        return data;
+      }
+
+      async function getCertificacionEvaluacionConCache(formularioId, forceReload = false) {
+        const safeId = String(formularioId || '').trim();
+        if (!safeId) {
+          throw new Error('formularioId requerido');
+        }
+
+        const cached = certificacionEvaluacionCache.get(safeId);
+        if (!forceReload && cached && Array.isArray(cached.data) && isFreshCache(cached.cachedAt)) {
+          return cached.data;
+        }
+
+        const resExamen = await fetch(`/api/formulario?action=obtenerEvaluacion&id=${encodeURIComponent(safeId)}`);
+        if (!resExamen.ok) {
+          throw new Error('No se pudo cargar la evaluación');
+        }
+
+        const examen = await resExamen.json();
+        certificacionEvaluacionCache.set(safeId, { data: examen, cachedAt: Date.now() });
+        return examen;
+      }
 
       window.isOwner = false;
       window.isInstructorRole = false;
@@ -10646,7 +10748,7 @@
 
       //////////////////////////////////////////////////////
       // Función para cargar las certificaciones del usuario (OPTIMIZADA Y CONSTRUIDA DINAMICAMENTE)
-      async function cargarCertificaciones() {
+      async function cargarCertificaciones(forceReload = false) {
         const loading = document.getElementById("certificacionesLoading");
         const content = document.getElementById("certificacionesContent");
         const sinCert = document.getElementById("sinCertificaciones");
@@ -10661,20 +10763,7 @@
           const user = auth.currentUser;
           if (!user || !user.email) return;
 
-          const vid = localStorage.getItem('visitanteId');
-          const authHeaders = await window.getFormularioAuthHeaders();
-
-          const res = await fetch('/api/formulario?action=obtenerEstadoUsuario', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...authHeaders },
-            body: JSON.stringify({ visitanteId: vid, email: user.email })
-          });
-
-          if (!res.ok) throw new Error("Error de conexión");
-          const rawData = await res.json();
-          if (!Array.isArray(rawData)) {
-            throw new Error('Respuesta inválida del servidor');
-          }
+          const rawData = await getEstadoUsuarioConCache(forceReload);
 
           if (!rawData || rawData.length === 0) {
             if (loading) loading.style.display = 'none';
@@ -10727,6 +10816,7 @@
             `;
 
           const tbody = document.getElementById("cuerpoTablaCertificacionesGenerado");
+          window.certificacionesRowById = {};
 
           let countTotal = 0;
           let countCompleted = 0;
@@ -10907,11 +10997,7 @@
           const certRow = window.certificacionesRowById?.[formularioId] || null;
 
           // Obtener la evaluación (preguntas)
-          const resExamen = await fetch(`/api/formulario?action=obtenerEvaluacion&id=${formularioId}`);
-          if (!resExamen.ok) {
-            throw new Error('No se pudo cargar la evaluación');
-          }
-          const examen = await resExamen.json();
+          const examen = await getCertificacionEvaluacionConCache(formularioId);
 
           const resultado = certRow?.miExamen || null;
 
@@ -24005,7 +24091,7 @@
 
       // --- LÓGICA ESTUDIANTE: CARGAR TAREAS Y EXÁMENES ---
       // --- LÓGICA ESTUDIANTE: CARGAR TAREAS Y EXÁMENES - EXPORTADA A WINDOW
-      window.cargarTareasExamenes = async function () {
+      window.cargarTareasExamenes = async function (forceReload = false) {
         const tbody = document.getElementById('cuerpoTablaTareasExamenes');
         if (!tbody) return;
         tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 20px;">Cargando...</td></tr>';
@@ -24061,20 +24147,7 @@
         if (!email) email = localStorage.getItem('userEmail');
 
         try {
-          const authHeaders = await window.getFormularioAuthHeaders();
-          const resp = await fetch('/api/formulario?action=obtenerEstadoUsuario', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...authHeaders },
-            body: JSON.stringify({ visitanteId: userId, email: email })
-          });
-          if (!resp.ok) {
-            const payload = await resp.json().catch(() => ({}));
-            throw new Error(payload.error || 'No se pudo cargar estado de usuario');
-          }
-          const data = await resp.json();
-          if (!Array.isArray(data)) {
-            throw new Error('Respuesta inválida del servidor');
-          }
+          const data = await getEstadoUsuarioConCache(forceReload);
           const userPendingTasksCount = countTaskSpecialtiesNotDelivered(data);
           updateTaskPendingBadge(userPendingTasksCount);
           lastTaskPendingCount = userPendingTasksCount;
@@ -24381,8 +24454,9 @@
               setTimeout(() => {
                 document.getElementById('modalSubirTarea').style.display = 'none';
                 // Refrescar tablas
-                if (typeof window.cargarTareasExamenes === 'function') window.cargarTareasExamenes();
-                if (typeof cargarTablaCertificacionesCorrecta === 'function') setTimeout(cargarTablaCertificacionesCorrecta, 1000);
+                invalidateEstadoUsuarioCache();
+                if (typeof window.cargarTareasExamenes === 'function') window.cargarTareasExamenes(true);
+                if (typeof cargarTablaCertificacionesCorrecta === 'function') setTimeout(() => cargarTablaCertificacionesCorrecta(0, true), 1000);
               }, 1500);
             } else if (res.error) {
               msg.innerHTML = `<span style="color:red">⚠️ ${res.error}</span>`;
@@ -25276,7 +25350,7 @@
                           ${finalScore.toFixed(0)}
                       </div>
                       <p style="font-size:20px;">Tu calificación final</p>
-                      <button onclick="document.getElementById('modalExamenPlataforma').style.display='none'; cargarTareasExamenes(); cargarTablaCertificacionesCorrecta();" 
+                        <button onclick="document.getElementById('modalExamenPlataforma').style.display='none'; invalidateEstadoUsuarioCache(); cargarTareasExamenes(true); cargarTablaCertificacionesCorrecta(0, true);" 
                               style="margin-top:30px; padding:15px 30px; background:white; color:black; border:none; font-size:18px; border-radius:8px; cursor:pointer;">
                           Volver al Panel
                       </button>
@@ -25297,7 +25371,7 @@
       // Este script sobrescribe/implementa la carga de la tabla de certificaciones
       // para corregir el estado de la tarea y prevenir llamadas sin autenticación.
 
-      async function cargarTablaCertificacionesCorrecta(retryCount = 0) {
+      async function cargarTablaCertificacionesCorrecta(retryCount = 0, forceReload = false) {
         const tabla = document.getElementById('tablaCertificaciones');
         if (!tabla) return; // Si no estamos en la vista de usuario, salir
         const tbody = tabla.querySelector('tbody');
@@ -25305,7 +25379,7 @@
           const newTbody = document.createElement('tbody');
           newTbody.id = 'cuerpoTablaCertificacionesGenerado';
           tabla.appendChild(newTbody);
-          return cargarTablaCertificacionesCorrecta(retryCount);
+          return cargarTablaCertificacionesCorrecta(retryCount, forceReload);
         }
 
         // No mostrar mensaje de carga si ya hay datos, para evitar parpadeo feo
@@ -25336,7 +25410,7 @@
           // Si no hay datos, reintentar un par de veces (esperando a Firebase)
           if ((!visitanteId || !email) && retryCount < 5) {
             console.warn(`[Certificaciones] Datos de usuario incompletos. Reintentando en 1s...`);
-            setTimeout(() => cargarTablaCertificacionesCorrecta(retryCount + 1), 1000);
+            setTimeout(() => cargarTablaCertificacionesCorrecta(retryCount + 1, forceReload), 1000);
             return;
           }
 
@@ -25345,18 +25419,7 @@
             return;
           }
 
-          const authHeaders = await window.getFormularioAuthHeaders();
-          const resp = await fetch('/api/formulario?action=obtenerEstadoUsuario', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...authHeaders },
-            body: JSON.stringify({ visitanteId, email })
-          });
-
-          if (!resp.ok) throw new Error('Error al cargar datos');
-          const data = await resp.json();
-          if (!Array.isArray(data)) {
-            throw new Error('Respuesta inválida del servidor');
-          }
+          const data = await getEstadoUsuarioConCache(forceReload);
 
           tbody.innerHTML = ''; // Limpiar ahora sí
 

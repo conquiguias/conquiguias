@@ -7914,8 +7914,10 @@
       let taskPendingPollTimer = null;
       let lastTaskPendingCount = null;
       const TASK_PENDING_POLL_MS = 30 * 60 * 1000;
-      let estadoUsuarioCache = null;
-      let estadoUsuarioCacheTime = 0;
+      let tareasExamenesCache = null;
+      let tareasExamenesCacheTime = 0;
+      let certificacionesEstadoCache = null;
+      let certificacionesEstadoCacheTime = 0;
       const CACHE_DURATION = 5 * 60 * 1000;
       const certificacionEvaluacionCache = new Map();
       let instructorAssignmentsConfig = {};
@@ -7942,12 +7944,24 @@
         return Number.isFinite(cacheTime) && cacheTime > 0 && (Date.now() - cacheTime) < ttlMs;
       }
 
+      function invalidateTareasExamenesCache() {
+        tareasExamenesCache = null;
+        tareasExamenesCacheTime = 0;
+      }
+
+      function invalidateCertificacionesEstadoCache() {
+        certificacionesEstadoCache = null;
+        certificacionesEstadoCacheTime = 0;
+      }
+
       function invalidateEstadoUsuarioCache() {
-        estadoUsuarioCache = null;
-        estadoUsuarioCacheTime = 0;
+        invalidateTareasExamenesCache();
+        invalidateCertificacionesEstadoCache();
       }
 
       window.invalidateEstadoUsuarioCache = invalidateEstadoUsuarioCache;
+      window.invalidateTareasExamenesCache = invalidateTareasExamenesCache;
+      window.invalidateCertificacionesEstadoCache = invalidateCertificacionesEstadoCache;
 
       function invalidateCertificacionEvaluacionCache(formularioId = null) {
         const safeId = String(formularioId || '').trim();
@@ -7960,10 +7974,10 @@
 
       window.invalidateCertificacionEvaluacionCache = invalidateCertificacionEvaluacionCache;
 
-      async function getEstadoUsuarioConCache(forceReload = false) {
+      async function getTareasExamenesConCache(forceReload = false) {
         const cacheKey = getAcademicCacheKey();
-        if (!forceReload && estadoUsuarioCache?.key === cacheKey && Array.isArray(estadoUsuarioCache?.data) && isFreshCache(estadoUsuarioCacheTime)) {
-          return estadoUsuarioCache.data;
+        if (!forceReload && tareasExamenesCache?.key === cacheKey && Array.isArray(tareasExamenesCache?.data) && isFreshCache(tareasExamenesCacheTime)) {
+          return tareasExamenesCache.data;
         }
 
         const authHeaders = await window.getFormularioAuthHeaders();
@@ -7996,9 +8010,54 @@
           throw new Error('Respuesta inválida del servidor');
         }
 
-        estadoUsuarioCache = { key: cacheKey, data };
-        estadoUsuarioCacheTime = Date.now();
+        tareasExamenesCache = { key: cacheKey, data };
+        tareasExamenesCacheTime = Date.now();
         return data;
+      }
+
+      async function getCertificacionesEstadoConCache(forceReload = false) {
+        const cacheKey = getAcademicCacheKey();
+        if (!forceReload && certificacionesEstadoCache?.key === cacheKey && Array.isArray(certificacionesEstadoCache?.data) && isFreshCache(certificacionesEstadoCacheTime)) {
+          return certificacionesEstadoCache.data;
+        }
+
+        const authHeaders = await window.getFormularioAuthHeaders();
+        const visitanteId = String(
+          currentUserId ||
+          localStorage.getItem('visitanteId') ||
+          auth?.currentUser?.uid ||
+          ''
+        ).trim();
+        const email = String(
+          userData?.email ||
+          auth?.currentUser?.email ||
+          localStorage.getItem('userEmail') ||
+          ''
+        ).trim();
+
+        const resp = await fetch('/api/formulario?action=obtenerEstadoUsuario', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
+          body: JSON.stringify({ visitanteId, email })
+        });
+
+        if (!resp.ok) {
+          const payload = await resp.json().catch(() => ({}));
+          throw new Error(payload.error || 'No se pudo cargar estado de usuario');
+        }
+
+        const data = await resp.json();
+        if (!Array.isArray(data)) {
+          throw new Error('Respuesta inválida del servidor');
+        }
+
+        certificacionesEstadoCache = { key: cacheKey, data };
+        certificacionesEstadoCacheTime = Date.now();
+        return data;
+      }
+
+      async function getEstadoUsuarioConCache(forceReload = false) {
+        return getTareasExamenesConCache(forceReload);
       }
 
       async function getCertificacionEvaluacionConCache(formularioId, forceReload = false) {
@@ -8593,19 +8652,7 @@
         const identity = resolveCurrentUserIdentity();
         if (!identity.visitanteId || !identity.email) return 0;
 
-        const authHeaders = await window.getFormularioAuthHeaders();
-
-        const resp = await fetch('/api/formulario?action=obtenerEstadoUsuario', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...authHeaders },
-          body: JSON.stringify({ visitanteId: identity.visitanteId, email: identity.email })
-        });
-
-        if (!resp.ok) {
-          throw new Error('No se pudo cargar estado de tareas del usuario');
-        }
-
-        const data = await resp.json();
+        const data = await getTareasExamenesConCache(false);
         return countTaskSpecialtiesNotDelivered(data);
       }
 
@@ -8629,6 +8676,7 @@
           clearInterval(taskPendingPollTimer);
           taskPendingPollTimer = null;
         }
+        window.taskPendingWatcherActive = false;
       }
 
       function startTaskPendingWatcher() {
@@ -8656,6 +8704,7 @@
           if (document.visibilityState !== 'visible') return;
           refreshTaskPendingBadge();
         }, TASK_PENDING_POLL_MS);
+        window.taskPendingWatcherActive = true;
       }
 
       function openAdminPublicacionesFromNotification() {
@@ -10763,7 +10812,7 @@
           const user = auth.currentUser;
           if (!user || !user.email) return;
 
-          const rawData = await getEstadoUsuarioConCache(forceReload);
+          const rawData = await getCertificacionesEstadoConCache(forceReload);
 
           if (!rawData || rawData.length === 0) {
             if (loading) loading.style.display = 'none';
@@ -24082,10 +24131,12 @@
         menuTareas.addEventListener('click', () => {
           mostrarSeccion(sectionTareas, menuTareas);
           window.taskPendingWatcherEnabled = true;
-          window.refreshTaskPendingBadge?.();
           window.ensureTaskReminderPush?.(true);
+          if (!window.taskPendingWatcherActive) {
+            window.refreshTaskPendingBadge?.();
+            window.startTaskPendingWatcher?.();
+          }
           window.cargarTareasExamenes();
-          window.startTaskPendingWatcher?.();
         });
       }
 
@@ -24147,7 +24198,7 @@
         if (!email) email = localStorage.getItem('userEmail');
 
         try {
-          const data = await getEstadoUsuarioConCache(forceReload);
+          const data = await getCertificacionesEstadoConCache(forceReload);
           const userPendingTasksCount = countTaskSpecialtiesNotDelivered(data);
           updateTaskPendingBadge(userPendingTasksCount);
           lastTaskPendingCount = userPendingTasksCount;
@@ -25419,7 +25470,7 @@
             return;
           }
 
-          const data = await getEstadoUsuarioConCache(forceReload);
+          const data = await getCertificacionesEstadoConCache(forceReload);
 
           tbody.innerHTML = ''; // Limpiar ahora sí
 

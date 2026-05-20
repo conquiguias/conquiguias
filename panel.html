@@ -15473,6 +15473,23 @@
             deferredPlayerInitObserver = null;
           }
           autoInitializedPlayerCount = 0;
+          try {
+            const fEl = document.getElementById('feed');
+            const fCs = window.getComputedStyle(fEl);
+            console.log('[FEED_STATE] before clear', {
+              feedId: fEl?.id,
+              children: fEl?.children?.length,
+              display: fCs?.display,
+              position: fCs?.position,
+              top: fCs?.top,
+              height: fEl?.offsetHeight,
+              rect: fEl?.getBoundingClientRect(),
+              scrollTop: fEl?.scrollTop,
+              parentRect: fEl?.parentElement?.getBoundingClientRect?.()
+            });
+          } catch (e) {
+            console.error('[FEED_STATE] error reading feed state', e);
+          }
           feed.innerHTML = '';
 
           // Actualizar el último documento visible

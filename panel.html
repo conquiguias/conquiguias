@@ -14580,8 +14580,8 @@
         { key: 'conquis',          label: 'Conquis',          tags: ['conquis', 'conqui', 'conquistadores', 'conquistador'] },
         { key: 'panoleta',         label: 'Pañoleta',         tags: ['panoleta', 'pañoleta', 'panuelo', 'pañuelo'] },
         { key: 'post-adventistas', label: 'Post Adventistas', tags: ['postadventistas', 'post-adventistas', 'post adventistas', 'adventistas', 'adventista'] },
-        { key: 'television',       label: 'Televisión',       tags: ['television', 'tv', 'tele'] },
-        { key: 'radio',            label: 'Radio',            tags: ['radio'] },
+          { key: 'television',       label: 'Televisión',       tags: ['television', 'tv', 'tele', 'video'] },
+          { key: 'radio',            label: 'Radio',            tags: ['radio', 'musica'] },
         { key: 'musica',           label: 'Música',           tags: ['musica', 'música', 'music', 'musica cristiana', 'musica adventista'] },
         { key: 'podcast',          label: 'Podcast',          tags: ['podcast', 'potcast', 'pod cast'] },
         { key: 'peliculas',        label: 'Películas',        tags: ['peliculas', 'películas', 'pelicula', 'película', 'film', 'cine', 'movie', 'movies'] }
@@ -14800,57 +14800,11 @@
           }
         }
 
-        // 🔹 TERCERO: FALLBACK PARA POSTS ANTIGUOS
-        // Solo usar mediaType como fallback si NO tiene postKind definido
-        // Y SOLO si estamos buscando una categoría de media específica
-        if (!normalizedPostKind) {
-          if (activeFeedCategory === 'television' && (mediaType === 'video/url' || mediaType.startsWith('video/'))) {
-            logCategoryFilterDecision({
-              category: categoryForDebug,
-              matched: true,
-              reason: 'mediatype-fallback-no-postkind-tv',
-              id: post?.id || '',
-              postKind: normalizedPostKind,
-              tags: Array.from(postTags),
-              description: String(post?.description || '').slice(0, 80),
-              raw: debugRawFields,
-            });
-            return true;
-          }
-
-          if (activeFeedCategory === 'radio' && mediaType === 'audio/url') {
-            logCategoryFilterDecision({
-              category: categoryForDebug,
-              matched: true,
-              reason: 'mediatype-fallback-no-postkind-radio',
-              id: post?.id || '',
-              postKind: normalizedPostKind,
-              tags: Array.from(postTags),
-              description: String(post?.description || '').slice(0, 80),
-              raw: debugRawFields,
-            });
-            return true;
-          }
-
-          if (activeFeedCategory === 'musica' && mediaType === 'audio/url') {
-            logCategoryFilterDecision({
-              category: categoryForDebug,
-              matched: true,
-              reason: 'mediatype-fallback-no-postkind-musica',
-              id: post?.id || '',
-              postKind: normalizedPostKind,
-              tags: Array.from(postTags),
-              description: String(post?.description || '').slice(0, 80),
-              raw: debugRawFields,
-            });
-            return true;
-          }
-        }
 
         logCategoryFilterDecision({
           category: categoryForDebug,
           matched: false,
-          reason: 'no-match-postkind-hashtag-mediatype',
+            reason: 'no-match-postkind-hashtag',
           id: post?.id || '',
           postKind: normalizedPostKind,
           tags: Array.from(postTags),

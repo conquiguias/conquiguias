@@ -14802,7 +14802,7 @@
 
           // 🔹 REGLA DEDICADA: TV/Radio matchean por postKind O descripción
           if (activeFeedCategory === 'television') {
-            const postKindMatch = normalizedPostKind === 'tv';
+            const postKindMatch = normalizedPostKind === 'tv' || normalizedPostKind === 'television';
             const descriptionMatch = hasDescriptionCategoryToken(post, activeFeedCategory);
             const matched = postKindMatch || descriptionMatch;
             logCategoryFilterDecision({
@@ -16151,6 +16151,9 @@
         });
         try {
           const cs = window.getComputedStyle(postElement);
+          if (feedDestino.children.length === 1) {
+            console.log('[DEBUG-FIRST-POST] HTML:\n', postElement.innerHTML);
+          }
           console.log('[APPEND] ComputedStyle', {
             postId: firestorePostId,
             className: postElement.className,

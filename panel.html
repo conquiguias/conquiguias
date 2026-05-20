@@ -14578,8 +14578,8 @@
         { key: 'conquis',          label: 'Conquis',          tags: ['conquis', 'conqui', 'conquistadores', 'conquistador'] },
         { key: 'panoleta',         label: 'Pañoleta',         tags: ['panoleta', 'pañoleta', 'panuelo', 'pañuelo'] },
         { key: 'post-adventistas', label: 'Post Adventistas', tags: ['postadventistas', 'post-adventistas', 'post adventistas', 'adventistas', 'adventista'] },
-          { key: 'television',       label: 'Televisión',       tags: ['television', 'tv', 'tele', 'video'] },
-          { key: 'radio',            label: 'Radio',            tags: ['radio', 'musica'] },
+        { key: 'television',       label: 'Televisión',       tags: ['television', 'tv', 'tele', 'video'] },
+        { key: 'radio',            label: 'Radio',            tags: ['radio'] },
         { key: 'musica',           label: 'Música',           tags: ['musica', 'música', 'music', 'musica cristiana', 'musica adventista'] },
         { key: 'podcast',          label: 'Podcast',          tags: ['podcast', 'potcast', 'pod cast'] },
         { key: 'peliculas',        label: 'Películas',        tags: ['peliculas', 'películas', 'pelicula', 'película', 'film', 'cine', 'movie', 'movies'] }
@@ -14739,31 +14739,20 @@
           .map((value) => normalizeTagValue(String(value || '').replace(/^#/, '')))
           .filter(Boolean);
 
-        // Combine hashtags found in description with explicit tags/fields
-        const combined = [...descriptionTags, ...explicitHashtagTags].map(canonicalizeTag).filter(Boolean);
+        return new Set([...descriptionTags, ...explicitHashtagTags].map(canonicalizeTag).filter(Boolean));
+      }
 
-        // FALLBACK PARA POSTS ANTIGUOS: si no hay hashtags ni tags explícitos,
-        // intentar detectar palabras clave en la descripción (p. ej. "radio", "television", "tv", "video").
-        if (combined.length === 0) {
-          try {
-            const descNormalized = normalizeTagValue(String(post?.description || ''));
-            const descWords = new Set(descNormalized.split(/[^a-z0-9]+/).filter(Boolean));
+      function isCategoryMediaCompatible(post, categoryKey) {
+        const normalizedCategory = String(categoryKey || '').trim().toLowerCase();
+        const mediaType = String(post?.mediaType || '').trim().toLowerCase();
+        const inferredMediaType = inferUrlMediaType(String(post?.mediaUrl || '').trim()).toLowerCase();
+        const effectiveMediaType = mediaType || inferredMediaType;
+        const isVideo = effectiveMediaType.startsWith('video/');
+        const isAudio = effectiveMediaType.startsWith('audio/');
 
-            // Obtener todas las etiquetas conocidas desde la configuración de categorías
-            const allCategoryTags = Object.values(FEED_CATEGORY_TAGS || {}).flat().map(t => canonicalizeTag(normalizeTagValue(String(t || ''))));
-            for (const candidate of allCategoryTags) {
-              if (!candidate) continue;
-              if (descWords.has(candidate) || descNormalized.indexOf(candidate) !== -1) {
-                combined.push(candidate);
-              }
-            }
-          } catch (e) {
-            // Silenciar cualquier error en el fallback; no bloquea la publicación
-            console.warn('[CategoryFallback] error parsing description for legacy tags', e);
-          }
-        }
-
-        return new Set(combined);
+        if (normalizedCategory === 'television') return isVideo;
+        if (normalizedCategory === 'radio' || normalizedCategory === 'musica') return isAudio;
+        return true;
       }
 
       function postMatchesActiveCategory(post) {
@@ -14792,33 +14781,35 @@
 
         // 🔹 PRIMERO: Verificar si normalizedPostKind coincide exactamente con algún tag canonicalizado
         if (normalizedPostKind && allowedCanonicalTags.has(normalizedPostKind)) {
+          const mediaCompatible = isCategoryMediaCompatible(post, activeFeedCategory);
           logCategoryFilterDecision({
             category: categoryForDebug,
-            matched: true,
-            reason: 'postkind-exact-match',
+            matched: mediaCompatible,
+            reason: mediaCompatible ? 'postkind-exact-match' : 'postkind-match-media-mismatch',
             id: post?.id || '',
             postKind: normalizedPostKind,
             tags: Array.from(postTags),
             description: String(post?.description || '').slice(0, 80),
             raw: debugRawFields,
           });
-          return true;
+          return mediaCompatible;
         }
 
         // 🔹 SEGUNDO: Verificar si algún hashtag coincide
         for (const tag of postTags) {
           if (allowedCanonicalTags.has(tag)) {
+            const mediaCompatible = isCategoryMediaCompatible(post, activeFeedCategory);
             logCategoryFilterDecision({
               category: categoryForDebug,
-              matched: true,
-              reason: 'hashtag-in-allowed-tags',
+              matched: mediaCompatible,
+              reason: mediaCompatible ? 'hashtag-in-allowed-tags' : 'hashtag-match-media-mismatch',
               id: post?.id || '',
               postKind: normalizedPostKind,
               tags: Array.from(postTags),
               description: String(post?.description || '').slice(0, 80),
               raw: debugRawFields,
             });
-            return true;
+            return mediaCompatible;
           }
         }
 

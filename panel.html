@@ -23,9 +23,16 @@
   <link rel="stylesheet" href="/scrollbar-theme.css">
   <script>
     (function () {
+      const originalLog = console.log;
       const noop = () => {};
       if (window.console) {
-        window.console.log = noop;
+        // Permitir logs con [CategoryDebug] incluso cuando está deshabilitado
+        window.console.log = function(...args) {
+          const message = String(args[0] || '');
+          if (message.includes('[CategoryDebug]')) {
+            originalLog.apply(console, args);
+          }
+        };
         window.console.info = noop;
         window.console.warn = noop;
         window.console.error = noop;

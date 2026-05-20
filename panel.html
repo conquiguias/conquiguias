@@ -14830,15 +14830,18 @@
           mediaType: mediaType,
         };
 
-          // 🔹 REGLA DEDICADA: TV/Radio matchean por postKind O descripción
+          // 🔹 REGLA DEDICADA: TV/Radio matchean por postKind + compatibilidad de media o descripción
           if (activeFeedCategory === 'television') {
-            const postKindMatch = normalizedPostKind === 'tv' || normalizedPostKind === 'television';
+            const postKindMatch = normalizedPostKind === 'tv' || normalizedPostKind === 'television' || normalizedPostKind === 'video';
+            const mediaCompatible = isCategoryMediaCompatible(post, activeFeedCategory);
             const descriptionMatch = hasDescriptionCategoryToken(post, activeFeedCategory);
-            const matched = postKindMatch || descriptionMatch;
+            const matched = (postKindMatch && mediaCompatible) || descriptionMatch;
             logCategoryFilterDecision({
               category: categoryForDebug,
               matched: matched,
-              reason: postKindMatch ? 'tv-postkind-match' : (descriptionMatch ? 'tv-description-match' : 'tv-no-match'),
+              reason: matched
+                ? (postKindMatch ? 'tv-postkind-media-match' : 'tv-description-match')
+                : 'tv-no-match',
               id: post?.id || '',
               postKind: normalizedPostKind,
               tags: Array.from(postTags),
@@ -14849,13 +14852,16 @@
           }
         
           if (activeFeedCategory === 'radio') {
-            const postKindMatch = normalizedPostKind === 'radio';
+            const postKindMatch = normalizedPostKind === 'radio' || normalizedPostKind === 'musica';
+            const mediaCompatible = isCategoryMediaCompatible(post, activeFeedCategory);
             const descriptionMatch = hasDescriptionCategoryToken(post, activeFeedCategory);
-            const matched = postKindMatch || descriptionMatch;
+            const matched = (postKindMatch && mediaCompatible) || descriptionMatch;
             logCategoryFilterDecision({
               category: categoryForDebug,
               matched: matched,
-              reason: postKindMatch ? 'radio-postkind-match' : (descriptionMatch ? 'radio-description-match' : 'radio-no-match'),
+              reason: matched
+                ? (postKindMatch ? 'radio-postkind-media-match' : 'radio-description-match')
+                : 'radio-no-match',
               id: post?.id || '',
               postKind: normalizedPostKind,
               tags: Array.from(postTags),

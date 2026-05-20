@@ -15928,6 +15928,7 @@
         }
 
         function activatePostMediaPlayback(containerId, mediaMode) {
+          console.log('[CategoryDebug]', { action: 'activate-playback', category: activeFeedCategory, containerId, mediaMode });
           if (!containerId) return;
           const container = document.getElementById(containerId);
           if (!container) return;
@@ -16077,6 +16078,7 @@
             event.stopPropagation();
             const containerId = overlayBtn.dataset.containerId || '';
             const mediaMode = overlayBtn.dataset.mediaMode || 'clappr';
+            console.log('[CategoryDebug]', { action: 'play-click', category: activeFeedCategory, containerId, mediaMode, postId: firestorePostId, postKind: post.postKind, tags: post.tags });
             activatePostMediaPlayback(containerId, mediaMode);
           });
         });

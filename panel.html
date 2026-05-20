@@ -15050,6 +15050,10 @@
           } else if (hasMorePosts && !noMoreIndicator.classList.contains('hidden')) {
             noMoreIndicator.classList.add('hidden');
           }
+            // Siempre ocultar en modo categoría
+            if (activeFeedCategory !== 'recientes') {
+              noMoreIndicator.classList.add('hidden');
+            }
         }, {
           root: mainContent || null,
           rootMargin: '600px 0px',

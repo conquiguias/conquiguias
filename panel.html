@@ -16113,6 +16113,23 @@
           feedChildren: feedDestino.children.length,
           postInDOM: feedDestino.contains(postElement)
         });
+        try {
+          const cs = window.getComputedStyle(postElement);
+          console.log('[APPEND] ComputedStyle', {
+            postId: firestorePostId,
+            className: postElement.className,
+            display: cs.display,
+            visibility: cs.visibility,
+            opacity: cs.opacity,
+            height: postElement.offsetHeight,
+            rect: postElement.getBoundingClientRect()
+          });
+          if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) === 0) {
+            console.warn('[APPEND] Post appears hidden by CSS', { postId: firestorePostId, display: cs.display, visibility: cs.visibility, opacity: cs.opacity });
+          }
+        } catch (e) {
+          console.error('[APPEND] Error reading computed style', e);
+        }
 
         postElement.addEventListener('click', (event) => {
           const controlTarget = event.target.closest('button, a, input, textarea, label, .post-options-menu, .post-options-toggle');

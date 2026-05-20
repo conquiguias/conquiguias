@@ -14800,21 +14800,40 @@
           mediaType: mediaType,
         };
 
-        // 🔹 REGLA DEDICADA (solicitada): TV/Radio dependen de etiqueta/palabra en la descripción.
-        if (activeFeedCategory === 'television' || activeFeedCategory === 'radio') {
-          const descriptionCategoryMatch = hasDescriptionCategoryToken(post, activeFeedCategory);
-          logCategoryFilterDecision({
-            category: categoryForDebug,
-            matched: descriptionCategoryMatch,
-            reason: descriptionCategoryMatch ? 'description-category-token-match' : 'description-category-token-miss',
-            id: post?.id || '',
-            postKind: normalizedPostKind,
-            tags: Array.from(postTags),
-            description: String(post?.description || '').slice(0, 120),
-            raw: debugRawFields,
-          });
-          return descriptionCategoryMatch;
-        }
+          // 🔹 REGLA DEDICADA: TV/Radio matchean por postKind O descripción
+          if (activeFeedCategory === 'television') {
+            const postKindMatch = normalizedPostKind === 'tv' || normalizedPostKind === 'video';
+            const descriptionMatch = hasDescriptionCategoryToken(post, activeFeedCategory);
+            const matched = postKindMatch || descriptionMatch;
+            logCategoryFilterDecision({
+              category: categoryForDebug,
+              matched: matched,
+              reason: postKindMatch ? 'tv-postkind-match' : (descriptionMatch ? 'tv-description-match' : 'tv-no-match'),
+              id: post?.id || '',
+              postKind: normalizedPostKind,
+              tags: Array.from(postTags),
+              description: String(post?.description || '').slice(0, 120),
+              raw: debugRawFields,
+            });
+            return matched;
+          }
+        
+          if (activeFeedCategory === 'radio') {
+            const postKindMatch = normalizedPostKind === 'radio';
+            const descriptionMatch = hasDescriptionCategoryToken(post, activeFeedCategory);
+            const matched = postKindMatch || descriptionMatch;
+            logCategoryFilterDecision({
+              category: categoryForDebug,
+              matched: matched,
+              reason: postKindMatch ? 'radio-postkind-match' : (descriptionMatch ? 'radio-description-match' : 'radio-no-match'),
+              id: post?.id || '',
+              postKind: normalizedPostKind,
+              tags: Array.from(postTags),
+              description: String(post?.description || '').slice(0, 120),
+              raw: debugRawFields,
+            });
+            return matched;
+          }
 
         // 🔹 PRIMERO: Verificar si normalizedPostKind coincide exactamente con algún tag canonicalizado
         if (normalizedPostKind && allowedCanonicalTags.has(normalizedPostKind)) {

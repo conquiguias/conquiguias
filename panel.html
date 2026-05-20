@@ -24,20 +24,13 @@
   <script>
     (function () {
       const originalLog = console.log;
-      const noop = () => {};
+      const originalError = console.error;
+      const originalWarn = console.warn;
       if (window.console) {
-        // Permitir logs con [CategoryDebug] incluso cuando está deshabilitado
-        window.console.log = function(...args) {
-          const message = String(args[0] || '');
-          if (message.includes('[CategoryDebug]')) {
-            originalLog.apply(console, args);
-          }
-        };
-        window.console.info = noop;
-        window.console.warn = noop;
-        window.console.error = noop;
-        window.console.debug = noop;
-        window.console.clear = noop;
+        // Permitir TODOS los logs para debugging
+        window.console.log = originalLog;
+        window.console.error = originalError;
+        window.console.warn = originalWarn;
       }
     })();
   </script>
@@ -15492,8 +15485,10 @@
             enrichedCategoryPosts.forEach((post) => {
               if (post.id === LIVE_POST_ID) return;
               try {
-                displayPost(post, post.id);
+                console.log('[RENDER] Adding post to feed', { postId: post.id, category: categoryAtRequest, feeds: document.getElementById('feed')?.children?.length });
+                displayPost(post, post.id, feed);
                 renderedPostsCount++;
+                console.log('[RENDER] Post added - feed now has', document.getElementById('feed')?.children?.length, 'posts');
               } catch (renderError) {
                 renderFailures++;
                 if (failedIds.length < 10) failedIds.push(post?.id || 'sin-id');
@@ -15703,8 +15698,10 @@
       // 🔹 Mostrar publicación en el feed - VERSIÓN MEJORADA
       // 🔹 Mostrar publicación en el feed - VERSIÓN CON REACCIONES EXCLUSIVAS
       function displayPost(post, postId, targetFeed) {
+        console.log('[DISPLAY_POST] Start', { postId: post?.id || postId, hasTargetFeed: !!targetFeed, feedElementId: targetFeed?.id, globalFeedId: feed?.id });
         post = normalizePostMediaForRender(post);
         const feedDestino = targetFeed || feed;
+        console.log('[DISPLAY_POST] Feed destination', { feedDestino: feedDestino?.id, feedChildren: feedDestino?.children?.length });
         const { currentUserId, isAdmin } = window;
         const postElement = document.createElement('div');
         postElement.className = 'post-card';
@@ -16098,7 +16095,20 @@
             </div>
             `;
 
+        console.log('[APPEND] Before appendChild', { 
+          postId: firestorePostId, 
+          feedChildren: feedDestino.children.length,
+          feedId: feedDestino.id,
+          postElement: postElement.tagName
+        });
+        
         feedDestino.appendChild(postElement);
+        
+        console.log('[APPEND] After appendChild', { 
+          postId: firestorePostId, 
+          feedChildren: feedDestino.children.length,
+          postInDOM: feedDestino.contains(postElement)
+        });
 
         postElement.addEventListener('click', (event) => {
           const controlTarget = event.target.closest('button, a, input, textarea, label, .post-options-menu, .post-options-toggle');

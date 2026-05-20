@@ -14802,7 +14802,7 @@
 
           // 🔹 REGLA DEDICADA: TV/Radio matchean por postKind O descripción
           if (activeFeedCategory === 'television') {
-            const postKindMatch = normalizedPostKind === 'tv' || normalizedPostKind === 'video';
+            const postKindMatch = normalizedPostKind === 'tv';
             const descriptionMatch = hasDescriptionCategoryToken(post, activeFeedCategory);
             const matched = postKindMatch || descriptionMatch;
             logCategoryFilterDecision({

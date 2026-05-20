@@ -14612,8 +14612,9 @@
       const FEED_CATEGORY_TAGS   = Object.fromEntries(FEED_CATEGORIES.map(c => [c.key, c.tags]));
       const FEED_CATEGORY_LABELS = Object.fromEntries(FEED_CATEGORIES.map(c => [c.key, c.label]));
       const CATEGORY_DEBUG_TARGETS = new Set(['radio', 'television']);
-      const CATEGORY_DEBUG_LOG_LIMIT = 180;
+      const CATEGORY_DEBUG_LOG_LIMIT = 1000; // 🔥 INCREASED FOR DEBUGGING
       let categoryDebugLogCount = 0;
+      const DEBUG_TV_RADIO = true; // 🔥 MASTER DEBUG FLAG FOR TV/RADIO
 
       function shouldDebugCategory(category = activeFeedCategory) {
         return CATEGORY_DEBUG_TARGETS.has(String(category || '').trim().toLowerCase());
@@ -14625,9 +14626,11 @@
 
       function logCategoryFilterDecision(payload) {
         if (!shouldDebugCategory(payload?.category)) return;
+        if (!DEBUG_TV_RADIO) return;
         if (categoryDebugLogCount >= CATEGORY_DEBUG_LOG_LIMIT) return;
         categoryDebugLogCount += 1;
-        console.log('[CategoryDebug]', payload);
+        const timestamp = new Date().toISOString().split('T')[1];
+        console.log(`[${timestamp}][CategoryDebug][${payload.category}]`, payload);
       }
 
       function setCategoryLoadingState(isLoading, categoryKey = activeFeedCategory) {
@@ -14816,6 +14819,8 @@
         const postTags = getPostCategoryHashtagSet(post);
         const normalizedPostKind = getNormalizedPostKind(post);
         const mediaType = String(post?.mediaType || '').trim().toLowerCase();
+        const inferredMediaType = inferUrlMediaType(String(post?.mediaUrl || '').trim()).toLowerCase();
+        const effectiveMediaType = mediaType || inferredMediaType;
         
         const debugRawFields = {
           category: String(post?.category || '').trim(),
@@ -14830,20 +14835,29 @@
           mediaType: mediaType,
         };
 
-          // 🔹 REGLA DEDICADA: TV/Radio matchean por postKind + compatibilidad de media o descripción
+   // REGLA DEDICADA: TV/Radio matchean por postKind + compatibilidad de media o descripción
           if (activeFeedCategory === 'television') {
             const postKindMatch = normalizedPostKind === 'tv' || normalizedPostKind === 'television' || normalizedPostKind === 'video';
             const mediaCompatible = isCategoryMediaCompatible(post, activeFeedCategory);
             const descriptionMatch = hasDescriptionCategoryToken(post, activeFeedCategory);
-            const matched = (postKindMatch && mediaCompatible) || descriptionMatch;
+            const directTagMatch = postTags.has('television') || postTags.has('tv') || postTags.has('video');
+            const matched = (postKindMatch && mediaCompatible) || descriptionMatch || (directTagMatch && mediaCompatible);
             logCategoryFilterDecision({
               category: categoryForDebug,
               matched: matched,
               reason: matched
-                ? (postKindMatch ? 'tv-postkind-media-match' : 'tv-description-match')
+                ? (postKindMatch ? 'tv-postkind-media-match' : descriptionMatch ? 'tv-description-match' : 'tv-tag-media-match')
                 : 'tv-no-match',
               id: post?.id || '',
               postKind: normalizedPostKind,
+              postKindMatch: postKindMatch,
+              mediaTypeExplicit: mediaType,
+              mediaTypeInferred: inferredMediaType,
+              mediaTypeEffective: effectiveMediaType,
+              mediaCompatible: mediaCompatible,
+              descriptionMatch: descriptionMatch,
+              directTagMatch: directTagMatch,
+              mediaUrl: String(post?.mediaUrl || '').slice(0, 80),
               tags: Array.from(postTags),
               description: String(post?.description || '').slice(0, 120),
               raw: debugRawFields,
@@ -14855,15 +14869,24 @@
             const postKindMatch = normalizedPostKind === 'radio' || normalizedPostKind === 'musica';
             const mediaCompatible = isCategoryMediaCompatible(post, activeFeedCategory);
             const descriptionMatch = hasDescriptionCategoryToken(post, activeFeedCategory);
-            const matched = (postKindMatch && mediaCompatible) || descriptionMatch;
+            const directTagMatch = postTags.has('radio') || postTags.has('musica') || postTags.has('podcast');
+            const matched = (postKindMatch && mediaCompatible) || descriptionMatch || (directTagMatch && mediaCompatible);
             logCategoryFilterDecision({
               category: categoryForDebug,
               matched: matched,
               reason: matched
-                ? (postKindMatch ? 'radio-postkind-media-match' : 'radio-description-match')
+                ? (postKindMatch ? 'radio-postkind-media-match' : descriptionMatch ? 'radio-description-match' : 'radio-tag-media-match')
                 : 'radio-no-match',
               id: post?.id || '',
               postKind: normalizedPostKind,
+              postKindMatch: postKindMatch,
+              mediaTypeExplicit: mediaType,
+              mediaTypeInferred: inferredMediaType,
+              mediaTypeEffective: effectiveMediaType,
+              mediaCompatible: mediaCompatible,
+              descriptionMatch: descriptionMatch,
+              directTagMatch: directTagMatch,
+              mediaUrl: String(post?.mediaUrl || '').slice(0, 80),
               tags: Array.from(postTags),
               description: String(post?.description || '').slice(0, 120),
               raw: debugRawFields,

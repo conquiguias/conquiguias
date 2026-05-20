@@ -2312,11 +2312,14 @@
       align-items: center;
       justify-content: center;
       padding: 16px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
     }
 
     .edit-post-modal-content {
       width: min(100%, 720px);
-      max-height: min(92vh, 860px);
+      max-height: calc(100dvh - 32px);
       border: 1px solid var(--border-color);
       border-radius: 14px;
       background: var(--bg-card);
@@ -2411,6 +2414,7 @@
       border-radius: 10px;
       background: var(--bg-primary);
       overflow: hidden;
+      min-height: 0;
     }
 
     #editPostEditor {
@@ -2429,6 +2433,8 @@
       white-space: pre-wrap;
       word-break: break-word;
       overflow: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
     }
 
     #editPostEditor:empty:before {
@@ -16875,7 +16881,13 @@
 
       postDescriptionEditor?.addEventListener('keyup', function (e) {
         if (["Shift", "Control", "Alt", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
-        formatNearCursor(postDescriptionEditor);
+        if (e.key === ' ' || e.key === 'Enter' || e.code === 'Space') {
+          try {
+            formatNearCursor(postDescriptionEditor);
+          } catch (error) {
+            console.warn('No se pudo aplicar formato automático:', error);
+          }
+        }
         updateDescriptionLivePreview();
       });
 
@@ -17551,7 +17563,13 @@
         editPostEditor?.addEventListener('input', updateCounter);
         editPostEditor?.addEventListener('keyup', function (e) {
           if (["Shift", "Control", "Alt", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
-          formatNearCursor(editPostEditor);
+          if (e.key === ' ' || e.key === 'Enter' || e.code === 'Space') {
+            try {
+              formatNearCursor(editPostEditor);
+            } catch (error) {
+              console.warn('No se pudo aplicar formato automático en edición:', error);
+            }
+          }
           updateCounter();
         });
         bindEditorToolbar(editPostToolbar, editPostEditor, updateCounter);

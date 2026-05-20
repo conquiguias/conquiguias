@@ -14134,7 +14134,7 @@
           const streamUrl = (radioStreamUrlInput?.value || '').trim();
           const radioName = (radioNameInput?.value || '').trim();
           const requiredCategoryHashtag = publishMode === 'musica' ? '#musica' : '#radio';
-          const normalizedPublishDescription = ensureCategoryHashtag(description, requiredCategoryHashtag);
+          const normalizedPublishDescription = description;
 
           if (!streamUrl) {
             mostrarMensaje('error', 'URL requerida', 'Ingresa la URL de transmisión para radio o música.');
@@ -14267,7 +14267,7 @@
 
             const normalizedTvMode = tvMode === 'video' ? 'video' : 'tv';
             const requiredCategoryHashtag = normalizedTvMode === 'video' ? '#video' : '#television';
-            const normalizedTvDescription = ensureCategoryHashtag(description, requiredCategoryHashtag);
+            const normalizedTvDescription = description;
             const tvDefaultTags = normalizedTvMode === 'video' ? ['video'] : ['television'];
 
             const postData = {
@@ -14344,9 +14344,7 @@
           return;
         }
 
-        const descriptionToPublish = description || (file
-          ? ((file.type.startsWith('video/') || file.type === 'image/gif') ? '#video' : '#imagen')
-          : '');
+        const descriptionToPublish = description || '';
 
         // 🔹 VALIDACIÓN 2: LONGITUD MÁXIMA DEL TEXTO
         const MAX_DESCRIPTION_LENGTH = 10000;
@@ -14741,7 +14739,31 @@
           .map((value) => normalizeTagValue(String(value || '').replace(/^#/, '')))
           .filter(Boolean);
 
-        return new Set([...descriptionTags, ...explicitHashtagTags].map(canonicalizeTag).filter(Boolean));
+        // Combine hashtags found in description with explicit tags/fields
+        const combined = [...descriptionTags, ...explicitHashtagTags].map(canonicalizeTag).filter(Boolean);
+
+        // FALLBACK PARA POSTS ANTIGUOS: si no hay hashtags ni tags explícitos,
+        // intentar detectar palabras clave en la descripción (p. ej. "radio", "television", "tv", "video").
+        if (combined.length === 0) {
+          try {
+            const descNormalized = normalizeTagValue(String(post?.description || ''));
+            const descWords = new Set(descNormalized.split(/[^a-z0-9]+/).filter(Boolean));
+
+            // Obtener todas las etiquetas conocidas desde la configuración de categorías
+            const allCategoryTags = Object.values(FEED_CATEGORY_TAGS || {}).flat().map(t => canonicalizeTag(normalizeTagValue(String(t || ''))));
+            for (const candidate of allCategoryTags) {
+              if (!candidate) continue;
+              if (descWords.has(candidate) || descNormalized.indexOf(candidate) !== -1) {
+                combined.push(candidate);
+              }
+            }
+          } catch (e) {
+            // Silenciar cualquier error en el fallback; no bloquea la publicación
+            console.warn('[CategoryFallback] error parsing description for legacy tags', e);
+          }
+        }
+
+        return new Set(combined);
       }
 
       function postMatchesActiveCategory(post) {
@@ -17353,7 +17375,7 @@
             if (editMode === 'radio') {
               const nextMode = radioModeSelect?.value === 'musica' ? 'musica' : 'radio';
               const requiredRadioHashtag = nextMode === 'musica' ? '#musica' : '#radio';
-              updates.description = ensureCategoryHashtag(newDescription, requiredRadioHashtag);
+              updates.description = newDescription;
               const nextName = String(radioNameInput?.value || '').trim();
               const nextUrl = String(radioUrlInput?.value || '').trim();
               const originalRadioMode = getEditableRadioMode(postData || {});
@@ -17418,7 +17440,7 @@
               const nextUrl = String(tvUrlInput?.value || '').trim();
               const originalTvMode = getEditableTvMode(postData || {});
               const fallbackTvHashtag = originalTvMode === 'video' ? '#video' : '#television';
-              updates.description = ensureCategoryHashtag(newDescription, fallbackTvHashtag);
+              updates.description = newDescription;
               const modeTouched = tvModeSelect?.dataset.userTouched === '1';
               const previousUrl = String(postData?.mediaUrl || '').trim();
               const urlChanged = nextUrl !== previousUrl;
@@ -17452,7 +17474,7 @@
                 const effectiveTvTags = [...preservedTvTags, effectiveTvTag];
                 const modeChanged = effectiveTvMode !== originalTvMode;
                 const requiredTvHashtag = effectiveTvMode === 'video' ? '#video' : '#television';
-                updates.description = ensureCategoryHashtag(newDescription, requiredTvHashtag);
+                updates.description = newDescription;
 
                 let coverImage = String(postData?.posterUrl || postData?.thumbnailUrl || '').trim();
                 if (coverChanged) {

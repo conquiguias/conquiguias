@@ -14755,6 +14755,34 @@
         return true;
       }
 
+      function hasDescriptionCategoryToken(post, categoryKey) {
+        const normalizedCategory = String(categoryKey || '').trim().toLowerCase();
+        const description = String(post?.description || '');
+        const normalizedDescription = normalizeTagValue(description);
+        const descriptionHashtags = new Set(extractPostHashtags(description).map(canonicalizeTag));
+        const words = new Set(normalizedDescription.split(/[^a-z0-9]+/).filter(Boolean));
+
+        const matchesToken = (token) => {
+          const normalizedToken = canonicalizeTag(normalizeTagValue(String(token || '').replace(/^#/, '')));
+          if (!normalizedToken) return false;
+          if (descriptionHashtags.has(normalizedToken)) return true;
+          if (words.has(normalizedToken)) return true;
+          const escaped = normalizedToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const pattern = new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`);
+          return pattern.test(normalizedDescription);
+        };
+
+        if (normalizedCategory === 'television') {
+          return matchesToken('television') || matchesToken('tv') || matchesToken('tele');
+        }
+
+        if (normalizedCategory === 'radio') {
+          return matchesToken('radio');
+        }
+
+        return false;
+      }
+
       function postMatchesActiveCategory(post) {
         if (activeFeedCategory === 'recientes') return true;
 
@@ -14778,6 +14806,22 @@
           postKind: String(post?.postKind || '').trim(),
           mediaType: mediaType,
         };
+
+        // 🔹 REGLA DEDICADA (solicitada): TV/Radio dependen de etiqueta/palabra en la descripción.
+        if (activeFeedCategory === 'television' || activeFeedCategory === 'radio') {
+          const descriptionCategoryMatch = hasDescriptionCategoryToken(post, activeFeedCategory);
+          logCategoryFilterDecision({
+            category: categoryForDebug,
+            matched: descriptionCategoryMatch,
+            reason: descriptionCategoryMatch ? 'description-category-token-match' : 'description-category-token-miss',
+            id: post?.id || '',
+            postKind: normalizedPostKind,
+            tags: Array.from(postTags),
+            description: String(post?.description || '').slice(0, 120),
+            raw: debugRawFields,
+          });
+          return descriptionCategoryMatch;
+        }
 
         // 🔹 PRIMERO: Verificar si normalizedPostKind coincide exactamente con algún tag canonicalizado
         if (normalizedPostKind && allowedCanonicalTags.has(normalizedPostKind)) {

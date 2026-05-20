@@ -14517,8 +14517,8 @@
       let lastVisiblePost = null; // Último documento visible para paginación
       let hasMorePosts = true; // Si hay más publicaciones por cargar
       let isLoadingMore = false; // Para evitar múltiples cargas simultáneas
-      let postsPerLoad = 10; // Número de publicaciones a cargar por vez
-      const categoryScanMultiplier = 12;
+      let postsPerLoad = 20; // Número de publicaciones a cargar por vez (aumentado para Rumble-style)
+      const categoryScanMultiplier = 15;
       let observer = null; // Observer para el scroll infinito
       let activeFeedCategory = 'recientes';
       let queuedCategoryReload = null;
@@ -14526,7 +14526,37 @@
       let liveStreamRequestPromise = null;
       let latestFeedLoadToken = 0;
       const LIVE_STREAM_CACHE_MS = 45000;
-      const FAST_INITIAL_POSTS = 5;
+      const FAST_INITIAL_POSTS = 8;
+      
+      // 🔹 ARQUITECTURA RUMBLE: State de cada categoría para pagination independiente
+      const categoryFeedStates = {};
+      
+      function initializeCategoryState(category) {
+        if (!categoryFeedStates[category]) {
+          categoryFeedStates[category] = {
+            lastVisible: null,
+            hasMore: true,
+            isLoading: false,
+            postsLoaded: 0,
+            loadedPostIds: new Set()
+          };
+        }
+        return categoryFeedStates[category];
+      }
+      
+      function getCategoryState(category) {
+        return categoryFeedStates[category] || initializeCategoryState(category);
+      }
+      
+      function resetCategoryState(category) {
+        categoryFeedStates[category] = {
+          lastVisible: null,
+          hasMore: true,
+          isLoading: false,
+          postsLoaded: 0,
+          loadedPostIds: new Set()
+        };
+      }
 
       let feedPerfTraceCounter = 0;
       function startFeedPerfTrace(context = {}) {
@@ -15040,33 +15070,33 @@
         }
 
         if (!sentinel || !loadingIndicator || !noMoreIndicator) return;
-
-        loadingIndicator.classList.add('hidden');
-        noMoreIndicator.classList.toggle('hidden', hasMorePosts);
+  const categoryState = getCategoryState(activeFeedCategory);
+  loadingIndicator.classList.add('hidden');
+  noMoreIndicator.classList.toggle('hidden', categoryState.hasMore);
 
         // Configurar Intersection Observer para detectar cuando el centinela es visible
         observer = new IntersectionObserver(async (entries) => {
           const entry = entries[0];
+          const currentCategoryState = getCategoryState(activeFeedCategory);
 
-          if (entry.isIntersecting && hasMorePosts && !isLoadingMore) {
-            console.log('🔄 Cargando más publicaciones...');
-            isLoadingMore = true;
+          if (entry.isIntersecting && currentCategoryState.hasMore && !currentCategoryState.isLoading) {
+            console.log('🔄 Cargando más publicaciones para: ' + activeFeedCategory);
             loadingIndicator.classList.remove('hidden');
 
             try {
-              await loadMorePosts();
+              await loadMorePostsForCategory();
             } catch (error) {
               console.error('❌ Error cargando más publicaciones:', error);
             } finally {
-              isLoadingMore = false;
               loadingIndicator.classList.add('hidden');
             }
           }
 
           // Mostrar indicador de fin de publicaciones
-          if (!hasMorePosts && noMoreIndicator.classList.contains('hidden')) {
+          const updatedState = getCategoryState(activeFeedCategory);
+          if (!updatedState.hasMore && noMoreIndicator.classList.contains('hidden') && activeFeedCategory === 'recientes') {
             noMoreIndicator.classList.remove('hidden');
-          } else if (hasMorePosts && !noMoreIndicator.classList.contains('hidden')) {
+          } else if (updatedState.hasMore && !noMoreIndicator.classList.contains('hidden')) {
             noMoreIndicator.classList.add('hidden');
           }
             // Siempre ocultar en modo categoría
@@ -15084,85 +15114,8 @@
 
       // 🔹 CARGAR MÁS PUBLICACIONES (Paginación)
       async function loadMorePosts() {
-        if (activeFeedCategory !== 'recientes') return;
-        if (!hasMorePosts) return;
-
-        try {
-          console.log('📥 Cargando más publicaciones...');
-
-          // 🔥 GUARDAR LA POSICIÓN ACTUAL ANTES DE CARGAR
-          const mainContent = document.getElementById('mainContent');
-          const currentScroll = mainContent.scrollTop;
-          const currentQueryLimit = postsPerLoad;
-
-          let q;
-          if (lastVisiblePost) {
-            // Cargar después del último post visible
-            q = query(
-              collection(db, "posts"),
-              where("status", "==", "approved"),
-              orderBy("timestamp", "desc"),
-              startAfter(lastVisiblePost),
-              limit(currentQueryLimit)
-            );
-          } else {
-            // Primera carga (esto no debería pasar, pero por si acaso)
-            q = query(
-              collection(db, "posts"),
-              where("status", "==", "approved"),
-              orderBy("timestamp", "desc"),
-              limit(currentQueryLimit)
-            );
-          }
-
-          const querySnapshot = await getDocs(q);
-          const liveData = await checkLiveStream();
-          const isLiveActive = !!liveData?.live;
-
-          if (querySnapshot.empty) {
-            console.log('📭 No hay más publicaciones');
-            hasMorePosts = false;
-            return;
-          }
-
-          console.log(`📊 Se cargaron ${querySnapshot.size} publicaciones más`);
-
-          // Actualizar el último documento visible
-          lastVisiblePost = querySnapshot.docs[querySnapshot.docs.length - 1];
-
-          // Mostrar las nuevas publicaciones
-          const incomingPosts = querySnapshot.docs.map((docSnap) => {
-            const post = { ...docSnap.data(), id: docSnap.id };
-            if (docSnap.id === LIVE_POST_ID) post.isLive = true;
-            return post;
-          });
-          const enrichedIncomingPosts = await enrichPostsRoleMetadata(incomingPosts);
-          enrichedIncomingPosts.forEach((post) => {
-            if (post.id === LIVE_POST_ID && !isLiveActive) return;
-            displayPost(post, post.id);
-          });
-
-          updateFirstPostMarker();
-
-          setTimeout(() => {
-            inicializarSistemaVideos();
-          }, 100);
-
-          // 🔥 RESTAURAR POSICIÓN
-          setTimeout(() => {
-            // Restaurar scroll position
-            mainContent.scrollTop = currentScroll;
-
-          }, 200);
-
-          // Si cargamos menos de postsPerLoad, no hay más publicaciones
-          if (querySnapshot.size < currentQueryLimit) {
-            hasMorePosts = false;
-          }
-        } catch (error) {
-          console.error('❌ Error cargando más publicaciones:', error);
-          throw error;
-        }
+        // Delegado a loadMorePostsForCategory para soporte multi-categoría (Rumble-style)
+        return loadMorePostsForCategory();
       }
 
       // 🔹 GRABACIONES DE ESPECIALIDADES
@@ -15371,6 +15324,11 @@
           category: categoryAtRequest,
           forceReload: !!forceReload,
         });
+        
+        // Inicializar state de esta categoría
+        const categoryState = forceReload
+          ? (resetCategoryState(categoryAtRequest), getCategoryState(categoryAtRequest))
+          : initializeCategoryState(categoryAtRequest);
 
         const processQueuedCategoryReload = () => {
           if (!queuedCategoryReload) return;
@@ -15392,8 +15350,8 @@
           }, 80);
         };
 
-        // 🔒 Protección contra llamadas simultáneas
-        if (postsLoading) {
+        // 🔒 Protección contra llamadas simultáneas por categoría
+        if (postsLoading || categoryState.isLoading) {
           if (forceReload) {
             queuedCategoryReload = categoryAtRequest;
           }
@@ -15416,9 +15374,10 @@
         }
         agregarLogFirestore('loadPosts');
         postsLoading = true;
+        categoryState.isLoading = true;
         lastLoadTime = now;
-          cleanupDetachedMediaInstances();
-          scheduleMediaCleanup();
+        cleanupDetachedMediaInstances();
+        scheduleMediaCleanup();
         try {
           console.log('📥 Cargando publicaciones aprobadas...');
           console.log('🔍 Firestore Read - loadPosts iniciado');
@@ -15431,9 +15390,23 @@
           }
 
           // Reiniciar variables de paginación
-          lastVisiblePost = null;
-          hasMorePosts = true;
-          isLoadingMore = false;
+          if (isCategoryMode) {
+            // En categorías: usar categoryState
+            categoryState.lastVisible = null;
+            categoryState.hasMore = true;
+            categoryState.postsLoaded = 0;
+            categoryState.loadedPostIds.clear();
+          } else {
+            // En recientes: usar state global
+            lastVisiblePost = null;
+            hasMorePosts = true;
+            isLoadingMore = false;
+            const catRecState = initializeCategoryState('recientes');
+            catRecState.lastVisible = null;
+            catRecState.hasMore = true;
+            catRecState.postsLoaded = 0;
+            catRecState.loadedPostIds.clear();
+          }
           const loadingIndicator = document.getElementById('loadingPosts');
           const noMoreIndicator = document.getElementById('noMorePosts');
           if (loadingIndicator) loadingIndicator.classList.add('hidden');
@@ -15528,6 +15501,8 @@
                 console.log('[RENDER] Adding post to feed', { postId: post.id, category: categoryAtRequest, feeds: document.getElementById('feed')?.children?.length });
                 displayPost(post, post.id, feed);
                 renderedPostsCount++;
+                                categoryState.loadedPostIds.add(post.id);
+                                categoryState.postsLoaded++;
                 console.log('[RENDER] Post added - feed now has', document.getElementById('feed')?.children?.length, 'posts');
               } catch (renderError) {
                 renderFailures++;
@@ -15569,6 +15544,7 @@
             renderEmptyFeedMessage();
             hasMorePosts = false;
             markFeedPerf(perfTrace, 'empty-feed');
+            categoryState.hasMore = false;
             return;
           }
 
@@ -15583,6 +15559,10 @@
           // En categorías no usamos scroll infinito para evitar inconsistencias del filtro
           if (isCategoryMode || (querySnapshot && querySnapshot.size < fastInitialLimit)) {
             hasMorePosts = false;
+            categoryState.hasMore = false;
+          } else {
+            const catRecState = getCategoryState('recientes');
+            catRecState.hasMore = hasMorePosts;
           }
 
           if (deferredRecentLoadPromise) {
@@ -15599,6 +15579,9 @@
                   if (post.id === LIVE_POST_ID) return;
                   displayPost(post, post.id);
                   appendedCount++;
+                  const catRecState = getCategoryState('recientes');
+                  catRecState.loadedPostIds.add(post.id);
+                  catRecState.postsLoaded++;
                 });
 
                 if (!deferredSnapshot.empty) {
@@ -15607,6 +15590,8 @@
 
                 if (deferredSnapshot.size < deferredRecentLimit) {
                   hasMorePosts = false;
+                  const catRecState = getCategoryState('recientes');
+                  catRecState.hasMore = false;
                 }
 
                 updateFirstPostMarker();
@@ -15706,8 +15691,145 @@
           }
         } finally {
           postsLoading = false;
+          categoryState.isLoading = false;
           setCategoryLoadingState(false);
           processQueuedCategoryReload();
+        }
+      }
+      
+      // 🔹 CARGAR MÁS PUBLICACIONES - Estilo Rumble (infinite scroll por categoría)
+      async function loadMorePostsForCategory() {
+        const categoryAtRequest = activeFeedCategory;
+        const categoryState = getCategoryState(categoryAtRequest);
+        
+        if (!categoryState.hasMore || categoryState.isLoading) {
+          return;
+        }
+        
+        console.log(`📜 Cargando más posts para categoría: ${categoryAtRequest}`);
+        categoryState.isLoading = true;
+        
+        try {
+          let nextBatch = [];
+          
+          if (categoryAtRequest === 'recientes') {
+            // Para recientes: usar lastVisiblePost global
+            if (!lastVisiblePost) {
+              categoryState.hasMore = false;
+              return;
+            }
+            
+            const q = query(
+              collection(db, "posts"),
+              where("status", "==", "approved"),
+              orderBy("timestamp", "desc"),
+              startAfter(lastVisiblePost),
+              limit(postsPerLoad)
+            );
+            
+            const snapshot = await getDocs(q);
+            if (!snapshot.empty) {
+              lastVisiblePost = snapshot.docs[snapshot.docs.length - 1];
+              nextBatch = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+              categoryState.hasMore = snapshot.docs.length === postsPerLoad;
+            } else {
+              categoryState.hasMore = false;
+            }
+          } else {
+            // Para categorías: obtener más posts que coincidan
+            const scannedAllPosts = await fetchMorePostsForCategory(categoryAtRequest);
+            nextBatch = scannedAllPosts;
+            categoryState.hasMore = scannedAllPosts.length > 0;
+          }
+          
+          if (nextBatch.length === 0) {
+            categoryState.hasMore = false;
+            return;
+          }
+          
+          // Enriquecer y renderizar
+          const enrichedBatch = await enrichPostsRoleMetadata(nextBatch);
+          enrichedBatch.forEach(post => {
+            if (!categoryState.loadedPostIds.has(post.id)) {
+              categoryState.loadedPostIds.add(post.id);
+              displayPost(post, post.id, feed);
+              categoryState.postsLoaded++;
+            }
+          });
+          
+          console.log(`✅ Agregados ${enrichedBatch.length} posts más para ${categoryAtRequest}`);
+          updateFirstPostMarker();
+          
+          // Reinicializar sistema de videos
+          setTimeout(() => {
+            inicializarSistemaVideos();
+          }, 100);
+          
+        } catch (error) {
+          console.error(`Error cargando más posts para ${categoryAtRequest}:`, error);
+        } finally {
+          categoryState.isLoading = false;
+        }
+      }
+      
+      // 🔹 Buscar más posts para una categoría específica
+      async function fetchMorePostsForCategory(category) {
+        const state = getCategoryState(category);
+        const matchedPosts = [];
+        const batchSize = postsPerLoad * categoryScanMultiplier;
+        let lastDocScanned = state.lastVisible;
+        
+        try {
+          let hasMoreDocs = true;
+          while (hasMoreDocs && matchedPosts.length < postsPerLoad) {
+            let query_ = query(
+              collection(db, "posts"),
+              where("status", "==", "approved"),
+              orderBy("timestamp", "desc"),
+              limit(batchSize)
+            );
+
+            if (lastDocScanned) {
+              query_ = query(
+                collection(db, "posts"),
+                where("status", "==", "approved"),
+                orderBy("timestamp", "desc"),
+                startAfter(lastDocScanned),
+                limit(batchSize)
+              );
+            }
+
+            const snapshot = await getDocs(query_);
+            if (snapshot.empty) {
+              hasMoreDocs = false;
+              break;
+            }
+
+            lastDocScanned = snapshot.docs[snapshot.docs.length - 1];
+            state.lastVisible = lastDocScanned;
+            if (snapshot.size < batchSize) {
+              hasMoreDocs = false;
+            }
+
+            for (const docSnap of snapshot.docs) {
+              const post = { id: docSnap.id, ...docSnap.data() };
+              if (postMatchesActiveCategory(post) && !state.loadedPostIds.has(post.id)) {
+                matchedPosts.push(post);
+                state.loadedPostIds.add(post.id);
+              }
+              if (matchedPosts.length >= postsPerLoad) {
+                break;
+              }
+            }
+          }
+
+          state.hasMore = hasMoreDocs;
+          return matchedPosts.slice(0, postsPerLoad);
+          
+        } catch (error) {
+          console.error(`Error en fetchMorePostsForCategory(${category}):`, error);
+          state.hasMore = false;
+          return [];
         }
       }
 

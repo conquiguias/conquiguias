@@ -14761,56 +14761,12 @@
           mediaType: mediaType,
         };
 
-        // 🔹 PRIMERO: Verificar si normalizedPostKind coincide con los tags canonicalizados de la categoría
+        // 🔹 PRIMERO: Verificar si normalizedPostKind coincide exactamente con algún tag canonicalizado
         if (normalizedPostKind && allowedCanonicalTags.has(normalizedPostKind)) {
           logCategoryFilterDecision({
             category: categoryForDebug,
             matched: true,
-            reason: 'postkind-match',
-            id: post?.id || '',
-            postKind: normalizedPostKind,
-            tags: Array.from(postTags),
-            description: String(post?.description || '').slice(0, 80),
-            raw: debugRawFields,
-          });
-          return true;
-        }
-
-        // 🔹 FALLBACK PARA POSTS ANTIGUOS: Validar mediaType para categorías específicas
-        // Si estamos buscando TV/Radio pero el post no tiene postKind, verificar mediaType
-        if (activeFeedCategory === 'television' && (mediaType === 'video/url' || mediaType.startsWith('video/'))) {
-          logCategoryFilterDecision({
-            category: categoryForDebug,
-            matched: true,
-            reason: 'mediatype-video-fallback-for-tv',
-            id: post?.id || '',
-            postKind: normalizedPostKind,
-            tags: Array.from(postTags),
-            description: String(post?.description || '').slice(0, 80),
-            raw: debugRawFields,
-          });
-          return true;
-        }
-
-        if (activeFeedCategory === 'radio' && mediaType === 'audio/url') {
-          logCategoryFilterDecision({
-            category: categoryForDebug,
-            matched: true,
-            reason: 'mediatype-audio-fallback-for-radio',
-            id: post?.id || '',
-            postKind: normalizedPostKind,
-            tags: Array.from(postTags),
-            description: String(post?.description || '').slice(0, 80),
-            raw: debugRawFields,
-          });
-          return true;
-        }
-
-        if (activeFeedCategory === 'musica' && mediaType === 'audio/url') {
-          logCategoryFilterDecision({
-            category: categoryForDebug,
-            matched: true,
-            reason: 'mediatype-audio-fallback-for-musica',
+            reason: 'postkind-exact-match',
             id: post?.id || '',
             postKind: normalizedPostKind,
             tags: Array.from(postTags),
@@ -14837,10 +14793,57 @@
           }
         }
 
+        // 🔹 TERCERO: FALLBACK PARA POSTS ANTIGUOS
+        // Solo usar mediaType como fallback si NO tiene postKind definido
+        // Y SOLO si estamos buscando una categoría de media específica
+        if (!normalizedPostKind) {
+          if (activeFeedCategory === 'television' && (mediaType === 'video/url' || mediaType.startsWith('video/'))) {
+            logCategoryFilterDecision({
+              category: categoryForDebug,
+              matched: true,
+              reason: 'mediatype-fallback-no-postkind-tv',
+              id: post?.id || '',
+              postKind: normalizedPostKind,
+              tags: Array.from(postTags),
+              description: String(post?.description || '').slice(0, 80),
+              raw: debugRawFields,
+            });
+            return true;
+          }
+
+          if (activeFeedCategory === 'radio' && mediaType === 'audio/url') {
+            logCategoryFilterDecision({
+              category: categoryForDebug,
+              matched: true,
+              reason: 'mediatype-fallback-no-postkind-radio',
+              id: post?.id || '',
+              postKind: normalizedPostKind,
+              tags: Array.from(postTags),
+              description: String(post?.description || '').slice(0, 80),
+              raw: debugRawFields,
+            });
+            return true;
+          }
+
+          if (activeFeedCategory === 'musica' && mediaType === 'audio/url') {
+            logCategoryFilterDecision({
+              category: categoryForDebug,
+              matched: true,
+              reason: 'mediatype-fallback-no-postkind-musica',
+              id: post?.id || '',
+              postKind: normalizedPostKind,
+              tags: Array.from(postTags),
+              description: String(post?.description || '').slice(0, 80),
+              raw: debugRawFields,
+            });
+            return true;
+          }
+        }
+
         logCategoryFilterDecision({
           category: categoryForDebug,
           matched: false,
-          reason: 'no-hashtag-or-postkind-match',
+          reason: 'no-match-postkind-hashtag-mediatype',
           id: post?.id || '',
           postKind: normalizedPostKind,
           tags: Array.from(postTags),

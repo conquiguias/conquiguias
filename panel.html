@@ -93,7 +93,10 @@
     /* Body y contenedor principal */
     body {
       display: flex;
-      height: 100vh;
+      min-height: 100vh;
+      height: auto;
+      overflow-x: hidden;
+      overflow-y: auto;
       background: var(--bg-primary);
       color: var(--text-primary);
     }
@@ -521,6 +524,7 @@
    ============================================ */
     #mainContent {
       flex: 1;
+      min-height: 0;
       padding: 25px;
       overflow-y: auto;
       background: var(--bg-primary);
@@ -749,10 +753,12 @@
     #main-content,
     .view-section {
       overflow-y: auto;
+      overflow-x: hidden;
       flex: 1;
       /* Ocupar espacio restante */
-      height: 100vh;
-      /* Asegurar altura completa */
+      min-height: 100vh;
+      height: auto;
+      /* Asegurar altura completa solo si hace falta */
       box-sizing: border-box;
       padding-bottom: 80px;
       /* Margen extra para ver el final */

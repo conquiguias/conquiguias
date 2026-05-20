@@ -5180,6 +5180,7 @@
     </h2>
     <button id="menuInicio" class="active"><i class="fas fa-home" style="margin-right: 8px;"></i> Inicio</button>
     <button id="menuClubes"><i class="fas fa-users" style="margin-right: 8px;"></i> Clubes</button>
+    <button id="menuTutoriales"><i class="fas fa-play-circle" style="margin-right: 8px;"></i> Tutoriales</button>
     <button id="menuBlocNotas"><i class="fas fa-note-sticky" style="margin-right: 8px;"></i> Bloc de Notas</button>
     <button id="menuGrabaciones"><i class="fas fa-video" style="margin-right: 8px;"></i> Grabaciones de
       Especialidades</button>
@@ -5493,6 +5494,24 @@
           <h3 style="margin: 12px 0 8px 0; color: var(--text-primary);">Editor movido</h3>
           <p style="margin: 0; color: var(--text-secondary); font-size: 14px;">Este contenedor fue movido a <strong>Bloc de Notas</strong> para mejor organización.</p>
         </div>
+      </div>
+    </div>
+
+    <!-- Tutoriales de la Plataforma -->
+    <div id="tutorialesSection" class="card hidden">
+      <div style="padding: 10px 0 16px 0; display: flex; align-items: center; gap: 10px;">
+        <i class="fas fa-play-circle" style="color: var(--accent-color); font-size: 20px;"></i>
+        <div>
+          <h2 style="margin:0; font-size: 18px;">Tutoriales de la Plataforma</h2>
+          <p style="margin:4px 0 0 0; font-size: 13px; color: var(--text-secondary);">Videos educativos con la etiqueta
+            <strong style="color:var(--success-color);">#tutorial</strong></p>
+        </div>
+      </div>
+      <div id="tutorialesFeed" style="display:flex; flex-direction:column; gap:20px;"></div>
+      <div id="tutorialesEmpty" class="hidden"
+        style="text-align:center; padding:40px 20px; color:var(--text-secondary);">
+        <i class="fas fa-video-slash" style="font-size:40px; margin-bottom:12px; opacity:0.4; display:block;"></i>
+        <p>No hay tutoriales publicados aún.</p>
       </div>
     </div>
 
@@ -7599,10 +7618,12 @@
       const menuEspecialidades = document.getElementById("menuEspecialidades");
       const menuCertificaciones = document.getElementById("menuCertificaciones");
       const menuGrabaciones = document.getElementById("menuGrabaciones");
+      const menuTutoriales = document.getElementById("menuTutoriales");
       const menuAcerca = document.getElementById("menuAcerca");
       const menuDonar = document.getElementById("menuDonar");
       const blocNotasSection = document.getElementById("blocNotasSection");
       const grabacionesSection = document.getElementById("grabacionesSection");
+      const tutorialesSection = document.getElementById("tutorialesSection");
       const acercaSection = document.getElementById("acercaSection");
       const donarSection = document.getElementById("donarSection");
       const menuAdmin = document.getElementById("menuAdmin");
@@ -8854,7 +8875,7 @@
           hideReactionPopup();
         }
 
-        const allowedMenuIds = new Set(['menuInicio', 'menuClubes', 'menuGrabaciones', 'menuAcerca', 'menuDonar']);
+        const allowedMenuIds = new Set(['menuInicio', 'menuClubes', 'menuTutoriales', 'menuGrabaciones', 'menuAcerca', 'menuDonar']);
         const guestLockTitle = 'Disponible solo con sesión iniciada';
         const headerUserPhotoEl = document.getElementById('headerUserPhoto');
         const headerUserNameEl = document.getElementById('headerUserName');
@@ -9307,6 +9328,15 @@
           window.loadGrabaciones();
         });
       }
+
+      // 🔹 Tutoriales de la Plataforma
+      if (menuTutoriales) {
+        menuTutoriales.addEventListener("click", () => {
+          mostrarSeccion(tutorialesSection, menuTutoriales);
+          window.loadTutoriales();
+        });
+      }
+
       menuCertificaciones.addEventListener("click", () => {
         mostrarSeccion(certificacionesSection, menuCertificaciones);
         cargarCertificaciones();
@@ -10010,10 +10040,10 @@
         }
 
         // Incluir tareasExamenesSection y menuTareasExamenes en las listas para limpiar
-        [inicioSection, perfilSection, especialidadesSection, clubesSection, blocNotasSection, certificacionesSection, certificadoSearchSection, adminSection, instructorSection, tareasExamenesSection, grabacionesSection, acercaSection, donarSection].forEach(sec => {
+        [inicioSection, perfilSection, especialidadesSection, clubesSection, tutorialesSection, blocNotasSection, certificacionesSection, certificadoSearchSection, adminSection, instructorSection, tareasExamenesSection, grabacionesSection, acercaSection, donarSection].forEach(sec => {
           if (sec) sec.classList.add("hidden");
         });
-        [menuInicio, menuPerfil, menuEspecialidades, menuClubes, menuBlocNotas, menuCertificaciones, menuAdmin, menuInstructor, menuTareasExamenes, menuGrabaciones, menuAcerca, menuDonar].forEach(btn => {
+        [menuInicio, menuPerfil, menuEspecialidades, menuClubes, menuTutoriales, menuBlocNotas, menuCertificaciones, menuAdmin, menuInstructor, menuTareasExamenes, menuGrabaciones, menuAcerca, menuDonar].forEach(btn => {
           if (btn) btn.classList.remove("active");
         });
 
@@ -14323,6 +14353,19 @@
           return; // 🔥 ESTE return ES CRÍTICO - DETIENE LA PUBLICACIÓN
         }
 
+        // 🔹 VALIDACIÓN 3: ETIQUETAS RESTRINGIDAS (#especialidades y #tutorial solo para admin/propietario)
+        const descLower = descriptionToPublish.toLowerCase();
+        const etiquetasRestringidas = ['#especialidades', '#tutorial'];
+        const etiquetasEncontradas = etiquetasRestringidas.filter(etiqueta => descLower.includes(etiqueta));
+
+        if (etiquetasEncontradas.length > 0 && !isAdmin && !window.isOwner) {
+          console.log(`[WARNING] Usuario no autorizado intentó usar etiquetas restringidas: ${etiquetasEncontradas.join(', ')}`);
+          mostrarMensaje('error', 'Etiquetas restringidas',
+            `La etiqueta(s) ${etiquetasEncontradas.join(', ')} solo puede ser utilizada por administradores y el propietario de la plataforma.\n\n` +
+            `Si crees que esto es un error, contacta con el equipo administrativo.`);
+          return;
+        }
+
         // Validaciones de archivo (solo si hay media)
         const IMAGE_MAX = 20 * 1024 * 1024;
         const VIDEO_MAX = 200 * 1024 * 1024;
@@ -15057,6 +15100,44 @@
         } catch (err) {
           console.error('[Grabaciones] ❌ Error:', err);
           grabFeed.innerHTML = `<p style="text-align:center;color:var(--text-secondary);padding:30px;">Error: ${err.message}</p>`;
+        }
+      };
+
+      // 🔹 TUTORIALES DE LA PLATAFORMA
+      window.loadTutoriales = async function loadTutoriales() {
+        const tutFeed = document.getElementById('tutorialesFeed');
+        const tutEmpty = document.getElementById('tutorialesEmpty');
+        if (!tutFeed) { console.error('[Tutoriales] ❌ tutorialesFeed no encontrado en el DOM'); return; }
+        tutFeed.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:30px;">Cargando tutoriales...</p>';
+        tutEmpty?.classList.add('hidden');
+        try {
+          const q = query(collection(db, 'posts'), where('status', '==', 'approved'), orderBy('timestamp', 'desc'));
+          const snapshot = await getDocs(q);
+          tutFeed.innerHTML = '';
+          let count = 0;
+
+          snapshot.forEach(docSnap => {
+            const post = { ...docSnap.data(), id: docSnap.id };
+            const desc = (post.description || '').toLowerCase();
+            const esVideo = post.mediaType && (post.mediaType === 'video/url' || post.mediaType.startsWith('video/'));
+            const tieneEtiqueta = desc.includes('#tutorial');
+
+            if (esVideo && tieneEtiqueta) {
+              try {
+                // Prefijo 'tut-' para evitar IDs duplicados con el feed principal
+                displayPost(post, 'tut-' + docSnap.id, tutFeed);
+                count++;
+              } catch (renderErr) {
+                console.error(`[Tutoriales] ❌ Error renderizando post ${docSnap.id}:`, renderErr);
+              }
+            }
+          });
+
+          console.log(`[Tutoriales] 🎥 Total tutoriales mostrados: ${count}`);
+          if (count === 0) tutEmpty?.classList.remove('hidden');
+        } catch (err) {
+          console.error('[Tutoriales] ❌ Error:', err);
+          tutFeed.innerHTML = `<p style="text-align:center;color:var(--text-secondary);padding:30px;">Error: ${err.message}</p>`;
         }
       };
 

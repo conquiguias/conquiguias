@@ -14758,6 +14758,22 @@
           postKind: String(post?.postKind || '').trim(),
         };
 
+        // 🔹 PRIMERO: Verificar si normalizedPostKind coincide con los tags canonicalizados de la categoría
+        if (normalizedPostKind && allowedCanonicalTags.has(normalizedPostKind)) {
+          logCategoryFilterDecision({
+            category: categoryForDebug,
+            matched: true,
+            reason: 'postkind-match',
+            id: post?.id || '',
+            postKind: normalizedPostKind,
+            tags: Array.from(postTags),
+            description: String(post?.description || '').slice(0, 80),
+            raw: debugRawFields,
+          });
+          return true;
+        }
+
+        // 🔹 SEGUNDO: Verificar si algún hashtag coincide
         for (const tag of postTags) {
           if (allowedCanonicalTags.has(tag)) {
             logCategoryFilterDecision({
@@ -14777,7 +14793,7 @@
         logCategoryFilterDecision({
           category: categoryForDebug,
           matched: false,
-          reason: 'no-hashtag-match',
+          reason: 'no-hashtag-or-postkind-match',
           id: post?.id || '',
           postKind: normalizedPostKind,
           tags: Array.from(postTags),

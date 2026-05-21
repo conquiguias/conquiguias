@@ -4668,10 +4668,11 @@
       margin: 0%;
       padding: 0%;
       transition: all 0.2s ease;
-      font-weight: 600 !important;
-      text-underline-offset: 2px;
+      font-weight: 700 !important;
+      text-underline-offset: 3px;
+      text-decoration-thickness: 2px;
+      text-decoration-line: underline !important;
       color: var(--accent-color) !important;
-      text-decoration: underline !important;
       text-decoration-color: var(--accent-color) !important;
     }
 
@@ -16546,7 +16547,7 @@
           const href = cleanUrl.startsWith('www.') ? `https://${cleanUrl}` : cleanUrl;
           const displayUrl = cleanUrl.length > 45 ? `${cleanUrl.slice(0, 42)}...` : cleanUrl;
 
-          return `${prefix}<a href="${href}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-color) !important; text-decoration: underline !important; font-weight: 600 !important;" title="${href}">🔗 ${displayUrl}</a>${trailing}`;
+          return `${prefix}<a href="${href}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-color) !important; text-decoration: underline !important; text-decoration-thickness: 2px !important; text-decoration-color: var(--accent-color) !important; text-underline-offset: 3px !important; font-weight: 700 !important;" title="${href}">🔗 ${displayUrl}</a>${trailing}`;
         });
 
         const lines = work.split('\n');

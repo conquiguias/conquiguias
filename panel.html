@@ -1780,6 +1780,8 @@
       position: relative;
       flex: 1;
       min-height: 0;
+      max-height: calc(100% - 60px); /* Reserve space for header ~60px and actions below */
+      overflow: hidden;
     }
 
     .post-card.post-expanded .post-body-layout {
@@ -1800,12 +1802,12 @@
       display: none;
     }
 
-    /* Default: show full description (no internal scroll) so post appears normal */
+    /* Default: show full description (no internal scroll) but with height constraint */
     .post-card.text-only-post .post-description {
-      flex: 0 1 auto;
-      height: auto;
+      flex: 0 1 250px;
+      height: 250px;
       min-height: 0;
-      max-height: 250px; /* Limit growth to prevent covering buttons */
+      max-height: 250px;
       padding: 12px;
       overflow: hidden;
     }

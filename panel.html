@@ -1802,17 +1802,20 @@
 
     /* Default: show full description (no internal scroll) so post appears normal */
     .post-card.text-only-post .post-description {
-      flex: 0 0 auto;
+      flex: 0 1 auto;
       height: auto;
       min-height: 0;
+      max-height: 250px; /* Limit growth to prevent covering buttons */
       padding: 12px;
-      overflow: visible;
+      overflow: hidden;
     }
 
     /* When user requests the 'expanded' read-more state, limit height and enable internal scroll */
     .post-card.text-only-post .post-description.is-expanded {
+      flex: 0 0 250px;
       height: 250px;
       min-height: 250px;
+      max-height: 250px;
       overflow-y: auto;
       overflow-x: hidden;
       scrollbar-width: thin;

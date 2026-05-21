@@ -3011,6 +3011,15 @@
       word-break: break-word;
     }
 
+    #adminNotesEditor,
+    #adminNotesEditor *,
+    #directorNotesEditor,
+    #directorNotesEditor *,
+    #conquiNotesEditor,
+    #conquiNotesEditor * {
+      color: var(--text-primary) !important;
+    }
+
     #adminNotesEditor.admin-notes-nowrap,
     #directorNotesEditor.director-notes-nowrap,
     #conquiNotesEditor.conqui-notes-nowrap {
@@ -19938,6 +19947,8 @@
           updateDirectorNotesStatus();
         });
 
+        bindPlainTextPaste(editor, updateDirectorNotesStatus);
+
         editor.addEventListener('input', () => {
           markDirectorNotesDirty();
           updateDirectorNotesStatus();
@@ -20920,6 +20931,8 @@
           markConquiNotesDirty();
           updateConquiNotesStatus();
         });
+
+        bindPlainTextPaste(editor, updateConquiNotesStatus);
 
         editor.addEventListener('input', () => {
           markConquiNotesDirty();
@@ -22068,6 +22081,8 @@
           markAdminNotesDirty();
           updateAdminNotesStatus();
         });
+
+        bindPlainTextPaste(editor, updateAdminNotesStatus);
 
         editor.addEventListener('input', () => {
           const wasClamped = enforceAdminNotesCharacterLimit({ notify: true });

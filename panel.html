@@ -16656,23 +16656,28 @@
         }
 
         if (tag === 'B' || tag === 'STRONG') {
-          return `*${inner}*`;
+          const inlineText = inner.replace(/\s*\n\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+          return inlineText ? `*${inlineText}*` : '';
         }
 
         if (tag === 'I' || tag === 'EM') {
-          return `_${inner}_`;
+          const inlineText = inner.replace(/\s*\n\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+          return inlineText ? `_${inlineText}_` : '';
         }
 
         if (tag === 'S' || tag === 'STRIKE' || tag === 'DEL') {
-          return `~${inner}~`;
+          const inlineText = inner.replace(/\s*\n\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+          return inlineText ? `~${inlineText}~` : '';
         }
 
         if (tag === 'U') {
-          return `__${inner}__`;
+          const inlineText = inner.replace(/\s*\n\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+          return inlineText ? `__${inlineText}__` : '';
         }
 
         if (tag === 'CODE') {
-          return `\`${inner.replace(/\n/g, ' ')}\``;
+          const inlineText = inner.replace(/\s*\n\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+          return inlineText ? `\`${inlineText}\`` : '';
         }
 
         if (tag === 'DIV' || tag === 'P') {

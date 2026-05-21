@@ -4759,6 +4759,19 @@
       position: relative;
     }
 
+    .post-description .post-description-clamp-wrap.has-overflow {
+      max-height: 240px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: thin;
+      scrollbar-color: var(--accent-color) rgba(255, 255, 255, 0.08);
+    }
+
+    .post-card.text-only-post .post-description .post-description-clamp-wrap.has-overflow {
+      max-height: 100%;
+      height: 100%;
+    }
+
     .post-description .post-description-clamp-wrap.has-overflow .post-description-text.clamped {
       padding-right: 96px;
     }

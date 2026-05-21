@@ -1770,9 +1770,7 @@
       font-size: 14px;
       position: relative;
       z-index: 1;
-      flex: 0 1 auto;
-      max-height: 250px;
-      overflow: hidden;
+      flex: 0 0 auto;
     }
 
     .post-description.is-expanded {
@@ -1785,14 +1783,12 @@
 
     .post-body-layout {
       display: flex;
-      flex-direction: column;
       padding: 0;
       margin: 0;
       align-items: stretch;
       position: relative;
       flex: 1;
       min-height: 0;
-      overflow: visible;
     }
 
     .post-card.post-expanded .post-body-layout {
@@ -1815,31 +1811,20 @@
 
     /* Default: show full description (no internal scroll) but with height constraint */
     .post-card.text-only-post .post-description {
-      flex: 0 1 auto;
+      flex: 0 0 auto;
       height: auto;
       min-height: 0;
-      max-height: 250px;
       padding: 12px;
-      overflow: hidden;
     }
 
-    /* When user requests the 'expanded' read-more state, limit height and enable internal scroll */
+    /* When user requests the 'expanded' read-more state, just let it expand naturally (main-column will scroll) */
     .post-card.text-only-post .post-description.is-expanded {
-      flex: 0 0 250px;
-      height: 250px;
+      height: auto;
       min-height: 250px;
-      max-height: 250px;
-      overflow-y: auto;
-      overflow-x: hidden;
-      scrollbar-width: thin;
-      scrollbar-color: var(--accent-color) rgba(255, 255, 255, 0.08);
     }
 
     .post-description.is-expanded {
-      height: 250px;
-      overflow-y: auto;
-      overflow-x: hidden;
-      scrollbar-width: thin;
+      height: auto;
     }
 
     .post-card.text-only-post .post-description::-webkit-scrollbar {
@@ -1868,12 +1853,11 @@
       flex-direction: column;
       flex: 1;
       min-height: 0;
-      overflow: hidden;
+      overflow-y: auto; /* Enable ONE main scrollbar for the entire content (media + description) when max-height is exceeded */
     }
 
     .post-card.post-expanded .post-main-column {
-      /* Don't add a second scrollbar on the main column — let the description control scrolling. */
-      overflow: visible;
+      /* Already scrolls via the rule above */
       min-height: 0;
     }
 

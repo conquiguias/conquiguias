@@ -23445,12 +23445,8 @@
       // Cerrar modal con el botón X
       closeUploadModal.addEventListener('click', hideUploadModal);
 
-      // Cerrar modal al hacer clic fuera del contenido
-      uploadModal.addEventListener('click', (e) => {
-        if (e.target === uploadModal || e.target.classList.contains('upload-modal-backdrop')) {
-          hideUploadModal();
-        }
-      });
+      // Nota: No cerrar el modal al hacer clic fuera. Solo cerrar con la X o Escape.
+      // (Se mantiene la listener original de Escape y el botón X)
 
       // Cerrar modal con la tecla Escape
       document.addEventListener('keydown', (e) => {

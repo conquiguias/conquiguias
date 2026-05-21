@@ -1526,8 +1526,10 @@
       border: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
-      flex: 1;
+      flex: 0 1 auto;
       min-height: 0;
+      /* Limitar alto para permitir scroll interno cuando el contenido es muy largo */
+      max-height: min(82vh, 720px);
     }
 
     .post-header {

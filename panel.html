@@ -1838,6 +1838,10 @@
     .post-main-column {
       width: 100%;
       min-width: 0;
+      overflow: hidden;
+    }
+
+    .post-card.post-expanded .post-main-column {
       overflow-y: auto;
       overflow-x: hidden;
     }
@@ -16607,7 +16611,13 @@
 
         descriptionElement.innerHTML = formatPostDescription(fullText, normalizedPostId);
         // Marcar clase is-expanded para controlar scroll solo cuando está expandido
-        descriptionElement.classList.toggle('is-expanded', postReadMoreExpanded.has(normalizedPostId));
+        const isExpanded = postReadMoreExpanded.has(normalizedPostId);
+        descriptionElement.classList.toggle('is-expanded', isExpanded);
+        // Marcar el card para que el scroll aparezca solo cuando esté expandido
+        const postCard = descriptionElement.closest('.post-card');
+        if (postCard) {
+          postCard.classList.toggle('post-expanded', isExpanded);
+        }
         requestAnimationFrame(() => {
           applyReadMoreOverflowState(descriptionElement);
           syncTextOnlyDescriptionState(descriptionElement);

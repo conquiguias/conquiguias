@@ -23097,14 +23097,6 @@
             uploadModal.style.display = 'none';
           });
         }
-
-        // Cerrar al hacer clic fuera (en el backdrop)
-        uploadModal.addEventListener('click', (e) => {
-          if (e.target === uploadModal) {
-            uploadModal.classList.add('hidden');
-            uploadModal.style.display = 'none';
-          }
-        });
       }
       // --- FIN: Lógica para Botón Flotante ---
 

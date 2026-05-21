@@ -1810,6 +1810,12 @@
       overflow-x: hidden;
     }
 
+    .post-description.is-expanded {
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: thin;
+    }
+
     .post-card.text-only-post .post-description::-webkit-scrollbar {
       width: 8px;
     }
@@ -16600,6 +16606,8 @@
         }
 
         descriptionElement.innerHTML = formatPostDescription(fullText, normalizedPostId);
+        // Marcar clase is-expanded para controlar scroll solo cuando está expandido
+        descriptionElement.classList.toggle('is-expanded', postReadMoreExpanded.has(normalizedPostId));
         requestAnimationFrame(() => {
           applyReadMoreOverflowState(descriptionElement);
           syncTextOnlyDescriptionState(descriptionElement);

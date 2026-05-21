@@ -333,12 +333,12 @@ function resolvePreviewImage(post, origin, options = {}) {
     if (abs) return abs;
   }
 
-  return `${origin}/images/logo1.png`;
+  return `${origin}/images/flayer%20conquiguias%20world.png`;
 }
 
 async function handleShareImage(req, res, postId) {
   const origin = getOrigin(req);
-  let imageSource = `${origin}/images/logo1.png`;
+  let imageSource = `${origin}/images/flayer%20conquiguias%20world.png`;
 
   if (postId) {
     try {
@@ -361,7 +361,7 @@ async function handleShareImage(req, res, postId) {
     }
   }
 
-  const absolute = toAbsoluteUrl(imageSource, origin) || `${origin}/images/logo1.png`;
+  const absolute = toAbsoluteUrl(imageSource, origin) || `${origin}/images/flayer%20conquiguias%20world.png`;
   res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
   return res.redirect(302, absolute);
 }
@@ -455,13 +455,13 @@ module.exports = async (req, res) => {
 
   let title = "Post | Conquiguias World";
   let description = "Mira esta publicación en Conquiguias World.";
-  let imageUrl = `${origin}/images/logo1.png`;
+  let imageUrl = `${origin}/images/flayer%20conquiguias%20world.png`;
   let ogType = "article";
   let authorName = "Conquiguias World";
   let publishedAt = "";
   const shareImageUrl = postId
     ? `${origin}/api/post-share?action=image&id=${encodedPostId}`
-    : `${origin}/images/logo1.png`;
+    : `${origin}/images/flayer%20conquiguias%20world.png`;
 
   if (postId) {
     try {
@@ -525,7 +525,7 @@ module.exports = async (req, res) => {
       name: "Conquiguias World",
       logo: {
         "@type": "ImageObject",
-        url: `${origin}/logo1.png`,
+        url: `${origin}/images/flayer%20conquiguias%20world.png`,
       },
     },
   };
@@ -545,6 +545,9 @@ module.exports = async (req, res) => {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/iconos/flayer%20conquiguias%20fondo%2064.jpg" type="image/jpeg" sizes="64x64" />
+    <link rel="shortcut icon" href="/iconos/flayer%20conquiguias%20fondo%2064.jpg" />
+    <link rel="apple-touch-icon" href="/iconos/flayer%20conquiguias%20fondo%2064.jpg" />
     <title>${escapedTitle}</title>
     <meta name="description" content="${escapedDescription}" />
     <meta name="robots" content="index, follow, max-image-preview:large" />

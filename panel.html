@@ -1838,12 +1838,14 @@
     .post-main-column {
       width: 100%;
       min-width: 0;
-      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
     .post-card.post-expanded .post-main-column {
       overflow-y: auto;
       overflow-x: hidden;
+      min-height: 0;
     }
 
     .post-sidebar-column {

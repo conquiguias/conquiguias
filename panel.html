@@ -4668,9 +4668,10 @@
       margin: 0%;
       padding: 0%;
       transition: all 0.2s ease;
-      font-weight: 600;
+      font-weight: 600 !important;
       text-underline-offset: 2px;
       color: var(--accent-color) !important;
+      text-decoration: underline !important;
       text-decoration-color: var(--accent-color) !important;
     }
 
@@ -16545,7 +16546,7 @@
           const href = cleanUrl.startsWith('www.') ? `https://${cleanUrl}` : cleanUrl;
           const displayUrl = cleanUrl.length > 45 ? `${cleanUrl.slice(0, 42)}...` : cleanUrl;
 
-          return `${prefix}<a href="${href}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-color); text-decoration: underline; font-weight: 600;" title="${href}">🔗 ${displayUrl}</a>${trailing}`;
+          return `${prefix}<a href="${href}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-color) !important; text-decoration: underline !important; font-weight: 600 !important;" title="${href}">🔗 ${displayUrl}</a>${trailing}`;
         });
 
         const lines = work.split('\n');
@@ -16628,6 +16629,16 @@
         if (!descriptionElement || !fullText) return;
 
         const normalizedPostId = String(postId || '');
+        const postCard = descriptionElement.closest('.post-card');
+        
+        // Capture CURRENT height BEFORE making any changes
+        let currentHeightBeforeChange = 0;
+        if (postCard && !postReadMoreExpanded.has(normalizedPostId)) {
+          // We're about to expand, so capture height now
+          currentHeightBeforeChange = postCard.getBoundingClientRect().height;
+        }
+
+        // Toggle the expanded state
         if (postReadMoreExpanded.has(normalizedPostId)) {
           postReadMoreExpanded.delete(normalizedPostId);
         } else {
@@ -16638,14 +16649,13 @@
         // Marcar clase is-expanded para controlar scroll solo cuando está expandido
         const isExpanded = postReadMoreExpanded.has(normalizedPostId);
         descriptionElement.classList.toggle('is-expanded', isExpanded);
+        
         // Marcar el card para que el scroll aparezca solo cuando esté expandido
-        const postCard = descriptionElement.closest('.post-card');
         if (postCard) {
-          if (isExpanded) {
+          if (isExpanded && currentHeightBeforeChange > 0) {
             // Lock outer container height so it doesn't grow when text expands
-            const currentHeight = postCard.getBoundingClientRect().height;
-            postCard.style.height = `${currentHeight}px`;
-          } else {
+            postCard.style.height = `${currentHeightBeforeChange}px`;
+          } else if (!isExpanded) {
             // Revert back to auto height when collapsed
             postCard.style.height = '';
           }

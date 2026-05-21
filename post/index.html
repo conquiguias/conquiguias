@@ -664,6 +664,11 @@
         text-decoration-thickness: 2px;
       }
 
+      .post-description .wa-underline {
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
       .post-description .wa-code-inline {
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         font-size: 0.92em;
@@ -2976,6 +2981,8 @@
           .replace(/\*([^*\n]+?)\*/g, '<span class="wa-bold">$1</span>')
           .replace(/_([^_\n]+?)_/g, '<span class="wa-italic">$1</span>')
           .replace(/~([^~\n]+?)~/g, '<span class="wa-strike">$1</span>');
+
+        work = work.replace(/__([^_\n]+?)__/g, '<span class="wa-underline">$1</span>');
 
         work = work
           .replace(

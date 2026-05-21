@@ -4667,6 +4667,11 @@
       text-decoration-thickness: 2px;
     }
 
+    .wa-underline {
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
     .wa-code-inline {
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       font-size: 0.92em;
@@ -16454,6 +16459,8 @@
           .replace(/_([^_\n]+?)_/g, '<span class="wa-italic">$1</span>')
           .replace(/~([^~\n]+?)~/g, '<span class="wa-strike">$1</span>');
 
+        work = work.replace(/__([^_\n]+?)__/g, '<span class="wa-underline">$1</span>');
+
         work = work
           .replace(/@([a-zA-Z0-9_]+)/g, '<span style="color: var(--accent-color); font-weight: bold;">@$1</span>')
           .replace(/#([a-zA-Z0-9_]+)/g, '<span style="color: var(--success-color); font-weight: bold;">#$1</span>');
@@ -16639,6 +16646,10 @@
 
         if (tag === 'S' || tag === 'STRIKE' || tag === 'DEL') {
           return `~${inner}~`;
+        }
+
+        if (tag === 'U') {
+          return `__${inner}__`;
         }
 
         if (tag === 'CODE') {
@@ -16885,13 +16896,6 @@
 
       postDescriptionEditor?.addEventListener('keyup', function (e) {
         if (["Shift", "Control", "Alt", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
-        if (e.key === ' ' || e.key === 'Enter' || e.code === 'Space') {
-          try {
-            formatNearCursor(postDescriptionEditor);
-          } catch (error) {
-            console.warn('No se pudo aplicar formato automático:', error);
-          }
-        }
         updateDescriptionLivePreview();
       });
 
@@ -17567,13 +17571,6 @@
         editPostEditor?.addEventListener('input', updateCounter);
         editPostEditor?.addEventListener('keyup', function (e) {
           if (["Shift", "Control", "Alt", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
-          if (e.key === ' ' || e.key === 'Enter' || e.code === 'Space') {
-            try {
-              formatNearCursor(editPostEditor);
-            } catch (error) {
-              console.warn('No se pudo aplicar formato automático en edición:', error);
-            }
-          }
           updateCounter();
         });
         bindEditorToolbar(editPostToolbar, editPostEditor, updateCounter);

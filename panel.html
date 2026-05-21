@@ -1770,18 +1770,29 @@
       font-size: 14px;
       position: relative;
       z-index: 1;
+      flex: 0 1 auto;
+      max-height: 250px;
+      overflow: hidden;
+    }
+
+    .post-description.is-expanded {
+      max-height: none;
+      height: 250px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: thin;
     }
 
     .post-body-layout {
       display: flex;
+      flex-direction: column;
       padding: 0;
       margin: 0;
       align-items: stretch;
       position: relative;
       flex: 1;
       min-height: 0;
-      max-height: calc(100% - 60px); /* Reserve space for header ~60px and actions below */
-      overflow: hidden;
+      overflow: visible;
     }
 
     .post-card.post-expanded .post-body-layout {
@@ -1804,8 +1815,8 @@
 
     /* Default: show full description (no internal scroll) but with height constraint */
     .post-card.text-only-post .post-description {
-      flex: 0 1 250px;
-      height: 250px;
+      flex: 0 1 auto;
+      height: auto;
       min-height: 0;
       max-height: 250px;
       padding: 12px;
@@ -1855,6 +1866,9 @@
       min-width: 0;
       display: flex;
       flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
     }
 
     .post-card.post-expanded .post-main-column {

@@ -1768,6 +1768,8 @@
       padding: 10px;
       color: var(--text-primary);
       font-size: 14px;
+      position: relative;
+      z-index: 1;
     }
 
     .post-body-layout {
@@ -1851,8 +1853,8 @@
     }
 
     .post-card.post-expanded .post-main-column {
-      overflow-y: auto;
-      overflow-x: hidden;
+      /* Don't add a second scrollbar on the main column — let the description control scrolling. */
+      overflow: visible;
       min-height: 0;
     }
 
@@ -1885,6 +1887,8 @@
       justify-content: space-between;
       border-top: 1px solid var(--border-color);
       gap: 10px;
+      position: relative;
+      z-index: 3; /* Ensure action buttons remain above description */
     }
 
     .post-actions-left,

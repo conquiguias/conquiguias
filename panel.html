@@ -1528,8 +1528,8 @@
       flex-direction: column;
       flex: 0 1 auto;
       min-height: 0;
-      /* Limitar alto para permitir scroll interno cuando el contenido es muy largo */
-      max-height: min(82vh, 720px);
+      /* Default: height auto, will adjust. When "Leer más" is clicked, gets fixed height to prevent outer growth */
+      height: auto;
     }
 
     .post-header {
@@ -1796,6 +1796,10 @@
     }
 
     .post-card.text-only-post .post-body-layout {
+      min-height: 250px;
+    }
+
+    .post-card.post-expanded .post-body-layout {
       min-height: 250px;
     }
 
@@ -16541,7 +16545,7 @@
           const href = cleanUrl.startsWith('www.') ? `https://${cleanUrl}` : cleanUrl;
           const displayUrl = cleanUrl.length > 45 ? `${cleanUrl.slice(0, 42)}...` : cleanUrl;
 
-          return `${prefix}<a href="${href}" target="_blank" rel="noopener noreferrer" title="${href}">🔗 ${displayUrl}</a>${trailing}`;
+          return `${prefix}<a href="${href}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-color); text-decoration: underline; font-weight: 600;" title="${href}">🔗 ${displayUrl}</a>${trailing}`;
         });
 
         const lines = work.split('\n');
@@ -16637,6 +16641,14 @@
         // Marcar el card para que el scroll aparezca solo cuando esté expandido
         const postCard = descriptionElement.closest('.post-card');
         if (postCard) {
+          if (isExpanded) {
+            // Lock outer container height so it doesn't grow when text expands
+            const currentHeight = postCard.getBoundingClientRect().height;
+            postCard.style.height = `${currentHeight}px`;
+          } else {
+            // Revert back to auto height when collapsed
+            postCard.style.height = '';
+          }
           postCard.classList.toggle('post-expanded', isExpanded);
         }
         requestAnimationFrame(() => {

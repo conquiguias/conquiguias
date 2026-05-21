@@ -2441,6 +2441,11 @@
       -webkit-overflow-scrolling: touch;
     }
 
+    #editPostEditor,
+    #editPostEditor * {
+      color: var(--text-primary) !important;
+    }
+
     #editPostEditor:empty:before {
       content: attr(data-placeholder);
       color: var(--text-secondary);
@@ -4588,6 +4593,11 @@
       white-space: pre-wrap;
       word-break: break-word;
       overflow: auto;
+    }
+
+    #postDescriptionEditor,
+    #postDescriptionEditor * {
+      color: var(--text-primary) !important;
     }
 
     #postDescriptionEditor:empty:before {
@@ -16835,6 +16845,29 @@
         });
       }
 
+      function bindPlainTextPaste(editorEl, syncFn) {
+        if (!editorEl || typeof syncFn !== 'function') return;
+
+        editorEl.addEventListener('paste', (event) => {
+          const clipboardText = event.clipboardData?.getData('text/plain');
+          if (typeof clipboardText !== 'string') return;
+
+          event.preventDefault();
+          const selection = window.getSelection();
+          if (!selection || !selection.rangeCount) {
+            document.execCommand('insertText', false, clipboardText);
+          } else {
+            document.execCommand('insertText', false, clipboardText);
+          }
+
+          try {
+            syncFn();
+          } catch (error) {
+            console.warn('No se pudo sincronizar el editor tras pegar texto:', error);
+          }
+        });
+      }
+
       function updateDescriptionLivePreview(value) {
         if (!postDescriptionEditor || !postDescription) return;
 
@@ -16900,6 +16933,7 @@
       });
 
       bindEditorToolbar(postEditorToolbar, postDescriptionEditor, updateDescriptionLivePreview);
+      bindPlainTextPaste(postDescriptionEditor, updateDescriptionLivePreview);
 
       updateDescriptionLivePreview();
 
@@ -17574,6 +17608,7 @@
           updateCounter();
         });
         bindEditorToolbar(editPostToolbar, editPostEditor, updateCounter);
+        bindPlainTextPaste(editPostEditor, updateCounter);
         updateCounter();
 
         const closeModal = () => {

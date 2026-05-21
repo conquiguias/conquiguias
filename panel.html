@@ -1798,22 +1798,27 @@
       display: none;
     }
 
+    /* Default: show full description (no internal scroll) so post appears normal */
     .post-card.text-only-post .post-description {
-      flex: 0 0 250px;
+      flex: 0 0 auto;
+      height: auto;
+      min-height: 0;
+      padding: 12px;
+      overflow: visible;
+    }
+
+    /* When user requests the 'expanded' read-more state, limit height and enable internal scroll */
+    .post-card.text-only-post .post-description.is-expanded {
       height: 250px;
       min-height: 250px;
-      padding: 12px;
-      overflow: hidden;
+      overflow-y: auto;
+      overflow-x: hidden;
       scrollbar-width: thin;
       scrollbar-color: var(--accent-color) rgba(255, 255, 255, 0.08);
     }
 
-    .post-card.text-only-post .post-description.is-expanded {
-      overflow-y: auto;
-      overflow-x: hidden;
-    }
-
     .post-description.is-expanded {
+      height: 250px;
       overflow-y: auto;
       overflow-x: hidden;
       scrollbar-width: thin;
@@ -16443,12 +16448,17 @@
 
       function applyReadMoreOverflowState(scope = document) {
         const root = scope instanceof Element || scope instanceof Document ? scope : document;
+        const CLAMP_HEIGHT_PX = 250; // threshold to decide when to show "Leer más"
         root.querySelectorAll('.post-description .post-description-clamp-wrap').forEach((wrap) => {
           const textEl = wrap.querySelector('.post-description-text');
           const btn = wrap.querySelector('.read-more-btn');
           if (!textEl || !btn) return;
 
-          const isOverflowing = textEl.scrollHeight > (textEl.clientHeight + 1);
+          // Determine overflow either by actual overflow or by exceeding a reasonable clamp height.
+          const actuallyOverflowing = textEl.scrollHeight > (textEl.clientHeight + 1);
+          const exceedsClampThreshold = textEl.scrollHeight > CLAMP_HEIGHT_PX;
+          const isOverflowing = actuallyOverflowing || exceedsClampThreshold;
+
           wrap.classList.toggle('has-overflow', isOverflowing);
 
           if (!isOverflowing) {

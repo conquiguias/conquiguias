@@ -639,6 +639,35 @@
       transform: translateY(-2px);
     }
 
+    button.saveBtn.is-loading,
+    button#crearEspecialidad.is-loading,
+    button#subirArchivoBtn.is-loading {
+      opacity: 0.9;
+      cursor: wait;
+      transform: none;
+      position: relative;
+      padding-right: 16px;
+    }
+
+    button.saveBtn.is-loading::after,
+    button#crearEspecialidad.is-loading::after,
+    button#subirArchivoBtn.is-loading::after {
+      content: '';
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      margin-left: 10px;
+      border: 2px solid rgba(255,255,255,0.45);
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      animation: buttonSpin 0.75s linear infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes buttonSpin {
+      to { transform: rotate(360deg); }
+    }
+
     /* Botón eliminar foto */
     #removePhoto {
       background: var(--danger-color);
@@ -7822,6 +7851,8 @@
       const deleteAccountBtn = document.getElementById("deleteAccountBtn");
       const editProfileForm = document.getElementById("editProfileForm");
       const passwordForm = document.getElementById("passwordForm");
+      const profileSaveBtn = editProfileForm?.querySelector('button[type="submit"]');
+      const passwordSaveBtn = passwordForm?.querySelector('button[type="submit"]');
       const fotoInput = document.getElementById("foto");
       const preview = document.getElementById("preview");
       const removePhotoBtn = document.getElementById("removePhoto");
@@ -7938,6 +7969,25 @@
 
         passwordMatchStatus.classList.add("ok");
         passwordMatchStatus.textContent = "✓ Las contraseñas coinciden y cumplen las reglas.";
+      }
+
+      function setButtonLoading(button, loadingText, isLoading) {
+        if (!button) return;
+        if (!button.dataset.originalText) {
+          button.dataset.originalText = button.textContent || '';
+        }
+
+        button.disabled = !!isLoading;
+        button.classList.toggle('is-loading', !!isLoading);
+        button.textContent = isLoading ? loadingText : (button.dataset.originalText || button.textContent || 'Guardar');
+      }
+
+      function showProfileSaveLoading(button) {
+        setButtonLoading(button, 'Guardando...', true);
+      }
+
+      function hideProfileSaveLoading(button) {
+        setButtonLoading(button, '', false);
       }
 
       function setProfileTab(tabName) {
@@ -9590,6 +9640,8 @@
             return;
           }
 
+          showProfileSaveLoading(profileSaveBtn);
+
           // ✅ Si hay un archivo nuevo, eliminar el anterior
           if (file && currentPhotoURL) {
             try {
@@ -9664,13 +9716,13 @@
           confirmPasswordInput.type = "password";
           updateProfilePasswordValidationState();
 
-          mostrarMensaje("info", "✅ Información actualizada correctamente.", "", () => {
-            window.location.reload();
-          });
+          mostrarMensaje("success", "✅ Perfil actualizado", "Los cambios se guardaron correctamente.");
 
         } catch (error) {
           console.error(error);
-          mostrarMensaje("error", "❌ Error al actualizar", "");
+          mostrarMensaje("error", "❌ No se pudo guardar el perfil", error?.message || "Intenta de nuevo en unos minutos.");
+        } finally {
+          hideProfileSaveLoading(profileSaveBtn);
         }
       });
 
@@ -9708,6 +9760,8 @@
             return;
           }
 
+          showProfileSaveLoading(passwordSaveBtn);
+
           const idToken = await auth.currentUser.getIdToken(true);
           await callAuthAPI("setUserPassword", {
             idToken,
@@ -9723,10 +9777,12 @@
           confirmPasswordInput.type = "password";
           updateProfilePasswordValidationState();
 
-          mostrarMensaje("info", "✅ Contraseña actualizada", "Tu nueva contraseña se guardó correctamente.");
+          mostrarMensaje("success", "✅ Contraseña actualizada", "Tu nueva contraseña se guardó correctamente.");
         } catch (error) {
           console.error(error);
-          mostrarMensaje("error", "❌ Error al actualizar contraseña", error?.message || "No se pudo guardar la nueva contraseña.");
+          mostrarMensaje("error", "❌ No se pudo actualizar la contraseña", error?.message || "Intenta de nuevo en unos minutos.");
+        } finally {
+          hideProfileSaveLoading(passwordSaveBtn);
         }
       });
 
@@ -23521,7 +23577,7 @@
             throw new Error(data.error);
           }
         } catch (error) {
-          console.warn('[WARN] No fue posible obtener lista de administradores:', error);
+          // Fallback silencioso para usuarios sin permiso.
           ADMIN_EMAILS = OWNER_EMAIL ? [OWNER_EMAIL] : [];
           window.ADMIN_EMAILS = ADMIN_EMAILS;
           return ADMIN_EMAILS;

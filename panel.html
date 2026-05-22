@@ -1818,13 +1818,17 @@
       flex: 0 0 auto;
       height: auto;
       min-height: 0;
+      max-height: 250px;
       padding: 12px;
+      overflow: hidden;
     }
 
     /* When user requests the 'expanded' read-more state, just let it expand naturally (main-column will scroll) */
     .post-card.text-only-post .post-description.is-expanded {
+      max-height: none;
       height: auto;
-      min-height: 250px;
+      min-height: 0;
+      overflow: visible;
     }
 
     .post-description.is-expanded {

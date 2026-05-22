@@ -1348,6 +1348,7 @@
         getFirestore,
         doc,
         getDoc,
+        onSnapshot,
         setDoc,
         updateDoc,
         increment,
@@ -1391,6 +1392,8 @@
       let currentUserProfile = null;
       let currentPost = null;
       const postAuthorMetaCache = new Map();
+      const publicProfileCache = new Map();
+      const publicProfileListeners = new Map();
       let isGuest = true;
       const postReadMoreCache = new Map();
       const postReadMoreExpanded = new Set();
@@ -1579,6 +1582,130 @@
         const parsed = Number.parseInt(String(value ?? "").trim(), 10);
         return Number.isFinite(parsed) ? parsed : null;
       }
+
+      function normalizePublicProfileRecord(raw = {}) {
+        const source = raw || {};
+        const nombre = String(source.nombre || "").trim();
+        const apellido = String(source.apellido || "").trim();
+        const userName = String(source.userName || source.username || "").trim();
+        const fullName = `${nombre} ${apellido}`.trim();
+        const displayName = fullName || userName || "Usuario";
+        const fotoURL = String(source.fotoURL || source.photoURL || "").trim();
+        const email = String(source.email || source.correo || "").trim().toLowerCase();
+        const pais = String(source.pais || "").trim();
+        const sexo = String(source.sexo || "").trim();
+        const edad = parseNumericAge(source.edad);
+
+        return {
+          nombre,
+          apellido,
+          userName,
+          displayName,
+          fotoURL,
+          email,
+          pais,
+          sexo,
+          edad,
+        };
+      }
+
+      function getCachedPublicProfileForPost(post) {
+        const uid = String(post?.userId || "").trim();
+        if (!uid) return null;
+        return publicProfileCache.get(uid) || null;
+      }
+
+      function applyPublicProfileToPost(post = {}, publicProfile = null) {
+        if (!post || typeof post !== "object") return post;
+        if (!publicProfile) return post;
+
+        const mergedName =
+          String(publicProfile.displayName || "").trim() ||
+          String(post.userName || "").trim() ||
+          "Usuario";
+        const mergedPhoto =
+          String(publicProfile.fotoURL || "").trim() ||
+          String(post.userPhoto || "").trim();
+
+        return {
+          ...post,
+          userName: mergedName,
+          userPhoto: mergedPhoto || post.userPhoto,
+          userEmail:
+            String(post.userEmail || "").trim() ||
+            String(publicProfile.email || "").trim() ||
+            post.userEmail,
+          userEdad:
+            publicProfile.edad ??
+            post.userEdad ??
+            post.userAge ??
+            post.edad,
+          userSexo:
+            String(publicProfile.sexo || "").trim() ||
+            String(post.userSexo || post.sexo || "").trim(),
+          userPais:
+            String(publicProfile.pais || "").trim() ||
+            String(post.userPais || post.pais || "").trim(),
+        };
+      }
+
+      async function primePublicProfileForUser(uid) {
+        const normalizedUid = String(uid || "").trim();
+        if (!normalizedUid || !db) return null;
+        if (publicProfileCache.has(normalizedUid)) {
+          return publicProfileCache.get(normalizedUid) || null;
+        }
+
+        try {
+          const snap = await getDoc(doc(db, "usuarios_publicos", normalizedUid));
+          if (!snap.exists()) return null;
+          const normalized = normalizePublicProfileRecord(snap.data() || {});
+          publicProfileCache.set(normalizedUid, normalized);
+          return normalized;
+        } catch (error) {
+          console.warn("[post] No se pudo precargar usuarios_publicos:", error);
+          return null;
+        }
+      }
+
+      function subscribeToPublicProfile(uid) {
+        const normalizedUid = String(uid || "").trim();
+        if (!normalizedUid || !db) return;
+        if (publicProfileListeners.has(normalizedUid)) return;
+
+        const unsub = onSnapshot(
+          doc(db, "usuarios_publicos", normalizedUid),
+          (snap) => {
+            if (!snap.exists()) return;
+            const normalized = normalizePublicProfileRecord(snap.data() || {});
+            publicProfileCache.set(normalizedUid, normalized);
+
+            if (
+              currentPost &&
+              String(currentPost.userId || "").trim() === normalizedUid
+            ) {
+              currentPost = applyPublicProfileToPost(currentPost, normalized);
+              renderPost(currentPost);
+            }
+          },
+          (error) => {
+            console.warn("[post] Listener usuarios_publicos falló:", error);
+          },
+        );
+
+        publicProfileListeners.set(normalizedUid, unsub);
+      }
+
+      function cleanupPublicProfileListeners() {
+        publicProfileListeners.forEach((unsubscribe) => {
+          try {
+            if (typeof unsubscribe === "function") unsubscribe();
+          } catch (_) {}
+        });
+        publicProfileListeners.clear();
+      }
+
+      window.addEventListener("beforeunload", cleanupPublicProfileListeners);
 
       function getReactionTabMeta(type) {
         return REACTION_TAB_META[type] || REACTION_TAB_META.like;
@@ -2313,9 +2440,34 @@
             const modalImg = document.getElementById(`shareAuthorImg_${uid}`);
             const modalName = document.getElementById(`shareAuthorName_${uid}`);
             const modalBadges = document.getElementById(`shareAuthorBadges_${uid}`);
+
             if (modalImg && imgEl && imgEl.src) modalImg.src = imgEl.src;
-            if (modalName && nameEl) modalName.textContent = nameEl.textContent || modalName.textContent;
-            if (modalBadges && badgesEl) modalBadges.innerHTML = badgesEl.innerHTML || modalBadges.innerHTML;
+
+            // Copy name
+            if (modalName && nameEl) {
+              // Start with plain text
+              modalName.textContent = nameEl.textContent || modalName.textContent;
+            }
+
+            // Copy badges but pull the verified-check into the name (so it sits inline)
+            if (modalBadges && badgesEl) {
+              try {
+                const clone = badgesEl.cloneNode(true);
+                const verified = clone.querySelector('.status-verified-icon');
+                // If the source had a verified icon, move a copy next to the name
+                if (verified && modalName) {
+                  const clonedCheck = verified.cloneNode(true);
+                  clonedCheck.style.marginLeft = '6px';
+                  clonedCheck.style.verticalAlign = 'middle';
+                  modalName.appendChild(clonedCheck);
+                }
+                // Remove any verified icon from the badges list to avoid duplication
+                if (verified) verified.remove();
+                modalBadges.innerHTML = clone.innerHTML || modalBadges.innerHTML;
+              } catch (_) {
+                modalBadges.innerHTML = badgesEl.innerHTML || modalBadges.innerHTML;
+              }
+            }
           }
         } catch (e) {
           console.warn('[ShareModal] No se pudo poblar info del autor:', e);
@@ -3566,6 +3718,10 @@
 
         await updateDoc(postRef, { reactions });
         currentPost = await enrichPostRoleMetadata({ ...data, id: snap.id, reactions });
+        currentPost = applyPublicProfileToPost(
+          currentPost,
+          getCachedPublicProfileForPost(currentPost),
+        );
         renderPost(currentPost);
       }
 
@@ -3591,6 +3747,10 @@
 
         await updateDoc(postRef, { comments });
         currentPost = await enrichPostRoleMetadata({ ...data, id: snap.id, comments });
+        currentPost = applyPublicProfileToPost(
+          currentPost,
+          getCachedPublicProfileForPost(currentPost),
+        );
         renderPost(currentPost);
 
         const commentsSide = document.getElementById(
@@ -3620,6 +3780,10 @@
         );
         await updateDoc(postRef, { comments: updatedComments });
         currentPost = await enrichPostRoleMetadata({ ...data, id: snap.id, comments: updatedComments });
+        currentPost = applyPublicProfileToPost(
+          currentPost,
+          getCachedPublicProfileForPost(currentPost),
+        );
         renderPost(currentPost);
 
         const commentsSide = document.getElementById(
@@ -3657,6 +3821,14 @@
           id: snap.id,
           isStreamOffline: id === LIVE_POST_ID ? !liveData?.live : false,
         });
+
+        const authorUid = String(currentPost?.userId || "").trim();
+        if (authorUid) {
+          const publicProfile = await primePublicProfileForUser(authorUid);
+          subscribeToPublicProfile(authorUid);
+          currentPost = applyPublicProfileToPost(currentPost, publicProfile);
+        }
+
         renderPost(currentPost);
       }
 

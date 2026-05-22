@@ -7655,6 +7655,7 @@
         getFirestore,
         doc,
         getDoc,
+        onSnapshot,
         updateDoc,
         increment,
         addDoc,
@@ -8218,6 +8219,8 @@
       const certificacionEvaluacionCache = new Map();
       let instructorAssignmentsConfig = {};
       const postAuthorMetaCache = new Map();
+      const publicProfileCache = new Map();
+      const publicProfileListeners = new Map();
 
       function getAcademicCacheKey() {
         const uid = String(
@@ -8402,6 +8405,132 @@
         const parsed = Number.parseInt(String(value ?? '').trim(), 10);
         return Number.isFinite(parsed) ? parsed : null;
       }
+
+      function normalizePublicProfileRecord(raw = {}) {
+        const source = raw || {};
+        const nombre = String(source.nombre || '').trim();
+        const apellido = String(source.apellido || '').trim();
+        const userName = String(source.userName || source.username || '').trim();
+        const fullName = `${nombre} ${apellido}`.trim();
+        const displayName = fullName || userName || 'Usuario';
+        const fotoURL = String(source.fotoURL || source.photoURL || '').trim();
+        const email = String(source.email || source.correo || '').trim().toLowerCase();
+        const pais = String(source.pais || '').trim();
+        const sexo = String(source.sexo || '').trim();
+        const edad = parseNumericAge(source.edad);
+
+        return {
+          nombre,
+          apellido,
+          userName,
+          displayName,
+          fotoURL,
+          email,
+          pais,
+          sexo,
+          edad,
+        };
+      }
+
+      function getCachedPublicProfileForUser(userId) {
+        const uid = String(userId || '').trim();
+        if (!uid) return null;
+        return publicProfileCache.get(uid) || null;
+      }
+
+      function applyPublicProfileToPost(post = {}, publicProfile = null) {
+        if (!post || typeof post !== 'object') return post;
+        if (!publicProfile) return post;
+
+        const mergedName = String(publicProfile.displayName || '').trim() || String(post.userName || '').trim() || 'Usuario';
+        const mergedPhoto = String(publicProfile.fotoURL || '').trim() || String(post.userPhoto || '').trim();
+
+        return {
+          ...post,
+          userName: mergedName,
+          userNombre: String(publicProfile.nombre || '').trim() || post.userNombre,
+          userApellido: String(publicProfile.apellido || '').trim() || post.userApellido,
+          userPhoto: mergedPhoto || post.userPhoto,
+          userEmail: String(post.userEmail || '').trim() || String(publicProfile.email || '').trim() || post.userEmail,
+          userEdad: publicProfile.edad ?? post.userEdad ?? post.userAge ?? post.edad,
+          userSexo: String(publicProfile.sexo || '').trim() || String(post.userSexo || post.sexo || '').trim(),
+          userPais: String(publicProfile.pais || '').trim() || String(post.userPais || post.pais || '').trim(),
+        };
+      }
+
+      function updateRenderedPostAuthorUI(userId, publicProfile) {
+        const normalizedUid = String(userId || '').trim();
+        if (!normalizedUid || !publicProfile) return;
+
+        const cards = document.querySelectorAll(`.post-card[data-userid="${normalizedUid}"]`);
+        if (!cards.length) return;
+
+        cards.forEach((card) => {
+          try {
+            const nameEl = card.querySelector('.post-user-name');
+            if (nameEl && publicProfile.displayName) {
+              nameEl.textContent = publicProfile.displayName;
+            }
+
+            const photoEl = card.querySelector('.post-user-img');
+            if (photoEl && publicProfile.fotoURL) {
+              photoEl.src = publicProfile.fotoURL;
+            }
+          } catch (_) {}
+        });
+      }
+
+      async function primePublicProfileForUser(userId) {
+        const uid = String(userId || '').trim();
+        if (!uid) return null;
+
+        if (publicProfileCache.has(uid)) {
+          return publicProfileCache.get(uid) || null;
+        }
+
+        try {
+          const snap = await getDoc(doc(db, 'usuarios_publicos', uid));
+          if (!snap.exists()) return null;
+          const normalized = normalizePublicProfileRecord(snap.data() || {});
+          publicProfileCache.set(uid, normalized);
+          return normalized;
+        } catch (error) {
+          console.warn('[WARN] No se pudo precargar usuarios_publicos en panel:', error);
+          return null;
+        }
+      }
+
+      function subscribePublicProfileForUser(userId) {
+        const uid = String(userId || '').trim();
+        if (!uid || !db) return;
+        if (publicProfileListeners.has(uid)) return;
+
+        const unsubscribe = onSnapshot(
+          doc(db, 'usuarios_publicos', uid),
+          (snap) => {
+            if (!snap.exists()) return;
+            const normalized = normalizePublicProfileRecord(snap.data() || {});
+            publicProfileCache.set(uid, normalized);
+            updateRenderedPostAuthorUI(uid, normalized);
+          },
+          (error) => {
+            console.warn('[WARN] Listener usuarios_publicos (panel) falló:', error);
+          }
+        );
+
+        publicProfileListeners.set(uid, unsubscribe);
+      }
+
+      function cleanupPublicProfileListeners() {
+        publicProfileListeners.forEach((unsubscribe) => {
+          try {
+            if (typeof unsubscribe === 'function') unsubscribe();
+          } catch (_) {}
+        });
+        publicProfileListeners.clear();
+      }
+
+      window.addEventListener('beforeunload', cleanupPublicProfileListeners);
 
       function resolveCadetBadgeFromAge(ageValue, sexoValue = '') {
         const age = parseNumericAge(ageValue);
@@ -16251,6 +16380,8 @@
       function displayPost(post, postId, targetFeed) {
         console.log('[DISPLAY_POST] Start', { postId: post?.id || postId, hasTargetFeed: !!targetFeed, feedElementId: targetFeed?.id, globalFeedId: feed?.id });
         post = normalizePostMediaForRender(post);
+        const cachedPublicProfile = getCachedPublicProfileForUser(post?.userId);
+        post = applyPublicProfileToPost(post, cachedPublicProfile);
         const feedDestino = targetFeed || feed;
         console.log('[DISPLAY_POST] Feed destination', { feedDestino: feedDestino?.id, feedChildren: feedDestino?.children?.length });
         const { currentUserId, isAdmin } = window;
@@ -16652,8 +16783,23 @@
           feedId: feedDestino.id,
           postElement: postElement.tagName
         });
+
+        const normalizedPostUserId = String(post?.userId || '').trim();
+        postElement.dataset.userid = normalizedPostUserId;
+        postElement.dataset.postid = String(firestorePostId || '').trim();
         
         feedDestino.appendChild(postElement);
+
+        if (normalizedPostUserId) {
+          subscribePublicProfileForUser(normalizedPostUserId);
+          if (!cachedPublicProfile) {
+            primePublicProfileForUser(normalizedPostUserId).then((publicProfile) => {
+              if (publicProfile) {
+                updateRenderedPostAuthorUI(normalizedPostUserId, publicProfile);
+              }
+            });
+          }
+        }
         
         console.log('[APPEND] After appendChild', { 
           postId: firestorePostId, 

@@ -211,8 +211,8 @@
       }
 
       .post-user-img {
-        width: 50px;
-        height: 50px;
+        width: 64px;
+        height: 64px;
         border-radius: 50%;
         object-fit: cover;
         margin-right: 12px;
@@ -235,9 +235,21 @@
       .post-role-badges {
         display: inline-flex;
         align-items: center;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         gap: 6px;
-        margin-left: 5px;
+        margin-left: 8px;
+        max-width: 360px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* Small visual hint when badges overflow */
+      .post-role-badges::-webkit-scrollbar {
+        height: 6px;
+      }
+      .post-role-badges::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.08);
+        border-radius: 999px;
       }
 
       .status-verified-icon {
@@ -2013,7 +2025,7 @@
           userName: liveData?.ownerProfile?.name || "Admin",
           userPhoto:
             liveData?.ownerProfile?.photo ||
-            "https://dummyimage.com/40x40/ccc/fff",
+            "https://dummyimage.com/64x64/ccc/fff",
           userIsOwner: true,
           userIsAdmin: true,
           userIsInstructor: true,
@@ -2260,6 +2272,13 @@
             <button class="share-modal-close" id="shareModalCloseBtn" title="Cerrar">&times;</button>
           </div>
           <div class="share-modal-body">
+            <div id="shareAuthor_${uid}" class="share-author" style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+              <img id="shareAuthorImg_${uid}" src="https://dummyimage.com/64x64/ccc/fff" alt="Autor" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--accent-color)">
+              <div style="min-width:0;">
+                <div id="shareAuthorName_${uid}" style="font-weight:700;color:var(--text-primary);">Usuario</div>
+                <div id="shareAuthorBadges_${uid}" style="margin-top:4px;display:flex;gap:6px;align-items:center;max-width:360px;overflow-x:auto;"></div>
+              </div>
+            </div>
             <div class="share-modal-label">Enlace del post</div>
             <div class="share-modal-link-row">
               <input id="shareLinkInput_${uid}" type="text" readonly value="${enlace}">
@@ -2283,6 +2302,24 @@
       `;
         document.body.appendChild(overlay);
         overlay.style.display = "flex";
+
+        // Populate author info from the rendered post card if available (safe guards)
+        try {
+          const card = document.querySelector(`[data-postid="${postId}"]`);
+          if (card) {
+            const imgEl = card.querySelector('.post-user-img');
+            const nameEl = card.querySelector('.post-user-name');
+            const badgesEl = card.querySelector('.post-role-badges');
+            const modalImg = document.getElementById(`shareAuthorImg_${uid}`);
+            const modalName = document.getElementById(`shareAuthorName_${uid}`);
+            const modalBadges = document.getElementById(`shareAuthorBadges_${uid}`);
+            if (modalImg && imgEl && imgEl.src) modalImg.src = imgEl.src;
+            if (modalName && nameEl) modalName.textContent = nameEl.textContent || modalName.textContent;
+            if (modalBadges && badgesEl) modalBadges.innerHTML = badgesEl.innerHTML || modalBadges.innerHTML;
+          }
+        } catch (e) {
+          console.warn('[ShareModal] No se pudo poblar info del autor:', e);
+        }
 
         const close = () => {
           overlay.remove();
@@ -3319,7 +3356,7 @@
         <div class="single-post-shell">
           <article class="post-card${hasLiveVisual ? " live-post" : ""}${!hasRenderableMedia ? " text-only-post" : ""}" data-postid="${post.id}">
             <header class="post-header">
-              <img src="${escapeHtml(post.userPhoto || "https://dummyimage.com/40x40/ccc/fff")}" class="post-user-img${hasLiveVisual ? " live-border" : ""}" alt="Foto de perfil" onerror="this.src='https://dummyimage.com/40x40/ccc/fff'">
+              <img src="${escapeHtml(post.userPhoto || "https://dummyimage.com/64x64/ccc/fff")}" class="post-user-img${hasLiveVisual ? " live-border" : ""}" alt="Foto de perfil" onerror="this.src='https://dummyimage.com/64x64/ccc/fff'">
               <div style="min-width:0;">
                 <div class="post-contenedor">
                   <div class="post-user-name">${escapeHtml(post.userName || "Usuario")}</div>

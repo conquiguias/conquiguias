@@ -5806,17 +5806,10 @@
 
           <button type="submit" class="saveBtn">Guardar perfil</button>
         </form>
-      </div>
 
-      <div id="perfilTab-expediente" class="tab-content profile-tab-panel">
-        <div style="padding: 16px; border: 1px dashed var(--border-color); border-radius: 12px; color: var(--text-secondary); text-align: center;">
-          Sección en desarrollo
-        </div>
-      </div>
-
-      <div id="perfilPasswordCard" style="margin-top: 18px;">
-        <form id="passwordForm">
-          <h3 id="passwordSectionTitle">Contraseña:</h3>
+        <div id="perfilPasswordCard" style="margin-top: 18px;">
+          <form id="passwordForm">
+            <h3 id="passwordSectionTitle">Contraseña:</h3>
           <div class="password-input-with-toggle">
             <input type="password" id="newPassword" placeholder="Nueva contraseña (mínimo 6 caracteres)">
             <label class="password-visibility-toggle" for="showProfilePasswords">
@@ -5833,6 +5826,13 @@
 
           <button type="submit" class="saveBtn">Guardar nueva contraseña</button>
         </form>
+        </div>
+      </div>
+
+      <div id="perfilTab-expediente" class="tab-content profile-tab-panel">
+        <div style="padding: 16px; border: 1px dashed var(--border-color); border-radius: 12px; color: var(--text-secondary); text-align: center;">
+          Sección en desarrollo
+        </div>
       </div>
 
       <div class="danger-zone-profile">
@@ -9630,6 +9630,21 @@
         e.preventDefault();
         if (!currentUserId) return;
 
+        // ✅ Detectar si hay cambios reales
+        const hasProfileChanges = 
+          nombreInput.value !== (window.userData?.nombre || "") ||
+          apellidoInput.value !== (window.userData?.apellido || "") ||
+          edadInput.value !== (window.userData?.edad || "") ||
+          sexoInput.value !== (window.userData?.sexo || "") ||
+          paisInput.value !== (window.userData?.pais || "");
+        
+        const hasPhotoChange = fotoInput.files[0];
+
+        if (!hasProfileChanges && !hasPhotoChange) {
+          mostrarMensaje("info", "ℹ️ Sin cambios", "No hay cambios para guardar.");
+          return;
+        }
+
         let newPhotoURL = currentPhotoURL;
         const file = fotoInput.files[0];
 
@@ -9700,13 +9715,16 @@
             ...(window.userData || {}),
             nombre: nombreInput.value,
             apellido: apellidoInput.value,
+            edad: edadInput.value,
+            sexo: sexoInput.value,
             pais: paisInput.value,
             fotoURL: newPhotoURL,
-            email: correoInput.value || (auth.currentUser?.email || ''),
+            email: auth.currentUser?.email || '',
           };
           userData = window.userData;
           await syncPublicUserProfile(window.userData, auth.currentUser || null);
 
+          // ✅ Limpiar y resetear formas de contraseña
           newPasswordInput.value = "";
           confirmPasswordInput.value = "";
           if (showProfilePasswordsInput) {
@@ -9716,11 +9734,12 @@
           confirmPasswordInput.type = "password";
           updateProfilePasswordValidationState();
 
-          mostrarMensaje("success", "✅ Perfil actualizado", "Los cambios se guardaron correctamente.");
+          fotoInput.value = ""; // Limpiar el input de foto
+          mostrarMensaje("success", "✅ Cambios guardados", "Tu perfil ha sido actualizado exitosamente.");
 
         } catch (error) {
           console.error(error);
-          mostrarMensaje("error", "❌ No se pudo guardar el perfil", error?.message || "Intenta de nuevo en unos minutos.");
+          mostrarMensaje("error", "❌ No se pudo guardar los cambios", "Por favor, intenta de nuevo.");
         } finally {
           hideProfileSaveLoading(profileSaveBtn);
         }
@@ -9744,19 +9763,19 @@
           const firstFailedRule = passwordRuleResults.find((rule) => !rule.ok);
           if (firstFailedRule) {
             updateProfilePasswordValidationState();
-            mostrarMensaje("info", "⚠️ Contraseña inválida", `La contraseña no cumple: ${firstFailedRule.label}.`);
+            mostrarMensaje("info", "⚠️ Contraseña no válida", `La contraseña debe cumplir: ${firstFailedRule.label.toLowerCase()}.`);
             return;
           }
 
           if (!confirmPassword) {
             updateProfilePasswordValidationState();
-            mostrarMensaje("info", "⚠️ Falta confirmar", "Debes confirmar la nueva contraseña.");
+            mostrarMensaje("info", "⚠️ Confirmación necesaria", "Por favor, confirma tu nueva contraseña.");
             return;
           }
 
           if (newPassword !== confirmPassword) {
             updateProfilePasswordValidationState();
-            mostrarMensaje("info", "⚠️ Contraseñas no coinciden", "Verifica que ambas contraseñas sean iguales.");
+            mostrarMensaje("info", "⚠️ Contraseñas no coinciden", "Asegúrate de que ambas contraseñas sean exactamente iguales.");
             return;
           }
 
@@ -9777,10 +9796,10 @@
           confirmPasswordInput.type = "password";
           updateProfilePasswordValidationState();
 
-          mostrarMensaje("success", "✅ Contraseña actualizada", "Tu nueva contraseña se guardó correctamente.");
+          mostrarMensaje("success", "✅ Contraseña actualizada", "Tu nueva contraseña se guardó exitosamente.");
         } catch (error) {
           console.error(error);
-          mostrarMensaje("error", "❌ No se pudo actualizar la contraseña", error?.message || "Intenta de nuevo en unos minutos.");
+          mostrarMensaje("error", "❌ No se pudo actualizar la contraseña", "Por favor, intenta de nuevo.");
         } finally {
           hideProfileSaveLoading(passwordSaveBtn);
         }

@@ -3216,30 +3216,54 @@
 
     .post-contenedor {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       gap: 8px;
-      flex-wrap: nowrap;
       width: 100%;
       min-width: 0;
+    }
+
+    .post-user-name {
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+
+    .status-verified-icon {
+      flex: 0 0 auto;
+      width: 14px;
+      height: 14px;
+      object-fit: contain;
+    }
+
+    .post-role-badges {
+      flex: 0 0 100%;
+      display: flex;
+      align-items: center;
+      flex-wrap: nowrap;
+      gap: 6px;
       overflow-x: auto;
       overflow-y: hidden;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: thin;
       scrollbar-color: rgba(255,255,255,0.12) transparent;
-      padding-bottom: 6px;
+      padding-bottom: 4px;
     }
 
-    .post-contenedor::-webkit-scrollbar {
-      height: 6px;
+    .post-role-badges::-webkit-scrollbar {
+      height: 4px;
     }
 
-    .post-contenedor::-webkit-scrollbar-thumb {
+    .post-role-badges::-webkit-scrollbar-thumb {
       background: rgba(255,255,255,0.15);
-      border-radius: 3px;
+      border-radius: 2px;
     }
 
-    .post-contenedor::-webkit-scrollbar-track {
+    .post-role-badges::-webkit-scrollbar-track {
       background: transparent;
+    }
+
+    .post-role-badges > span {
+      flex: 0 0 auto;
     }
 
     .post-contenedor>.badge-en-vivo,
@@ -8386,7 +8410,9 @@
       }
 
       function getPostRoleBadgesMarkup(post, { forceLive = false } = {}) {
-        const badges = [];
+        const roleBadges = [];
+        let hasVerifiedCheck = false;
+        
         const email = normalizeEmail(post?.userEmail || '');
         const isOwnerRole = !!post?.userIsOwner || isOwnerEmail(email);
         const isAdminRole = !!post?.userIsAdmin || isAdminEmail(email) || isOwnerRole;
@@ -8399,28 +8425,36 @@
         const isLiveRole = forceLive || !!post?.isLive || isAlwaysLiveChannelPost(post);
 
         if (isAdminRole || isOwnerRole) {
-          badges.push('<img src="/iconos/check-verificado.png" class="status-verified-icon" alt="Verificado">');
+          hasVerifiedCheck = true;
         }
         if (isOwnerRole) {
-          badges.push('<span class="status-propietario post-status-indicator">Propietario</span>');
+          roleBadges.push('<span class="status-propietario post-status-indicator">Propietario</span>');
         }
         if (isAdminRole) {
-          badges.push('<span class="status-admin post-status-indicator">Admin</span>');
+          roleBadges.push('<span class="status-admin post-status-indicator">Admin</span>');
         }
         if (isInstructorRole) {
-          badges.push('<span class="status-instructor post-status-indicator">Instructor</span>');
+          roleBadges.push('<span class="status-instructor post-status-indicator">Instructor</span>');
         }
         if (isPremiumRole) {
-          badges.push('<span class="status-premium post-status-indicator">Premium</span>');
+          roleBadges.push('<span class="status-premium post-status-indicator">Premium</span>');
         }
         if (ageBadge) {
-          badges.push(`<span class="${ageBadge.className} post-status-indicator">${ageBadge.label}</span>`);
+          roleBadges.push(`<span class="${ageBadge.className} post-status-indicator">${ageBadge.label}</span>`);
         }
         if (isLiveRole) {
-          badges.push('<span class="badge-en-vivo"><i class="fas fa-circle" style="font-size:7px;"></i> En Vivo</span>');
+          roleBadges.push('<span class="badge-en-vivo"><i class="fas fa-circle" style="font-size:7px;"></i> En Vivo</span>');
         }
 
-        return badges.length ? `<span class="post-role-badges">${badges.join('')}</span>` : '';
+        // Devolver check y badges separados
+        let markup = '';
+        if (hasVerifiedCheck) {
+          markup += '<img src="/iconos/check-verificado.png" class="status-verified-icon" alt="Verificado">';
+        }
+        if (roleBadges.length) {
+          markup += `<span class="post-role-badges">${roleBadges.join('')}</span>`;
+        }
+        return markup;
       }
 
       function buildCurrentUserRoleSnapshot() {
@@ -16520,20 +16554,18 @@
       function applyReadMoreOverflowState(scope = document) {
         const root = scope instanceof Element || scope instanceof Document ? scope : document;
         const isMobile = window.innerWidth <= 768;
-        const CLAMP_HEIGHT_PX = isMobile ? 50 : 250; // threshold muy bajo en móviles
+        const CLAMP_HEIGHT_PX = isMobile ? 120 : 250; // threshold más bajo en móviles
         root.querySelectorAll('.post-description .post-description-clamp-wrap').forEach((wrap) => {
           const textEl = wrap.querySelector('.post-description-text');
           const btn = wrap.querySelector('.read-more-btn');
           if (!textEl || !btn) return;
 
-          // Fuerza a renderizar el texto clamped primero
-          if (!textEl.classList.contains('clamped')) {
-            textEl.classList.add('clamped');
-          }
+          // Asegurar que el texto está clamped para la medición
+          textEl.classList.add('clamped');
 
-          // Determine overflow either by actual overflow or by exceeding a reasonable clamp height.
-          const scrollHeightValue = textEl.scrollHeight || 0;
-          const clientHeightValue = textEl.clientHeight || 0;
+          // Forzar reflow para recalcular scrollHeight
+          const scrollHeightValue = textEl.scrollHeight;
+          const clientHeightValue = textEl.clientHeight;
           const actuallyOverflowing = scrollHeightValue > (clientHeightValue + 5);
           const exceedsClampThreshold = scrollHeightValue > CLAMP_HEIGHT_PX;
           const isOverflowing = actuallyOverflowing || exceedsClampThreshold;
@@ -16735,6 +16767,17 @@
         });
       }
       window.toggleReadMore = toggleReadMore;
+
+      // Recalcular "Leer más" cuando cambia el tamaño de la ventana
+      let resizeTimeout;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+          requestAnimationFrame(() => {
+            applyReadMoreOverflowState();
+          });
+        }, 200);
+      }, { passive: true });
 
       // 🔹 Formatear texto completo (sin límite de caracteres)
       function formatFullText(text) {

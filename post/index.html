@@ -2402,8 +2402,11 @@
             <div id="shareAuthor_${uid}" class="share-author" style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
               <img id="shareAuthorImg_${uid}" src="https://dummyimage.com/64x64/ccc/fff" alt="Autor" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--accent-color)">
               <div style="min-width:0;">
-                <div id="shareAuthorName_${uid}" style="font-weight:700;color:var(--text-primary);">Usuario</div>
-                <div id="shareAuthorBadges_${uid}" style="margin-top:4px;display:flex;gap:6px;align-items:center;max-width:360px;overflow-x:auto;"></div>
+                <div class="post-contenedor" style="align-items:center;">
+                  <div id="shareAuthorName_${uid}" class="post-user-name" style="font-weight:700;color:var(--text-primary);">Usuario</div>
+                  <img id="shareAuthorCheck_${uid}" src="/iconos/check-verificado.png" class="status-verified-icon" alt="Verificado" style="display:none;margin-left:6px;">
+                  <div id="shareAuthorBadges_${uid}" class="post-role-badges" style="margin-top:4px;display:flex;gap:6px;align-items:center;max-width:360px;overflow-x:auto;"></div>
+                </div>
               </div>
             </div>
             <div class="share-modal-label">Enlace del post</div>
@@ -2449,23 +2452,27 @@
               modalName.textContent = nameEl.textContent || modalName.textContent;
             }
 
-            // Copy badges but pull the verified-check into the name (so it sits inline)
+            // Copy badges but show the verified check next to the name (matching panel layout)
             if (modalBadges && badgesEl) {
+              const modalCheck = document.getElementById(`shareAuthorCheck_${uid}`);
               try {
                 const clone = badgesEl.cloneNode(true);
                 const verified = clone.querySelector('.status-verified-icon');
-                // If the source had a verified icon, move a copy next to the name
-                if (verified && modalName) {
-                  const clonedCheck = verified.cloneNode(true);
-                  clonedCheck.style.marginLeft = '6px';
-                  clonedCheck.style.verticalAlign = 'middle';
-                  modalName.appendChild(clonedCheck);
+                // If the source had a verified icon, enable the modal check image and use the same src
+                if (verified && modalCheck) {
+                  try {
+                    modalCheck.src = verified.src || modalCheck.src;
+                  } catch (_) {}
+                  modalCheck.style.display = 'inline-block';
+                } else if (modalCheck) {
+                  modalCheck.style.display = 'none';
                 }
                 // Remove any verified icon from the badges list to avoid duplication
                 if (verified) verified.remove();
                 modalBadges.innerHTML = clone.innerHTML || modalBadges.innerHTML;
               } catch (_) {
                 modalBadges.innerHTML = badgesEl.innerHTML || modalBadges.innerHTML;
+                if (modalCheck) modalCheck.style.display = 'none';
               }
             }
           }

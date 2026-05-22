@@ -3206,26 +3206,53 @@
     .post-contenedor>.post-status-indicator {
       line-height: 1.2;
       align-self: center;
+      flex-shrink: 0;
     }
 
-    /* Evitar que los badges hagan wrap en pantallas pequeñas; permitir scroll horizontal */
-    @media (max-width: 640px) {
+    /* En pantallas pequeñas: wrapper con scroll para badges */
+    @media (max-width: 768px) {
       .post-contenedor {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
         gap: 8px;
-        padding-bottom: 4px;
+        width: 100%;
+        min-width: 0;
       }
-      .post-contenedor::-webkit-scrollbar {
-        height: 8px;
+
+      .post-user-name {
+        grid-column: 1;
+        flex-shrink: 1;
+        min-width: 0;
       }
-      .post-contenedor::-webkit-scrollbar-thumb {
-        background: rgba(255,255,255,0.08);
-        border-radius: 8px;
+
+      .post-contenedor>.badge-en-vivo,
+      .post-contenedor>.post-status-indicator {
+        grid-column: 2;
+        grid-row: 1;
       }
+
+      /* Crear efecto de scroll para badges */
       .post-contenedor {
-        scrollbar-gutter: stable;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 6px;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255,255,255,0.08) transparent;
+      }
+
+      .post-contenedor::-webkit-scrollbar {
+        height: 6px;
+      }
+
+      .post-contenedor::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.15);
+        border-radius: 3px;
+      }
+
+      .post-contenedor::-webkit-scrollbar-track {
+        background: transparent;
       }
     }
 
@@ -4807,6 +4834,14 @@
       -webkit-line-clamp: 3;
       line-clamp: 3;
       overflow: hidden;
+    }
+
+    /* En móviles, mostrar "Leer más" más frecuentemente */
+    @media (max-width: 768px) {
+      .post-description .post-description-text.clamped {
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+      }
     }
 
     .post-card.text-only-post .post-description .post-description-text.clamped {

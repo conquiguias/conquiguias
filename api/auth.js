@@ -415,31 +415,55 @@ module.exports = async (req, res) => {
       });
 
       let fotoURL = null;
+      let fotoGuardada = false;
+      let fotoRespaldo = null;
 
-      // Subir foto si existe
+      // Subir foto si existe, pero sin bloquear el registro si Storage está limitado
       if (fotoBase64 && fileName) {
-        const base64Data = fotoBase64.replace(/^data:image\/\w+;base64,/, "");
-        const buffer = Buffer.from(base64Data, "base64");
+        try {
+          const base64Data = fotoBase64.replace(/^data:image\/\w+;base64,/, "");
+          const buffer = Buffer.from(base64Data, "base64");
 
-        const bucket = admin.storage().bucket();
-        const file = bucket.file(`usuarios/${userRecord.uid}/${fileName}`);
+          const bucket = admin.storage().bucket();
+          const file = bucket.file(`usuarios/${userRecord.uid}/${fileName}`);
 
-        await file.save(buffer, {
-          metadata: {
-            contentType: `image/${fileName.split(".").pop()}`,
-            metadata: { firebaseStorageDownloadTokens: userRecord.uid },
-          },
-        });
+          await file.save(buffer, {
+            metadata: {
+              contentType: `image/${fileName.split(".").pop()}`,
+              metadata: { firebaseStorageDownloadTokens: userRecord.uid },
+            },
+          });
 
-        fotoURL = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(file.name)}?alt=media&token=${userRecord.uid}`;
+          fotoURL = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(file.name)}?alt=media&token=${userRecord.uid}`;
+          fotoGuardada = true;
 
-        // Actualizar perfil con foto
-        await admin.auth().updateUser(userRecord.uid, {
-          photoURL: fotoURL,
-        });
+          // Actualizar perfil con foto
+          await admin.auth().updateUser(userRecord.uid, {
+            photoURL: fotoURL,
+          });
+        } catch (storageError) {
+          console.warn("[auth.register] No se pudo guardar la foto de perfil:", storageError?.message || storageError);
+
+          // Fallback: usar la imagen embebida como respaldo cuando Storage no está disponible.
+          const base64DataFallback = String(fotoBase64 || "").replace(/^data:image\/\w+;base64,/, "");
+          const mimeTypeMatch = String(fotoBase64 || "").match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/);
+          const fallbackMimeType = mimeTypeMatch ? mimeTypeMatch[1] : "image/jpeg";
+          fotoRespaldo = `data:${fallbackMimeType};base64,${Buffer.from(base64DataFallback, "base64").toString("base64")}`;
+          fotoURL = fotoRespaldo;
+          fotoGuardada = true;
+
+          try {
+            await admin.auth().updateUser(userRecord.uid, {
+              photoURL: fotoURL,
+            });
+          } catch (authPhotoError) {
+            console.warn("[auth.register] No se pudo guardar photoURL en Auth:", authPhotoError?.message || authPhotoError);
+          }
+        }
       }
 
       // Guardar datos en Firestore
+      const fotoURLFirestore = fotoRespaldo && fotoRespaldo.length <= 900000 ? fotoRespaldo : fotoURL && !String(fotoURL).startsWith("data:") ? fotoURL : null;
       await admin.firestore().collection("usuarios").doc(userRecord.uid).set({
         nombre,
         apellido,
@@ -447,7 +471,8 @@ module.exports = async (req, res) => {
         sexo,
         pais,
         email: normalizedEmail,
-        fotoURL,
+        fotoURL: fotoURLFirestore,
+        fotoRespaldoUsada: !!fotoRespaldo,
         emailVerificado: false,
         creado: admin.firestore.FieldValue.serverTimestamp(),
       });
@@ -458,6 +483,7 @@ module.exports = async (req, res) => {
         success: true,
         message: "Usuario registrado correctamente. Debe verificar su correo para continuar.",
         userId: userRecord.uid,
+        fotoGuardada,
       });
     }
 

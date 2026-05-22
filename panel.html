@@ -7593,6 +7593,7 @@
         onAuthStateChanged,
         signOut,
         sendEmailVerification,
+        updateProfile,
         signInAnonymously,
         setPersistence,
         browserLocalPersistence,
@@ -9592,9 +9593,25 @@
 
           // ✅ Subir la nueva imagen (si existe)
           if (file) {
-            const storageRef = ref(storage, `usuarios/${currentUserId}/${file.name}`);
-            await uploadBytes(storageRef, file);
-            newPhotoURL = await getDownloadURL(storageRef);
+            try {
+              const storageRef = ref(storage, `usuarios/${currentUserId}/${file.name}`);
+              await uploadBytes(storageRef, file);
+              newPhotoURL = await getDownloadURL(storageRef);
+            } catch (uploadError) {
+              console.warn("⚠️ No se pudo subir la foto a Storage, usando respaldo comprimido:", uploadError?.message || uploadError);
+
+              const base64Photo = await fileToBase64(file);
+              const optimizedPhoto = await optimizeImageForFirestore(base64Photo, 180000);
+              newPhotoURL = optimizedPhoto || currentPhotoURL;
+
+              if (auth.currentUser) {
+                try {
+                  await updateProfile(auth.currentUser, { photoURL: newPhotoURL });
+                } catch (authPhotoError) {
+                  console.warn("⚠️ No se pudo actualizar photoURL en Auth:", authPhotoError?.message || authPhotoError);
+                }
+              }
+            }
           }
 
           // ✅ Actualizar datos en Firestore

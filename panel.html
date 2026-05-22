@@ -3197,9 +3197,28 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       width: 100%;
       min-width: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.12) transparent;
+      padding-bottom: 6px;
+    }
+
+    .post-contenedor::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .post-contenedor::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.15);
+      border-radius: 3px;
+    }
+
+    .post-contenedor::-webkit-scrollbar-track {
+      background: transparent;
     }
 
     .post-contenedor>.badge-en-vivo,
@@ -3209,50 +3228,21 @@
       flex-shrink: 0;
     }
 
-    /* En pantallas pequeñas: wrapper con scroll para badges */
+    .post-user-name {
+      flex-shrink: 0;
+      min-width: max-content;
+    }
+
+    /* En pantallas pequeñas: optimizar tamaño */
     @media (max-width: 768px) {
       .post-contenedor {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        align-items: center;
-        gap: 8px;
-        width: 100%;
-        min-width: 0;
-      }
-
-      .post-user-name {
-        grid-column: 1;
-        flex-shrink: 1;
-        min-width: 0;
+        gap: 6px;
       }
 
       .post-contenedor>.badge-en-vivo,
       .post-contenedor>.post-status-indicator {
-        grid-column: 2;
-        grid-row: 1;
-      }
-
-      /* Crear efecto de scroll para badges */
-      .post-contenedor {
-        overflow-x: auto;
-        overflow-y: hidden;
-        -webkit-overflow-scrolling: touch;
-        padding-bottom: 6px;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(255,255,255,0.08) transparent;
-      }
-
-      .post-contenedor::-webkit-scrollbar {
-        height: 6px;
-      }
-
-      .post-contenedor::-webkit-scrollbar-thumb {
-        background: rgba(255,255,255,0.15);
-        border-radius: 3px;
-      }
-
-      .post-contenedor::-webkit-scrollbar-track {
-        background: transparent;
+        font-size: 10px;
+        padding: 2px 7px;
       }
     }
 
@@ -16520,7 +16510,8 @@
 
       function applyReadMoreOverflowState(scope = document) {
         const root = scope instanceof Element || scope instanceof Document ? scope : document;
-        const CLAMP_HEIGHT_PX = 250; // threshold to decide when to show "Leer más"
+        const isMobile = window.innerWidth <= 768;
+        const CLAMP_HEIGHT_PX = isMobile ? 80 : 250; // threshold más bajo en móviles
         root.querySelectorAll('.post-description .post-description-clamp-wrap').forEach((wrap) => {
           const textEl = wrap.querySelector('.post-description-text');
           const btn = wrap.querySelector('.read-more-btn');

@@ -2007,10 +2007,10 @@
       }
 
       function getPostRoleBadgesMarkup(post, { forceLive = false } = {}) {
-        const badges = [];
-        const email = String(post?.userEmail || "")
-          .trim()
-          .toLowerCase();
+        const roleBadges = [];
+        let hasVerifiedCheck = false;
+
+        const email = String(post?.userEmail || "").trim().toLowerCase();
         const isOwnerRole = !!post?.userIsOwner || isOwnerEmail(email);
         const isAdminRole = !!post?.userIsAdmin || isAdminEmail(email) || isOwnerRole;
         const isInstructorRole = !!post?.userIsInstructor || isOwnerRole;
@@ -2022,28 +2022,36 @@
         const isLiveRole = forceLive || !!post?.isLive || isAlwaysLiveChannelPost(post);
 
         if (isAdminRole || isOwnerRole) {
-          badges.push('<img src="/iconos/check-verificado.png" class="status-verified-icon" alt="Verificado">');
+          hasVerifiedCheck = true;
         }
         if (isOwnerRole) {
-          badges.push('<span class="status-propietario">Propietario</span>');
+          roleBadges.push('<span class="status-propietario post-status-indicator">Propietario</span>');
         }
         if (isAdminRole) {
-          badges.push('<span class="status-admin">Admin</span>');
+          roleBadges.push('<span class="status-admin post-status-indicator">Admin</span>');
         }
         if (isInstructorRole) {
-          badges.push('<span class="status-instructor">Instructor</span>');
+          roleBadges.push('<span class="status-instructor post-status-indicator">Instructor</span>');
         }
         if (isPremiumRole) {
-          badges.push('<span class="status-premium">Premium</span>');
+          roleBadges.push('<span class="status-premium post-status-indicator">Premium</span>');
         }
         if (ageBadge) {
-          badges.push(`<span class="${ageBadge.className}">${ageBadge.label}</span>`);
+          roleBadges.push(`<span class="${ageBadge.className} post-status-indicator">${ageBadge.label}</span>`);
         }
         if (isLiveRole) {
-          badges.push('<span class="badge-en-vivo"><i class="fas fa-circle" style="font-size:7px;"></i> En Vivo</span>');
+          roleBadges.push('<span class="badge-en-vivo"><i class="fas fa-circle" style="font-size:7px;"></i> En Vivo</span>');
         }
 
-        return badges.length ? `<span class="post-role-badges">${badges.join("")}</span>` : "";
+        // Devolver check y badges separados
+        let markup = '';
+        if (hasVerifiedCheck) {
+          markup += '<img src="/iconos/check-verificado.png" class="status-verified-icon" alt="Verificado">';
+        }
+        if (roleBadges.length) {
+          markup += `<span class="post-role-badges">${roleBadges.join('')}</span>`;
+        }
+        return markup;
       }
 
       function getPostAuthorCacheKey(post) {
@@ -3524,7 +3532,7 @@
           <article class="post-card${hasLiveVisual ? " live-post" : ""}${!hasRenderableMedia ? " text-only-post" : ""}" data-postid="${post.id}">
             <header class="post-header">
               <img src="${escapeHtml(post.userPhoto || "https://dummyimage.com/64x64/ccc/fff")}" class="post-user-img${hasLiveVisual ? " live-border" : ""}" alt="Foto de perfil" onerror="this.src='https://dummyimage.com/64x64/ccc/fff'">
-              <div style="min-width:0;">
+              <div class="post-header-meta">
                 <div class="post-contenedor">
                   <div class="post-user-name">${escapeHtml(post.userName || "Usuario")}</div>
                   ${roleBadgesMarkup}

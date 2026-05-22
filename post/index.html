@@ -221,26 +221,32 @@
 
       .post-contenedor {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         gap: 8px;
-        flex-wrap: wrap;
+        width: 100%;
+        min-width: 0;
       }
 
       .post-user-name {
         font-weight: bold;
         color: var(--text-primary);
         flex: 0 1 auto;
+        min-width: 0;
       }
 
       .post-role-badges {
-        display: inline-flex;
+        flex: 0 0 100%;
+        display: flex;
         align-items: center;
         flex-wrap: nowrap;
         gap: 6px;
-        margin-left: 8px;
-        max-width: 360px;
         overflow-x: auto;
+        overflow-y: hidden;
         -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255,255,255,0.12) transparent;
+        padding-bottom: 4px;
       }
 
       /* Small visual hint when badges overflow */

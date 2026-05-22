@@ -2464,8 +2464,16 @@
                     modalCheck.src = verified.src || modalCheck.src;
                   } catch (_) {}
                   modalCheck.style.display = 'inline-block';
-                } else if (modalCheck) {
-                  modalCheck.style.display = 'none';
+                } else {
+                  // No explicit verified icon — also treat admin/owner badges as verified
+                  const isAdminBadge = !!clone.querySelector('.status-admin');
+                  const isOwnerBadge = !!clone.querySelector('.status-propietario');
+                  if ((isAdminBadge || isOwnerBadge) && modalCheck) {
+                    modalCheck.src = modalCheck.src || '/iconos/check-verificado.png';
+                    modalCheck.style.display = 'inline-block';
+                  } else if (modalCheck) {
+                    modalCheck.style.display = 'none';
+                  }
                 }
                 // Remove any verified icon from the badges list to avoid duplication
                 if (verified) verified.remove();

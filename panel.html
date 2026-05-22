@@ -7992,14 +7992,33 @@
 
       function setProfileTab(tabName) {
         const safeTab = String(tabName || 'perfil').trim();
+        
+        // Cambiar clases de botones
         profileTabButtons.forEach((button) => {
           const isActive = button.dataset.profileTab === safeTab;
           button.classList.toggle('active', isActive);
         });
+        
+        // Cambiar clases de paneles
         profileTabPanels.forEach((panel) => {
           const isActive = panel.id === `perfilTab-${safeTab}`;
-          panel.classList.toggle('active', isActive);
+          if (isActive) {
+            panel.classList.add('active');
+            panel.style.display = 'block'; // Asegurar que sea visible
+          } else {
+            panel.classList.remove('active');
+            panel.style.display = 'none'; // Asegurar que esté oculto
+          }
         });
+        
+        // Si vuelve a la pestaña de perfil, recargar vista de datos
+        if (safeTab === 'perfil') {
+          console.log('📋 Recargando vista de perfil...');
+          // Los datos ya están en los inputs, solo nos aseguramos de que sean visibles
+          if (preview && currentPhotoURL) {
+            preview.src = currentPhotoURL;
+          }
+        }
       }
 
       profileTabButtons.forEach((button) => {

@@ -6,8 +6,8 @@
         "dev": "vercel dev"
     },
     "dependencies": {
-        "@supabase/supabase-js": "^2.93.2",
         "@distube/ytdl-core": "^4.16.12",
+        "@supabase/supabase-js": "^2.93.2",
         "busboy": "^1.6.0",
         "dotenv": "^17.3.1",
         "firebase-admin": "^12.1.0",

@@ -5737,59 +5737,81 @@
 
     <!-- Perfil (sección corregida) -->
     <div id="perfilSection" class="card hidden">
-      <h1>Editar Información</h1>
-      <form id="editForm">
-        <div style="text-align: center; margin-bottom: 20px;">
-          <img id="preview" src="https://dummyimage.com/200x200/ccc/fff"
-            style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 3px solid #1976d2;">
+      <h1>Perfil</h1>
+
+      <div class="tabs-menu-container" style="margin-bottom: 18px;">
+        <div class="tabs-menu" id="perfilTabsMenu">
+          <button type="button" class="tab-button profile-tab-button active" data-profile-tab="perfil">Perfil</button>
+          <button type="button" class="tab-button profile-tab-button" data-profile-tab="expediente">Expediente</button>
         </div>
+      </div>
 
-        <h3>Actualizar Foto:</h3>
-        <input type="file" id="foto" accept="image/*">
+      <div id="perfilTab-perfil" class="tab-content profile-tab-panel active">
+        <form id="editProfileForm">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <img id="preview" src="https://dummyimage.com/200x200/ccc/fff"
+              style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 3px solid #1976d2;">
+          </div>
 
-        <h3>Datos personales:</h3>
+          <h3>Actualizar Foto:</h3>
+          <input type="file" id="foto" accept="image/*">
 
-        <!-- Correo (solo lectura) -->
-        <div style="margin-bottom: 15px;">
-          <label for="correo" style="display: block; margin-bottom: 5px; font-weight: bold;">Correo electrónico:</label>
-          <input type="email" id="correo" readonly style="background-color: #f5f5f5; color: #666;">
+          <h3>Datos personales:</h3>
+
+          <!-- Correo (solo lectura) -->
+          <div style="margin-bottom: 15px;">
+            <label for="correo" style="display: block; margin-bottom: 5px; font-weight: bold;">Correo electrónico:</label>
+            <input type="email" id="correo" readonly style="background-color: #f5f5f5; color: #666;">
+          </div>
+
+          <input type="text" id="nombre" placeholder="Nombre" required>
+          <input type="text" id="apellido" placeholder="Apellido" required>
+          <input type="number" id="edad" placeholder="Edad" required>
+          <select id="sexo" required>
+            <option value="">Seleccionar sexo</option>
+            <option value="Masculino">Masculino</option>
+            <option value="Femenino">Femenino</option>
+            <option value="Otro">Otro</option>
+          </select>
+          <input type="text" id="pais" placeholder="País" required>
+
+          <button type="submit" class="saveBtn">Guardar perfil</button>
+        </form>
+      </div>
+
+      <div id="perfilTab-expediente" class="tab-content profile-tab-panel">
+        <div style="padding: 16px; border: 1px dashed var(--border-color); border-radius: 12px; color: var(--text-secondary); text-align: center;">
+          Sección en desarrollo
         </div>
+      </div>
 
-        <input type="text" id="nombre" placeholder="Nombre" required>
-        <input type="text" id="apellido" placeholder="Apellido" required>
-        <input type="number" id="edad" placeholder="Edad" required>
-        <select id="sexo" required>
-          <option value="">Seleccionar sexo</option>
-          <option value="Masculino">Masculino</option>
-          <option value="Femenino">Femenino</option>
-          <option value="Otro">Otro</option>
-        </select>
-        <input type="text" id="pais" placeholder="País" required>
+      <div id="perfilPasswordCard" style="margin-top: 18px;">
+        <form id="passwordForm">
+          <h3 id="passwordSectionTitle">Contraseña:</h3>
+          <div class="password-input-with-toggle">
+            <input type="password" id="newPassword" placeholder="Nueva contraseña (mínimo 6 caracteres)">
+            <label class="password-visibility-toggle" for="showProfilePasswords">
+              <input type="checkbox" id="showProfilePasswords">
+              <span>Ver</span>
+            </label>
+          </div>
+          <ul id="profilePasswordRules" class="password-rules" aria-live="polite"></ul>
+          <input type="password" id="confirmPassword" placeholder="Confirmar nueva contraseña">
+          <p id="passwordMatchStatus" class="password-match-status" aria-live="polite"></p>
+          <p id="passwordSectionHelp" style="margin-top: 8px; font-size: 12px; color: #666;">
+            Si completas estos campos, tu contraseña se actualizará.
+          </p>
 
-        <h3 id="passwordSectionTitle">Contraseña:</h3>
-        <div class="password-input-with-toggle">
-          <input type="password" id="newPassword" placeholder="Nueva contraseña (mínimo 6 caracteres)">
-          <label class="password-visibility-toggle" for="showProfilePasswords">
-            <input type="checkbox" id="showProfilePasswords">
-            <span>Ver</span>
-          </label>
-        </div>
-        <ul id="profilePasswordRules" class="password-rules" aria-live="polite"></ul>
-        <input type="password" id="confirmPassword" placeholder="Confirmar nueva contraseña">
-        <p id="passwordMatchStatus" class="password-match-status" aria-live="polite"></p>
-        <p id="passwordSectionHelp" style="margin-top: 8px; font-size: 12px; color: #666;">
-          Si completas estos campos, tu contraseña se actualizará.
-        </p>
+          <button type="submit" class="saveBtn">Guardar nueva contraseña</button>
+        </form>
+      </div>
 
-        <button type="submit" class="saveBtn">Guardar cambios</button>
-
-        <div class="danger-zone-profile">
-          <p>Zona peligrosa: esta acción elimina tu cuenta y no se puede deshacer.</p>
-          <button type="button" id="deleteAccountBtn">
-            <i class="fas fa-trash-alt" style="margin-right: 8px;"></i>Eliminar mi cuenta
-          </button>
-        </div>
-      </form>
+      <div class="danger-zone-profile">
+        <p>Zona peligrosa: esta acción elimina tu cuenta y no se puede deshacer.</p>
+        <button type="button" id="deleteAccountBtn">
+          <i class="fas fa-trash-alt" style="margin-right: 8px;"></i>Eliminar mi cuenta
+        </button>
+      </div>
     </div>
 
     <!-- 🔹 NUEVA SECCIÓN: CERTIFICACIONES -->
@@ -7798,7 +7820,8 @@
       const refreshAdminDonacionesBtn = document.getElementById("refreshAdminDonacionesBtn");
       const logoutBtn = document.getElementById("logoutBtn");
       const deleteAccountBtn = document.getElementById("deleteAccountBtn");
-      const editForm = document.getElementById("editForm");
+      const editProfileForm = document.getElementById("editProfileForm");
+      const passwordForm = document.getElementById("passwordForm");
       const fotoInput = document.getElementById("foto");
       const preview = document.getElementById("preview");
       const removePhotoBtn = document.getElementById("removePhoto");
@@ -7814,6 +7837,8 @@
       const passwordMatchStatus = document.getElementById("passwordMatchStatus");
       const passwordSectionTitle = document.getElementById("passwordSectionTitle");
       const passwordSectionHelp = document.getElementById("passwordSectionHelp");
+      const profileTabButtons = document.querySelectorAll('.profile-tab-button');
+      const profileTabPanels = document.querySelectorAll('.profile-tab-panel');
       const listaEspecialidades = document.getElementById("listaEspecialidades");
       const archivosContainer = document.getElementById("archivosContainer");
       const especialidadActualH3 = document.getElementById("especialidadActual");
@@ -7914,6 +7939,22 @@
         passwordMatchStatus.classList.add("ok");
         passwordMatchStatus.textContent = "✓ Las contraseñas coinciden y cumplen las reglas.";
       }
+
+      function setProfileTab(tabName) {
+        const safeTab = String(tabName || 'perfil').trim();
+        profileTabButtons.forEach((button) => {
+          const isActive = button.dataset.profileTab === safeTab;
+          button.classList.toggle('active', isActive);
+        });
+        profileTabPanels.forEach((panel) => {
+          const isActive = panel.id === `perfilTab-${safeTab}`;
+          panel.classList.toggle('active', isActive);
+        });
+      }
+
+      profileTabButtons.forEach((button) => {
+        button.addEventListener('click', () => setProfileTab(button.dataset.profileTab));
+      });
 
       if (showProfilePasswordsInput) {
         showProfilePasswordsInput.addEventListener("change", (event) => {
@@ -9534,45 +9575,15 @@
         }
       });
 
-      // 🔹 Guardar perfil (versión con eliminación de foto anterior)
-      editForm.addEventListener("submit", async (e) => {
+      // 🔹 Guardar perfil
+      editProfileForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         if (!currentUserId) return;
 
         let newPhotoURL = currentPhotoURL;
         const file = fotoInput.files[0];
-        const newPassword = newPasswordInput.value.trim();
-        const confirmPassword = confirmPasswordInput.value.trim();
 
         try {
-          if (newPassword || confirmPassword) {
-            const passwordRuleResults = getProfilePasswordRuleResults(newPassword);
-            const firstFailedRule = passwordRuleResults.find((rule) => !rule.ok);
-            if (firstFailedRule) {
-              updateProfilePasswordValidationState();
-              mostrarMensaje("info", "⚠️ Contraseña inválida", `La contraseña no cumple: ${firstFailedRule.label}.`);
-              return;
-            }
-
-            if (!confirmPassword) {
-              updateProfilePasswordValidationState();
-              mostrarMensaje("info", "⚠️ Falta confirmar", "Debes confirmar la nueva contraseña.");
-              return;
-            }
-
-            if (newPassword !== confirmPassword) {
-              updateProfilePasswordValidationState();
-              mostrarMensaje("info", "⚠️ Contraseñas no coinciden", "Verifica que ambas contraseñas sean iguales.");
-              return;
-            }
-
-            const idToken = await auth.currentUser.getIdToken(true);
-            await callAuthAPI("setUserPassword", {
-              idToken,
-              newPassword,
-            });
-          }
-
           // ✅ Validar tamaño antes de subir
           if (file && file.size > 1024 * 1024) {
             mostrarMensaje("info", "⚠️ La imagen no debe superar 1 MB.", "");
@@ -9625,6 +9636,14 @@
             fotoURL: newPhotoURL
           });
 
+          if (file && auth.currentUser) {
+            try {
+              await updateProfile(auth.currentUser, { photoURL: newPhotoURL });
+            } catch (authPhotoError) {
+              console.warn("⚠️ No se pudo sincronizar photoURL en Auth:", authPhotoError?.message || authPhotoError);
+            }
+          }
+
           window.userData = {
             ...(window.userData || {}),
             nombre: nombreInput.value,
@@ -9652,6 +9671,62 @@
         } catch (error) {
           console.error(error);
           mostrarMensaje("error", "❌ Error al actualizar", "");
+        }
+      });
+
+      // 🔹 Guardar contraseña por separado
+      passwordForm?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!currentUserId) return;
+
+        const newPassword = newPasswordInput.value.trim();
+        const confirmPassword = confirmPasswordInput.value.trim();
+
+        try {
+          if (!newPassword && !confirmPassword) {
+            mostrarMensaje("info", "ℹ️ Sin cambios", "Escribe una nueva contraseña para guardarla.");
+            return;
+          }
+
+          const passwordRuleResults = getProfilePasswordRuleResults(newPassword);
+          const firstFailedRule = passwordRuleResults.find((rule) => !rule.ok);
+          if (firstFailedRule) {
+            updateProfilePasswordValidationState();
+            mostrarMensaje("info", "⚠️ Contraseña inválida", `La contraseña no cumple: ${firstFailedRule.label}.`);
+            return;
+          }
+
+          if (!confirmPassword) {
+            updateProfilePasswordValidationState();
+            mostrarMensaje("info", "⚠️ Falta confirmar", "Debes confirmar la nueva contraseña.");
+            return;
+          }
+
+          if (newPassword !== confirmPassword) {
+            updateProfilePasswordValidationState();
+            mostrarMensaje("info", "⚠️ Contraseñas no coinciden", "Verifica que ambas contraseñas sean iguales.");
+            return;
+          }
+
+          const idToken = await auth.currentUser.getIdToken(true);
+          await callAuthAPI("setUserPassword", {
+            idToken,
+            newPassword,
+          });
+
+          newPasswordInput.value = "";
+          confirmPasswordInput.value = "";
+          if (showProfilePasswordsInput) {
+            showProfilePasswordsInput.checked = false;
+          }
+          newPasswordInput.type = "password";
+          confirmPasswordInput.type = "password";
+          updateProfilePasswordValidationState();
+
+          mostrarMensaje("info", "✅ Contraseña actualizada", "Tu nueva contraseña se guardó correctamente.");
+        } catch (error) {
+          console.error(error);
+          mostrarMensaje("error", "❌ Error al actualizar contraseña", error?.message || "No se pudo guardar la nueva contraseña.");
         }
       });
 

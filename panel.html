@@ -3208,6 +3208,27 @@
       align-self: center;
     }
 
+    /* Evitar que los badges hagan wrap en pantallas pequeñas; permitir scroll horizontal */
+    @media (max-width: 640px) {
+      .post-contenedor {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 8px;
+        padding-bottom: 4px;
+      }
+      .post-contenedor::-webkit-scrollbar {
+        height: 8px;
+      }
+      .post-contenedor::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.08);
+        border-radius: 8px;
+      }
+      .post-contenedor {
+        scrollbar-gutter: stable;
+      }
+    }
+
     .status-pending {
       background: rgba(245, 158, 11, 0.2);
       color: var(--warning-color);

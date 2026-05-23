@@ -10470,8 +10470,23 @@
         if (!key) return false;
         const now = Date.now();
         const lastHandledAt = window.__mediaPlayGuards.get(key) || 0;
-        if (now - lastHandledAt < cooldownMs) return false;
+        if (now - lastHandledAt < cooldownMs) {
+          window.__musicDebugCounters.playThrottled += 1;
+          musicDebugLog('play-event:throttled', {
+            hostId: key,
+            elapsedMs: now - lastHandledAt,
+            cooldownMs,
+            throttledCount: window.__musicDebugCounters.playThrottled
+          });
+          return false;
+        }
         window.__mediaPlayGuards.set(key, now);
+        window.__musicDebugCounters.playAllowed += 1;
+        musicDebugLog('play-event:allowed', {
+          hostId: key,
+          cooldownMs,
+          allowedCount: window.__musicDebugCounters.playAllowed
+        });
         return true;
       }
 
@@ -10805,10 +10820,24 @@
           });
 
           const bindEnded = () => {
+            musicDebugLog('audio:bind-ended:scan', {
+              containerId,
+              audioCount: container.querySelectorAll('audio').length,
+              playbackNonce,
+              currentNonce: state.playbackNonce
+            });
             container.querySelectorAll('audio').forEach((audioEl) => {
               if (audioEl.dataset.musicEndedBound === '1') return;
               audioEl.dataset.musicEndedBound = '1';
-              audioEl.addEventListener('ended', () => musicAutoAdvanceToNextTrack());
+              audioEl.addEventListener('ended', () => {
+                musicDebugLog('audio:ended', {
+                  containerId,
+                  playbackNonce,
+                  currentNonce: state.playbackNonce,
+                  src: audioEl.src || ''
+                });
+                musicAutoAdvanceToNextTrack();
+              });
             });
           };
           const bindEndedGuarded = () => {
@@ -10871,6 +10900,11 @@
 
         if (Clappr.Events?.PLAYER_ENDED) {
           player.on(Clappr.Events.PLAYER_ENDED, () => {
+            musicDebugLog('video:player-ended', {
+              playbackNonce,
+              currentNonce: state.playbackNonce,
+              activePlayerType: state.activePlayerType
+            });
             if (state.playbackNonce !== playbackNonce || state.activePlayerType !== 'video') return;
             musicAutoAdvanceToNextTrack();
           });
@@ -18068,6 +18102,12 @@
             } catch (_) { }
 
             player.on(Clappr.Events.PLAYER_PLAY, () => {
+              musicDebugLog('clappr:player-play', {
+                containerId,
+                firestorePostId,
+                currentNonce: window.__musicState.playbackNonce,
+                playerType: window.__musicState.activePlayerType
+              });
               pauseOtherPostMedia(containerId);
               incrementPostViewCount(firestorePostId, post.mediaUrl || '');
             });
@@ -18171,12 +18211,30 @@
 
             window._lunaPlayers = window._lunaPlayers || {};
             window._lunaPlayers[containerId] = lunaInstance;
+            musicDebugLog('luna:instance-created', {
+              containerId,
+              playbackNonce,
+              currentPlayerType: state.activePlayerType
+            });
 
             const bindLunaAudioPlay = () => {
+              musicDebugLog('luna:bind-play:scan', {
+                containerId,
+                audioCount: container.querySelectorAll('audio').length,
+                playbackNonce,
+                currentNonce: state.playbackNonce
+              });
               container.querySelectorAll('audio').forEach((audioEl) => {
                 if (audioEl.dataset.cxPlayBound === '1') return;
                 audioEl.dataset.cxPlayBound = '1';
                 audioEl.addEventListener('play', () => {
+                  musicDebugLog('luna:audio-play-event', {
+                    containerId,
+                    playbackNonce,
+                    currentNonce: state.playbackNonce,
+                    src: audioEl.src || '',
+                    paused: audioEl.paused
+                  });
                   if (!musicShouldHandlePlayEvent(containerId)) return;
                   pauseOtherPostMedia(containerId);
                   incrementPostViewCount(firestorePostId, post.mediaUrl || '');
@@ -18192,7 +18250,14 @@
               const onLunaInteraction = () => {
                 const now = Date.now();
                 if (now - lastInteractionAt < 400) return;
+                const deltaMs = now - lastInteractionAt;
                 lastInteractionAt = now;
+                musicDebugLog('luna:interaction', {
+                  containerId,
+                  playbackNonce,
+                  currentNonce: state.playbackNonce,
+                  deltaMs
+                });
                 pauseOtherPostMedia(containerId);
                 incrementPostViewCount(firestorePostId, post.mediaUrl || '');
               };
@@ -19322,6 +19387,15 @@
       }
 
       function pauseOtherPostMedia(activeContainerId = '') {
+        window.__musicDebugCounters.pauseSync += 1;
+        musicDebugLog('pause-sync:start', {
+          activeContainerId,
+          count: window.__musicDebugCounters.pauseSync,
+          clapprPlayers: Object.keys(window._clapprPlayers || {}).length,
+          lunaPlayers: Object.keys(window._lunaPlayers || {}).length,
+          audioNodes: document.querySelectorAll('.post-card audio').length,
+          videoNodes: document.querySelectorAll('.post-card video').length
+        });
         const activeContainer = activeContainerId ? document.getElementById(activeContainerId) : null;
         const activePostCard = activeContainer ? activeContainer.closest('.post-card') : null;
 
@@ -19350,13 +19424,25 @@
             }
           } catch (_) { }
         });
+
+        musicDebugLog('pause-sync:end', { activeContainerId });
       }
 
       function refreshPostMediaLayout(postCard) {
         if (!postCard) return;
 
+        window.__musicDebugCounters.layoutRefresh += 1;
+        musicDebugLog('layout-refresh:schedule', {
+          postId: postCard.dataset.postid || postCard.id || '',
+          count: window.__musicDebugCounters.layoutRefresh,
+          clapprCount: postCard.querySelectorAll('.clappr-container').length,
+          lunaCount: postCard.querySelectorAll('.lunaradio-host').length
+        });
+
         requestAnimationFrame(() => {
+          musicDebugLog('layout-refresh:raf1', { postId: postCard.dataset.postid || postCard.id || '' });
           requestAnimationFrame(() => {
+            musicDebugLog('layout-refresh:raf2', { postId: postCard.dataset.postid || postCard.id || '' });
             window.dispatchEvent(new Event('resize'));
 
             postCard.querySelectorAll('.clappr-container').forEach((container) => {
@@ -19389,6 +19475,13 @@
           if (!(target instanceof HTMLMediaElement)) return;
           const host = target.closest('.lunaradio-host, .clappr-container');
           if (!host || !host.id) return;
+          musicDebugLog('global-play-event', {
+            hostId: host.id,
+            targetTag: target.tagName,
+            src: target.src || '',
+            paused: target.paused,
+            currentTime: Number(target.currentTime || 0)
+          });
           if (!musicShouldHandlePlayEvent(host.id)) return;
           pauseOtherPostMedia(host.id);
         }, true);
@@ -20450,6 +20543,7 @@
 
       async function incrementPostViewCount(postId, mediaIdentity = '') {
         if (!postId) return;
+        window.__musicDebugCounters.viewCount += 1;
         const uid = window.currentUserId;
         let viewerKey = uid || null;
         if (!viewerKey) {
@@ -20460,15 +20554,31 @@
         const viewIdentity = getMediaViewIdentity(postId, mediaIdentity);
         const storageKey = `vv_${viewIdentity}_${viewerKey}`;
         const ONE_HOUR = 60 * 60 * 1000;
+        musicDebugLog('view-count:start', {
+          postId,
+          mediaIdentity,
+          viewerKey,
+          storageKey,
+          count: window.__musicDebugCounters.viewCount
+        });
         const lastViewStr = localStorage.getItem(storageKey);
         if (lastViewStr) {
           const lastViewTime = parseInt(lastViewStr, 10);
-          if (!isNaN(lastViewTime) && Date.now() - lastViewTime < ONE_HOUR) return;
+          if (!isNaN(lastViewTime) && Date.now() - lastViewTime < ONE_HOUR) {
+            musicDebugLog('view-count:skipped', {
+              postId,
+              ageMs: Date.now() - lastViewTime,
+              oneHourMs: ONE_HOUR
+            });
+            return;
+          }
         }
         localStorage.setItem(storageKey, Date.now().toString());
         try {
+          musicDebugLog('view-count:updateDoc:start', { postId, storageKey });
           const postRef = doc(db, 'posts', postId);
           await updateDoc(postRef, { viewCount: increment(1) });
+          musicDebugLog('view-count:updateDoc:success', { postId });
           document.querySelectorAll(`.view-count-display[data-postid="${postId}"]`).forEach(el => {
             const raw = parseInt(el.dataset.viewcount || '0', 10);
             const updated = raw + 1;
@@ -20477,6 +20587,7 @@
           });
         } catch (e) {
           console.warn('[ViewCount] Error:', e);
+          musicDebugLog('view-count:updateDoc:error', { postId, message: e?.message || String(e) });
         }
       }
 

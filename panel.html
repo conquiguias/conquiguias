@@ -4640,6 +4640,169 @@
       }
     }
 
+    /* ==========================
+   MÚSICA (UI PROFESIONAL)
+   ========================== */
+    #musicaSection .music-layout {
+      display: grid;
+      grid-template-columns: minmax(220px, 260px) 1fr minmax(260px, 320px);
+      gap: 16px;
+      align-items: start;
+    }
+
+    #musicaSection .music-panel {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    #musicaSection .music-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      gap: 8px;
+    }
+
+    #musicaSection .music-subtitle {
+      margin: 0 0 6px 0;
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+
+    #musicaSection .music-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    #musicaSection .music-list.scrollable {
+      max-height: 240px;
+      overflow: auto;
+    }
+
+    #musicaSection .music-list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 6px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    #musicaSection .music-list-item.selected {
+      background: rgba(59, 130, 246, 0.14);
+      border-radius: 8px;
+      border-bottom-color: transparent;
+    }
+
+    #musicaSection .music-list-title {
+      flex: 1;
+      text-align: left;
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    #musicaSection .music-list-add-btn,
+    #musicaSection .music-pill-btn {
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-primary);
+      border-radius: 8px;
+      padding: 5px 9px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    #musicaSection .music-list-add-btn:disabled,
+    #musicaSection .music-pill-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    #musicaSection .music-empty-state {
+      color: var(--text-secondary);
+      font-size: 12px;
+      padding: 8px 6px;
+    }
+
+    #musicaSection .music-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    #musicaSection .music-mode-switch {
+      display: flex;
+      gap: 8px;
+    }
+
+    #musicaSection .music-mode-switch .small-toggle {
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-primary);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    #musicaSection .music-mode-switch .small-toggle.active {
+      background: var(--accent-color);
+      border-color: var(--accent-color);
+      color: #fff;
+      box-shadow: 0 2px 10px rgba(59, 130, 246, 0.35);
+    }
+
+    #musicaSection #playerContainer {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 10px;
+      min-height: 320px;
+    }
+
+    #musicaSection .music-track-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    #musicaSection .music-track-line {
+      color: var(--text-secondary);
+      margin-top: 8px;
+      font-size: 13px;
+    }
+
+    #musicaSection #addMusicModal {
+      backdrop-filter: blur(3px);
+      z-index: 11000;
+    }
+
+    #musicaSection .music-modal-card {
+      width: 760px;
+      max-width: 95%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 18px;
+      position: relative;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    @media (max-width: 1100px) {
+      #musicaSection .music-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
     /* Responsive */
     @media (max-width: 767px) {
       #feedDesktopHeader {
@@ -5769,60 +5932,59 @@
     <!-- Música Section -->
     <div id="musicaSection" class="card hidden">
       <h2><i class="fas fa-music" style="margin-right: 8px; color: var(--accent-color);"></i> Música</h2>
-      <div style="display:flex; gap:16px; align-items:flex-start;">
+      <div class="music-layout">
         <!-- Left panel: carpetas y playlists -->
-        <aside style="width:220px; min-width:180px; background:var(--bg-secondary); padding:12px; border-radius:8px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <aside class="music-panel">
+          <div class="music-panel-header">
             <strong>Biblioteca</strong>
-            <button id="crearPlaylistBtn" style="font-size:12px; padding:4px 8px;">+ Nueva</button>
+            <button id="crearPlaylistBtn" class="music-pill-btn">+ Nueva</button>
           </div>
-          <ul id="musicaCarpetas" style="list-style:none; padding:0; margin:0 0 12px 0;">
+          <ul id="musicaCarpetas" class="music-list" style="margin-bottom:12px;">
             <li class="carpeta-item">Músicas de la plataforma</li>
             <li class="carpeta-item">Listas de reproducción</li>
           </ul>
-          <div style="margin-top:8px;">
-            <p style="margin:0 0 6px 0; font-weight:600;">Músicas locales</p>
-            <ul id="localMusicList" style="list-style:none; padding:0; margin:0 0 10px 0; max-height:220px; overflow:auto;"></ul>
+          <div>
+            <p class="music-subtitle">Catálogo local</p>
+            <ul id="localMusicList" class="music-list scrollable" style="margin:0 0 10px 0;"></ul>
           </div>
           <div style="margin-top:8px; border-top:1px solid var(--border-color); padding-top:8px;">
-            <p style="margin:0 0 6px 0; font-weight:600;">Tus listas</p>
-            <ul id="playlistsList" style="list-style:none; padding:0; margin:0; min-height:40px;"></ul>
+            <p class="music-subtitle">Tus listas</p>
+            <ul id="playlistsList" class="music-list" style="min-height:40px;"></ul>
             <small id="playlistsHint" style="color:var(--text-secondary); font-size:12px;">(Máx 3 listas por usuario)</small>
           </div>
         </aside>
 
         <!-- Center: player and controls -->
-        <main style="flex:1; display:flex; flex-direction:column; gap:12px;">
-          <div style="display:flex; gap:8px; align-items:center;">
-            <div id="toggleMediaBtns" style="display:flex; gap:8px;">
+        <main class="music-panel" style="display:flex; flex-direction:column; gap:12px;">
+          <div class="music-controls">
+            <div id="toggleMediaBtns" class="music-mode-switch">
               <button id="btnAudio" class="small-toggle active">Audio</button>
               <button id="btnVideo" class="small-toggle">Video</button>
             </div>
             <div style="flex:1"></div>
-            <div style="font-size:12px; color:var(--text-secondary);">Reproductor: <strong id="playerModeLabel">Audio</strong></div>
+            <div style="font-size:12px; color:var(--text-secondary);">Modo: <strong id="playerModeLabel">Audio</strong></div>
           </div>
 
-          <div id="playerContainer" style="flex:1; background:var(--bg-secondary); border-radius:8px; padding:8px; display:flex; align-items:center; justify-content:center; min-height:280px;">
-            <!-- Por defecto usaremos Luna Radio (audio). Cuando cambie a video mostraremos el contenedor de Clappr -->
+          <div id="playerContainer" style="flex:1; display:flex; align-items:center; justify-content:center;">
             <div id="audioPlayerWrap" style="width:100%; height:100%;">
-              <div id="lunaradioPlayerPlaceholder" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:var(--text-secondary);">Reproductor de audio (LunaRadio)</div>
+              <div id="lunaradioPlayerPlaceholder" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:var(--text-secondary);">Selecciona una pista para reproducir</div>
             </div>
             <div id="videoPlayerWrap" style="width:100%; height:100%; display:none;">
-              <div id="clapprPlayerPlaceholder" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:var(--text-secondary);">Reproductor de video (Clappr)</div>
+              <div id="clapprPlayerPlaceholder" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:var(--text-secondary);">Selecciona un video para reproducir</div>
             </div>
           </div>
         </main>
 
         <!-- Right: metadata and owner upload -->
-        <aside style="width:300px; min-width:240px; background:var(--bg-secondary); padding:12px; border-radius:8px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <strong>Información</strong>
-            <button id="openAddMusicModalBtn" style="font-size:12px; padding:6px 10px; display:none;">+ Agregar</button>
+        <aside class="music-panel">
+          <div class="music-panel-header">
+            <strong>Detalle</strong>
+            <button id="openAddMusicModalBtn" class="music-pill-btn" style="display:none;">+ Agregar</button>
           </div>
           <div id="trackInfo" style="font-size:14px; color:var(--text-primary);">
-            <p id="trackTitle">—</p>
-            <p id="trackArtist" style="color:var(--text-secondary); margin-top:6px;">Artista —</p>
-            <p id="trackAlbum" style="color:var(--text-secondary); margin-top:6px;">Álbum —</p>
+            <p id="trackTitle" class="music-track-title">Selecciona una pista</p>
+            <p id="trackArtist" class="music-track-line">Artista: —</p>
+            <p id="trackAlbum" class="music-track-line">Álbum: —</p>
             <pre id="trackMetadata" style="display:none; font-size:12px; color:var(--text-secondary); white-space:pre-wrap;">{}</pre>
           </div>
         </aside>
@@ -5830,9 +5992,9 @@
 
       <!-- Modal para subir música (solo se cierra con X) -->
       <div id="addMusicModal" class="hiddenX" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.6);">
-        <div style="width:720px; max-width:95%; background:var(--bg-primary); padding:18px; border-radius:10px; position:relative;">
+        <div class="music-modal-card">
           <button id="closeAddMusicModal" style="position:absolute; right:12px; top:12px; font-size:18px;">✕</button>
-          <h3>Agregar música (propietario)</h3>
+          <h3>Gestión de catálogo (propietario)</h3>
           <form id="addMusicForm">
             <div style="display:flex; gap:8px; margin-bottom:8px;">
               <label style="flex:1; display:flex; flex-direction:column;"><small>Título *</small><input id="musicTitle" required></label>
@@ -9905,16 +10067,16 @@
         if (!trackTitle || !trackArtist || !trackAlbum || !trackMetadata) return;
 
         if (!track) {
-          trackTitle.textContent = '—';
-          trackArtist.textContent = 'Artista —';
-          trackAlbum.textContent = 'Álbum —';
+          trackTitle.textContent = 'Selecciona una pista';
+          trackArtist.textContent = 'Artista: —';
+          trackAlbum.textContent = 'Álbum: —';
           trackMetadata.style.display = 'none';
           return;
         }
 
         trackTitle.textContent = track.title || 'Sin título';
-        trackArtist.textContent = `Artista ${track.artist || '—'}`;
-        trackAlbum.textContent = `Álbum ${track.album || '—'}${track.year ? ` (${track.year})` : ''}`;
+        trackArtist.textContent = `Artista: ${track.artist || '—'}`;
+        trackAlbum.textContent = `Álbum: ${track.album || '—'}${track.year ? ` (${track.year})` : ''}`;
         const metadata = track.metadata && Object.keys(track.metadata || {}).length ? track.metadata : null;
         if (metadata) {
           trackMetadata.textContent = JSON.stringify(metadata, null, 2);
@@ -9949,13 +10111,13 @@
 
         const jq = window.jQuery;
         if (!jq || !jq.fn || typeof jq.fn.lunaradio !== 'function') {
-          container.textContent = 'LunaRadio no disponible';
+          container.textContent = 'Audio no disponible por el momento';
           return;
         }
 
         const streamUrl = musicNormalizeAudioUrl(track.url || '');
         if (!streamUrl) {
-          container.textContent = 'URL de audio inválida';
+          container.textContent = 'Fuente de audio inválida';
           return;
         }
 
@@ -10017,7 +10179,7 @@
         const container = document.getElementById('clapprPlayerPlaceholder');
         if (!container || !track) return;
         if (typeof Clappr === 'undefined') {
-          container.textContent = 'Clappr no disponible';
+          container.textContent = 'Video no disponible por el momento';
           return;
         }
 
@@ -10074,34 +10236,24 @@
         localMusicList.innerHTML = '';
 
         if (!Array.isArray(state.catalog) || state.catalog.length === 0) {
-          localMusicList.innerHTML = '<li style="color:var(--text-secondary); font-size:12px; padding:6px 4px;">No hay músicas cargadas.</li>';
+          localMusicList.innerHTML = '<li class="music-empty-state">Aún no hay pistas disponibles.</li>';
           return;
         }
 
         state.catalog.forEach((track, index) => {
           const li = document.createElement('li');
-          li.style.display = 'flex';
-          li.style.alignItems = 'center';
-          li.style.justifyContent = 'space-between';
-          li.style.gap = '6px';
-          li.style.padding = '6px 4px';
-          li.style.borderBottom = '1px solid var(--border-color)';
+          li.className = 'music-list-item';
 
           const titleBtn = document.createElement('button');
           titleBtn.type = 'button';
           titleBtn.textContent = track.title || 'Sin título';
-          titleBtn.style.flex = '1';
-          titleBtn.style.textAlign = 'left';
-          titleBtn.style.background = 'transparent';
-          titleBtn.style.border = 'none';
-          titleBtn.style.color = 'var(--text-primary)';
-          titleBtn.style.cursor = 'pointer';
+          titleBtn.className = 'music-list-title';
           titleBtn.addEventListener('click', () => playMusicTrackByIndex(index));
 
           const addBtn = document.createElement('button');
           addBtn.type = 'button';
-          addBtn.textContent = '+ Lista';
-          addBtn.style.fontSize = '11px';
+          addBtn.textContent = 'Añadir';
+          addBtn.className = 'music-list-add-btn';
           addBtn.disabled = !state.selectedPlaylistId;
           addBtn.addEventListener('click', async () => {
             if (!state.selectedPlaylistId) {
@@ -10140,30 +10292,22 @@
         playlistsList.innerHTML = '';
 
         if (!Array.isArray(state.playlists) || state.playlists.length === 0) {
-          playlistsList.innerHTML = '<li style="color:var(--text-secondary); font-size:12px; padding:6px 4px;">Crea tu primera playlist.</li>';
+          playlistsList.innerHTML = '<li class="music-empty-state">Crea tu primera lista de reproducción.</li>';
           return;
         }
 
         state.playlists.forEach((playlist) => {
           const li = document.createElement('li');
           li.dataset.playlistId = playlist.id;
-          li.style.display = 'flex';
-          li.style.justifyContent = 'space-between';
-          li.style.alignItems = 'center';
-          li.style.padding = '6px 4px';
-          li.style.cursor = 'pointer';
-          li.style.borderBottom = '1px solid var(--border-color)';
+          li.className = 'music-list-item';
           if (state.selectedPlaylistId === playlist.id) {
-            li.style.background = 'rgba(59,130,246,0.15)';
-            li.style.borderRadius = '6px';
+            li.classList.add('selected');
           }
 
           const name = document.createElement('span');
           name.textContent = playlist.name;
           const count = document.createElement('span');
           count.className = 'playlist-count';
-          count.style.color = 'var(--text-secondary)';
-          count.style.fontSize = '12px';
           count.textContent = `(${Number(playlist.songs_count || 0)})`;
           li.appendChild(name);
           li.appendChild(count);

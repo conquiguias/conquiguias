@@ -4645,6 +4645,8 @@
    ========================== */
     #musicaSection {
       font-size: 0.95rem;
+      position: relative;
+      overflow: visible;
     }
 
     #musicaSection .music-layout {
@@ -4996,26 +4998,59 @@
       line-height: 1;
     }
 
+    /* Modal overlay positioned relative to the Música panel (fills the panel) */
     #musicaSection #addMusicModal {
-      backdrop-filter: blur(3px);
-      z-index: 11000;
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(2,6,23,0.62);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 1200;
       pointer-events: auto;
-      overflow-y: auto;
       padding: 20px;
     }
 
+    /* Modal card now expands inside the panel and scrolls internally */
     #musicaSection .music-modal-card {
-      width: 760px;
-      max-width: 95%;
-      max-height: calc(100vh - 40px);
+      width: min(1100px, calc(100% - 40px));
+      max-width: 100%;
+      height: calc(100% - 48px);
+      max-height: none;
       overflow: auto;
       background: var(--bg-card);
       border: 1px solid var(--border-color);
-      border-radius: 14px;
-      padding: 18px;
+      border-radius: 12px;
+      padding: 22px;
       position: relative;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
-      animation: musicModalIn 0.24s ease;
+      box-shadow: 0 14px 50px rgba(0, 0, 0, 0.45);
+      animation: musicModalIn 0.2s ease;
+    }
+
+    /* Close button for modal */
+    #musicaSection .music-modal-close {
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      width: 36px;
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      color: var(--text-primary);
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: transform 0.12s ease, background 0.12s ease;
+    }
+
+    #musicaSection .music-modal-close:hover {
+      transform: scale(1.04);
+      background: rgba(255,255,255,0.02);
     }
 
     @keyframes musicModalIn {
@@ -6354,9 +6389,9 @@
       </div>
 
       <!-- Modal para subir música (solo se cierra con X) -->
-      <div id="addMusicModal" class="hiddenX" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(2,6,23,0.72); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
+      <div id="addMusicModal" class="hiddenX">
         <div class="music-modal-card">
-          <button id="closeAddMusicModal" style="position:absolute; right:12px; top:12px; font-size:18px;">✕</button>
+          <button id="closeAddMusicModal" class="music-modal-close" aria-label="Cerrar">✕</button>
           <h3 class="music-modal-title">Gestión de catálogo</h3>
           <p class="music-modal-subtitle">Carga pistas una por una o en lote. El modo individual usa el reproductor actual y el modo lista te permite pegar múltiples enlaces con formato rápido.</p>
           <form id="addMusicForm">
@@ -11097,11 +11132,11 @@
 
         const showModal = () => {
           addMusicModal?.classList.remove('hiddenX');
-          document.body.style.overflow = 'hidden';
+          try { musicaSection.style.overflow = 'hidden'; } catch(e) {}
         };
         const hideModal = () => {
           addMusicModal?.classList.add('hiddenX');
-          document.body.style.overflow = '';
+          try { musicaSection.style.overflow = ''; } catch(e) {}
         };
 
         openAddMusicModalBtn?.addEventListener('click', showModal);

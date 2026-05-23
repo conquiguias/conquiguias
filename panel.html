@@ -10851,12 +10851,12 @@
           state.lunaInstance = null;
 
           if (state.clapprPlayer && typeof state.clapprPlayer.destroy === 'function') {
-        musicDebugLog('destroy-players:end');
             state.clapprPlayer.destroy();
           }
         } catch (_) { }
         state.clapprPlayer = null;
         state.activePlayerType = '';
+        musicDebugLog('destroy-players:end');
       }
 
       function musicSetPlayerMode(mode) {

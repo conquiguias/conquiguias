@@ -4689,7 +4689,14 @@
       flex-direction: column;
       gap: 10px;
       overflow-y: auto;
+      overflow-x: hidden;
       height: 100%;
+    }
+
+    #musicaSection #trackInfo {
+      min-height: 0;
+      overflow: auto;
+      max-height: 100%;
     }
 
     #musicaSection .music-panel-header {
@@ -4735,6 +4742,117 @@
       background: rgba(59, 130, 246, 0.14);
       border-radius: 8px;
       border-bottom-color: transparent;
+    }
+
+    #musicaSection .music-folder-item {
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      margin-bottom: 8px;
+      overflow: hidden;
+    }
+
+    #musicaSection .music-folder-header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: transparent;
+      border: 0;
+      color: var(--text-primary);
+      padding: 10px 12px;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    #musicaSection .music-folder-header:hover {
+      background: rgba(59, 130, 246, 0.08);
+    }
+
+    #musicaSection .music-folder-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    #musicaSection .music-folder-caret {
+      width: 18px;
+      height: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      flex: 0 0 auto;
+      transition: transform 0.18s ease;
+    }
+
+    #musicaSection .music-folder-item.is-open .music-folder-caret {
+      transform: rotate(90deg);
+    }
+
+    #musicaSection .music-folder-name {
+      font-weight: 700;
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #musicaSection .music-folder-count {
+      color: var(--text-secondary);
+      font-size: 11px;
+      flex: 0 0 auto;
+    }
+
+    #musicaSection .music-folder-tracks {
+      margin: 0;
+      padding: 0 0 8px 20px;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    #musicaSection .music-folder-track {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.48);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    #musicaSection .music-folder-track-name {
+      min-width: 0;
+      flex: 1;
+      font-size: 11px;
+      color: var(--text-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #musicaSection .music-modal-selector {
+      display: grid;
+      grid-template-columns: 1.25fr 1fr auto;
+      gap: 8px;
+      align-items: end;
+      margin: 10px 0 12px 0;
+    }
+
+    #musicaSection .music-modal-selector .music-target-select,
+    #musicaSection .music-modal-selector .music-target-input {
+      width: 100%;
+    }
+
+    #musicaSection .music-inline-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     #musicaSection .music-list-title {
@@ -4872,6 +4990,16 @@
 
     #musicaSection #playerContainer.is-transitioning .music-player-frame.active {
       transition-duration: 0.18s;
+    }
+
+    @media (min-width: 1024px) {
+      #musicaSection .music-panel {
+        overflow: hidden;
+      }
+
+      #musicaSection .music-layout {
+        align-items: stretch;
+      }
     }
 
     #musicaSection .music-player-frame > div {
@@ -6420,8 +6548,8 @@
               <span id="musicProgressDuration">0:00</span>
             </div>
           </div>
-          <div id="trackInfo" style="font-size:13px; color:var(--text-primary); overflow:hidden;">
-            <pre id="trackMetadata" style="display:none; font-size:10px; color:var(--text-secondary); white-space:pre-wrap; word-break:break-all; margin:0; max-height:80px; overflow:auto;">{}</pre>
+          <div id="trackInfo" style="font-size:13px; color:var(--text-primary); overflow:auto; max-height:100%;">
+            <pre id="trackMetadata" style="display:none; font-size:10px; color:var(--text-secondary); white-space:pre-wrap; word-break:break-all; margin:0; max-height:80px; overflow:auto; max-width:100%;">{}</pre>
           </div>
         </aside>
       </div>
@@ -6450,6 +6578,24 @@
               </div>
             </div>
 
+            <div id="musicPlaylistDestinationSection" style="margin:10px 0 12px 0; display:none;">
+              <label style="display:block; margin-bottom:6px;"><small>Lista destino</small></label>
+              <div class="music-modal-selector">
+                <label class="music-field" style="margin:0;">
+                  <small>Seleccionar lista</small>
+                  <select id="musicTargetPlaylistSelect" class="music-target-select"></select>
+                </label>
+                <label class="music-field" style="margin:0;">
+                  <small>Nueva lista</small>
+                  <input id="musicNewPlaylistName" class="music-target-input" placeholder="Nombre de la nueva lista">
+                </label>
+                <div class="music-inline-actions">
+                  <button type="button" id="createAndUsePlaylistBtn" class="music-pill-btn">Crear y usar</button>
+                </div>
+              </div>
+              <small style="color:var(--text-secondary); font-size:11px;">Si no existe una lista, crea una nueva y la canción se agregará automáticamente.</small>
+            </div>
+
             <div id="listUploadArea" style="display:none; margin-bottom:8px;">
               <div class="music-modal-actions" style="margin-bottom:6px;">
                 <button type="button" id="add1Field">+1</button>
@@ -6464,6 +6610,50 @@
             <div class="music-modal-footer">
               <button type="button" id="cancelAddMusicBtn">Cancelar</button>
               <button type="submit" id="confirmAddMusicBtn">Agregar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div id="playlistPickerModal" class="hiddenX">
+        <div class="music-modal-card" style="width:min(560px, calc(100% - 40px)); height:auto; max-height:calc(100% - 48px);">
+          <button id="closePlaylistPickerModal" class="music-modal-close" aria-label="Cerrar">✕</button>
+          <h3 class="music-modal-title">Agregar a lista</h3>
+          <p id="playlistPickerSubtitle" class="music-modal-subtitle">Selecciona una lista o crea una nueva para agregar esta canción.</p>
+          <div class="music-modal-selector" style="grid-template-columns: 1.2fr 1fr auto;">
+            <label class="music-field" style="margin:0;">
+              <small>Lista existente</small>
+              <select id="playlistPickerSelect" class="music-target-select"></select>
+            </label>
+            <label class="music-field" style="margin:0;">
+              <small>Nueva lista</small>
+              <input id="playlistPickerNewName" class="music-target-input" placeholder="Nombre de la nueva lista">
+            </label>
+            <div class="music-inline-actions">
+              <button type="button" id="playlistPickerCreateBtn" class="music-pill-btn">Crear y agregar</button>
+              <button type="button" id="playlistPickerAddBtn" class="music-pill-btn">Agregar</button>
+            </div>
+          </div>
+          <small style="color:var(--text-secondary); font-size:11px;">La lista se mostrará en la carpeta izquierda y podrás abrirla o cerrarla.</small>
+        </div>
+      </div>
+      
+      <div id="editMusicModal" class="hiddenX">
+        <div class="music-modal-card" style="width:min(560px, calc(100% - 40px)); height:auto; max-height:calc(100% - 48px);">
+          <button id="closeEditMusicModal" class="music-modal-close" aria-label="Cerrar">✕</button>
+          <h3 class="music-modal-title">Editar canción</h3>
+          <p class="music-modal-subtitle">Modifica los atributos y guarda los cambios.</p>
+          <form id="editMusicForm">
+            <div style="display:grid; gap:8px;">
+              <label class="music-field"><small>Título</small><input id="editMusicTitle" type="text"></label>
+              <label class="music-field"><small>URL</small><input id="editMusicUrl" type="text"></label>
+              <label class="music-field"><small>Artista</small><input id="editMusicArtist" type="text"></label>
+              <label class="music-field"><small>Álbum</small><input id="editMusicAlbum" type="text"></label>
+              <label class="music-field"><small>Año</small><input id="editMusicYear" type="number" min="1900" max="2100"></label>
+            </div>
+            <div class="music-modal-footer" style="margin-top:12px;">
+              <button type="button" id="cancelEditMusicBtn">Cancelar</button>
+              <button type="submit" id="confirmEditMusicBtn">Guardar</button>
             </div>
           </form>
         </div>
@@ -10482,6 +10672,8 @@
         catalog: [],
         playlists: [],
         selectedPlaylistId: '',
+        expandedPlaylists: {},
+        pendingPlaylistTrack: null,
         currentIndex: -1,
         playbackNonce: 0,
         activePlayerType: '',
@@ -10947,6 +11139,7 @@
           };
           setTimeout(bindEndedGuarded, 300);
           setTimeout(bindEndedGuarded, 900);
+          renderLocalMusicList();
           musicStartProgressTracker(playbackNonce);
           musicDebugLog('audio:init:done', { elapsedMs: Math.round(performance.now() - startedAt) });
         } catch (error) {
@@ -11011,6 +11204,7 @@
             musicAutoAdvanceToNextTrack();
           });
         }
+        renderLocalMusicList();
         musicStartProgressTracker(playbackNonce);
         musicDebugLog('video:init:done', { elapsedMs: Math.round(performance.now() - startedAt) });
       }
@@ -11040,211 +11234,322 @@
         }
       }
 
+      function playMusicTrackById(trackId, options = {}) {
+        const state = window.__musicState;
+        const normalizedId = String(trackId || '').trim();
+        if (!normalizedId || !Array.isArray(state.catalog) || !state.catalog.length) return;
+        const index = state.catalog.findIndex((item) => String(item?.id || '').trim() === normalizedId);
+        if (index < 0) return;
+        playMusicTrackByIndex(index, options);
+      }
+
       function renderLocalMusicList() {
         const state = window.__musicState;
         const localMusicList = document.getElementById('localMusicList');
         if (!localMusicList) return;
         localMusicList.innerHTML = '';
 
-        if (!Array.isArray(state.catalog) || state.catalog.length === 0) {
-          localMusicList.innerHTML = '<li class="music-empty-state">Aún no hay pistas disponibles.</li>';
+        const playlists = Array.isArray(state.playlists) ? state.playlists : [];
+        if (!playlists.length) {
+          localMusicList.innerHTML = '<li class="music-empty-state">Crea una lista para ver las canciones aquí.</li>';
           return;
         }
 
-        state.catalog.forEach((track, index) => {
-          const li = document.createElement('li');
-          li.className = 'music-list-item';
-          if (state.currentIndex === index) li.classList.add('selected');
+        playlists.forEach((playlist) => {
+          const playlistId = String(playlist.id || '').trim();
+          const items = Array.isArray(playlist.items) ? playlist.items : [];
+          const isExpanded = !!state.expandedPlaylists?.[playlistId];
 
-          // Play / Stop button
-          const playBtn = document.createElement('button');
-          playBtn.type = 'button';
-          playBtn.className = 'music-play-btn';
-          playBtn.style.marginRight = '8px';
-          playBtn.style.background = 'none';
-          playBtn.style.border = 'none';
-          playBtn.style.cursor = 'pointer';
-          playBtn.style.padding = '4px 6px';
-          playBtn.style.borderRadius = '4px';
-          playBtn.style.color = 'var(--text-primary)';
-          playBtn.style.fontSize = '16px';
-          playBtn.style.display = 'flex';
-          playBtn.style.alignItems = 'center';
-          playBtn.style.justifyContent = 'center';
-          playBtn.style.transition = 'background-color 0.2s ease';
-          const isPlaying = state.currentIndex === index && state.activePlayerType === state.mode && state.playbackNonce > 0;
-          playBtn.title = isPlaying ? 'Detener' : 'Reproducir';
-          playBtn.innerHTML = isPlaying ? 
-            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>' :
-            '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
-          playBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (state.currentIndex === index) {
-              try { if (typeof musicDestroyPlayers === 'function') musicDestroyPlayers(); } catch (err) {}
-              state.currentIndex = -1;
-              musicSetTrackInfo(null);
-              renderLocalMusicList();
-              return;
-            }
-            playMusicTrackByIndex(index);
+          const folder = document.createElement('li');
+          folder.className = `music-folder-item${isExpanded ? ' is-open' : ''}`;
+
+          const headerBtn = document.createElement('button');
+          headerBtn.type = 'button';
+          headerBtn.className = 'music-folder-header';
+          headerBtn.title = isExpanded ? 'Contraer lista' : 'Desplegar lista';
+          headerBtn.innerHTML = `
+            <span class="music-folder-left">
+              <span class="music-folder-caret"><i class="fas fa-chevron-right"></i></span>
+              <span class="music-folder-name"></span>
+            </span>
+            <span class="music-folder-count">${Number(items.length || 0)}</span>
+          `;
+          headerBtn.querySelector('.music-folder-name').textContent = playlist.name || 'Sin nombre';
+          headerBtn.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            state.expandedPlaylists = state.expandedPlaylists || {};
+            state.expandedPlaylists[playlistId] = !isExpanded;
+            renderLocalMusicList();
           });
 
-          const titleBtn = document.createElement('button');
-          titleBtn.type = 'button';
-          titleBtn.textContent = track.title || 'Sin título';
-          titleBtn.className = 'music-list-title';
-          titleBtn.addEventListener('click', () => playMusicTrackByIndex(index));
+          folder.appendChild(headerBtn);
 
-          // Add to playlist button (existing)
-          const addBtn = document.createElement('button');
-          addBtn.type = 'button';
-          addBtn.textContent = 'Añadir';
-          addBtn.className = 'music-list-add-btn';
-          addBtn.disabled = !state.selectedPlaylistId;
-          addBtn.addEventListener('click', async (ev) => {
-            ev.stopPropagation();
-            if (!state.selectedPlaylistId) {
-              mostrarMensaje('info', 'Selecciona una playlist', 'Primero elige una lista de reproducción.');
-              return;
-            }
-            try {
-              const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
-              const response = await fetch('/api/social?action=add-music-to-playlist', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  ...(idToken ? { 'Authorization': `Bearer ${idToken}` } : {})
-                },
-                body: JSON.stringify({ playlistId: state.selectedPlaylistId, musicId: track.id })
-              });
-              const payload = await response.json().catch(() => ({}));
-              if (!response.ok) throw new Error(payload.error || 'No se pudo agregar a playlist');
-              await loadMusicPlaylists();
-              mostrarMensaje('success', 'Agregado', 'La canción se agregó a la playlist.');
-            } catch (error) {
-              mostrarMensaje('error', 'No se pudo agregar', error?.message || 'Intenta nuevamente');
-            }
-          });
+          if (isExpanded) {
+            const songsList = document.createElement('ul');
+            songsList.className = 'music-folder-tracks';
 
-          // Three-dot menu
-          const menuBtn = document.createElement('button');
-          menuBtn.type = 'button';
-          menuBtn.className = 'music-menu-btn';
-          menuBtn.title = 'Más opciones';
-          menuBtn.style.background = 'none';
-          menuBtn.style.border = 'none';
-          menuBtn.style.cursor = 'pointer';
-          menuBtn.style.padding = '4px 6px';
-          menuBtn.style.borderRadius = '4px';
-          menuBtn.style.color = 'var(--text-secondary)';
-          menuBtn.style.marginLeft = '8px';
-          menuBtn.style.display = 'flex';
-          menuBtn.style.alignItems = 'center';
-          menuBtn.style.justifyContent = 'center';
-          menuBtn.style.transition = 'background-color 0.2s ease';
-          menuBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg>';
-          menuBtn.addEventListener('click', (ev) => {
-            ev.stopPropagation();
-            // Remove any existing menus
-            document.querySelectorAll('.music-item-context-menu').forEach(n => n.remove());
-            const menu = document.createElement('div');
-            menu.className = 'music-item-context-menu';
-            menu.style.position = 'absolute';
-            menu.style.zIndex = 9999;
-            menu.style.background = 'var(--bg-card)';
-            menu.style.border = '1px solid var(--border-color)';
-            menu.style.padding = '6px';
-            menu.style.borderRadius = '6px';
-            menu.style.boxShadow = '0 6px 18px rgba(0,0,0,0.12)';
-            menu.style.minWidth = '160px';
-            const favOpt = document.createElement('div');
-            favOpt.textContent = isTrackFavorite(track.id) ? 'Quitar de favoritos' : 'Agregar a favoritos';
-            favOpt.style.padding = '6px 8px';
-            favOpt.style.cursor = 'pointer';
-            favOpt.addEventListener('click', (e2) => {
-              e2.stopPropagation();
-              const nowFav = toggleTrackFavorite(track.id);
-              mostrarMensaje('success', nowFav ? 'Favorito' : 'Quitado', nowFav ? 'Agregado a favoritos' : 'Eliminado de favoritos');
-              document.querySelectorAll('.music-item-context-menu').forEach(n => n.remove());
-              renderLocalMusicList();
-              musicSetTrackInfo(state.catalog[state.currentIndex] || null);
-            });
-            menu.appendChild(favOpt);
+            if (!items.length) {
+              const empty = document.createElement('li');
+              empty.className = 'music-empty-state';
+              empty.textContent = 'Aún no hay canciones en esta lista.';
+              songsList.appendChild(empty);
+            } else {
+              items.forEach((entry) => {
+                const track = entry?.music || entry || null;
+                const trackId = String(track?.id || entry?.music_id || '').trim();
+                if (!trackId) return;
 
-            const currentUid = String(window.currentUserId || auth?.currentUser?.uid || '').trim();
-            const isOwner = !!currentUid && (String(track.userId || '') === currentUid || !!window.isOwner);
-            if (isOwner) {
-              const delOpt = document.createElement('div');
-              delOpt.textContent = 'Eliminar';
-              delOpt.style.padding = '6px 8px';
-              delOpt.style.cursor = 'pointer';
-              delOpt.style.color = 'var(--error-color)';
-              delOpt.addEventListener('click', async (e3) => {
-                e3.stopPropagation();
-                mostrarMensaje('confirm', 'Eliminar publicación', `¿Eliminar \"${track.title || 'esta pista'}\"?`, async () => {
-                  try {
-                    await deletePost(track.id, track.imgurDeletehash || undefined);
-                    mostrarMensaje('success', 'Eliminado', 'La pista fue eliminada.');
-                    await loadMusicCatalog();
-                  } catch (err) {
-                    mostrarMensaje('error', 'No se pudo eliminar', err?.message || 'Intenta nuevamente');
+                const songRow = document.createElement('li');
+                songRow.className = 'music-folder-track';
+
+                const playBtn = document.createElement('button');
+                playBtn.type = 'button';
+                playBtn.className = 'music-play-btn';
+                playBtn.style.background = 'none';
+                playBtn.style.border = 'none';
+                playBtn.style.cursor = 'pointer';
+                playBtn.style.padding = '4px 6px';
+                playBtn.style.borderRadius = '4px';
+                playBtn.style.color = 'var(--text-primary)';
+                playBtn.style.display = 'flex';
+                playBtn.style.alignItems = 'center';
+                playBtn.style.justifyContent = 'center';
+                const isPlaying = String(state.catalog?.[state.currentIndex]?.id || '') === trackId && state.activePlayerType === state.mode && state.playbackNonce > 0;
+                playBtn.title = isPlaying ? 'Detener' : 'Reproducir';
+                playBtn.innerHTML = isPlaying
+                  ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>'
+                  : '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+                playBtn.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  if (isPlaying) {
+                    try { if (typeof musicDestroyPlayers === 'function') musicDestroyPlayers(); } catch (_) {}
+                    window.__musicState.currentIndex = -1;
+                    musicSetTrackInfo(null);
+                    renderLocalMusicList();
+                    return;
                   }
+                  playMusicTrackById(trackId);
                 });
-                document.querySelectorAll('.music-item-context-menu').forEach(n => n.remove());
+
+                const title = document.createElement('span');
+                title.className = 'music-folder-track-name';
+                title.textContent = track?.title || 'Sin título';
+
+                const menuBtn = document.createElement('button');
+                menuBtn.type = 'button';
+                menuBtn.className = 'music-menu-btn';
+                menuBtn.title = 'Más opciones';
+                menuBtn.style.background = 'none';
+                menuBtn.style.border = 'none';
+                menuBtn.style.cursor = 'pointer';
+                menuBtn.style.padding = '4px 6px';
+                menuBtn.style.borderRadius = '4px';
+                menuBtn.style.color = 'var(--text-secondary)';
+                menuBtn.style.display = 'flex';
+                menuBtn.style.alignItems = 'center';
+                menuBtn.style.justifyContent = 'center';
+                menuBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg>';
+                menuBtn.addEventListener('click', (ev) => {
+                  ev.stopPropagation();
+                  document.querySelectorAll('.music-item-context-menu').forEach((n) => n.remove());
+                  const menu = document.createElement('div');
+                  menu.className = 'music-item-context-menu';
+                  menu.style.position = 'absolute';
+                  menu.style.zIndex = 9999;
+                  menu.style.background = 'var(--bg-card)';
+                  menu.style.border = '1px solid var(--border-color)';
+                  menu.style.padding = '6px';
+                  menu.style.borderRadius = '6px';
+                  menu.style.boxShadow = '0 6px 18px rgba(0,0,0,0.12)';
+                  menu.style.minWidth = '170px';
+
+                  const favOpt = document.createElement('div');
+                  favOpt.textContent = isTrackFavorite(trackId) ? 'Quitar de favoritos' : 'Agregar a favoritos';
+                  favOpt.style.padding = '6px 8px';
+                  favOpt.style.cursor = 'pointer';
+                  favOpt.addEventListener('click', (e2) => {
+                    e2.stopPropagation();
+                    const nowFav = toggleTrackFavorite(trackId);
+                    mostrarMensaje('success', nowFav ? 'Favorito' : 'Quitado', nowFav ? 'Agregado a favoritos' : 'Eliminado de favoritos');
+                    document.querySelectorAll('.music-item-context-menu').forEach((n) => n.remove());
+                    renderLocalMusicList();
+                    musicSetTrackInfo(state.catalog[state.currentIndex] || null);
+                  });
+                  menu.appendChild(favOpt);
+
+                  const currentUid = String(window.currentUserId || auth?.currentUser?.uid || '').trim();
+                  const isOwner = !!currentUid && (String(track?.userId || '') === currentUid || !!window.isOwner);
+                  if (isOwner) {
+                    const editOpt = document.createElement('div');
+                    editOpt.textContent = 'Editar';
+                    editOpt.style.padding = '6px 8px';
+                    editOpt.style.cursor = 'pointer';
+                    editOpt.addEventListener('click', (e2) => {
+                      e2.stopPropagation();
+                      document.querySelectorAll('.music-item-context-menu').forEach((n) => n.remove());
+                      openEditMusicModal(track);
+                    });
+                    menu.appendChild(editOpt);
+
+                    const addToListOpt = document.createElement('div');
+                    addToListOpt.textContent = 'Añadir a lista';
+                    addToListOpt.style.padding = '6px 8px';
+                    addToListOpt.style.cursor = 'pointer';
+                    addToListOpt.addEventListener('click', (e2) => {
+                      e2.stopPropagation();
+                      document.querySelectorAll('.music-item-context-menu').forEach((n) => n.remove());
+                      openPlaylistPickerModal(track);
+                    });
+                    menu.appendChild(addToListOpt);
+
+                    const divider = document.createElement('div');
+                    divider.style.height = '1px';
+                    divider.style.margin = '4px 0';
+                    divider.style.background = 'var(--border-color)';
+                    menu.appendChild(divider);
+
+                    const delOpt = document.createElement('div');
+                    delOpt.textContent = 'Eliminar';
+                    delOpt.style.padding = '6px 8px';
+                    delOpt.style.cursor = 'pointer';
+                    delOpt.style.color = 'var(--error-color)';
+                    delOpt.addEventListener('click', async (e2) => {
+                      e2.stopPropagation();
+                      mostrarMensaje('confirm', 'Eliminar publicación', `¿Eliminar "${track?.title || 'esta pista'}"?`, async () => {
+                        try {
+                          const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
+                          const response = await fetch('/api/social?action=delete-music', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              ...(idToken ? { 'Authorization': `Bearer ${idToken}` } : {})
+                            },
+                            body: JSON.stringify({ musicId: trackId })
+                          });
+                          const payload = await response.json().catch(() => ({}));
+                          if (!response.ok) throw new Error(payload.error || 'No se pudo eliminar la música');
+                          if (String(window.__musicState.catalog?.[window.__musicState.currentIndex]?.id || '') === trackId) {
+                            window.__musicState.currentIndex = -1;
+                            musicDestroyPlayers();
+                            musicSetTrackInfo(null);
+                          }
+                          mostrarMensaje('success', 'Eliminado', 'La pista fue eliminada.');
+                          await loadMusicCatalog();
+                          await loadMusicPlaylists();
+                        } catch (err) {
+                          mostrarMensaje('error', 'No se pudo eliminar', err?.message || 'Intenta nuevamente');
+                        }
+                      });
+                      document.querySelectorAll('.music-item-context-menu').forEach((n) => n.remove());
+                    });
+                    menu.appendChild(delOpt);
+                  }
+
+                  document.body.appendChild(menu);
+                  const rect = menuBtn.getBoundingClientRect();
+                  menu.style.top = `${rect.bottom + window.scrollY + 6}px`;
+                  menu.style.left = `${rect.left + window.scrollX - menu.offsetWidth + rect.width}px`;
+                  const onDocClick = (ev2) => { if (!menu.contains(ev2.target)) { menu.remove(); document.removeEventListener('click', onDocClick); } };
+                  document.addEventListener('click', onDocClick);
+                });
+
+                songRow.appendChild(playBtn);
+                songRow.appendChild(title);
+                songRow.appendChild(menuBtn);
+                songsList.appendChild(songRow);
               });
-              menu.appendChild(delOpt);
             }
 
-            document.body.appendChild(menu);
-            const rect = menuBtn.getBoundingClientRect();
-            menu.style.top = `${rect.bottom + window.scrollY + 6}px`;
-            menu.style.left = `${rect.left + window.scrollX - menu.offsetWidth + rect.width}px`;
+            folder.appendChild(songsList);
+          }
 
-            const onDocClick = (ev2) => { if (!menu.contains(ev2.target)) { menu.remove(); document.removeEventListener('click', onDocClick); } };
-            document.addEventListener('click', onDocClick);
-          });
-
-          li.appendChild(playBtn);
-          li.appendChild(titleBtn);
-          li.appendChild(addBtn);
-          li.appendChild(menuBtn);
-          localMusicList.appendChild(li);
+          localMusicList.appendChild(folder);
         });
       }
 
       function renderMusicPlaylists() {
         const state = window.__musicState;
         const playlistsList = document.getElementById('playlistsList');
-        if (!playlistsList) return;
-        playlistsList.innerHTML = '';
+        if (playlistsList) {
+          playlistsList.innerHTML = '';
+          if (!Array.isArray(state.playlists) || state.playlists.length === 0) {
+            playlistsList.innerHTML = '<li class="music-empty-state">Crea tu primera lista de reproducción.</li>';
+          } else {
+            state.playlists.forEach((playlist) => {
+              const li = document.createElement('li');
+              li.dataset.playlistId = playlist.id;
+              li.className = 'music-list-item';
+              if (state.selectedPlaylistId === playlist.id) {
+                li.classList.add('selected');
+              }
 
-        if (!Array.isArray(state.playlists) || state.playlists.length === 0) {
-          playlistsList.innerHTML = '<li class="music-empty-state">Crea tu primera lista de reproducción.</li>';
-          return;
+              const name = document.createElement('span');
+              name.textContent = playlist.name;
+              const count = document.createElement('span');
+              count.className = 'playlist-count';
+              count.textContent = `(${Number(playlist.songs_count || 0)})`;
+              li.appendChild(name);
+              li.appendChild(count);
+              li.addEventListener('click', () => {
+                state.selectedPlaylistId = playlist.id;
+                renderMusicPlaylists();
+                renderLocalMusicList();
+              });
+              playlistsList.appendChild(li);
+            });
+          }
         }
 
-        state.playlists.forEach((playlist) => {
-          const li = document.createElement('li');
-          li.dataset.playlistId = playlist.id;
-          li.className = 'music-list-item';
-          if (state.selectedPlaylistId === playlist.id) {
-            li.classList.add('selected');
-          }
+        renderMusicPlaylistSelectors();
+      }
 
-          const name = document.createElement('span');
-          name.textContent = playlist.name;
-          const count = document.createElement('span');
-          count.className = 'playlist-count';
-          count.textContent = `(${Number(playlist.songs_count || 0)})`;
-          li.appendChild(name);
-          li.appendChild(count);
-          li.addEventListener('click', () => {
-            state.selectedPlaylistId = playlist.id;
-            renderMusicPlaylists();
-            renderLocalMusicList();
+      function renderMusicPlaylistSelectors() {
+        const state = window.__musicState;
+        const playlists = Array.isArray(state.playlists) ? state.playlists : [];
+        const selectIds = ['musicTargetPlaylistSelect', 'playlistPickerSelect'];
+
+        selectIds.forEach((selectId) => {
+          const select = document.getElementById(selectId);
+          if (!select) return;
+
+          const previousValue = select.value || state.selectedPlaylistId || '';
+          select.innerHTML = '';
+
+          const noneOpt = document.createElement('option');
+          noneOpt.value = '';
+          noneOpt.textContent = playlists.length ? '— Seleccionar —' : '— Sin listas —';
+          select.appendChild(noneOpt);
+
+          playlists.forEach((playlist) => {
+            const option = document.createElement('option');
+            option.value = playlist.id;
+            option.textContent = `${playlist.name} (${Number(playlist.songs_count || 0)})`;
+            select.appendChild(option);
           });
-          playlistsList.appendChild(li);
+
+          const newOpt = document.createElement('option');
+          newOpt.value = '__new__';
+          newOpt.textContent = 'Crear nueva lista';
+          select.appendChild(newOpt);
+
+          const nextValue = playlists.some((playlist) => String(playlist.id) === String(previousValue)) ? previousValue : (playlists[0]?.id || '__new__');
+          select.value = nextValue;
         });
+
+        const destinationSection = document.getElementById('musicPlaylistDestinationSection');
+        if (destinationSection) {
+          destinationSection.style.display = window.isOwner ? '' : 'none';
+        }
+
+        const pickerModal = document.getElementById('playlistPickerModal');
+        if (pickerModal && !pickerModal.classList.contains('hiddenX')) {
+          const subtitle = document.getElementById('playlistPickerSubtitle');
+          if (subtitle) {
+            subtitle.textContent = state.pendingPlaylistTrack
+              ? `Selecciona una lista para "${state.pendingPlaylistTrack.title || 'esta canción'}".`
+              : 'Selecciona una lista o crea una nueva para agregar esta canción.';
+          }
+        }
       }
 
       async function loadMusicCatalog() {
@@ -11260,14 +11565,6 @@
             mode: window.__musicState.mode
           });
           renderLocalMusicList();
-          if (window.__musicState.currentIndex < 0 && window.__musicState.catalog.length > 0) {
-            window.__musicState.currentIndex = 0;
-            renderLocalMusicList();
-            musicDebugLog('catalog:bootstrap-selection', {
-              selectedIndex: 0,
-              track: window.__musicState.catalog[0]?.title || 'Sin título'
-            });
-          }
         } catch (error) {
           console.warn('loadMusicCatalog error:', error);
           musicDebugLog('catalog:load:error', { message: error?.message || String(error) });
@@ -11302,12 +11599,12 @@
         }
       }
 
-      async function createMusicPlaylist() {
+      async function createMusicPlaylist(nameArg = '') {
         if (window.isGuestSession) {
           mostrarMensaje('info', 'Sesión requerida', 'Debes iniciar sesión para crear playlists.');
           return;
         }
-        const name = String(window.prompt('Nombre de la playlist:') || '').trim();
+        const name = String(nameArg || window.prompt('Nombre de la playlist:') || '').trim();
         if (!name) return;
 
         try {
@@ -11328,8 +11625,105 @@
             window.__musicState.selectedPlaylistId = payload.playlist.id;
           }
           renderMusicPlaylists();
+          return payload.playlist || null;
         } catch (error) {
           mostrarMensaje('error', 'No se pudo crear playlist', error?.message || 'Intenta nuevamente');
+          return null;
+        }
+      }
+
+      async function addMusicToPlaylist(playlistId, musicId) {
+        const targetPlaylistId = String(playlistId || '').trim();
+        const targetMusicId = String(musicId || '').trim();
+        if (!targetPlaylistId || !targetMusicId) return false;
+
+        const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
+        const response = await fetch('/api/social?action=add-music-to-playlist', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(idToken ? { 'Authorization': `Bearer ${idToken}` } : {})
+          },
+          body: JSON.stringify({ playlistId: targetPlaylistId, musicId: targetMusicId })
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || 'No se pudo agregar a la lista');
+        await loadMusicPlaylists();
+        return true;
+      }
+
+      function openPlaylistPickerModal(track) {
+        const state = window.__musicState;
+        if (!window.isOwner) return;
+        state.pendingPlaylistTrack = track || null;
+        const modal = document.getElementById('playlistPickerModal');
+        if (!modal) return;
+        modal.classList.remove('hiddenX');
+        renderMusicPlaylistSelectors();
+      }
+
+      function closePlaylistPickerModal() {
+        const state = window.__musicState;
+        state.pendingPlaylistTrack = null;
+        const modal = document.getElementById('playlistPickerModal');
+        modal?.classList.add('hiddenX');
+      }
+
+      // ===== Edit music modal =====
+      function openEditMusicModal(track) {
+        const state = window.__musicState;
+        if (!window.isOwner) return;
+        state.editingTrack = track || null;
+        const modal = document.getElementById('editMusicModal');
+        if (!modal) return;
+        // fill fields
+        document.getElementById('editMusicTitle').value = track?.title || '';
+        document.getElementById('editMusicUrl').value = track?.url || '';
+        document.getElementById('editMusicArtist').value = track?.artist || '';
+        document.getElementById('editMusicAlbum').value = track?.album || '';
+        document.getElementById('editMusicYear').value = track?.year || '';
+        modal.classList.remove('hiddenX');
+      }
+
+      function closeEditMusicModal() {
+        const state = window.__musicState;
+        state.editingTrack = null;
+        const modal = document.getElementById('editMusicModal');
+        modal?.classList.add('hiddenX');
+      }
+
+      async function submitEditMusicForm(e) {
+        e.preventDefault();
+        const state = window.__musicState;
+        const track = state.editingTrack;
+        if (!track?.id) {
+          mostrarMensaje('info', 'Sin pista', 'No hay pista para editar');
+          return;
+        }
+        const title = String(document.getElementById('editMusicTitle')?.value || '').trim();
+        const url = String(document.getElementById('editMusicUrl')?.value || '').trim();
+        const artist = String(document.getElementById('editMusicArtist')?.value || '').trim();
+        const album = String(document.getElementById('editMusicAlbum')?.value || '').trim();
+        const yearRaw = String(document.getElementById('editMusicYear')?.value || '').trim();
+        const year = yearRaw ? Number(yearRaw) : null;
+
+        try {
+          const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
+          const response = await fetch('/api/social?action=edit-music', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(idToken ? { 'Authorization': `Bearer ${idToken}` } : {})
+            },
+            body: JSON.stringify({ musicId: track.id, music: { title, url, artist, album, year } })
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(payload.error || 'No se pudo actualizar la música');
+          mostrarMensaje('success', 'Actualizado', 'La pista fue actualizada.');
+          closeEditMusicModal();
+          await Promise.all([loadMusicCatalog(), loadMusicPlaylists()]);
+        } catch (err) {
+          mostrarMensaje('error', 'Error', err?.message || String(err));
         }
       }
 
@@ -11345,6 +11739,11 @@
         const uploadModeList = document.getElementById('uploadModeList');
         const dynamicListFields = document.getElementById('dynamicListFields');
         const isList = !!uploadModeList && uploadModeList.classList.contains('active');
+        const targetSelect = document.getElementById('musicTargetPlaylistSelect');
+        const targetNewName = document.getElementById('musicNewPlaylistName');
+        const targetValue = String(targetSelect?.value || '').trim();
+        const targetPlaylistId = targetValue && targetValue !== '__new__' ? targetValue : '';
+        const targetPlaylistName = String(targetNewName?.value || '').trim();
 
         try {
           const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
@@ -11367,15 +11766,18 @@
             if (!response.ok) throw new Error(payload.error || 'No se pudo agregar música');
 
             const createdMusic = payload.music || null;
-            if (state.selectedPlaylistId && createdMusic?.id) {
-              await fetch('/api/social?action=add-music-to-playlist', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': idToken ? `Bearer ${idToken}` : '',
-                },
-                body: JSON.stringify({ playlistId: state.selectedPlaylistId, musicId: createdMusic.id })
-              });
+            let destinationPlaylistId = targetPlaylistId || state.selectedPlaylistId || '';
+            if (!destinationPlaylistId && targetValue === '__new__') {
+              if (!targetPlaylistName) {
+                mostrarMensaje('info', 'Lista requerida', 'Escribe el nombre de la nueva lista para agregar la canción.');
+                return;
+              }
+              const createdPlaylist = await createMusicPlaylist(targetPlaylistName);
+              destinationPlaylistId = String(createdPlaylist?.id || '').trim();
+            }
+
+            if (destinationPlaylistId && createdMusic?.id) {
+              await addMusicToPlaylist(destinationPlaylistId, createdMusic.id);
             }
             mostrarMensaje('success', 'Música agregada', 'Se guardó correctamente.');
           } else {
@@ -11410,6 +11812,7 @@
 
           document.getElementById('addMusicModal')?.classList.add('hiddenX');
           document.body.style.overflow = '';
+          targetNewName && (targetNewName.value = '');
           await Promise.all([loadMusicCatalog(), loadMusicPlaylists()]);
         } catch (error) {
           mostrarMensaje('error', 'No se pudo guardar', error?.message || 'Intenta nuevamente');
@@ -11571,6 +11974,90 @@
 
         crearPlaylistBtn?.addEventListener('click', createMusicPlaylist);
         addMusicForm?.addEventListener('submit', submitAddMusicForm);
+
+        // Playlist picker modal controls
+        const playlistPickerCloseBtn = document.getElementById('closePlaylistPickerModal');
+        const playlistPickerCreateBtn = document.getElementById('playlistPickerCreateBtn');
+        const playlistPickerAddBtn = document.getElementById('playlistPickerAddBtn');
+        const playlistPickerSelect = document.getElementById('playlistPickerSelect');
+        const playlistPickerNewName = document.getElementById('playlistPickerNewName');
+
+        playlistPickerCloseBtn?.addEventListener('click', closePlaylistPickerModal);
+
+        playlistPickerCreateBtn?.addEventListener('click', async () => {
+          try {
+            const name = String(playlistPickerNewName?.value || '').trim();
+            if (!name) {
+              mostrarMensaje('info', 'Nombre requerido', 'Escribe el nombre de la nueva lista');
+              return;
+            }
+            const created = await createMusicPlaylist(name);
+            if (!created?.id) {
+              mostrarMensaje('error', 'No creada', 'No se pudo crear la lista');
+              return;
+            }
+            const track = state.pendingPlaylistTrack;
+            if (track?.id) {
+              await addMusicToPlaylist(created.id, track.id);
+              mostrarMensaje('success', 'Agregado', 'Se agregó la canción a la lista nueva');
+            }
+            closePlaylistPickerModal();
+            await loadMusicPlaylists();
+            renderMusicPlaylists();
+          } catch (err) {
+            mostrarMensaje('error', 'Error', err?.message || String(err));
+          }
+        });
+
+        playlistPickerAddBtn?.addEventListener('click', async () => {
+          try {
+            const sel = String(playlistPickerSelect?.value || '').trim();
+            const track = state.pendingPlaylistTrack;
+            if (!track?.id) {
+              mostrarMensaje('info', 'Sin canción', 'No hay canción seleccionada');
+              return;
+            }
+            let targetId = sel && sel !== '__new__' ? sel : '';
+            if (!targetId && sel === '__new__') {
+              const name = String(playlistPickerNewName?.value || '').trim();
+              if (!name) {
+                mostrarMensaje('info', 'Nombre requerido', 'Escribe el nombre de la nueva lista');
+                return;
+              }
+              const created = await createMusicPlaylist(name);
+              targetId = String(created?.id || '');
+            }
+            if (!targetId) {
+              mostrarMensaje('info', 'Selecciona lista', 'Selecciona o crea una lista');
+              return;
+            }
+            await addMusicToPlaylist(targetId, track.id);
+            mostrarMensaje('success', 'Agregado', 'Se agregó la canción a la lista');
+            closePlaylistPickerModal();
+            await loadMusicPlaylists();
+            renderMusicPlaylists();
+          } catch (err) {
+            mostrarMensaje('error', 'Error', err?.message || String(err));
+          }
+        });
+
+        if (playlistPickerSelect) {
+          playlistPickerSelect.addEventListener('change', () => {
+            if (!playlistPickerNewName) return;
+            playlistPickerNewName.style.display = playlistPickerSelect.value === '__new__' ? '' : 'none';
+          });
+          if (playlistPickerNewName) {
+            playlistPickerNewName.style.display = playlistPickerSelect.value === '__new__' ? '' : 'none';
+          }
+        }
+
+        // Edit music modal bindings
+        const closeEditBtn = document.getElementById('closeEditMusicModal');
+        const cancelEditBtn = document.getElementById('cancelEditMusicBtn');
+        const editMusicForm = document.getElementById('editMusicForm');
+        closeEditBtn?.addEventListener('click', closeEditMusicModal);
+        cancelEditBtn?.addEventListener('click', closeEditMusicModal);
+        editMusicForm?.addEventListener('submit', submitEditMusicForm);
 
         loadMusicCatalog();
         loadMusicPlaylists();

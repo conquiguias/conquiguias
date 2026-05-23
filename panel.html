@@ -10475,6 +10475,13 @@
         return true;
       }
 
+      window.__musicDebugEnabled = window.__musicDebugEnabled !== false;
+      function musicDebugLog(label, payload = {}) {
+        if (!window.__musicDebugEnabled || typeof console === 'undefined') return;
+        const stamp = new Date().toISOString().slice(11, 23);
+        console.log(`[MUSIC][${stamp}] ${label}`, payload);
+      }
+
       function musicNormalizeAudioUrl(rawUrl = '') {
         const url = String(rawUrl || '').trim();
         if (!url) return '';
@@ -10500,6 +10507,7 @@
         if (!trackTitle || !trackArtist || !trackAlbum || !trackMetadata) return;
 
         if (!track) {
+          musicDebugLog('track-info:cleared');
           trackTitle.textContent = 'Selecciona una pista';
           trackArtist.textContent = 'Artista: —';
           trackAlbum.textContent = 'Álbum: —';
@@ -10514,6 +10522,13 @@
           if (musicProgressDuration) musicProgressDuration.textContent = '0:00';
           return;
         }
+
+        musicDebugLog('track-info:set', {
+          title: track.title || 'Sin título',
+          artist: track.artist || '—',
+          album: track.album || '—',
+          mode: window.__musicState?.mode || 'unknown'
+        });
 
         trackTitle.textContent = track.title || 'Sin título';
         trackArtist.textContent = `Artista: ${track.artist || '—'}`;
@@ -10617,9 +10632,11 @@
       function musicStartProgressTracker(expectedNonce) {
         const state = window.__musicState;
         musicStopProgressTracker();
+        musicDebugLog('progress-tracker:start', { expectedNonce, activePlayerType: state.activePlayerType });
         musicUpdateProgress();
         state.progressTimer = window.setInterval(() => {
           if (state.playbackNonce !== expectedNonce) {
+            musicDebugLog('progress-tracker:stale-session', { expectedNonce, currentNonce: state.playbackNonce });
             musicStopProgressTracker();
             return;
           }
@@ -10629,6 +10646,11 @@
 
       function musicDestroyPlayers() {
         const state = window.__musicState;
+        musicDebugLog('destroy-players:start', {
+          hasLuna: !!state.lunaInstance,
+          hasClappr: !!state.clapprPlayer,
+          activePlayerType: state.activePlayerType
+        });
         musicStopProgressTracker();
         try {
           if (state.lunaInstance && typeof state.lunaInstance.lunaradio === 'function') {
@@ -10651,6 +10673,7 @@
           state.lunaInstance = null;
 
           if (state.clapprPlayer && typeof state.clapprPlayer.destroy === 'function') {
+        musicDebugLog('destroy-players:end');
             state.clapprPlayer.destroy();
           }
         } catch (_) { }
@@ -10717,6 +10740,12 @@
         const container = document.getElementById('lunaradioPlayerPlaceholder');
         if (!container || !track) return;
         const playbackNonce = musicStartNewPlaybackSession('audio');
+        const startedAt = performance.now();
+        musicDebugLog('audio:init:start', {
+          track: track.title || 'Sin título',
+          url: track.url || '',
+          playbackNonce
+        });
         musicSetPlayerMode('audio');
         musicDestroyPlayers();
         container.innerHTML = '';
@@ -10770,6 +10799,10 @@
             autoplay: 'true'
           });
           state.lunaInstance = instance;
+          musicDebugLog('audio:init:lunaradio-created', {
+            elapsedMs: Math.round(performance.now() - startedAt),
+            hasInstance: !!instance
+          });
 
           const bindEnded = () => {
             container.querySelectorAll('audio').forEach((audioEl) => {
@@ -10785,8 +10818,10 @@
           setTimeout(bindEndedGuarded, 300);
           setTimeout(bindEndedGuarded, 900);
           musicStartProgressTracker(playbackNonce);
+          musicDebugLog('audio:init:done', { elapsedMs: Math.round(performance.now() - startedAt) });
         } catch (error) {
           console.warn('Error inicializando LunaRadio:', error);
+          musicDebugLog('audio:init:error', { message: error?.message || String(error) });
           container.textContent = 'No se pudo iniciar LunaRadio';
         }
       }
@@ -10796,6 +10831,12 @@
         const container = document.getElementById('clapprPlayerPlaceholder');
         if (!container || !track) return;
         const playbackNonce = musicStartNewPlaybackSession('video');
+        const startedAt = performance.now();
+        musicDebugLog('video:init:start', {
+          track: track.title || 'Sin título',
+          url: track.url || '',
+          playbackNonce
+        });
         musicSetPlayerMode('video');
         musicDestroyPlayers();
         if (typeof Clappr === 'undefined') {
@@ -10823,6 +10864,10 @@
           },
         });
         state.clapprPlayer = player;
+        musicDebugLog('video:init:player-created', {
+          elapsedMs: Math.round(performance.now() - startedAt),
+          hasPlayer: !!player
+        });
 
         if (Clappr.Events?.PLAYER_ENDED) {
           player.on(Clappr.Events.PLAYER_ENDED, () => {
@@ -10831,15 +10876,27 @@
           });
         }
         musicStartProgressTracker(playbackNonce);
+        musicDebugLog('video:init:done', { elapsedMs: Math.round(performance.now() - startedAt) });
       }
 
-      function playMusicTrackByIndex(index) {
+      function playMusicTrackByIndex(index, options = {}) {
         const state = window.__musicState;
         if (!Array.isArray(state.catalog) || !state.catalog[index]) return;
+        const autoplay = options.autoplay !== false;
+        musicDebugLog('track-select', {
+          index,
+          autoplay,
+          reason: options.reason || 'manual',
+          track: state.catalog[index]?.title || 'Sin título'
+        });
         state.currentIndex = index;
         const track = state.catalog[index];
-        musicSetTrackInfo(track);
         renderLocalMusicList();
+        if (!autoplay) {
+          musicDebugLog('track-select:bootstrap-only', { index, track: track?.title || 'Sin título' });
+          return;
+        }
+        musicSetTrackInfo(track);
         if (state.mode === 'video') {
           initMusicVideoPlayer(track);
         } else {
@@ -10941,16 +10998,28 @@
 
       async function loadMusicCatalog() {
         try {
+          musicDebugLog('catalog:load:start');
           const response = await fetch('/api/social?action=get-musics&limit=300', { method: 'GET' });
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(payload.error || 'No se pudo cargar catálogo');
           window.__musicState.catalog = Array.isArray(payload.musics) ? payload.musics : [];
+          musicDebugLog('catalog:load:done', {
+            total: window.__musicState.catalog.length,
+            currentIndex: window.__musicState.currentIndex,
+            mode: window.__musicState.mode
+          });
           renderLocalMusicList();
           if (window.__musicState.currentIndex < 0 && window.__musicState.catalog.length > 0) {
-            playMusicTrackByIndex(0);
+            window.__musicState.currentIndex = 0;
+            renderLocalMusicList();
+            musicDebugLog('catalog:bootstrap-selection', {
+              selectedIndex: 0,
+              track: window.__musicState.catalog[0]?.title || 'Sin título'
+            });
           }
         } catch (error) {
           console.warn('loadMusicCatalog error:', error);
+          musicDebugLog('catalog:load:error', { message: error?.message || String(error) });
         }
       }
 
@@ -11098,6 +11167,12 @@
 
       function initMusicSection() {
         const state = window.__musicState;
+        musicDebugLog('section:init', {
+          initialized: state.initialized,
+          mode: state.mode,
+          currentIndex: state.currentIndex,
+          catalogSize: Array.isArray(state.catalog) ? state.catalog.length : 0
+        });
         if (state.initialized) {
           const openAddMusicModalBtn = document.getElementById('openAddMusicModalBtn');
           if (openAddMusicModalBtn) openAddMusicModalBtn.style.display = window.isOwner ? '' : 'none';
@@ -11133,6 +11208,7 @@
 
         if (btnAudio && btnVideo) {
           btnAudio.addEventListener('click', () => {
+            musicDebugLog('mode-switch', { mode: 'audio', currentIndex: state.currentIndex });
             state.mode = 'audio';
             btnAudio.classList.add('active');
             btnVideo.classList.remove('active');
@@ -11146,6 +11222,7 @@
           });
 
           btnVideo.addEventListener('click', () => {
+            musicDebugLog('mode-switch', { mode: 'video', currentIndex: state.currentIndex });
             state.mode = 'video';
             btnVideo.classList.add('active');
             btnAudio.classList.remove('active');
@@ -11189,6 +11266,7 @@
         });
 
         uploadModeIndividual?.addEventListener('click', () => {
+          musicDebugLog('upload-mode-switch', { mode: 'individual', currentIndex: state.currentIndex });
           uploadModeIndividual.classList.add('active');
           uploadModeList?.classList.remove('active');
           if (listUploadArea) listUploadArea.style.display = 'none';
@@ -11196,6 +11274,7 @@
         });
 
         uploadModeList?.addEventListener('click', () => {
+          musicDebugLog('upload-mode-switch', { mode: 'list', currentIndex: state.currentIndex });
           uploadModeList.classList.add('active');
           uploadModeIndividual?.classList.remove('active');
           if (listUploadArea) listUploadArea.style.display = '';
@@ -11244,11 +11323,13 @@
 
         loadMusicCatalog();
         loadMusicPlaylists();
+        musicDebugLog('section:init:done');
       }
 
       // 🔹 Menú Música
       if (menuMusica) {
         menuMusica.addEventListener("click", () => {
+          musicDebugLog('menu-click', { section: 'musica' });
           mostrarSeccion(musicaSection, menuMusica);
           initMusicSection();
         });

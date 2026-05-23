@@ -4446,6 +4446,17 @@
       width: 100% !important;
     }
 
+    /* Hide LunaRadio stream URL and metadata displays */
+    .lunaradio-host .radiolink,
+    .lunaradio-host [data-url],
+    .lunaaudioplayer .radiolink,
+    .lunaaudioplayer .lunaradio-info,
+    .lunaaudioplayer .lunaradio-subtitle,
+    .lunaaudioplayer .lunaradio-metadata,
+    .lunaaudioplayer .stream-info {
+      display: none !important;
+    }
+
     .media-play-overlay {
       position: absolute;
       inset: 0;
@@ -4646,7 +4657,9 @@
     #musicaSection {
       font-size: 0.95rem;
       position: relative;
-      overflow: visible;
+      overflow: hidden;
+      height: 100%;
+      width: 100%;
     }
 
     #musicaSection .music-layout {
@@ -4654,8 +4667,8 @@
       grid-template-columns: minmax(180px, 220px) minmax(0, 1.45fr) minmax(200px, 250px);
       gap: 12px;
       align-items: stretch;
-      height: auto;
-      max-height: calc(100vh - 200px);
+      height: 100%;
+      width: 100%;
     }
 
     #musicaSection .music-panel {
@@ -4668,6 +4681,8 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+      overflow-y: auto;
+      height: 100%;
     }
 
     #musicaSection .music-panel-header {
@@ -4893,12 +4908,12 @@
     }
 
     #musicaSection .music-cover-wrap.is-active {
-      animation: none;
+      animation: musicCoverReveal 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
     }
 
     #musicaSection .music-cover-wrap.is-active .music-cover,
     #musicaSection .music-cover-wrap.is-active .music-cover-placeholder {
-      animation: none;
+      animation: musicCoverPop 0.52s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
     #musicaSection .music-cover {
@@ -4954,7 +4969,7 @@
       border-radius: 999px;
       background: #60a5fa;
       box-shadow: 0 0 0 0 rgba(96, 165, 250, 0.55);
-      animation: none;
+      animation: musicPulseDot 2s ease-in-out infinite;
     }
 
     #musicaSection .music-progress {
@@ -4986,7 +5001,7 @@
 
     #musicaSection .music-progress-track.is-indeterminate .music-progress-fill {
       width: 42%;
-      animation: none;
+      animation: musicIndeterminate 1.2s linear infinite;
     }
 
     #musicaSection .music-progress-labels {
@@ -6321,8 +6336,6 @@
             <button id="crearPlaylistBtn" class="music-pill-btn">+ Nueva</button>
           </div>
           <ul id="musicaCarpetas" class="music-list" style="margin-bottom:12px;">
-            <li class="carpeta-item">Músicas de la plataforma</li>
-            <li class="carpeta-item">Listas de reproducción</li>
           </ul>
           <div>
             <p class="music-subtitle">Catálogo local</p>
@@ -6367,7 +6380,12 @@
             <div id="musicCoverPlaceholder" class="music-cover-placeholder"><i class="fas fa-music"></i></div>
             <img id="musicCoverImage" class="music-cover" alt="Carátula activa" style="display:none;">
             <div style="min-width:0; flex:1; display:flex; flex-direction:column; gap:2px;">
-              <div id="musicNowPlayingBadge" class="music-now-playing">En espera</div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div id="musicNowPlayingBadge" class="music-now-playing">En espera</div>
+                <button id="trackFavoriteBtn" class="music-fav-btn" title="Favorito" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:16px;display:inline-flex;align-items:center;">
+                  <i class="fas fa-heart"></i>
+                </button>
+              </div>
               <div id="trackTitle" class="music-track-title">Selecciona una pista</div>
               <div id="trackArtist" class="music-track-line">Artista: —</div>
               <div id="trackAlbum" class="music-track-line">Álbum: —</div>
@@ -10465,6 +10483,55 @@
       }
 
       window.__mediaPlayGuards = window.__mediaPlayGuards || new Map();
+
+      // Safe no-op debug plumbing: keep counters defined but silence console output.
+      window.__musicDebugCounters = window.__musicDebugCounters || {
+        playThrottled: 0,
+        playAllowed: 0,
+        pauseSync: 0,
+        layoutRefresh: 0,
+        viewCount: 0,
+        trackSelect: 0,
+        destroyPlayers: 0
+      };
+      window.__musicDebugEnabled = false;
+      function musicDebugLog() { /* no-op: debug logs removed */ }
+
+      // Favorites helpers (persistent in localStorage)
+      function getMusicFavorites() {
+        try { return JSON.parse(localStorage.getItem('musicFavorites') || '[]'); } catch (e) { return []; }
+      }
+      function saveMusicFavorites(arr) { try { localStorage.setItem('musicFavorites', JSON.stringify(arr || [])); } catch (e) {} }
+      function isTrackFavorite(id) { if (!id) return false; return getMusicFavorites().includes(String(id)); }
+      function toggleTrackFavorite(id) {
+        if (!id) return false;
+        const fav = getMusicFavorites();
+        const sid = String(id);
+        const idx = fav.indexOf(sid);
+        let nowFav = false;
+        if (idx >= 0) {
+          fav.splice(idx, 1);
+          saveMusicFavorites(fav);
+          nowFav = false;
+        } else {
+          fav.push(sid);
+          saveMusicFavorites(fav);
+          nowFav = true;
+        }
+        // Firestore sync for authenticated users (best-effort, non-blocking)
+        (async () => {
+          try {
+            const user = auth?.currentUser || (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser);
+            if (user && typeof db !== 'undefined' && db) {
+              await setDoc(doc(db, 'user_music_favorites', String(user.uid)), { favorites: fav, updatedAt: serverTimestamp() }, { merge: true });
+            }
+          } catch (e) {
+            // ignore sync errors
+          }
+        })();
+        return nowFav;
+      }
+
       function musicShouldHandlePlayEvent(hostId, cooldownMs = 1500) {
         const key = String(hostId || '').trim();
         if (!key) return false;
@@ -10490,13 +10557,7 @@
         return true;
       }
 
-      window.__musicDebugEnabled = window.__musicDebugEnabled !== false;
-      function musicDebugLog(label, payload = {}) {
-        if (!window.__musicDebugEnabled || typeof console === 'undefined') return;
-        const stamp = new Date().toISOString().slice(11, 23);
-        console.log(`[MUSIC][${stamp}] ${label}`, payload);
-      }
-
+      
       function musicNormalizeAudioUrl(rawUrl = '') {
         const url = String(rawUrl || '').trim();
         if (!url) return '';
@@ -10577,6 +10638,24 @@
         } else {
           trackMetadata.style.display = 'none';
         }
+
+        // Sync favorite button in the detail pane
+        try {
+          const favBtn = document.getElementById('trackFavoriteBtn');
+          if (favBtn) {
+            const favState = isTrackFavorite(track.id);
+            favBtn.style.color = favState ? 'var(--accent-color)' : 'var(--text-secondary)';
+            favBtn.setAttribute('aria-pressed', favState ? 'true' : 'false');
+            favBtn.onclick = (e) => {
+              e.stopPropagation();
+              const now = toggleTrackFavorite(track.id);
+              favBtn.style.color = now ? 'var(--accent-color)' : 'var(--text-secondary)';
+              favBtn.setAttribute('aria-pressed', now ? 'true' : 'false');
+              mostrarMensaje('success', now ? 'Favorito' : 'Quitado', now ? 'Agregado a favoritos' : 'Eliminado de favoritos');
+              renderLocalMusicList();
+            };
+          }
+        } catch (e) {}
       }
 
       function musicFormatTime(seconds) {
@@ -10807,7 +10886,7 @@
             streamtype: 'shoutcast2',
             shoutcastid: '1',
             metadatainterval: '20000',
-            volume: '50',
+            volume: '100',
             debug: 'false',
             usestreamcorsproxy: 'true',
             corsproxy: '',
@@ -10818,6 +10897,40 @@
             elapsedMs: Math.round(performance.now() - startedAt),
             hasInstance: !!instance
           });
+
+          // Hide stream URL display in LunaRadio
+          const hideStreamUrl = () => {
+            try {
+              const container = document.getElementById('lunaradioPlayerPlaceholder');
+              if (!container) return;
+              // Find all elements inside the player and hide those containing URLs
+              const allElements = container.querySelectorAll('*');
+              allElements.forEach(el => {
+                const text = el.textContent || '';
+                // Hide elements that look like URLs
+                if (text.match(/^:\/\/.*\.(com|tv|cloud|net|org|io|info|cdn)/i) || 
+                    text.match(/^https?:\/\//) ||
+                    text.match(/\.m3u8|\.mp3|\.aac|\.pls|\.xspf|\.tar/i)) {
+                  el.style.display = 'none';
+                }
+              });
+              // Also hide common metadata display elements
+              ['radiolink', 'info', 'metadata', 'subtitle', 'stream-info', 'data-url'].forEach(cls => {
+                container.querySelectorAll('.' + cls).forEach(el => el.style.display = 'none');
+              });
+            } catch (e) {
+              console.debug('hideStreamUrl error:', e);
+            }
+          };
+          
+          // Run hide logic after initialization and periodically
+          setTimeout(hideStreamUrl, 100);
+          setTimeout(hideStreamUrl, 500);
+          const hideUrlInterval = setInterval(() => {
+            hideStreamUrl();
+            // Clear interval after a few seconds
+            if (performance.now() - startedAt > 3000) clearInterval(hideUrlInterval);
+          }, 1000);
 
           const bindEnded = () => {
             const hostId = container.id || 'lunaradioPlayerPlaceholder';
@@ -10888,6 +11001,7 @@
           height: '100%',
           autoPlay: true,
           mute: false,
+          volume: 100,
           mediacontrol: { seekbar: '#3b82f6', buttons: '#ffffff' },
           playback: {
             playInline: true,
@@ -10955,18 +11069,39 @@
           li.className = 'music-list-item';
           if (state.currentIndex === index) li.classList.add('selected');
 
+          // Play / Stop button
+          const playBtn = document.createElement('button');
+          playBtn.type = 'button';
+          playBtn.className = 'music-play-btn';
+          playBtn.style.marginRight = '8px';
+          playBtn.innerHTML = state.currentIndex === index ? '<i class="fas fa-stop"></i>' : '<i class="fas fa-play"></i>';
+          playBtn.title = state.currentIndex === index ? 'Detener' : 'Reproducir';
+          playBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (state.currentIndex === index) {
+              try { if (typeof musicDestroyPlayers === 'function') musicDestroyPlayers(); } catch (err) {}
+              state.currentIndex = -1;
+              musicSetTrackInfo(null);
+              renderLocalMusicList();
+              return;
+            }
+            playMusicTrackByIndex(index);
+          });
+
           const titleBtn = document.createElement('button');
           titleBtn.type = 'button';
           titleBtn.textContent = track.title || 'Sin título';
           titleBtn.className = 'music-list-title';
           titleBtn.addEventListener('click', () => playMusicTrackByIndex(index));
 
+          // Add to playlist button (existing)
           const addBtn = document.createElement('button');
           addBtn.type = 'button';
           addBtn.textContent = 'Añadir';
           addBtn.className = 'music-list-add-btn';
           addBtn.disabled = !state.selectedPlaylistId;
-          addBtn.addEventListener('click', async () => {
+          addBtn.addEventListener('click', async (ev) => {
+            ev.stopPropagation();
             if (!state.selectedPlaylistId) {
               mostrarMensaje('info', 'Selecciona una playlist', 'Primero elige una lista de reproducción.');
               return;
@@ -10977,7 +11112,7 @@
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'Authorization': idToken ? `Bearer ${idToken}` : '',
+                  ...(idToken ? { 'Authorization': `Bearer ${idToken}` } : {})
                 },
                 body: JSON.stringify({ playlistId: state.selectedPlaylistId, musicId: track.id })
               });
@@ -10990,8 +11125,78 @@
             }
           });
 
+          // Three-dot menu
+          const menuBtn = document.createElement('button');
+          menuBtn.type = 'button';
+          menuBtn.className = 'music-menu-btn';
+          menuBtn.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
+          menuBtn.title = 'Más opciones';
+          menuBtn.style.marginLeft = '8px';
+          menuBtn.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            // Remove any existing menus
+            document.querySelectorAll('.music-item-context-menu').forEach(n => n.remove());
+            const menu = document.createElement('div');
+            menu.className = 'music-item-context-menu';
+            menu.style.position = 'absolute';
+            menu.style.zIndex = 9999;
+            menu.style.background = 'var(--bg-card)';
+            menu.style.border = '1px solid var(--border-color)';
+            menu.style.padding = '6px';
+            menu.style.borderRadius = '6px';
+            menu.style.boxShadow = '0 6px 18px rgba(0,0,0,0.12)';
+            menu.style.minWidth = '160px';
+            const favOpt = document.createElement('div');
+            favOpt.textContent = isTrackFavorite(track.id) ? 'Quitar de favoritos' : 'Agregar a favoritos';
+            favOpt.style.padding = '6px 8px';
+            favOpt.style.cursor = 'pointer';
+            favOpt.addEventListener('click', (e2) => {
+              e2.stopPropagation();
+              const nowFav = toggleTrackFavorite(track.id);
+              mostrarMensaje('success', nowFav ? 'Favorito' : 'Quitado', nowFav ? 'Agregado a favoritos' : 'Eliminado de favoritos');
+              document.querySelectorAll('.music-item-context-menu').forEach(n => n.remove());
+              renderLocalMusicList();
+              musicSetTrackInfo(state.catalog[state.currentIndex] || null);
+            });
+            menu.appendChild(favOpt);
+
+            const currentUid = String(window.currentUserId || auth?.currentUser?.uid || '').trim();
+            const isOwner = !!currentUid && (String(track.userId || '') === currentUid || !!window.isOwner);
+            if (isOwner) {
+              const delOpt = document.createElement('div');
+              delOpt.textContent = 'Eliminar';
+              delOpt.style.padding = '6px 8px';
+              delOpt.style.cursor = 'pointer';
+              delOpt.style.color = 'var(--error-color)';
+              delOpt.addEventListener('click', async (e3) => {
+                e3.stopPropagation();
+                mostrarMensaje('confirm', 'Eliminar publicación', `¿Eliminar \"${track.title || 'esta pista'}\"?`, async () => {
+                  try {
+                    await deletePost(track.id, track.imgurDeletehash || undefined);
+                    mostrarMensaje('success', 'Eliminado', 'La pista fue eliminada.');
+                    await loadMusicCatalog();
+                  } catch (err) {
+                    mostrarMensaje('error', 'No se pudo eliminar', err?.message || 'Intenta nuevamente');
+                  }
+                });
+                document.querySelectorAll('.music-item-context-menu').forEach(n => n.remove());
+              });
+              menu.appendChild(delOpt);
+            }
+
+            document.body.appendChild(menu);
+            const rect = menuBtn.getBoundingClientRect();
+            menu.style.top = `${rect.bottom + window.scrollY + 6}px`;
+            menu.style.left = `${rect.left + window.scrollX - menu.offsetWidth + rect.width}px`;
+
+            const onDocClick = (ev2) => { if (!menu.contains(ev2.target)) { menu.remove(); document.removeEventListener('click', onDocClick); } };
+            document.addEventListener('click', onDocClick);
+          });
+
+          li.appendChild(playBtn);
           li.appendChild(titleBtn);
           li.appendChild(addBtn);
+          li.appendChild(menuBtn);
           localMusicList.appendChild(li);
         });
       }
@@ -18203,7 +18408,7 @@
               shoutcastid: '1',
               streamsuffix: '',
               metadatainterval: '20000',
-              volume: '50',
+              volume: '100',
               debug: 'false',
               usestreamcorsproxy: 'true',
               corsproxy: '',
@@ -18217,6 +18422,30 @@
               playbackNonce,
               currentPlayerType: state.activePlayerType
             });
+
+            // Hide stream URL display in LunaRadio
+            const hideStreamUrl = () => {
+              try {
+                const playerContainer = document.getElementById(containerId);
+                if (!playerContainer) return;
+                const allElements = playerContainer.querySelectorAll('*');
+                allElements.forEach(el => {
+                  const text = el.textContent || '';
+                  if (text.match(/^:\/\/.*\.(com|tv|cloud|net|org|io|info|cdn)/i) || 
+                      text.match(/^https?:\/\//) ||
+                      text.match(/\.m3u8|\.mp3|\.aac|\.pls|\.xspf|\.tar/i)) {
+                    el.style.display = 'none';
+                  }
+                });
+                ['radiolink', 'info', 'metadata', 'subtitle', 'stream-info', 'data-url'].forEach(cls => {
+                  playerContainer.querySelectorAll('.' + cls).forEach(el => el.style.display = 'none');
+                });
+              } catch (e) {
+                console.debug('hideStreamUrl error:', e);
+              }
+            };
+            setTimeout(hideStreamUrl, 100);
+            setTimeout(hideStreamUrl, 500);
 
             const bindLunaAudioPlay = () => {
               musicDebugLog('luna:bind-play:scan', {
@@ -25093,7 +25322,7 @@
             shoutcastid: '1',
             streamsuffix: '',
             metadatainterval: '20000',
-            volume: '50',
+            volume: '100',
             debug: 'false',
             usestreamcorsproxy: 'true',
             corsproxy: '',
@@ -25102,6 +25331,30 @@
 
           window._lunaPlayers = window._lunaPlayers || {};
           window._lunaPlayers[containerId] = lunaInstance;
+
+          // Hide stream URL display in LunaRadio
+          const hideStreamUrl = () => {
+            try {
+              const playerContainer = document.getElementById(containerId);
+              if (!playerContainer) return;
+              const allElements = playerContainer.querySelectorAll('*');
+              allElements.forEach(el => {
+                const text = el.textContent || '';
+                if (text.match(/^:\/\/.*\.(com|tv|cloud|net|org|io|info|cdn)/i) || 
+                    text.match(/^https?:\/\//) ||
+                    text.match(/\.m3u8|\.mp3|\.aac|\.pls|\.xspf|\.tar/i)) {
+                  el.style.display = 'none';
+                }
+              });
+              ['radiolink', 'info', 'metadata', 'subtitle', 'stream-info', 'data-url'].forEach(cls => {
+                playerContainer.querySelectorAll('.' + cls).forEach(el => el.style.display = 'none');
+              });
+            } catch (e) {
+              console.debug('hideStreamUrl error:', e);
+            }
+          };
+          setTimeout(hideStreamUrl, 100);
+          setTimeout(hideStreamUrl, 500);
 
           container.querySelectorAll('audio').forEach((audioEl) => {
             if (audioEl.dataset.cxPlayBound === '1') return;

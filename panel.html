@@ -10450,12 +10450,17 @@
         progressTimer: null,
         clapprPlayer: null,
         lunaInstance: null,
+        sessionStartedAt: 0,
+        lastAutoAdvanceAt: 0,
+        autoAdvanceLocked: false,
       };
 
       function musicStartNewPlaybackSession(playerType) {
         const state = window.__musicState;
         state.playbackNonce = (state.playbackNonce || 0) + 1;
         state.activePlayerType = String(playerType || '').toLowerCase();
+        state.sessionStartedAt = Date.now();
+        state.autoAdvanceLocked = false;
         return state.playbackNonce;
       }
 
@@ -10609,7 +10614,7 @@
             return;
           }
           musicUpdateProgress();
-        }, 350);
+        }, 700);
       }
 
       function musicDestroyPlayers() {
@@ -10676,10 +10681,24 @@
         }, 240);
       }
 
-      function playNextMusicTrack() {
+      function musicAutoAdvanceToNextTrack() {
         const state = window.__musicState;
-        if (!Array.isArray(state.catalog) || state.catalog.length === 0) return;
-        const nextIndex = state.currentIndex + 1 >= state.catalog.length ? 0 : state.currentIndex + 1;
+        if (!Array.isArray(state.catalog) || state.catalog.length < 2) return;
+        if (!Number.isInteger(state.currentIndex) || state.currentIndex < 0) return;
+        if (state.currentIndex >= state.catalog.length - 1) return;
+
+        const now = Date.now();
+        if (state.autoAdvanceLocked) return;
+        if (state.lastAutoAdvanceAt && now - state.lastAutoAdvanceAt < 2500) return;
+
+        state.autoAdvanceLocked = true;
+        state.lastAutoAdvanceAt = now;
+        window.clearTimeout(state.__autoAdvanceUnlockTimer);
+        state.__autoAdvanceUnlockTimer = window.setTimeout(() => {
+          state.autoAdvanceLocked = false;
+        }, 2000);
+
+        const nextIndex = state.currentIndex + 1;
         playMusicTrackByIndex(nextIndex);
       }
 
@@ -10746,7 +10765,7 @@
             container.querySelectorAll('audio').forEach((audioEl) => {
               if (audioEl.dataset.musicEndedBound === '1') return;
               audioEl.dataset.musicEndedBound = '1';
-              audioEl.addEventListener('ended', () => playNextMusicTrack());
+              audioEl.addEventListener('ended', () => musicAutoAdvanceToNextTrack());
             });
           };
           const bindEndedGuarded = () => {
@@ -10798,7 +10817,7 @@
         if (Clappr.Events?.PLAYER_ENDED) {
           player.on(Clappr.Events.PLAYER_ENDED, () => {
             if (state.playbackNonce !== playbackNonce || state.activePlayerType !== 'video') return;
-            playNextMusicTrack();
+            musicAutoAdvanceToNextTrack();
           });
         }
         musicStartProgressTracker(playbackNonce);

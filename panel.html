@@ -36,6 +36,120 @@
         window.console.error = originalError;
         window.console.warn = originalWarn;
       }
+
+      // 🔹 Lógica mínima para Música: toggles, modal y campos dinámicos
+      function initMusicSection() {
+        // Guardar referencias
+        const btnAudio = document.getElementById('btnAudio');
+        const btnVideo = document.getElementById('btnVideo');
+        const audioWrap = document.getElementById('audioPlayerWrap');
+        const videoWrap = document.getElementById('videoPlayerWrap');
+        const modeLabel = document.getElementById('playerModeLabel');
+
+        if (btnAudio && btnVideo) {
+          btnAudio.addEventListener('click', () => {
+            btnAudio.classList.add('active'); btnVideo.classList.remove('active');
+            audioWrap.style.display = ''; videoWrap.style.display = 'none'; modeLabel.textContent = 'Audio';
+          });
+          btnVideo.addEventListener('click', () => {
+            btnVideo.classList.add('active'); btnAudio.classList.remove('active');
+            videoWrap.style.display = ''; audioWrap.style.display = 'none'; modeLabel.textContent = 'Video';
+          });
+        }
+
+        // Modal controls
+        const openAddMusicModalBtn = document.getElementById('openAddMusicModalBtn');
+        const addMusicModal = document.getElementById('addMusicModal');
+        const closeAddMusicModal = document.getElementById('closeAddMusicModal');
+        const cancelAddMusicBtn = document.getElementById('cancelAddMusicBtn');
+        const addMusicForm = document.getElementById('addMusicForm');
+        const uploadModeIndividual = document.getElementById('uploadModeIndividual');
+        const uploadModeList = document.getElementById('uploadModeList');
+        const listUploadArea = document.getElementById('listUploadArea');
+        const dynamicListFields = document.getElementById('dynamicListFields');
+        const add1Field = document.getElementById('add1Field');
+        const add10Fields = document.getElementById('add10Fields');
+        const add100Fields = document.getElementById('add100Fields');
+
+        function showModal() { if (addMusicModal) addMusicModal.classList.remove('hiddenX'); }
+        function hideModal() { if (addMusicModal) addMusicModal.classList.add('hiddenX'); }
+
+        if (openAddMusicModalBtn) openAddMusicModalBtn.addEventListener('click', showModal);
+        if (closeAddMusicModal) closeAddMusicModal.addEventListener('click', hideModal);
+        if (cancelAddMusicBtn) cancelAddMusicBtn.addEventListener('click', hideModal);
+
+        if (uploadModeIndividual && uploadModeList) {
+          uploadModeIndividual.addEventListener('click', () => {
+            uploadModeIndividual.classList.add('active'); uploadModeList.classList.remove('active');
+            listUploadArea.style.display = 'none';
+          });
+          uploadModeList.addEventListener('click', () => {
+            uploadModeList.classList.add('active'); uploadModeIndividual.classList.remove('active');
+            listUploadArea.style.display = '';
+          });
+        }
+
+        function addField() {
+          if (!dynamicListFields) return;
+          const wrapper = document.createElement('div');
+          wrapper.style.display = 'flex'; wrapper.style.gap = '6px';
+          const inp = document.createElement('input'); inp.placeholder = 'Título | URL'; inp.style.flex = '1';
+          const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = '✕'; remove.style.width='36px';
+          remove.addEventListener('click', () => wrapper.remove());
+          wrapper.appendChild(inp); wrapper.appendChild(remove);
+          dynamicListFields.appendChild(wrapper);
+        }
+
+        if (add1Field) add1Field.addEventListener('click', () => addField());
+        if (add10Fields) add10Fields.addEventListener('click', () => { for (let i=0;i<10;i++) addField(); });
+        if (add100Fields) add100Fields.addEventListener('click', () => { for (let i=0;i<100;i++) addField(); });
+
+        if (addMusicForm) {
+          addMusicForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = (document.getElementById('musicTitle') || {}).value || '';
+            const url = (document.getElementById('musicUrl') || {}).value || '';
+            const artist = (document.getElementById('musicArtist') || {}).value || '';
+            const album = (document.getElementById('musicAlbum') || {}).value || '';
+            const year = parseInt((document.getElementById('musicYear') || {}).value) || null;
+
+            const isList = uploadModeList && uploadModeList.classList.contains('active');
+            if (!isList) {
+              if (!title || !url) return alert('Título y URL son obligatorios');
+              const payload = { title, url, artist, album, year };
+              try {
+                const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
+                await fetch('/api/social?action=add-music', { method: 'POST', headers: { 'Content-Type':'application/json', 'Authorization': idToken ? `Bearer ${idToken}` : '' }, body: JSON.stringify({ music: payload }) });
+                mostrarMensaje('success', 'Música agregada', 'Se envió la música al servidor.');
+                hideModal();
+              } catch (err) {
+                console.error(err);
+                mostrarMensaje('error', 'No se pudo agregar', 'Intenta nuevamente');
+              }
+            } else {
+              // recolectar campos dinámicos
+              const rows = Array.from(dynamicListFields ? dynamicListFields.querySelectorAll('input') : []);
+              const listData = rows.map(r => {
+                const v = (r.value||'').split('|').map(s=>s.trim());
+                return { title: v[0]||'', url: v[1]||'' };
+              }).filter(x=>x.title && x.url);
+              if (!listData.length) return alert('Agrega al menos un elemento con título y URL');
+              try {
+                const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
+                await fetch('/api/social?action=add-music-list', { method: 'POST', headers: { 'Content-Type':'application/json','Authorization': idToken ? `Bearer ${idToken}` : '' }, body: JSON.stringify({ list: listData }) });
+                mostrarMensaje('success', 'Lista enviada', 'Se agregó la lista al servidor.');
+                hideModal();
+              } catch (err) {
+                console.error(err);
+                mostrarMensaje('error', 'No se pudo agregar la lista', 'Intenta nuevamente');
+              }
+            }
+          });
+        }
+      }
+
+      // Inicializar controles si la sección ya está visible al cargar
+      if (!musicaSection.classList.contains('hidden')) initMusicSection();
     })();
   </script>
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6829228334766526" crossorigin="anonymous"></script>
@@ -5378,6 +5492,7 @@
       Certificaciones</button>
     <button id="menuEspecialidades"><i class="fas fa-folder-open" style="margin-right: 8px;"></i> Especialidades
       Storage</button>
+    <button id="menuMusica"><i class="fas fa-music" style="margin-right: 8px;"></i> Música</button>
     <button id="menuPerfil"><i class="fas fa-user" style="margin-right: 8px;"></i> Perfil</button>
     <button id="menuInstructor" class="hidden"><i class="fas fa-chalkboard-teacher" style="margin-right: 8px;"></i>
       Instructor</button>
@@ -5761,6 +5876,105 @@
 
         <ul id="listaArchivos"></ul>
 
+      </div>
+    </div>
+
+    <!-- Música Section -->
+    <div id="musicaSection" class="card hidden">
+      <h2><i class="fas fa-music" style="margin-right: 8px; color: var(--accent-color);"></i> Música</h2>
+      <div style="display:flex; gap:16px; align-items:flex-start;">
+        <!-- Left panel: carpetas y playlists -->
+        <aside style="width:220px; min-width:180px; background:var(--bg-secondary); padding:12px; border-radius:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <strong>Biblioteca</strong>
+            <button id="crearPlaylistBtn" style="font-size:12px; padding:4px 8px;">+ Nueva</button>
+          </div>
+          <ul id="musicaCarpetas" style="list-style:none; padding:0; margin:0 0 12px 0;">
+            <li class="carpeta-item">Músicas de la plataforma</li>
+            <li class="carpeta-item">Listas de reproducción</li>
+          </ul>
+          <div style="margin-top:8px;">
+            <p style="margin:0 0 6px 0; font-weight:600;">Tus listas</p>
+            <ul id="playlistsList" style="list-style:none; padding:0; margin:0; min-height:40px;"></ul>
+            <small id="playlistsHint" style="color:var(--text-secondary); font-size:12px;">(Máx 3 listas por usuario)</small>
+          </div>
+        </aside>
+
+        <!-- Center: player and controls -->
+        <main style="flex:1; display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; gap:8px; align-items:center;">
+            <div id="toggleMediaBtns" style="display:flex; gap:8px;">
+              <button id="btnAudio" class="small-toggle active">Audio</button>
+              <button id="btnVideo" class="small-toggle">Video</button>
+            </div>
+            <div style="flex:1"></div>
+            <div style="font-size:12px; color:var(--text-secondary);">Reproductor: <strong id="playerModeLabel">Audio</strong></div>
+          </div>
+
+          <div id="playerContainer" style="flex:1; background:var(--bg-secondary); border-radius:8px; padding:8px; display:flex; align-items:center; justify-content:center; min-height:280px;">
+            <!-- Por defecto usaremos Luna Radio (audio). Cuando cambie a video mostraremos el contenedor de Clappr -->
+            <div id="audioPlayerWrap" style="width:100%; height:100%;">
+              <div id="lunaradioPlayerPlaceholder" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:var(--text-secondary);">Reproductor de audio (LunaRadio)</div>
+            </div>
+            <div id="videoPlayerWrap" style="width:100%; height:100%; display:none;">
+              <div id="clapprPlayerPlaceholder" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:var(--text-secondary);">Reproductor de video (Clappr)</div>
+            </div>
+          </div>
+        </main>
+
+        <!-- Right: metadata and owner upload -->
+        <aside style="width:300px; min-width:240px; background:var(--bg-secondary); padding:12px; border-radius:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <strong>Información</strong>
+            <button id="openAddMusicModalBtn" style="font-size:12px; padding:6px 10px;">+ Agregar</button>
+          </div>
+          <div id="trackInfo" style="font-size:14px; color:var(--text-primary);">
+            <p id="trackTitle">—</p>
+            <p id="trackArtist" style="color:var(--text-secondary); margin-top:6px;">Artista —</p>
+            <p id="trackAlbum" style="color:var(--text-secondary); margin-top:6px;">Álbum —</p>
+            <pre id="trackMetadata" style="display:none; font-size:12px; color:var(--text-secondary); white-space:pre-wrap;">{}</pre>
+          </div>
+        </aside>
+      </div>
+
+      <!-- Modal para subir música (solo se cierra con X) -->
+      <div id="addMusicModal" class="hiddenX" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.6);">
+        <div style="width:720px; max-width:95%; background:var(--bg-primary); padding:18px; border-radius:10px; position:relative;">
+          <button id="closeAddMusicModal" style="position:absolute; right:12px; top:12px; font-size:18px;">✕</button>
+          <h3>Agregar música (propietario)</h3>
+          <form id="addMusicForm">
+            <div style="display:flex; gap:8px; margin-bottom:8px;">
+              <label style="flex:1; display:flex; flex-direction:column;"><small>Título *</small><input id="musicTitle" required></label>
+              <label style="flex:1; display:flex; flex-direction:column;"><small>URL *</small><input id="musicUrl" required></label>
+            </div>
+            <div style="display:flex; gap:8px; margin-bottom:8px;">
+              <label style="flex:1; display:flex; flex-direction:column;"><small>Artista</small><input id="musicArtist"></label>
+              <label style="flex:1; display:flex; flex-direction:column;"><small>Álbum</small><input id="musicAlbum"></label>
+              <label style="width:90px; display:flex; flex-direction:column;"><small>Año</small><input id="musicYear" type="number"></label>
+            </div>
+            <div style="margin-bottom:8px;">
+              <label><small>Modo de subida</small></label>
+              <div style="display:flex; gap:8px; margin-top:6px;">
+                <button type="button" id="uploadModeIndividual" class="small-toggle active">Individual</button>
+                <button type="button" id="uploadModeList" class="small-toggle">Lista</button>
+              </div>
+            </div>
+
+            <div id="listUploadArea" style="display:none; margin-bottom:8px;">
+              <div style="display:flex; gap:8px; margin-bottom:6px;">
+                <button type="button" id="add1Field">+1</button>
+                <button type="button" id="add10Fields">+10</button>
+                <button type="button" id="add100Fields">+100</button>
+              </div>
+              <div id="dynamicListFields" style="display:flex; flex-direction:column; gap:6px; max-height:260px; overflow:auto;"></div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:10px;">
+              <button type="button" id="cancelAddMusicBtn">Cancelar</button>
+              <button type="submit" id="confirmAddMusicBtn">Agregar</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 
@@ -9767,6 +9981,16 @@
         cargarEspecialidadesFijas();
       });
 
+      // 🔹 Menú Música
+      const menuMusica = document.getElementById("menuMusica");
+      const musicaSection = document.getElementById("musicaSection");
+      if (menuMusica) {
+        menuMusica.addEventListener("click", () => {
+          mostrarSeccion(musicaSection, menuMusica);
+          if (typeof initMusicSection === 'function') initMusicSection();
+        });
+      }
+
       // 🔹 Foto de perfil
       fotoInput.addEventListener("change", (e) => {
         const file = e.target.files[0];
@@ -10529,10 +10753,10 @@
         }
 
         // Incluir tareasExamenesSection y menuTareasExamenes en las listas para limpiar
-        [inicioSection, perfilSection, especialidadesSection, clubesSection, tutorialesSection, blocNotasSection, certificacionesSection, certificadoSearchSection, adminSection, instructorSection, tareasExamenesSection, grabacionesSection, acercaSection, donarSection].forEach(sec => {
+        [inicioSection, perfilSection, especialidadesSection, clubesSection, tutorialesSection, blocNotasSection, certificacionesSection, certificadoSearchSection, adminSection, instructorSection, tareasExamenesSection, grabacionesSection, musicaSection, acercaSection, donarSection].forEach(sec => {
           if (sec) sec.classList.add("hidden");
         });
-        [menuInicio, menuPerfil, menuEspecialidades, menuClubes, menuTutoriales, menuBlocNotas, menuCertificaciones, menuAdmin, menuInstructor, menuTareasExamenes, menuGrabaciones, menuAcerca, menuDonar].forEach(btn => {
+        [menuInicio, menuPerfil, menuEspecialidades, menuMusica, menuClubes, menuTutoriales, menuBlocNotas, menuCertificaciones, menuAdmin, menuInstructor, menuTareasExamenes, menuGrabaciones, menuAcerca, menuDonar].forEach(btn => {
           if (btn) btn.classList.remove("active");
         });
 

@@ -256,6 +256,24 @@ export default async function handler(req, res) {
       case "check-stream":
         await handleCheckStream(req, res);
         break;
+      case "add-music":
+        await handleAddMusic(req, res);
+        break;
+      case "create-music-playlist":
+        await handleCreateMusicPlaylist(req, res);
+        break;
+      case "add-music-to-playlist":
+        await handleAddMusicToPlaylist(req, res);
+        break;
+      case "add-music-list":
+        await handleAddMusicList(req, res);
+        break;
+      case "get-musics":
+        await handleGetMusics(req, res);
+        break;
+      case "get-music-playlists":
+        await handleGetMusicPlaylists(req, res);
+        break;
       case "cleanup-rate-limits":
         await handleCleanupRateLimits(req, res);
         break;
@@ -483,6 +501,238 @@ async function handleGetOrCreateCertificateCode(req, res) {
   } catch (error) {
     console.error('Error en get-or-create-certificate-code:', error);
     return res.status(error.statusCode || 500).json({ success: false, error: error.message || 'Error procesando código de certificado' });
+  }
+}
+
+// ===== Música: agregar música (solo propietario) =====
+async function handleAddMusic(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
+
+  try {
+    const body = req.body || {};
+    // Verificar que es el propietario
+    await requireOwner(req, body);
+    const requester = await requireAuthenticated(req, body);
+
+    const music = body.music || {};
+    const title = String(music.title || '').trim();
+    const url = String(music.url || '').trim();
+    const artist = music.artist ? String(music.artist).trim() : null;
+    const album = music.album ? String(music.album).trim() : null;
+    const year = Number.isFinite(Number(music.year)) ? Number(music.year) : null;
+    const is_video = !!music.is_video;
+
+    if (!title || !url) {
+      return res.status(400).json({ success: false, error: 'title y url son obligatorios' });
+    }
+
+    const payload = {
+      owner_id: String(requester.uid || requester.email || '').trim(),
+      title,
+      url,
+      is_video,
+      artist,
+      album,
+      year,
+      metadata: music.metadata || {}
+    };
+
+    const { data, error } = await supabase.from('musics').insert(payload).select().limit(1).single();
+    if (error) throw error;
+
+    return res.status(200).json({ success: true, music: data });
+  } catch (err) {
+    console.error('handleAddMusic error:', err);
+    return res.status(err.statusCode || 500).json({ success: false, error: err.message || 'Error agregando música' });
+  }
+}
+
+// ===== Música: crear playlist de usuario (máx 3) =====
+async function handleCreateMusicPlaylist(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
+
+  try {
+    const body = req.body || {};
+    const requester = await requireAuthenticated(req, body);
+    const name = String(body.name || '').trim();
+    if (!name) return res.status(400).json({ success: false, error: 'name es requerido' });
+
+    // Contar playlists existentes
+    const { data: existing, error: countErr } = await supabase.from('music_playlists').select('id').eq('owner_id', requester.uid).limit(100);
+    if (countErr) throw countErr;
+    if (Array.isArray(existing) && existing.length >= 3) {
+      return res.status(400).json({ success: false, error: 'Límite de 3 playlists alcanzado' });
+    }
+
+    const { data, error } = await supabase.from('music_playlists').insert({ owner_id: requester.uid, name }).select().single();
+    if (error) throw error;
+
+    return res.status(200).json({ success: true, playlist: data });
+  } catch (err) {
+    console.error('handleCreateMusicPlaylist error:', err);
+    return res.status(err.statusCode || 500).json({ success: false, error: err.message || 'Error creando playlist' });
+  }
+}
+
+// ===== Música: añadir música a playlist (propietario de playlist) =====
+async function handleAddMusicToPlaylist(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
+
+  try {
+    const body = req.body || {};
+    const requester = await requireAuthenticated(req, body);
+    const playlistId = String(body.playlistId || body.playlist_id || '').trim();
+    if (!playlistId) return res.status(400).json({ success: false, error: 'playlistId es requerido' });
+
+    // Buscar playlist
+    const { data: playlists, error: pErr } = await supabase.from('music_playlists').select('*').eq('id', playlistId).limit(1);
+    if (pErr) throw pErr;
+    if (!Array.isArray(playlists) || playlists.length === 0) return res.status(404).json({ success: false, error: 'Playlist no encontrada' });
+    const playlist = playlists[0];
+
+    // Validar propietario de la playlist
+    if (String(playlist.owner_id || '') !== String(requester.uid || requester.email || '')) {
+      return res.status(403).json({ success: false, error: 'No eres el propietario de la playlist' });
+    }
+
+    // Contar items actuales
+    const { data: items, error: itemsErr } = await supabase.from('music_playlist_items').select('id').eq('playlist_id', playlistId).limit(1000);
+    if (itemsErr) throw itemsErr;
+    const currentCount = Array.isArray(items) ? items.length : 0;
+    if (currentCount >= 20) {
+      return res.status(400).json({ success: false, error: 'Playlist alcanza el máximo de 20 canciones' });
+    }
+
+    // Determinar música: puede venir como musicId o como objeto music
+    let musicId = String(body.musicId || body.music_id || '').trim();
+    if (!musicId) {
+      const music = body.music || {};
+      const title = String(music.title || '').trim();
+      const url = String(music.url || '').trim();
+      if (!title || !url) return res.status(400).json({ success: false, error: 'music.title y music.url son requeridos si no se pasa musicId' });
+
+      const insertPayload = {
+        owner_id: String(requester.uid || requester.email || '').trim(),
+        title,
+        url,
+        is_video: !!music.is_video,
+        artist: music.artist || null,
+        album: music.album || null,
+        year: Number.isFinite(Number(music.year)) ? Number(music.year) : null,
+        metadata: music.metadata || {}
+      };
+
+      const { data: newMusic, error: insertErr } = await supabase.from('musics').insert(insertPayload).select().single();
+      if (insertErr) throw insertErr;
+      musicId = newMusic.id;
+    } else {
+      // verificar que la música exista
+      const { data: found, error: fErr } = await supabase.from('musics').select('id').eq('id', musicId).limit(1);
+      if (fErr) throw fErr;
+      if (!Array.isArray(found) || found.length === 0) return res.status(404).json({ success: false, error: 'Música no encontrada' });
+    }
+
+    // Insertar en playlist
+    const position = currentCount + 1;
+    const { data: added, error: addErr } = await supabase.from('music_playlist_items').insert({ playlist_id: playlistId, music_id: musicId, position }).select().single();
+    if (addErr) throw addErr;
+
+    return res.status(200).json({ success: true, item: added });
+  } catch (err) {
+    console.error('handleAddMusicToPlaylist error:', err);
+    return res.status(err.statusCode || 500).json({ success: false, error: err.message || 'Error añadiendo música a playlist' });
+  }
+}
+
+// ===== Música: subida en lote (solo propietario) =====
+async function handleAddMusicList(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
+
+  try {
+    const body = req.body || {};
+    await requireOwner(req, body);
+    const requester = await requireAuthenticated(req, body);
+    const list = Array.isArray(body.list) ? body.list : [];
+
+    if (!list.length) {
+      return res.status(400).json({ success: false, error: 'list debe contener elementos' });
+    }
+
+    const rows = list
+      .map((item) => ({
+        owner_id: String(requester.uid || requester.email || '').trim(),
+        title: String(item?.title || '').trim(),
+        url: String(item?.url || '').trim(),
+        is_video: !!item?.is_video,
+        artist: item?.artist ? String(item.artist).trim() : null,
+        album: item?.album ? String(item.album).trim() : null,
+        year: Number.isFinite(Number(item?.year)) ? Number(item.year) : null,
+        metadata: item?.metadata || {}
+      }))
+      .filter((row) => row.title && row.url);
+
+    if (!rows.length) {
+      return res.status(400).json({ success: false, error: 'No hay elementos válidos para insertar' });
+    }
+
+    const { data, error } = await supabase.from('musics').insert(rows).select();
+    if (error) throw error;
+
+    return res.status(200).json({ success: true, inserted: Array.isArray(data) ? data.length : 0, musics: data || [] });
+  } catch (err) {
+    console.error('handleAddMusicList error:', err);
+    return res.status(err.statusCode || 500).json({ success: false, error: err.message || 'Error en subida de lista' });
+  }
+}
+
+// ===== Música: catálogo global =====
+async function handleGetMusics(req, res) {
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Método no permitido' });
+
+  try {
+    const limitRaw = Number.parseInt(String(req.query?.limit || '200'), 10);
+    const limit = Number.isFinite(limitRaw) ? Math.min(500, Math.max(1, limitRaw)) : 200;
+
+    const { data, error } = await supabase
+      .from('musics')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return res.status(200).json({ success: true, musics: Array.isArray(data) ? data : [] });
+  } catch (err) {
+    console.error('handleGetMusics error:', err);
+    return res.status(500).json({ success: false, error: err.message || 'Error obteniendo músicas' });
+  }
+}
+
+// ===== Música: playlists del usuario autenticado =====
+async function handleGetMusicPlaylists(req, res) {
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Método no permitido' });
+
+  try {
+    const requester = await requireAuthenticated(req);
+    const { data, error } = await supabase
+      .from('music_playlists')
+      .select('id,name,owner_id,created_at,music_playlist_items(id)')
+      .eq('owner_id', requester.uid)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const playlists = (Array.isArray(data) ? data : []).map((row) => ({
+      id: row.id,
+      name: row.name,
+      owner_id: row.owner_id,
+      created_at: row.created_at,
+      songs_count: Array.isArray(row.music_playlist_items) ? row.music_playlist_items.length : 0,
+    }));
+
+    return res.status(200).json({ success: true, playlists });
+  } catch (err) {
+    console.error('handleGetMusicPlaylists error:', err);
+    return res.status(err.statusCode || 500).json({ success: false, error: err.message || 'Error obteniendo playlists' });
   }
 }
 

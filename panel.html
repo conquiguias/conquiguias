@@ -37,119 +37,6 @@
         window.console.warn = originalWarn;
       }
 
-      // 🔹 Lógica mínima para Música: toggles, modal y campos dinámicos
-      function initMusicSection() {
-        // Guardar referencias
-        const btnAudio = document.getElementById('btnAudio');
-        const btnVideo = document.getElementById('btnVideo');
-        const audioWrap = document.getElementById('audioPlayerWrap');
-        const videoWrap = document.getElementById('videoPlayerWrap');
-        const modeLabel = document.getElementById('playerModeLabel');
-
-        if (btnAudio && btnVideo) {
-          btnAudio.addEventListener('click', () => {
-            btnAudio.classList.add('active'); btnVideo.classList.remove('active');
-            audioWrap.style.display = ''; videoWrap.style.display = 'none'; modeLabel.textContent = 'Audio';
-          });
-          btnVideo.addEventListener('click', () => {
-            btnVideo.classList.add('active'); btnAudio.classList.remove('active');
-            videoWrap.style.display = ''; audioWrap.style.display = 'none'; modeLabel.textContent = 'Video';
-          });
-        }
-
-        // Modal controls
-        const openAddMusicModalBtn = document.getElementById('openAddMusicModalBtn');
-        const addMusicModal = document.getElementById('addMusicModal');
-        const closeAddMusicModal = document.getElementById('closeAddMusicModal');
-        const cancelAddMusicBtn = document.getElementById('cancelAddMusicBtn');
-        const addMusicForm = document.getElementById('addMusicForm');
-        const uploadModeIndividual = document.getElementById('uploadModeIndividual');
-        const uploadModeList = document.getElementById('uploadModeList');
-        const listUploadArea = document.getElementById('listUploadArea');
-        const dynamicListFields = document.getElementById('dynamicListFields');
-        const add1Field = document.getElementById('add1Field');
-        const add10Fields = document.getElementById('add10Fields');
-        const add100Fields = document.getElementById('add100Fields');
-
-        function showModal() { if (addMusicModal) addMusicModal.classList.remove('hiddenX'); }
-        function hideModal() { if (addMusicModal) addMusicModal.classList.add('hiddenX'); }
-
-        if (openAddMusicModalBtn) openAddMusicModalBtn.addEventListener('click', showModal);
-        if (closeAddMusicModal) closeAddMusicModal.addEventListener('click', hideModal);
-        if (cancelAddMusicBtn) cancelAddMusicBtn.addEventListener('click', hideModal);
-
-        if (uploadModeIndividual && uploadModeList) {
-          uploadModeIndividual.addEventListener('click', () => {
-            uploadModeIndividual.classList.add('active'); uploadModeList.classList.remove('active');
-            listUploadArea.style.display = 'none';
-          });
-          uploadModeList.addEventListener('click', () => {
-            uploadModeList.classList.add('active'); uploadModeIndividual.classList.remove('active');
-            listUploadArea.style.display = '';
-          });
-        }
-
-        function addField() {
-          if (!dynamicListFields) return;
-          const wrapper = document.createElement('div');
-          wrapper.style.display = 'flex'; wrapper.style.gap = '6px';
-          const inp = document.createElement('input'); inp.placeholder = 'Título | URL'; inp.style.flex = '1';
-          const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = '✕'; remove.style.width='36px';
-          remove.addEventListener('click', () => wrapper.remove());
-          wrapper.appendChild(inp); wrapper.appendChild(remove);
-          dynamicListFields.appendChild(wrapper);
-        }
-
-        if (add1Field) add1Field.addEventListener('click', () => addField());
-        if (add10Fields) add10Fields.addEventListener('click', () => { for (let i=0;i<10;i++) addField(); });
-        if (add100Fields) add100Fields.addEventListener('click', () => { for (let i=0;i<100;i++) addField(); });
-
-        if (addMusicForm) {
-          addMusicForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const title = (document.getElementById('musicTitle') || {}).value || '';
-            const url = (document.getElementById('musicUrl') || {}).value || '';
-            const artist = (document.getElementById('musicArtist') || {}).value || '';
-            const album = (document.getElementById('musicAlbum') || {}).value || '';
-            const year = parseInt((document.getElementById('musicYear') || {}).value) || null;
-
-            const isList = uploadModeList && uploadModeList.classList.contains('active');
-            if (!isList) {
-              if (!title || !url) return alert('Título y URL son obligatorios');
-              const payload = { title, url, artist, album, year };
-              try {
-                const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
-                await fetch('/api/social?action=add-music', { method: 'POST', headers: { 'Content-Type':'application/json', 'Authorization': idToken ? `Bearer ${idToken}` : '' }, body: JSON.stringify({ music: payload }) });
-                mostrarMensaje('success', 'Música agregada', 'Se envió la música al servidor.');
-                hideModal();
-              } catch (err) {
-                console.error(err);
-                mostrarMensaje('error', 'No se pudo agregar', 'Intenta nuevamente');
-              }
-            } else {
-              // recolectar campos dinámicos
-              const rows = Array.from(dynamicListFields ? dynamicListFields.querySelectorAll('input') : []);
-              const listData = rows.map(r => {
-                const v = (r.value||'').split('|').map(s=>s.trim());
-                return { title: v[0]||'', url: v[1]||'' };
-              }).filter(x=>x.title && x.url);
-              if (!listData.length) return alert('Agrega al menos un elemento con título y URL');
-              try {
-                const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
-                await fetch('/api/social?action=add-music-list', { method: 'POST', headers: { 'Content-Type':'application/json','Authorization': idToken ? `Bearer ${idToken}` : '' }, body: JSON.stringify({ list: listData }) });
-                mostrarMensaje('success', 'Lista enviada', 'Se agregó la lista al servidor.');
-                hideModal();
-              } catch (err) {
-                console.error(err);
-                mostrarMensaje('error', 'No se pudo agregar la lista', 'Intenta nuevamente');
-              }
-            }
-          });
-        }
-      }
-
-      // Inicializar controles si la sección ya está visible al cargar
-      if (!musicaSection.classList.contains('hidden')) initMusicSection();
     })();
   </script>
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6829228334766526" crossorigin="anonymous"></script>
@@ -5894,6 +5781,10 @@
             <li class="carpeta-item">Listas de reproducción</li>
           </ul>
           <div style="margin-top:8px;">
+            <p style="margin:0 0 6px 0; font-weight:600;">Músicas locales</p>
+            <ul id="localMusicList" style="list-style:none; padding:0; margin:0 0 10px 0; max-height:220px; overflow:auto;"></ul>
+          </div>
+          <div style="margin-top:8px; border-top:1px solid var(--border-color); padding-top:8px;">
             <p style="margin:0 0 6px 0; font-weight:600;">Tus listas</p>
             <ul id="playlistsList" style="list-style:none; padding:0; margin:0; min-height:40px;"></ul>
             <small id="playlistsHint" style="color:var(--text-secondary); font-size:12px;">(Máx 3 listas por usuario)</small>
@@ -5926,7 +5817,7 @@
         <aside style="width:300px; min-width:240px; background:var(--bg-secondary); padding:12px; border-radius:8px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <strong>Información</strong>
-            <button id="openAddMusicModalBtn" style="font-size:12px; padding:6px 10px;">+ Agregar</button>
+            <button id="openAddMusicModalBtn" style="font-size:12px; padding:6px 10px; display:none;">+ Agregar</button>
           </div>
           <div id="trackInfo" style="font-size:14px; color:var(--text-primary);">
             <p id="trackTitle">—</p>
@@ -5965,6 +5856,8 @@
                 <button type="button" id="add1Field">+1</button>
                 <button type="button" id="add10Fields">+10</button>
                 <button type="button" id="add100Fields">+100</button>
+                <button type="button" id="remove10Fields">-10</button>
+                <button type="button" id="remove100Fields">-100</button>
               </div>
               <div id="dynamicListFields" style="display:flex; flex-direction:column; gap:6px; max-height:260px; overflow:auto;"></div>
             </div>
@@ -9503,7 +9396,7 @@
           hideReactionPopup();
         }
 
-        const allowedMenuIds = new Set(['menuInicio', 'menuClubes', 'menuTutoriales', 'menuGrabaciones', 'menuAcerca', 'menuDonar']);
+        const allowedMenuIds = new Set(['menuInicio', 'menuClubes', 'menuTutoriales', 'menuGrabaciones', 'menuMusica', 'menuAcerca', 'menuDonar']);
         const guestLockTitle = 'Disponible solo con sesión iniciada';
         const headerUserPhotoEl = document.getElementById('headerUserPhoto');
         const headerUserNameEl = document.getElementById('headerUserName');
@@ -9981,13 +9874,584 @@
         cargarEspecialidadesFijas();
       });
 
-      // 🔹 Menú Música
+      // 🔹 Música: estado y utilidades
       const menuMusica = document.getElementById("menuMusica");
       const musicaSection = document.getElementById("musicaSection");
+      window.__musicState = window.__musicState || {
+        initialized: false,
+        mode: 'audio',
+        catalog: [],
+        playlists: [],
+        selectedPlaylistId: '',
+        currentIndex: -1,
+        clapprPlayer: null,
+        lunaInstance: null,
+      };
+
+      function musicNormalizeAudioUrl(rawUrl = '') {
+        const url = String(rawUrl || '').trim();
+        if (!url) return '';
+        if (/rumble\.com/i.test(url) && !/\/mp3(\?|#|$)/i.test(url)) {
+          return `${url.replace(/\/$/, '')}/mp3`;
+        }
+        return url;
+      }
+
+      function musicSetTrackInfo(track = null) {
+        const trackTitle = document.getElementById('trackTitle');
+        const trackArtist = document.getElementById('trackArtist');
+        const trackAlbum = document.getElementById('trackAlbum');
+        const trackMetadata = document.getElementById('trackMetadata');
+        if (!trackTitle || !trackArtist || !trackAlbum || !trackMetadata) return;
+
+        if (!track) {
+          trackTitle.textContent = '—';
+          trackArtist.textContent = 'Artista —';
+          trackAlbum.textContent = 'Álbum —';
+          trackMetadata.style.display = 'none';
+          return;
+        }
+
+        trackTitle.textContent = track.title || 'Sin título';
+        trackArtist.textContent = `Artista ${track.artist || '—'}`;
+        trackAlbum.textContent = `Álbum ${track.album || '—'}${track.year ? ` (${track.year})` : ''}`;
+        const metadata = track.metadata && Object.keys(track.metadata || {}).length ? track.metadata : null;
+        if (metadata) {
+          trackMetadata.textContent = JSON.stringify(metadata, null, 2);
+          trackMetadata.style.display = '';
+        } else {
+          trackMetadata.style.display = 'none';
+        }
+      }
+
+      function musicDestroyPlayers() {
+        const state = window.__musicState;
+        try {
+          if (state.clapprPlayer && typeof state.clapprPlayer.destroy === 'function') {
+            state.clapprPlayer.destroy();
+          }
+        } catch (_) { }
+        state.clapprPlayer = null;
+      }
+
+      function playNextMusicTrack() {
+        const state = window.__musicState;
+        if (!Array.isArray(state.catalog) || state.catalog.length === 0) return;
+        const nextIndex = state.currentIndex + 1 >= state.catalog.length ? 0 : state.currentIndex + 1;
+        playMusicTrackByIndex(nextIndex);
+      }
+
+      function initMusicAudioPlayer(track) {
+        const state = window.__musicState;
+        const container = document.getElementById('lunaradioPlayerPlaceholder');
+        if (!container || !track) return;
+        container.innerHTML = '';
+
+        const jq = window.jQuery;
+        if (!jq || !jq.fn || typeof jq.fn.lunaradio !== 'function') {
+          container.textContent = 'LunaRadio no disponible';
+          return;
+        }
+
+        const streamUrl = musicNormalizeAudioUrl(track.url || '');
+        if (!streamUrl) {
+          container.textContent = 'URL de audio inválida';
+          return;
+        }
+
+        try {
+          container.classList.add('lunaradio-host');
+          const coverUrl = track?.metadata?.radiocover || track?.metadata?.posterUrl || 'https://dummyimage.com/640x360/0f172a/ffffff&text=Conquiguias+Radio';
+          const instance = jq('#lunaradioPlayerPlaceholder').lunaradio({
+            userinterface: 'big',
+            backgroundcolor: 'rgba(9,15,25,0.2)',
+            fontcolor: '#FFFFFF',
+            hightlightcolor: '#3b82f6',
+            fontname: 'Saira Condensed',
+            googlefont: 'Saira+Condensed:wght@100',
+            fontratio: '0.6',
+            radioname: (track.title || 'Conquiguias Música').slice(0, 80),
+            scroll: 'true',
+            usecover: 'true',
+            radiocover: coverUrl,
+            coverimage: coverUrl,
+            usevisualizer: 'real',
+            coverstyle: 'animated',
+            visualizertype: '4',
+            multicolorvisualizer: 'true',
+            color1: 'dc143c',
+            color2: 'f1666d',
+            color3: 'e6f62f',
+            color4: '#e6f62f',
+            metadatatechnic: 'corsproxy',
+            ownmetadataurl: '',
+            streamurl: streamUrl,
+            streamtype: 'shoutcast2',
+            shoutcastid: '1',
+            metadatainterval: '20000',
+            volume: '50',
+            debug: 'false',
+            usestreamcorsproxy: 'true',
+            corsproxy: '',
+            autoplay: 'true'
+          });
+          state.lunaInstance = instance;
+
+          const bindEnded = () => {
+            container.querySelectorAll('audio').forEach((audioEl) => {
+              if (audioEl.dataset.musicEndedBound === '1') return;
+              audioEl.dataset.musicEndedBound = '1';
+              audioEl.addEventListener('ended', () => playNextMusicTrack());
+            });
+          };
+          setTimeout(bindEnded, 300);
+          setTimeout(bindEnded, 900);
+        } catch (error) {
+          console.warn('Error inicializando LunaRadio:', error);
+          container.textContent = 'No se pudo iniciar LunaRadio';
+        }
+      }
+
+      function initMusicVideoPlayer(track) {
+        const state = window.__musicState;
+        const container = document.getElementById('clapprPlayerPlaceholder');
+        if (!container || !track) return;
+        if (typeof Clappr === 'undefined') {
+          container.textContent = 'Clappr no disponible';
+          return;
+        }
+
+        try {
+          if (state.clapprPlayer && typeof state.clapprPlayer.destroy === 'function') {
+            state.clapprPlayer.destroy();
+          }
+        } catch (_) { }
+
+        container.innerHTML = '';
+        const player = new Clappr.Player({
+          source: String(track.url || '').trim(),
+          parentId: '#clapprPlayerPlaceholder',
+          width: '100%',
+          height: '100%',
+          autoPlay: true,
+          mute: false,
+          mediacontrol: { seekbar: '#3b82f6', buttons: '#ffffff' },
+          playback: {
+            playInline: true,
+          },
+        });
+        state.clapprPlayer = player;
+
+        if (Clappr.Events?.PLAYER_ENDED) {
+          player.on(Clappr.Events.PLAYER_ENDED, () => playNextMusicTrack());
+        }
+      }
+
+      function playMusicTrackByIndex(index) {
+        const state = window.__musicState;
+        if (!Array.isArray(state.catalog) || !state.catalog[index]) return;
+        state.currentIndex = index;
+        const track = state.catalog[index];
+        musicSetTrackInfo(track);
+
+        const audioWrap = document.getElementById('audioPlayerWrap');
+        const videoWrap = document.getElementById('videoPlayerWrap');
+        if (state.mode === 'video') {
+          if (audioWrap) audioWrap.style.display = 'none';
+          if (videoWrap) videoWrap.style.display = '';
+          initMusicVideoPlayer(track);
+        } else {
+          if (videoWrap) videoWrap.style.display = 'none';
+          if (audioWrap) audioWrap.style.display = '';
+          initMusicAudioPlayer(track);
+        }
+      }
+
+      function renderLocalMusicList() {
+        const state = window.__musicState;
+        const localMusicList = document.getElementById('localMusicList');
+        if (!localMusicList) return;
+        localMusicList.innerHTML = '';
+
+        if (!Array.isArray(state.catalog) || state.catalog.length === 0) {
+          localMusicList.innerHTML = '<li style="color:var(--text-secondary); font-size:12px; padding:6px 4px;">No hay músicas cargadas.</li>';
+          return;
+        }
+
+        state.catalog.forEach((track, index) => {
+          const li = document.createElement('li');
+          li.style.display = 'flex';
+          li.style.alignItems = 'center';
+          li.style.justifyContent = 'space-between';
+          li.style.gap = '6px';
+          li.style.padding = '6px 4px';
+          li.style.borderBottom = '1px solid var(--border-color)';
+
+          const titleBtn = document.createElement('button');
+          titleBtn.type = 'button';
+          titleBtn.textContent = track.title || 'Sin título';
+          titleBtn.style.flex = '1';
+          titleBtn.style.textAlign = 'left';
+          titleBtn.style.background = 'transparent';
+          titleBtn.style.border = 'none';
+          titleBtn.style.color = 'var(--text-primary)';
+          titleBtn.style.cursor = 'pointer';
+          titleBtn.addEventListener('click', () => playMusicTrackByIndex(index));
+
+          const addBtn = document.createElement('button');
+          addBtn.type = 'button';
+          addBtn.textContent = '+ Lista';
+          addBtn.style.fontSize = '11px';
+          addBtn.disabled = !state.selectedPlaylistId;
+          addBtn.addEventListener('click', async () => {
+            if (!state.selectedPlaylistId) {
+              mostrarMensaje('info', 'Selecciona una playlist', 'Primero elige una lista de reproducción.');
+              return;
+            }
+            try {
+              const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
+              const response = await fetch('/api/social?action=add-music-to-playlist', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': idToken ? `Bearer ${idToken}` : '',
+                },
+                body: JSON.stringify({ playlistId: state.selectedPlaylistId, musicId: track.id })
+              });
+              const payload = await response.json().catch(() => ({}));
+              if (!response.ok) throw new Error(payload.error || 'No se pudo agregar a playlist');
+              await loadMusicPlaylists();
+              mostrarMensaje('success', 'Agregado', 'La canción se agregó a la playlist.');
+            } catch (error) {
+              mostrarMensaje('error', 'No se pudo agregar', error?.message || 'Intenta nuevamente');
+            }
+          });
+
+          li.appendChild(titleBtn);
+          li.appendChild(addBtn);
+          localMusicList.appendChild(li);
+        });
+      }
+
+      function renderMusicPlaylists() {
+        const state = window.__musicState;
+        const playlistsList = document.getElementById('playlistsList');
+        if (!playlistsList) return;
+        playlistsList.innerHTML = '';
+
+        if (!Array.isArray(state.playlists) || state.playlists.length === 0) {
+          playlistsList.innerHTML = '<li style="color:var(--text-secondary); font-size:12px; padding:6px 4px;">Crea tu primera playlist.</li>';
+          return;
+        }
+
+        state.playlists.forEach((playlist) => {
+          const li = document.createElement('li');
+          li.dataset.playlistId = playlist.id;
+          li.style.display = 'flex';
+          li.style.justifyContent = 'space-between';
+          li.style.alignItems = 'center';
+          li.style.padding = '6px 4px';
+          li.style.cursor = 'pointer';
+          li.style.borderBottom = '1px solid var(--border-color)';
+          if (state.selectedPlaylistId === playlist.id) {
+            li.style.background = 'rgba(59,130,246,0.15)';
+            li.style.borderRadius = '6px';
+          }
+
+          const name = document.createElement('span');
+          name.textContent = playlist.name;
+          const count = document.createElement('span');
+          count.className = 'playlist-count';
+          count.style.color = 'var(--text-secondary)';
+          count.style.fontSize = '12px';
+          count.textContent = `(${Number(playlist.songs_count || 0)})`;
+          li.appendChild(name);
+          li.appendChild(count);
+          li.addEventListener('click', () => {
+            state.selectedPlaylistId = playlist.id;
+            renderMusicPlaylists();
+            renderLocalMusicList();
+          });
+          playlistsList.appendChild(li);
+        });
+      }
+
+      async function loadMusicCatalog() {
+        try {
+          const response = await fetch('/api/social?action=get-musics&limit=300', { method: 'GET' });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(payload.error || 'No se pudo cargar catálogo');
+          window.__musicState.catalog = Array.isArray(payload.musics) ? payload.musics : [];
+          renderLocalMusicList();
+          if (window.__musicState.currentIndex < 0 && window.__musicState.catalog.length > 0) {
+            playMusicTrackByIndex(0);
+          }
+        } catch (error) {
+          console.warn('loadMusicCatalog error:', error);
+        }
+      }
+
+      async function loadMusicPlaylists() {
+        const state = window.__musicState;
+        if (window.isGuestSession) {
+          state.playlists = [];
+          state.selectedPlaylistId = '';
+          renderMusicPlaylists();
+          return;
+        }
+        try {
+          const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
+          if (!idToken) return;
+          const response = await fetch('/api/social?action=get-music-playlists', {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${idToken}` }
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(payload.error || 'No se pudo cargar playlists');
+          state.playlists = Array.isArray(payload.playlists) ? payload.playlists : [];
+          if (state.selectedPlaylistId && !state.playlists.some((x) => x.id === state.selectedPlaylistId)) {
+            state.selectedPlaylistId = '';
+          }
+          renderMusicPlaylists();
+          renderLocalMusicList();
+        } catch (error) {
+          console.warn('loadMusicPlaylists error:', error);
+        }
+      }
+
+      async function createMusicPlaylist() {
+        if (window.isGuestSession) {
+          mostrarMensaje('info', 'Sesión requerida', 'Debes iniciar sesión para crear playlists.');
+          return;
+        }
+        const name = String(window.prompt('Nombre de la playlist:') || '').trim();
+        if (!name) return;
+
+        try {
+          const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
+          if (!idToken) throw new Error('Sesión no válida');
+          const response = await fetch('/api/social?action=create-music-playlist', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${idToken}`,
+            },
+            body: JSON.stringify({ name })
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(payload.error || 'No se pudo crear playlist');
+          await loadMusicPlaylists();
+          if (payload?.playlist?.id) {
+            window.__musicState.selectedPlaylistId = payload.playlist.id;
+          }
+          renderMusicPlaylists();
+        } catch (error) {
+          mostrarMensaje('error', 'No se pudo crear playlist', error?.message || 'Intenta nuevamente');
+        }
+      }
+
+      async function submitAddMusicForm(event) {
+        event.preventDefault();
+        const state = window.__musicState;
+        const title = String(document.getElementById('musicTitle')?.value || '').trim();
+        const url = String(document.getElementById('musicUrl')?.value || '').trim();
+        const artist = String(document.getElementById('musicArtist')?.value || '').trim();
+        const album = String(document.getElementById('musicAlbum')?.value || '').trim();
+        const yearRaw = String(document.getElementById('musicYear')?.value || '').trim();
+        const year = yearRaw ? Number(yearRaw) : null;
+        const uploadModeList = document.getElementById('uploadModeList');
+        const dynamicListFields = document.getElementById('dynamicListFields');
+        const isList = !!uploadModeList && uploadModeList.classList.contains('active');
+
+        try {
+          const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
+
+          if (!isList) {
+            if (!title || !url) {
+              mostrarMensaje('info', 'Campos requeridos', 'Título y URL son obligatorios.');
+              return;
+            }
+            const musicPayload = { title, url, artist, album, year };
+            const response = await fetch('/api/social?action=add-music', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': idToken ? `Bearer ${idToken}` : '',
+              },
+              body: JSON.stringify({ music: musicPayload })
+            });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(payload.error || 'No se pudo agregar música');
+
+            const createdMusic = payload.music || null;
+            if (state.selectedPlaylistId && createdMusic?.id) {
+              await fetch('/api/social?action=add-music-to-playlist', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': idToken ? `Bearer ${idToken}` : '',
+                },
+                body: JSON.stringify({ playlistId: state.selectedPlaylistId, musicId: createdMusic.id })
+              });
+            }
+            mostrarMensaje('success', 'Música agregada', 'Se guardó correctamente.');
+          } else {
+            const rows = Array.from(dynamicListFields ? dynamicListFields.querySelectorAll('input') : []);
+            const listData = rows.map((row) => {
+              const values = String(row.value || '').split('|').map((part) => part.trim());
+              return {
+                title: values[0] || '',
+                url: values[1] || '',
+                artist: values[2] || '',
+                album: values[3] || '',
+              };
+            }).filter((item) => item.title && item.url);
+
+            if (!listData.length) {
+              mostrarMensaje('info', 'Lista vacía', 'Agrega al menos un elemento válido en formato Título | URL.');
+              return;
+            }
+
+            const response = await fetch('/api/social?action=add-music-list', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': idToken ? `Bearer ${idToken}` : '',
+              },
+              body: JSON.stringify({ list: listData })
+            });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(payload.error || 'No se pudo subir la lista');
+            mostrarMensaje('success', 'Lista agregada', `Se agregaron ${payload.inserted || 0} elementos.`);
+          }
+
+          document.getElementById('addMusicModal')?.classList.add('hiddenX');
+          await Promise.all([loadMusicCatalog(), loadMusicPlaylists()]);
+        } catch (error) {
+          mostrarMensaje('error', 'No se pudo guardar', error?.message || 'Intenta nuevamente');
+        }
+      }
+
+      function initMusicSection() {
+        const state = window.__musicState;
+        if (state.initialized) {
+          const openAddMusicModalBtn = document.getElementById('openAddMusicModalBtn');
+          if (openAddMusicModalBtn) openAddMusicModalBtn.style.display = window.isOwner ? '' : 'none';
+          loadMusicCatalog();
+          loadMusicPlaylists();
+          return;
+        }
+
+        state.initialized = true;
+        const btnAudio = document.getElementById('btnAudio');
+        const btnVideo = document.getElementById('btnVideo');
+        const audioWrap = document.getElementById('audioPlayerWrap');
+        const videoWrap = document.getElementById('videoPlayerWrap');
+        const modeLabel = document.getElementById('playerModeLabel');
+        const openAddMusicModalBtn = document.getElementById('openAddMusicModalBtn');
+        const addMusicModal = document.getElementById('addMusicModal');
+        const closeAddMusicModal = document.getElementById('closeAddMusicModal');
+        const cancelAddMusicBtn = document.getElementById('cancelAddMusicBtn');
+        const addMusicForm = document.getElementById('addMusicForm');
+        const uploadModeIndividual = document.getElementById('uploadModeIndividual');
+        const uploadModeList = document.getElementById('uploadModeList');
+        const listUploadArea = document.getElementById('listUploadArea');
+        const dynamicListFields = document.getElementById('dynamicListFields');
+        const add1Field = document.getElementById('add1Field');
+        const add10Fields = document.getElementById('add10Fields');
+        const add100Fields = document.getElementById('add100Fields');
+        const remove10Fields = document.getElementById('remove10Fields');
+        const remove100Fields = document.getElementById('remove100Fields');
+        const crearPlaylistBtn = document.getElementById('crearPlaylistBtn');
+
+        if (openAddMusicModalBtn) openAddMusicModalBtn.style.display = window.isOwner ? '' : 'none';
+
+        if (btnAudio && btnVideo) {
+          btnAudio.addEventListener('click', () => {
+            state.mode = 'audio';
+            btnAudio.classList.add('active');
+            btnVideo.classList.remove('active');
+            if (audioWrap) audioWrap.style.display = '';
+            if (videoWrap) videoWrap.style.display = 'none';
+            if (modeLabel) modeLabel.textContent = 'Audio';
+            if (state.currentIndex >= 0) playMusicTrackByIndex(state.currentIndex);
+          });
+
+          btnVideo.addEventListener('click', () => {
+            state.mode = 'video';
+            btnVideo.classList.add('active');
+            btnAudio.classList.remove('active');
+            if (videoWrap) videoWrap.style.display = '';
+            if (audioWrap) audioWrap.style.display = 'none';
+            if (modeLabel) modeLabel.textContent = 'Video';
+            if (state.currentIndex >= 0) playMusicTrackByIndex(state.currentIndex);
+          });
+        }
+
+        const showModal = () => addMusicModal?.classList.remove('hiddenX');
+        const hideModal = () => addMusicModal?.classList.add('hiddenX');
+
+        openAddMusicModalBtn?.addEventListener('click', showModal);
+        closeAddMusicModal?.addEventListener('click', hideModal);
+        cancelAddMusicBtn?.addEventListener('click', hideModal);
+
+        uploadModeIndividual?.addEventListener('click', () => {
+          uploadModeIndividual.classList.add('active');
+          uploadModeList?.classList.remove('active');
+          if (listUploadArea) listUploadArea.style.display = 'none';
+        });
+
+        uploadModeList?.addEventListener('click', () => {
+          uploadModeList.classList.add('active');
+          uploadModeIndividual?.classList.remove('active');
+          if (listUploadArea) listUploadArea.style.display = '';
+        });
+
+        const addField = () => {
+          if (!dynamicListFields) return;
+          const wrapper = document.createElement('div');
+          wrapper.style.display = 'flex';
+          wrapper.style.gap = '6px';
+          const input = document.createElement('input');
+          input.placeholder = 'Título | URL';
+          input.style.flex = '1';
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.textContent = '✕';
+          removeBtn.style.width = '36px';
+          removeBtn.addEventListener('click', () => wrapper.remove());
+          wrapper.appendChild(input);
+          wrapper.appendChild(removeBtn);
+          dynamicListFields.appendChild(wrapper);
+        };
+
+        const removeBatch = (size) => {
+          if (!dynamicListFields) return;
+          for (let i = 0; i < size; i++) {
+            const last = dynamicListFields.lastElementChild;
+            if (!last) break;
+            last.remove();
+          }
+        };
+
+        add1Field?.addEventListener('click', () => addField());
+        add10Fields?.addEventListener('click', () => { for (let i = 0; i < 10; i++) addField(); });
+        add100Fields?.addEventListener('click', () => { for (let i = 0; i < 100; i++) addField(); });
+        remove10Fields?.addEventListener('click', () => removeBatch(10));
+        remove100Fields?.addEventListener('click', () => removeBatch(100));
+
+        crearPlaylistBtn?.addEventListener('click', createMusicPlaylist);
+        addMusicForm?.addEventListener('submit', submitAddMusicForm);
+
+        loadMusicCatalog();
+        loadMusicPlaylists();
+      }
+
+      // 🔹 Menú Música
       if (menuMusica) {
         menuMusica.addEventListener("click", () => {
           mostrarSeccion(musicaSection, menuMusica);
-          if (typeof initMusicSection === 'function') initMusicSection();
+          initMusicSection();
         });
       }
 

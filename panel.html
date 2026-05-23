@@ -4741,24 +4741,64 @@
     #musicaSection .music-mode-switch {
       display: flex;
       gap: 8px;
+      position: relative;
+      padding: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-color);
+    }
+
+    #musicaSection .music-mode-slider {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: calc(50% - 4px);
+      height: calc(100% - 8px);
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--accent-color), #60a5fa);
+      box-shadow: 0 8px 18px rgba(59, 130, 246, 0.28);
+      transition: transform 0.28s cubic-bezier(.2,.8,.2,1), width 0.28s cubic-bezier(.2,.8,.2,1);
+      transform: translateX(0);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #musicaSection .music-mode-switch.mode-video .music-mode-slider {
+      transform: translateX(calc(100% + 4px));
     }
 
     #musicaSection .music-mode-switch .small-toggle {
-      border: 1px solid var(--border-color);
-      background: rgba(255, 255, 255, 0.04);
-      color: var(--text-primary);
+      position: relative;
+      z-index: 1;
+      border: none;
+      background: transparent;
+      color: #cbd5e1;
       border-radius: 999px;
       padding: 6px 12px;
       font-size: 12px;
       cursor: pointer;
-      transition: all 0.2s ease;
+      min-width: 78px;
+      transition: transform 0.22s ease, color 0.22s ease, opacity 0.22s ease;
+      overflow: hidden;
     }
 
     #musicaSection .music-mode-switch .small-toggle.active {
-      background: var(--accent-color);
-      border-color: var(--accent-color);
       color: #fff;
-      box-shadow: 0 2px 10px rgba(59, 130, 246, 0.35);
+      transform: translateY(-1px) scale(1.02);
+    }
+
+    #musicaSection .music-mode-switch .small-toggle::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, 0.12) 50%, transparent 100%);
+      transform: translateX(-120%);
+      transition: transform 0.45s ease;
+      pointer-events: none;
+    }
+
+    #musicaSection .music-mode-switch .small-toggle:hover::after {
+      transform: translateX(120%);
     }
 
     #musicaSection #playerContainer {
@@ -4767,6 +4807,31 @@
       border-radius: 12px;
       padding: 10px;
       min-height: 320px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #musicaSection .music-player-frame {
+      position: absolute;
+      inset: 10px;
+      opacity: 0;
+      transform: scale(0.985);
+      transition: opacity 0.22s ease, transform 0.22s ease;
+      pointer-events: none;
+    }
+
+    #musicaSection .music-player-frame.active {
+      opacity: 1;
+      transform: scale(1);
+      pointer-events: auto;
+    }
+
+    #musicaSection .music-player-frame > div {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     #musicaSection .music-track-title {
@@ -4781,24 +4846,168 @@
       font-size: 13px;
     }
 
+    #musicaSection .music-cover-wrap {
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+    }
+
+    #musicaSection .music-cover {
+      width: 72px;
+      height: 72px;
+      border-radius: 14px;
+      object-fit: cover;
+      flex-shrink: 0;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+      background: #0b1220;
+    }
+
+    #musicaSection .music-cover-placeholder {
+      width: 72px;
+      height: 72px;
+      border-radius: 14px;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, rgba(59,130,246,0.25), rgba(15,23,42,0.65));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 22px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
     #musicaSection #addMusicModal {
       backdrop-filter: blur(3px);
       z-index: 11000;
+      pointer-events: auto;
+      overflow-y: auto;
+      padding: 20px;
     }
 
     #musicaSection .music-modal-card {
       width: 760px;
       max-width: 95%;
+      max-height: calc(100vh - 40px);
+      overflow: auto;
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: 14px;
       padding: 18px;
       position: relative;
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+      animation: musicModalIn 0.24s ease;
+    }
+
+    @keyframes musicModalIn {
+      from { opacity: 0; transform: translateY(18px) scale(0.985); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    #musicaSection .music-modal-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+    }
+
+    #musicaSection .music-modal-subtitle {
+      margin: 6px 0 0 0;
+      color: var(--text-secondary);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    #musicaSection .music-modal-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    #musicaSection .music-field,
+    #musicaSection .music-field-inline {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    #musicaSection .music-field small,
+    #musicaSection .music-field-inline small {
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+
+    #musicaSection .music-modal-card input,
+    #musicaSection .music-modal-card button[type="button"],
+    #musicaSection .music-modal-card button[type="submit"] {
+      border-radius: 10px;
+    }
+
+    #musicaSection .music-modal-card input {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    #musicaSection .music-modal-card input:focus {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    #musicaSection .music-modal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    #musicaSection .music-modal-actions button {
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-primary);
+      padding: 9px 12px;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    #musicaSection .music-modal-actions button:hover,
+    #musicaSection .music-pill-btn:hover,
+    #musicaSection .music-list-add-btn:hover,
+    #musicaSection .music-list-title:hover {
+      transform: translateY(-1px);
+    }
+
+    #musicaSection .music-modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 14px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 14px;
+    }
+
+    #musicaSection .music-modal-footer button {
+      min-width: 120px;
     }
 
     @media (max-width: 1100px) {
       #musicaSection .music-layout {
+        grid-template-columns: 1fr;
+      }
+
+      #musicaSection .music-modal-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -5958,6 +6167,7 @@
         <main class="music-panel" style="display:flex; flex-direction:column; gap:12px;">
           <div class="music-controls">
             <div id="toggleMediaBtns" class="music-mode-switch">
+              <div class="music-mode-slider" aria-hidden="true"></div>
               <button id="btnAudio" class="small-toggle active">Audio</button>
               <button id="btnVideo" class="small-toggle">Video</button>
             </div>
@@ -5966,10 +6176,10 @@
           </div>
 
           <div id="playerContainer" style="flex:1; display:flex; align-items:center; justify-content:center;">
-            <div id="audioPlayerWrap" style="width:100%; height:100%;">
+            <div id="audioPlayerWrap" class="music-player-frame active">
               <div id="lunaradioPlayerPlaceholder" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:var(--text-secondary);">Selecciona una pista para reproducir</div>
             </div>
-            <div id="videoPlayerWrap" style="width:100%; height:100%; display:none;">
+            <div id="videoPlayerWrap" class="music-player-frame">
               <div id="clapprPlayerPlaceholder" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:var(--text-secondary);">Selecciona un video para reproducir</div>
             </div>
           </div>
@@ -5981,50 +6191,57 @@
             <strong>Detalle</strong>
             <button id="openAddMusicModalBtn" class="music-pill-btn" style="display:none;">+ Agregar</button>
           </div>
+          <div class="music-cover-wrap">
+            <div id="musicCoverPlaceholder" class="music-cover-placeholder"><i class="fas fa-music"></i></div>
+            <img id="musicCoverImage" class="music-cover" alt="Carátula activa" style="display:none;">
+            <div style="min-width:0;">
+              <div id="trackTitle" class="music-track-title">Selecciona una pista</div>
+              <div id="trackArtist" class="music-track-line">Artista: —</div>
+              <div id="trackAlbum" class="music-track-line">Álbum: —</div>
+            </div>
+          </div>
           <div id="trackInfo" style="font-size:14px; color:var(--text-primary);">
-            <p id="trackTitle" class="music-track-title">Selecciona una pista</p>
-            <p id="trackArtist" class="music-track-line">Artista: —</p>
-            <p id="trackAlbum" class="music-track-line">Álbum: —</p>
             <pre id="trackMetadata" style="display:none; font-size:12px; color:var(--text-secondary); white-space:pre-wrap;">{}</pre>
           </div>
         </aside>
       </div>
 
       <!-- Modal para subir música (solo se cierra con X) -->
-      <div id="addMusicModal" class="hiddenX" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.6);">
+      <div id="addMusicModal" class="hiddenX" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(2,6,23,0.72); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
         <div class="music-modal-card">
           <button id="closeAddMusicModal" style="position:absolute; right:12px; top:12px; font-size:18px;">✕</button>
-          <h3>Gestión de catálogo (propietario)</h3>
+          <h3 class="music-modal-title">Gestión de catálogo</h3>
+          <p class="music-modal-subtitle">Carga pistas una por una o en lote. El modo individual usa el reproductor actual y el modo lista te permite pegar múltiples enlaces con formato rápido.</p>
           <form id="addMusicForm">
-            <div style="display:flex; gap:8px; margin-bottom:8px;">
-              <label style="flex:1; display:flex; flex-direction:column;"><small>Título *</small><input id="musicTitle" required></label>
-              <label style="flex:1; display:flex; flex-direction:column;"><small>URL *</small><input id="musicUrl" required></label>
+            <div class="music-modal-grid">
+              <label class="music-field"><small>Título *</small><input id="musicTitle" required placeholder="Nombre visible de la pista"></label>
+              <label class="music-field"><small>URL *</small><input id="musicUrl" required placeholder="Enlace directo o embebible"></label>
             </div>
-            <div style="display:flex; gap:8px; margin-bottom:8px;">
-              <label style="flex:1; display:flex; flex-direction:column;"><small>Artista</small><input id="musicArtist"></label>
-              <label style="flex:1; display:flex; flex-direction:column;"><small>Álbum</small><input id="musicAlbum"></label>
-              <label style="width:90px; display:flex; flex-direction:column;"><small>Año</small><input id="musicYear" type="number"></label>
+            <div class="music-modal-grid">
+              <label class="music-field"><small>Artista</small><input id="musicArtist" placeholder="Opcional"></label>
+              <label class="music-field"><small>Álbum</small><input id="musicAlbum" placeholder="Opcional"></label>
+              <label class="music-field-inline" style="max-width:140px;"><small>Año</small><input id="musicYear" type="number" placeholder="2026"></label>
             </div>
             <div style="margin-bottom:8px;">
               <label><small>Modo de subida</small></label>
-              <div style="display:flex; gap:8px; margin-top:6px;">
+              <div class="music-modal-actions">
                 <button type="button" id="uploadModeIndividual" class="small-toggle active">Individual</button>
                 <button type="button" id="uploadModeList" class="small-toggle">Lista</button>
               </div>
             </div>
 
             <div id="listUploadArea" style="display:none; margin-bottom:8px;">
-              <div style="display:flex; gap:8px; margin-bottom:6px;">
+              <div class="music-modal-actions" style="margin-bottom:6px;">
                 <button type="button" id="add1Field">+1</button>
                 <button type="button" id="add10Fields">+10</button>
                 <button type="button" id="add100Fields">+100</button>
                 <button type="button" id="remove10Fields">-10</button>
                 <button type="button" id="remove100Fields">-100</button>
               </div>
-              <div id="dynamicListFields" style="display:flex; flex-direction:column; gap:6px; max-height:260px; overflow:auto;"></div>
+              <div id="dynamicListFields" style="display:flex; flex-direction:column; gap:8px; max-height:260px; overflow:auto; padding-right:4px;"></div>
             </div>
 
-            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:10px;">
+            <div class="music-modal-footer">
               <button type="button" id="cancelAddMusicBtn">Cancelar</button>
               <button type="submit" id="confirmAddMusicBtn">Agregar</button>
             </div>
@@ -10046,9 +10263,18 @@
         playlists: [],
         selectedPlaylistId: '',
         currentIndex: -1,
+        playbackNonce: 0,
+        activePlayerType: '',
         clapprPlayer: null,
         lunaInstance: null,
       };
+
+      function musicStartNewPlaybackSession(playerType) {
+        const state = window.__musicState;
+        state.playbackNonce = (state.playbackNonce || 0) + 1;
+        state.activePlayerType = String(playerType || '').toLowerCase();
+        return state.playbackNonce;
+      }
 
       function musicNormalizeAudioUrl(rawUrl = '') {
         const url = String(rawUrl || '').trim();
@@ -10064,6 +10290,8 @@
         const trackArtist = document.getElementById('trackArtist');
         const trackAlbum = document.getElementById('trackAlbum');
         const trackMetadata = document.getElementById('trackMetadata');
+        const musicCoverImage = document.getElementById('musicCoverImage');
+        const musicCoverPlaceholder = document.getElementById('musicCoverPlaceholder');
         if (!trackTitle || !trackArtist || !trackAlbum || !trackMetadata) return;
 
         if (!track) {
@@ -10071,12 +10299,25 @@
           trackArtist.textContent = 'Artista: —';
           trackAlbum.textContent = 'Álbum: —';
           trackMetadata.style.display = 'none';
+          if (musicCoverImage) musicCoverImage.style.display = 'none';
+          if (musicCoverPlaceholder) musicCoverPlaceholder.style.display = 'flex';
           return;
         }
 
         trackTitle.textContent = track.title || 'Sin título';
         trackArtist.textContent = `Artista: ${track.artist || '—'}`;
         trackAlbum.textContent = `Álbum: ${track.album || '—'}${track.year ? ` (${track.year})` : ''}`;
+
+        const coverCandidate = track?.radiocover || track?.posterUrl || track?.thumbnailUrl || track?.metadata?.coverUrl || track?.metadata?.cover || '';
+        if (coverCandidate && musicCoverImage) {
+          musicCoverImage.src = coverCandidate;
+          musicCoverImage.style.display = 'block';
+          if (musicCoverPlaceholder) musicCoverPlaceholder.style.display = 'none';
+        } else {
+          if (musicCoverImage) musicCoverImage.style.display = 'none';
+          if (musicCoverPlaceholder) musicCoverPlaceholder.style.display = 'flex';
+        }
+
         const metadata = track.metadata && Object.keys(track.metadata || {}).length ? track.metadata : null;
         if (metadata) {
           trackMetadata.textContent = JSON.stringify(metadata, null, 2);
@@ -10089,6 +10330,25 @@
       function musicDestroyPlayers() {
         const state = window.__musicState;
         try {
+          if (state.lunaInstance && typeof state.lunaInstance.lunaradio === 'function') {
+            try { state.lunaInstance.lunaradio('pause'); } catch (_) { }
+            try {
+              const lunaAudio = document.querySelector('#lunaradioPlayerPlaceholder audio');
+              if (lunaAudio) {
+                lunaAudio.pause();
+                lunaAudio.currentTime = 0;
+                lunaAudio.src = '';
+                lunaAudio.load?.();
+              }
+            } catch (_) { }
+          }
+          const lunaMount = document.getElementById('lunaradioPlayerPlaceholder');
+          if (lunaMount) {
+            lunaMount.innerHTML = '';
+            lunaMount.classList.remove('lunaradio-host');
+          }
+          state.lunaInstance = null;
+
           if (state.clapprPlayer && typeof state.clapprPlayer.destroy === 'function') {
             state.clapprPlayer.destroy();
           }
@@ -10107,7 +10367,13 @@
         const state = window.__musicState;
         const container = document.getElementById('lunaradioPlayerPlaceholder');
         if (!container || !track) return;
+        const playbackNonce = musicStartNewPlaybackSession('audio');
+        musicDestroyPlayers();
         container.innerHTML = '';
+        const audioFrame = document.getElementById('audioPlayerWrap');
+        const videoFrame = document.getElementById('videoPlayerWrap');
+        if (audioFrame) audioFrame.classList.add('active');
+        if (videoFrame) videoFrame.classList.remove('active');
 
         const jq = window.jQuery;
         if (!jq || !jq.fn || typeof jq.fn.lunaradio !== 'function') {
@@ -10166,8 +10432,12 @@
               audioEl.addEventListener('ended', () => playNextMusicTrack());
             });
           };
-          setTimeout(bindEnded, 300);
-          setTimeout(bindEnded, 900);
+          const bindEndedGuarded = () => {
+            if (state.playbackNonce !== playbackNonce || state.activePlayerType !== 'audio') return;
+            bindEnded();
+          };
+          setTimeout(bindEndedGuarded, 300);
+          setTimeout(bindEndedGuarded, 900);
         } catch (error) {
           console.warn('Error inicializando LunaRadio:', error);
           container.textContent = 'No se pudo iniciar LunaRadio';
@@ -10178,10 +10448,17 @@
         const state = window.__musicState;
         const container = document.getElementById('clapprPlayerPlaceholder');
         if (!container || !track) return;
+        const playbackNonce = musicStartNewPlaybackSession('video');
+        musicDestroyPlayers();
         if (typeof Clappr === 'undefined') {
           container.textContent = 'Video no disponible por el momento';
           return;
         }
+
+        const audioFrame = document.getElementById('audioPlayerWrap');
+        const videoFrame = document.getElementById('videoPlayerWrap');
+        if (audioFrame) audioFrame.classList.remove('active');
+        if (videoFrame) videoFrame.classList.add('active');
 
         try {
           if (state.clapprPlayer && typeof state.clapprPlayer.destroy === 'function') {
@@ -10205,7 +10482,10 @@
         state.clapprPlayer = player;
 
         if (Clappr.Events?.PLAYER_ENDED) {
-          player.on(Clappr.Events.PLAYER_ENDED, () => playNextMusicTrack());
+          player.on(Clappr.Events.PLAYER_ENDED, () => {
+            if (state.playbackNonce !== playbackNonce || state.activePlayerType !== 'video') return;
+            playNextMusicTrack();
+          });
         }
       }
 
@@ -10215,16 +10495,15 @@
         state.currentIndex = index;
         const track = state.catalog[index];
         musicSetTrackInfo(track);
+        renderLocalMusicList();
 
         const audioWrap = document.getElementById('audioPlayerWrap');
         const videoWrap = document.getElementById('videoPlayerWrap');
         if (state.mode === 'video') {
-          if (audioWrap) audioWrap.style.display = 'none';
-          if (videoWrap) videoWrap.style.display = '';
+          musicDestroyPlayers();
           initMusicVideoPlayer(track);
         } else {
-          if (videoWrap) videoWrap.style.display = 'none';
-          if (audioWrap) audioWrap.style.display = '';
+          musicDestroyPlayers();
           initMusicAudioPlayer(track);
         }
       }
@@ -10243,6 +10522,7 @@
         state.catalog.forEach((track, index) => {
           const li = document.createElement('li');
           li.className = 'music-list-item';
+          if (state.currentIndex === index) li.classList.add('selected');
 
           const titleBtn = document.createElement('button');
           titleBtn.type = 'button';
@@ -10470,6 +10750,7 @@
           }
 
           document.getElementById('addMusicModal')?.classList.add('hiddenX');
+          document.body.style.overflow = '';
           await Promise.all([loadMusicCatalog(), loadMusicPlaylists()]);
         } catch (error) {
           mostrarMensaje('error', 'No se pudo guardar', error?.message || 'Intenta nuevamente');
@@ -10489,6 +10770,7 @@
         state.initialized = true;
         const btnAudio = document.getElementById('btnAudio');
         const btnVideo = document.getElementById('btnVideo');
+        const toggleMediaBtns = document.getElementById('toggleMediaBtns');
         const audioWrap = document.getElementById('audioPlayerWrap');
         const videoWrap = document.getElementById('videoPlayerWrap');
         const modeLabel = document.getElementById('playerModeLabel');
@@ -10515,40 +10797,70 @@
             state.mode = 'audio';
             btnAudio.classList.add('active');
             btnVideo.classList.remove('active');
+            if (toggleMediaBtns) toggleMediaBtns.classList.remove('mode-video');
             if (audioWrap) audioWrap.style.display = '';
             if (videoWrap) videoWrap.style.display = 'none';
             if (modeLabel) modeLabel.textContent = 'Audio';
-            if (state.currentIndex >= 0) playMusicTrackByIndex(state.currentIndex);
+            if (state.currentIndex >= 0) {
+              playMusicTrackByIndex(state.currentIndex);
+            }
           });
 
           btnVideo.addEventListener('click', () => {
             state.mode = 'video';
             btnVideo.classList.add('active');
             btnAudio.classList.remove('active');
+            if (toggleMediaBtns) toggleMediaBtns.classList.add('mode-video');
             if (videoWrap) videoWrap.style.display = '';
             if (audioWrap) audioWrap.style.display = 'none';
             if (modeLabel) modeLabel.textContent = 'Video';
-            if (state.currentIndex >= 0) playMusicTrackByIndex(state.currentIndex);
+            if (state.currentIndex >= 0) {
+              playMusicTrackByIndex(state.currentIndex);
+            }
           });
         }
 
-        const showModal = () => addMusicModal?.classList.remove('hiddenX');
-        const hideModal = () => addMusicModal?.classList.add('hiddenX');
+        const showModal = () => {
+          addMusicModal?.classList.remove('hiddenX');
+          document.body.style.overflow = 'hidden';
+        };
+        const hideModal = () => {
+          addMusicModal?.classList.add('hiddenX');
+          document.body.style.overflow = '';
+        };
 
         openAddMusicModalBtn?.addEventListener('click', showModal);
         closeAddMusicModal?.addEventListener('click', hideModal);
         cancelAddMusicBtn?.addEventListener('click', hideModal);
 
+        if (addMusicModal && !addMusicModal.dataset.bound) {
+          addMusicModal.dataset.bound = '1';
+          addMusicModal.addEventListener('click', (event) => {
+            if (event.target === addMusicModal) {
+              event.preventDefault();
+            }
+          });
+          addMusicModal.addEventListener('wheel', (event) => event.stopPropagation(), { passive: true });
+        }
+
+        window.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape' && addMusicModal && !addMusicModal.classList.contains('hiddenX')) {
+            hideModal();
+          }
+        });
+
         uploadModeIndividual?.addEventListener('click', () => {
           uploadModeIndividual.classList.add('active');
           uploadModeList?.classList.remove('active');
           if (listUploadArea) listUploadArea.style.display = 'none';
+          if (state.currentIndex >= 0) playMusicTrackByIndex(state.currentIndex);
         });
 
         uploadModeList?.addEventListener('click', () => {
           uploadModeList.classList.add('active');
           uploadModeIndividual?.classList.remove('active');
           if (listUploadArea) listUploadArea.style.display = '';
+          if (state.currentIndex >= 0) playMusicTrackByIndex(state.currentIndex);
         });
 
         const addField = () => {
@@ -10583,6 +10895,10 @@
         add100Fields?.addEventListener('click', () => { for (let i = 0; i < 100; i++) addField(); });
         remove10Fields?.addEventListener('click', () => removeBatch(10));
         remove100Fields?.addEventListener('click', () => removeBatch(100));
+
+        if (toggleMediaBtns && state.mode === 'video') {
+          toggleMediaBtns.classList.add('mode-video');
+        }
 
         crearPlaylistBtn?.addEventListener('click', createMusicPlaylist);
         addMusicForm?.addEventListener('submit', submitAddMusicForm);

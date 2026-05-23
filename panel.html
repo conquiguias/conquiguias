@@ -4669,6 +4669,10 @@
       width: 100%;
     }
 
+    #musicaSection.card {
+      overflow: hidden;
+    }
+
     #musicaSection .music-layout {
       display: grid;
       grid-template-columns: minmax(180px, 220px) minmax(0, 1.45fr) minmax(200px, 250px);
@@ -4676,6 +4680,13 @@
       align-items: stretch;
       height: 100%;
       width: 100%;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    #musicaSection .music-layout > * {
+      min-width: 0;
+      min-height: 0;
     }
 
     #musicaSection .music-panel {
@@ -4685,10 +4696,11 @@
       padding: 10px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       min-height: 0;
+      min-width: 0;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      overflow-y: auto;
+      overflow: hidden;
       height: 100%;
     }
 
@@ -4702,6 +4714,10 @@
 
     #musicaSection .music-panel-header strong {
       font-size: 13px;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     #musicaSection .music-subtitle {
@@ -4715,11 +4731,13 @@
       list-style: none;
       padding: 0;
       margin: 0;
+      min-width: 0;
     }
 
     #musicaSection .music-list.scrollable {
       max-height: 240px;
-      overflow: auto;
+      overflow-y: auto;
+      overflow-x: hidden;
     }
 
     #musicaSection .music-list-item {
@@ -4729,6 +4747,7 @@
       gap: 8px;
       padding: 7px 6px;
       border-bottom: 1px solid var(--border-color);
+      min-width: 0;
     }
 
     #musicaSection .music-list-item.selected {
@@ -4738,13 +4757,17 @@
     }
 
     #musicaSection .music-list-title {
-      flex: 1;
+      flex: 1 1 auto;
+      min-width: 0;
       text-align: left;
       background: transparent;
       border: none;
       color: var(--text-primary);
       cursor: pointer;
       font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     #musicaSection .music-list-add-btn,
@@ -4756,6 +4779,7 @@
       padding: 4px 8px;
       font-size: 11px;
       cursor: pointer;
+      flex: 0 0 auto;
     }
 
     #musicaSection .music-list-add-btn:disabled,
@@ -4980,12 +5004,26 @@
       white-space: nowrap;
       min-width: 0;
       max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #musicaSection #trackTitle,
+    #musicaSection #trackArtist,
+    #musicaSection #trackAlbum,
+    #musicaSection #trackMetadata {
+      min-width: 0;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     #musicaSection .music-now-playing::before {
       content: '';
+      display: inline-block;
       width: 7px;
       height: 7px;
+      flex: 0 0 7px;
       border-radius: 999px;
       background: #60a5fa;
       box-shadow: 0 0 0 0 rgba(96, 165, 250, 0.55);
@@ -6397,7 +6435,7 @@
             <button id="openAddMusicModalBtn" class="music-pill-btn" style="display:none;">+ Agregar</button>
           </div>
           <div class="music-cover-wrap" id="musicCoverWrap">
-            <div id="musicCoverPlaceholder" class="music-cover-placeholder"><svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M9 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8zm0-14c-3.309 0-6 2.691-6 6s2.691 6 6 6 6-2.691 6-6-2.691-6-6-6zm3.5-1c0-.276-.224-.5-.5-.5s-.5.224-.5.5.224.5.5.5.5-.224.5-.5zm0 2c0-.276-.224-.5-.5-.5s-.5.224-.5.5.224.5.5.5.5-.224.5-.5zM18 9v6c0 .552-.447 1-1 1s-1-.448-1-1V9c0-.552.447-1 1-1s1 .448 1 1zm2-4v14c0 .552-.447 1-1 1H2c-.553 0-1-.448-1-1V5c0-.552.447-1 1-1h17c.553 0 1 .448 1 1z"></path></svg></div>
+            <div id="musicCoverPlaceholder" class="music-cover-placeholder"><svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.3A3.9 3.9 0 0 0 10 13c-1.66 0-3 1.12-3 2.5S8.34 18 10 18s3-1.12 3-2.5V8.4l6-1.2V14.3A3.9 3.9 0 0 0 17 14c-1.66 0-3 1.12-3 2.5s1.34 2.5 3 2.5 3-1.12 3-2.5V4.5L12 3z"></path></svg></div>
             <img id="musicCoverImage" class="music-cover" alt="Carátula activa" style="display:none;">
             <div style="min-width:0; flex:1; display:flex; flex-direction:column; gap:2px;">
               <div style="display:flex; align-items:center; gap:8px;">
@@ -10611,11 +10649,20 @@
           if (musicCoverImage) musicCoverImage.style.display = 'none';
           if (musicCoverPlaceholder) musicCoverPlaceholder.style.display = 'flex';
           if (musicCoverWrap) musicCoverWrap.classList.remove('is-active');
-          if (musicNowPlayingBadge) musicNowPlayingBadge.textContent = 'En espera';
+          if (musicNowPlayingBadge) {
+            musicNowPlayingBadge.textContent = 'En espera';
+            musicNowPlayingBadge.title = 'En espera';
+          }
           if (musicProgressTrack) musicProgressTrack.classList.remove('is-indeterminate');
           if (musicProgressFill) musicProgressFill.style.width = '0%';
-          if (musicProgressTime) musicProgressTime.textContent = '0:00';
-          if (musicProgressDuration) musicProgressDuration.textContent = '0:00';
+          if (musicProgressTime) {
+            musicProgressTime.textContent = '0:00';
+            musicProgressTime.title = '0:00';
+          }
+          if (musicProgressDuration) {
+            musicProgressDuration.textContent = '0:00';
+            musicProgressDuration.title = '0:00';
+          }
           return;
         }
 
@@ -10626,9 +10673,16 @@
           mode: window.__musicState?.mode || 'unknown'
         });
 
-        trackTitle.textContent = track.title || 'Sin título';
-        trackArtist.textContent = `Artista: ${track.artist || '—'}`;
-        trackAlbum.textContent = `Álbum: ${track.album || '—'}${track.year ? ` (${track.year})` : ''}`;
+        const safeTitle = track.title || 'Sin título';
+        const safeArtist = track.artist || '—';
+        const safeAlbum = `${track.album || '—'}${track.year ? ` (${track.year})` : ''}`;
+        trackTitle.textContent = safeTitle;
+        trackTitle.title = safeTitle;
+        trackArtist.textContent = `Artista: ${safeArtist}`;
+        trackArtist.title = `Artista: ${safeArtist}`;
+        trackAlbum.textContent = `Álbum: ${safeAlbum}`;
+        trackAlbum.title = `Álbum: ${safeAlbum}`;
+        if (trackMetadata) trackMetadata.title = metadata ? JSON.stringify(metadata, null, 2) : '';
 
         const coverCandidate = track?.radiocover || track?.posterUrl || track?.thumbnailUrl || track?.metadata?.coverUrl || track?.metadata?.cover || '';
         if (coverCandidate && musicCoverImage) {
@@ -10645,11 +10699,21 @@
           musicCoverWrap.classList.add('is-active');
         }
 
-        if (musicNowPlayingBadge) musicNowPlayingBadge.textContent = 'En reproducción';
+        if (musicNowPlayingBadge) {
+          musicNowPlayingBadge.textContent = 'En reproducción';
+          musicNowPlayingBadge.title = 'En reproducción';
+        }
         if (musicProgressTrack) musicProgressTrack.classList.add('is-indeterminate');
         if (musicProgressFill) musicProgressFill.style.width = '0%';
-        if (musicProgressTime) musicProgressTime.textContent = '0:00';
-        if (musicProgressDuration) musicProgressDuration.textContent = '0:00';
+        if (musicProgressTime) {
+          musicProgressTime.textContent = '0:00';
+          musicProgressTime.title = '0:00';
+        }
+        if (musicProgressDuration) {
+          musicProgressDuration.textContent = 'En reproducción';
+          musicProgressDuration.title = 'En reproducción';
+        }
+        if (trackTitle) trackTitle.title = trackTitle.textContent || '';
 
         const metadata = track.metadata && Object.keys(track.metadata || {}).length ? track.metadata : null;
         if (metadata) {
@@ -10914,6 +10978,7 @@
             autoplay: 'true'
           });
           state.lunaInstance = instance;
+          renderLocalMusicList();
           musicDebugLog('audio:init:lunaradio-created', {
             elapsedMs: Math.round(performance.now() - startedAt),
             hasInstance: !!instance
@@ -10994,6 +11059,12 @@
             playInline: true,
           },
         });
+        try { player.setVolume?.(100); } catch (_) {}
+        try {
+          if (Clappr.Events?.PLAYER_READY) {
+            player.once(Clappr.Events.PLAYER_READY, () => { try { player.setVolume?.(100); } catch (_) {} });
+          }
+        } catch (_) {}
         state.clapprPlayer = player;
         musicDebugLog('video:init:player-created', {
           elapsedMs: Math.round(performance.now() - startedAt),
@@ -11012,6 +11083,7 @@
           });
         }
         musicStartProgressTracker(playbackNonce);
+        renderLocalMusicList();
         musicDebugLog('video:init:done', { elapsedMs: Math.round(performance.now() - startedAt) });
       }
 
@@ -11197,8 +11269,14 @@
 
             document.body.appendChild(menu);
             const rect = menuBtn.getBoundingClientRect();
-            menu.style.top = `${rect.bottom + window.scrollY + 6}px`;
-            menu.style.left = `${rect.left + window.scrollX - menu.offsetWidth + rect.width}px`;
+            menu.style.top = `${rect.top + window.scrollY}px`;
+            menu.style.left = `${rect.right + window.scrollX + 10}px`;
+            menu.style.transform = 'translateY(0)';
+            const maxLeft = window.scrollX + window.innerWidth - menu.offsetWidth - 12;
+            if (parseFloat(menu.style.left) > maxLeft) {
+              menu.style.left = `${Math.max(window.scrollX + 12, maxLeft)}px`;
+              menu.style.transform = 'translateX(-100%)';
+            }
 
             const onDocClick = (ev2) => { if (!menu.contains(ev2.target)) { menu.remove(); document.removeEventListener('click', onDocClick); } };
             document.addEventListener('click', onDocClick);

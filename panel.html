@@ -4446,6 +4446,13 @@
       width: 100% !important;
     }
 
+    .lunaradio-host [id$="texttitle"],
+    .lunaradio-host [id$="smalltexttitle"],
+    .lunaradio-host [id$="textradioname"],
+    .lunaradio-host [id$="smalltextradioname"] {
+      display: none !important;
+    }
+
     /* Hide LunaRadio stream URL and metadata displays */
     .lunaradio-host .radiolink,
     .lunaradio-host [data-url],
@@ -4904,7 +4911,7 @@
       background: rgba(255,255,255,0.03);
       position: relative;
       overflow: hidden;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
     }
 
     #musicaSection .music-cover-wrap.is-active {
@@ -4946,6 +4953,7 @@
       align-items: center;
       gap: 5px;
       width: auto;
+      flex: 0 0 auto;
       max-width: 100%;
       padding: 4px 8px;
       margin-top: 1px;
@@ -4960,6 +4968,18 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    #musicaSection .music-cover-wrap > div:last-child {
+      min-width: 0;
+      flex: 1 1 auto;
+      overflow: hidden;
+    }
+
+    #musicaSection #musicNowPlayingBadge {
+      white-space: nowrap;
+      min-width: 0;
+      max-width: 100%;
     }
 
     #musicaSection .music-now-playing::before {
@@ -6349,7 +6369,7 @@
         </aside>
 
         <!-- Center: player and controls -->
-        <main class="music-panel" style="display:flex; flex-direction:column; gap:12px;">
+        <main class="music-panel" style="display:flex; flex-direction:column; gap:12px; overflow:hidden; min-width:0;">
           <div class="music-controls">
             <div id="toggleMediaBtns" class="music-mode-switch">
               <div class="music-mode-slider" aria-hidden="true"></div>
@@ -6360,30 +6380,30 @@
             <div style="font-size:11px; color:var(--text-secondary);">Modo: <strong id="playerModeLabel">Audio</strong></div>
           </div>
 
-          <div id="playerContainer" style="flex:1; display:flex; align-items:center; justify-content:center;">
+          <div id="playerContainer" style="flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative;">
             <div id="audioPlayerWrap" class="music-player-frame active">
-              <div id="lunaradioPlayerPlaceholder" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:var(--text-secondary);">Selecciona una pista para reproducir</div>
+              <div id="lunaradioPlayerPlaceholder" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:var(--text-secondary); overflow:hidden;">Selecciona una pista para reproducir</div>
             </div>
             <div id="videoPlayerWrap" class="music-player-frame">
-              <div id="clapprPlayerPlaceholder" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:var(--text-secondary);">Selecciona un video para reproducir</div>
+              <div id="clapprPlayerPlaceholder" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:var(--text-secondary); overflow:hidden;">Selecciona un video para reproducir</div>
             </div>
           </div>
         </main>
 
         <!-- Right: metadata and owner upload -->
-        <aside class="music-panel">
+        <aside class="music-panel" style="overflow:hidden; min-width:0;">
           <div class="music-panel-header">
             <strong>Detalle</strong>
             <button id="openAddMusicModalBtn" class="music-pill-btn" style="display:none;">+ Agregar</button>
           </div>
           <div class="music-cover-wrap" id="musicCoverWrap">
-            <div id="musicCoverPlaceholder" class="music-cover-placeholder"><i class="fas fa-music"></i></div>
+            <div id="musicCoverPlaceholder" class="music-cover-placeholder"><svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M9 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8zm0-14c-3.309 0-6 2.691-6 6s2.691 6 6 6 6-2.691 6-6-2.691-6-6-6zm3.5-1c0-.276-.224-.5-.5-.5s-.5.224-.5.5.224.5.5.5.5-.224.5-.5zm0 2c0-.276-.224-.5-.5-.5s-.5.224-.5.5.224.5.5.5.5-.224.5-.5zM18 9v6c0 .552-.447 1-1 1s-1-.448-1-1V9c0-.552.447-1 1-1s1 .448 1 1zm2-4v14c0 .552-.447 1-1 1H2c-.553 0-1-.448-1-1V5c0-.552.447-1 1-1h17c.553 0 1 .448 1 1z"></path></svg></div>
             <img id="musicCoverImage" class="music-cover" alt="Carátula activa" style="display:none;">
             <div style="min-width:0; flex:1; display:flex; flex-direction:column; gap:2px;">
               <div style="display:flex; align-items:center; gap:8px;">
                 <div id="musicNowPlayingBadge" class="music-now-playing">En espera</div>
-                <button id="trackFavoriteBtn" class="music-fav-btn" title="Favorito" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:16px;display:inline-flex;align-items:center;">
-                  <i class="fas fa-heart"></i>
+                <button id="trackFavoriteBtn" class="music-fav-btn" title="Favorito" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:16px;display:inline-flex;align-items:center;padding:2px;margin:0;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                 </button>
               </div>
               <div id="trackTitle" class="music-track-title">Selecciona una pista</div>
@@ -10625,9 +10645,9 @@
           musicCoverWrap.classList.add('is-active');
         }
 
-        if (musicNowPlayingBadge) musicNowPlayingBadge.textContent = 'Reproduciendo';
+        if (musicNowPlayingBadge) musicNowPlayingBadge.textContent = 'En reproducción';
         if (musicProgressTrack) musicProgressTrack.classList.add('is-indeterminate');
-        if (musicProgressFill) musicProgressFill.style.width = '42%';
+        if (musicProgressFill) musicProgressFill.style.width = '0%';
         if (musicProgressTime) musicProgressTime.textContent = '0:00';
         if (musicProgressDuration) musicProgressDuration.textContent = '0:00';
 
@@ -10719,7 +10739,7 @@
         const currentTime = Number(media.currentTime) || 0;
         const duration = Number(media.duration) || 0;
         const hasDuration = Number.isFinite(duration) && duration > 0;
-        const progress = hasDuration ? (currentTime / duration) * 100 : 42;
+        const progress = hasDuration ? (currentTime / duration) * 100 : 0;
         musicSetProgressUI({ progress, currentTime, duration, indeterminate: !hasDuration });
       }
 
@@ -10735,7 +10755,7 @@
             return;
           }
           musicUpdateProgress();
-        }, 2000);
+        }, 1000);
       }
 
       function musicDestroyPlayers() {
@@ -10772,6 +10792,7 @@
           }
         } catch (_) { }
         state.clapprPlayer = null;
+        state.activePlayerType = '';
       }
 
       function musicSetPlayerMode(mode) {
@@ -10897,40 +10918,6 @@
             elapsedMs: Math.round(performance.now() - startedAt),
             hasInstance: !!instance
           });
-
-          // Hide stream URL display in LunaRadio
-          const hideStreamUrl = () => {
-            try {
-              const container = document.getElementById('lunaradioPlayerPlaceholder');
-              if (!container) return;
-              // Find all elements inside the player and hide those containing URLs
-              const allElements = container.querySelectorAll('*');
-              allElements.forEach(el => {
-                const text = el.textContent || '';
-                // Hide elements that look like URLs
-                if (text.match(/^:\/\/.*\.(com|tv|cloud|net|org|io|info|cdn)/i) || 
-                    text.match(/^https?:\/\//) ||
-                    text.match(/\.m3u8|\.mp3|\.aac|\.pls|\.xspf|\.tar/i)) {
-                  el.style.display = 'none';
-                }
-              });
-              // Also hide common metadata display elements
-              ['radiolink', 'info', 'metadata', 'subtitle', 'stream-info', 'data-url'].forEach(cls => {
-                container.querySelectorAll('.' + cls).forEach(el => el.style.display = 'none');
-              });
-            } catch (e) {
-              console.debug('hideStreamUrl error:', e);
-            }
-          };
-          
-          // Run hide logic after initialization and periodically
-          setTimeout(hideStreamUrl, 100);
-          setTimeout(hideStreamUrl, 500);
-          const hideUrlInterval = setInterval(() => {
-            hideStreamUrl();
-            // Clear interval after a few seconds
-            if (performance.now() - startedAt > 3000) clearInterval(hideUrlInterval);
-          }, 1000);
 
           const bindEnded = () => {
             const hostId = container.id || 'lunaradioPlayerPlaceholder';
@@ -11074,8 +11061,22 @@
           playBtn.type = 'button';
           playBtn.className = 'music-play-btn';
           playBtn.style.marginRight = '8px';
-          playBtn.innerHTML = state.currentIndex === index ? '<i class="fas fa-stop"></i>' : '<i class="fas fa-play"></i>';
-          playBtn.title = state.currentIndex === index ? 'Detener' : 'Reproducir';
+          playBtn.style.background = 'none';
+          playBtn.style.border = 'none';
+          playBtn.style.cursor = 'pointer';
+          playBtn.style.padding = '4px 6px';
+          playBtn.style.borderRadius = '4px';
+          playBtn.style.color = 'var(--text-primary)';
+          playBtn.style.fontSize = '16px';
+          playBtn.style.display = 'flex';
+          playBtn.style.alignItems = 'center';
+          playBtn.style.justifyContent = 'center';
+          playBtn.style.transition = 'background-color 0.2s ease';
+          const isPlaying = state.currentIndex === index && state.activePlayerType === state.mode && state.playbackNonce > 0;
+          playBtn.title = isPlaying ? 'Detener' : 'Reproducir';
+          playBtn.innerHTML = isPlaying ? 
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>' :
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
           playBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             if (state.currentIndex === index) {
@@ -11129,9 +11130,19 @@
           const menuBtn = document.createElement('button');
           menuBtn.type = 'button';
           menuBtn.className = 'music-menu-btn';
-          menuBtn.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
           menuBtn.title = 'Más opciones';
+          menuBtn.style.background = 'none';
+          menuBtn.style.border = 'none';
+          menuBtn.style.cursor = 'pointer';
+          menuBtn.style.padding = '4px 6px';
+          menuBtn.style.borderRadius = '4px';
+          menuBtn.style.color = 'var(--text-secondary)';
           menuBtn.style.marginLeft = '8px';
+          menuBtn.style.display = 'flex';
+          menuBtn.style.alignItems = 'center';
+          menuBtn.style.justifyContent = 'center';
+          menuBtn.style.transition = 'background-color 0.2s ease';
+          menuBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg>';
           menuBtn.addEventListener('click', (ev) => {
             ev.stopPropagation();
             // Remove any existing menus
@@ -18423,30 +18434,6 @@
               currentPlayerType: state.activePlayerType
             });
 
-            // Hide stream URL display in LunaRadio
-            const hideStreamUrl = () => {
-              try {
-                const playerContainer = document.getElementById(containerId);
-                if (!playerContainer) return;
-                const allElements = playerContainer.querySelectorAll('*');
-                allElements.forEach(el => {
-                  const text = el.textContent || '';
-                  if (text.match(/^:\/\/.*\.(com|tv|cloud|net|org|io|info|cdn)/i) || 
-                      text.match(/^https?:\/\//) ||
-                      text.match(/\.m3u8|\.mp3|\.aac|\.pls|\.xspf|\.tar/i)) {
-                    el.style.display = 'none';
-                  }
-                });
-                ['radiolink', 'info', 'metadata', 'subtitle', 'stream-info', 'data-url'].forEach(cls => {
-                  playerContainer.querySelectorAll('.' + cls).forEach(el => el.style.display = 'none');
-                });
-              } catch (e) {
-                console.debug('hideStreamUrl error:', e);
-              }
-            };
-            setTimeout(hideStreamUrl, 100);
-            setTimeout(hideStreamUrl, 500);
-
             const bindLunaAudioPlay = () => {
               musicDebugLog('luna:bind-play:scan', {
                 containerId,
@@ -25331,30 +25318,6 @@
 
           window._lunaPlayers = window._lunaPlayers || {};
           window._lunaPlayers[containerId] = lunaInstance;
-
-          // Hide stream URL display in LunaRadio
-          const hideStreamUrl = () => {
-            try {
-              const playerContainer = document.getElementById(containerId);
-              if (!playerContainer) return;
-              const allElements = playerContainer.querySelectorAll('*');
-              allElements.forEach(el => {
-                const text = el.textContent || '';
-                if (text.match(/^:\/\/.*\.(com|tv|cloud|net|org|io|info|cdn)/i) || 
-                    text.match(/^https?:\/\//) ||
-                    text.match(/\.m3u8|\.mp3|\.aac|\.pls|\.xspf|\.tar/i)) {
-                  el.style.display = 'none';
-                }
-              });
-              ['radiolink', 'info', 'metadata', 'subtitle', 'stream-info', 'data-url'].forEach(cls => {
-                playerContainer.querySelectorAll('.' + cls).forEach(el => el.style.display = 'none');
-              });
-            } catch (e) {
-              console.debug('hideStreamUrl error:', e);
-            }
-          };
-          setTimeout(hideStreamUrl, 100);
-          setTimeout(hideStreamUrl, 500);
 
           container.querySelectorAll('audio').forEach((audioEl) => {
             if (audioEl.dataset.cxPlayBound === '1') return;

@@ -10820,8 +10820,9 @@
           });
 
           const bindEnded = () => {
+            const hostId = container.id || 'lunaradioPlayerPlaceholder';
             musicDebugLog('audio:bind-ended:scan', {
-              containerId,
+              containerId: hostId,
               audioCount: container.querySelectorAll('audio').length,
               playbackNonce,
               currentNonce: state.playbackNonce
@@ -10831,7 +10832,7 @@
               audioEl.dataset.musicEndedBound = '1';
               audioEl.addEventListener('ended', () => {
                 musicDebugLog('audio:ended', {
-                  containerId,
+                  containerId: hostId,
                   playbackNonce,
                   currentNonce: state.playbackNonce,
                   src: audioEl.src || ''

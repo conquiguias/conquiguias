@@ -11984,7 +11984,15 @@
             
             menuBtn.addEventListener('click', (event) => {
               event.stopPropagation();
+              
+              // Cerrar cualquier modal contextual existente
+              const existingModal = document.getElementById('musicTrackContextMenu');
+              if (existingModal && document.body.contains(existingModal)) {
+                document.body.removeChild(existingModal);
+              }
+              
               const modalEl = document.createElement('div');
+              modalEl.id = 'musicTrackContextMenu';
               modalEl.style.cssText = `
                 position: absolute;
                 top: ${event.clientY}px;
@@ -12423,9 +12431,17 @@
       async function showPlaylistPickerForTrack(track) {
         const state = window.__musicState;
         if (!track?.id) return;
+        
+        // Cerrar cualquier modal de playlist picker existente
+        const existingModal = document.getElementById('musicPlaylistPickerModal');
+        if (existingModal && document.body.contains(existingModal)) {
+          document.body.removeChild(existingModal);
+        }
+        
         const playlists = Array.isArray(state.playlists) ? state.playlists.filter(p => !String(p.name || '').startsWith('__AUTO__:')) : [];
         
         const modalEl = document.createElement('div');
+        modalEl.id = 'musicPlaylistPickerModal';
         modalEl.style.cssText = `
           position: fixed;
           top: 0;

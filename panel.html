@@ -11454,24 +11454,44 @@
 
       function musicGetActiveMediaElement() {
         const state = window.__musicState;
-        if (state.activePlayerType === 'video') {
-          const videoContainer = document.getElementById('clapprPlayerPlaceholder');
-          if (videoContainer) {
-            const video = videoContainer.querySelector('video');
-            if (video) return video;
-            const audio = videoContainer.querySelector('audio');
-            if (audio) return audio;
+        const container = state.activePlayerType === 'video' 
+          ? document.getElementById('clapprPlayerPlaceholder')
+          : document.getElementById('lunaradioPlayerPlaceholder');
+        
+        if (!container) return null;
+
+        if (state.activePlayerType === 'audio') {
+          // Intentar múltiples métodos para obtener el audio de LunaRadio
+          if (state.lunaInstance) {
+            if (typeof state.lunaInstance.lunaradio === 'function') {
+              try {
+                const audioEl = state.lunaInstance.lunaradio('getAudio');
+                if (audioEl && audioEl.volume !== undefined) return audioEl;
+              } catch (_) {}
+            }
+            if (state.lunaInstance.audio) return state.lunaInstance.audio;
+            if (state.lunaInstance.__audio) return state.lunaInstance.__audio;
           }
+          // Buscar por data attribute
+          const luna = window.__musicState?.lunaInstance;
+          if (luna && typeof luna.lunaradio === 'function') {
+            try {
+              const dataAudio = luna.lunaradio('getAudio');
+              if (dataAudio) return dataAudio;
+            } catch (_) {}
+          }
+          // Fallback: querySelector
+          const audio = container.querySelector('audio');
+          if (audio) return audio;
+          return null;
         } else {
-          const audioContainer = document.getElementById('lunaradioPlayerPlaceholder');
-          if (audioContainer) {
-            const audio = audioContainer.querySelector('audio');
-            if (audio) return audio;
-            const video = audioContainer.querySelector('video');
-            if (video) return video;
-          }
+          // Video mode
+          const video = container.querySelector('video');
+          if (video) return video;
+          const audio = container.querySelector('audio');
+          if (audio) return audio;
+          return null;
         }
-        return null;
       }
 
       function musicSetProgressUI({ progress = 0, currentTime = 0, duration = 0, indeterminate = false } = {}) {
@@ -11827,8 +11847,13 @@
       }
 
       function fadeInToFull(media) {
-        if (!media) return;
-        runVolumeFade(media, 1, 5000, 'fade-in');
+        if (!media) {
+          const current = musicGetActiveMediaElement();
+          if (!current) return;
+          runVolumeFade(current, 1, 5000, 'fade-in');
+        } else {
+          runVolumeFade(media, 1, 5000, 'fade-in');
+        }
       }
 
       function musicStartVolumeRamp(expectedNonce, { targetVolume = 1, durationMs = 5000, startVolume = 0, retryMs = 120, maxRetries = 25 } = {}) {
@@ -11899,7 +11924,7 @@
         startRamp();
       }
 
-      function initMusicAudioPlayer(track) {
+      function initMusicAudioPlayer(track, { autoplay = true } = {}) {
         const state = window.__musicState;
         const container = document.getElementById('lunaradioPlayerPlaceholder');
         if (!container || !track) return;
@@ -11908,7 +11933,8 @@
         musicDebugLog('audio:init:start', {
           track: track.title || 'Sin título',
           url: track.url || '',
-          playbackNonce
+          playbackNonce,
+          autoplay
         });
         musicSetPlayerMode('audio');
         musicDestroyPlayers();
@@ -11961,7 +11987,7 @@
             debug: 'false',
             usestreamcorsproxy: 'true',
             corsproxy: '',
-            autoplay: 'true'
+            autoplay: autoplay ? 'true' : 'false'
           });
           state.lunaInstance = instance;
           musicSyncLunaStoredVolume(100);
@@ -11985,7 +12011,7 @@
               
               audioEl.addEventListener('play', () => {
                 if (state.playbackNonce !== playbackNonce || state.activePlayerType !== 'audio') return;
-                fadeInToFull(audioEl);
+                fadeInToFull();
                 musicDebugLog('volume-fade:start', { type: 'fade-in', ms: 5000 });
               });
               
@@ -12030,20 +12056,26 @@
           const bindEndedGuarded = () => {
             if (state.playbackNonce !== playbackNonce || state.activePlayerType !== 'audio') return;
             bindEnded();
-            const media = musicGetActiveMediaElement();
-            if (media && media.paused && typeof media.play === 'function') {
-              media.play().catch(() => {});
-            }
           };
           setTimeout(bindEndedGuarded, 300);
           setTimeout(bindEndedGuarded, 900);
-          setTimeout(() => {
-            const media = musicGetActiveMediaElement();
-            if (media && state.playbackNonce === playbackNonce) {
-              fadeInToFull(media);
-              musicDebugLog('volume-fade:start', { type: 'fade-in', ms: 5000 });
-            }
-          }, 200);
+          
+          // Si autoplay está habilitado, forzar play explícitamente después de que LunaRadio esté listo
+          if (autoplay) {
+            setTimeout(() => {
+              if (state.playbackNonce !== playbackNonce || state.activePlayerType !== 'audio') return;
+              const media = musicGetActiveMediaElement();
+              if (media && typeof media.play === 'function') {
+                media.play().catch((err) => {
+                  musicDebugLog('autoplay:play-error', { 
+                    error: err?.name || String(err),
+                    message: err?.message || ''
+                  });
+                });
+              }
+            }, 400);
+          }
+          
           renderLocalMusicList();
           musicStartProgressTracker(playbackNonce);
           musicDebugLog('audio:init:done', { elapsedMs: Math.round(performance.now() - startedAt) });
@@ -12054,7 +12086,7 @@
         }
       }
 
-      function initMusicVideoPlayer(track) {
+      function initMusicVideoPlayer(track, { autoplay = true } = {}) {
         const state = window.__musicState;
         const container = document.getElementById('clapprPlayerPlaceholder');
         if (!container || !track) return;
@@ -12063,7 +12095,8 @@
         musicDebugLog('video:init:start', {
           track: track.title || 'Sin título',
           url: track.url || '',
-          playbackNonce
+          playbackNonce,
+          autoplay
         });
         musicSetPlayerMode('video');
         musicDestroyPlayers();
@@ -12166,9 +12199,9 @@
         }
         musicSetTrackInfo(track);
         if (state.mode === 'video') {
-          initMusicVideoPlayer(track);
+          initMusicVideoPlayer(track, { autoplay });
         } else {
-          initMusicAudioPlayer(track);
+          initMusicAudioPlayer(track, { autoplay });
         }
         setTimeout(() => updateMusicPlayStates(), 100);
       }

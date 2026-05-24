@@ -1,0 +1,1156 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Prueba LunaRadio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #111b2f;
+      --panel-2: #16243c;
+      --border: rgba(148, 163, 184, 0.18);
+      --text: #e5eefc;
+      --muted: #9fb2d1;
+      --accent: #4f8cff;
+      --accent-2: #7c5cff;
+      --success: #34d399;
+      --danger: #fb7185;
+      --warning: #fbbf24;
+      --track: rgba(255,255,255,0.09);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(79, 140, 255, 0.18), transparent 35%),
+        radial-gradient(circle at bottom right, rgba(124, 92, 255, 0.15), transparent 30%),
+        var(--bg);
+      color: var(--text);
+    }
+
+    .shell {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 16px;
+      margin-bottom: 16px;
+      padding: 18px 18px 16px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      backdrop-filter: blur(10px);
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.1;
+    }
+
+    .hero p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      max-width: 900px;
+      font-size: 14px;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(79, 140, 255, 0.35);
+      background: rgba(79, 140, 255, 0.12);
+      color: #dce8ff;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(17,27,47,0.96), rgba(12,18,32,0.96));
+      box-shadow: 0 18px 60px rgba(0,0,0,0.25);
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-header h2 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .card-header small,
+    .subtle {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .playlist {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: calc(100vh - 220px);
+      overflow: auto;
+    }
+
+    .track-item {
+      display: grid;
+      grid-template-columns: 44px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      padding: 10px 12px;
+      cursor: pointer;
+      text-align: left;
+      transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .track-item:hover { transform: translateY(-1px); border-color: rgba(79,140,255,0.45); }
+    .track-item.active {
+      border-color: rgba(79,140,255,0.7);
+      background: linear-gradient(90deg, rgba(79,140,255,0.18), rgba(255,255,255,0.03));
+    }
+
+    .track-index {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      color: white;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 10px 22px rgba(79, 140, 255, 0.25);
+    }
+
+    .track-title {
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 3px;
+    }
+
+    .track-meta {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .track-duration {
+      color: #d8e6ff;
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .right {
+      display: grid;
+      grid-template-rows: auto auto auto 1fr;
+      gap: 16px;
+      min-height: 0;
+    }
+
+    .player-stage {
+      padding: 16px;
+      min-height: 560px;
+    }
+
+    .player-shell {
+      position: relative;
+      min-height: 470px;
+      height: 470px;
+      border-radius: 22px;
+      border: 1px solid rgba(79, 140, 255, 0.24);
+      background:
+        radial-gradient(circle at 50% 18%, rgba(255,255,255,0.09), transparent 26%),
+        linear-gradient(180deg, rgba(16,24,44,0.88), rgba(13,19,32,0.98));
+      overflow: hidden;
+    }
+
+    #lunaMount {
+      width: 100%;
+      height: 100%;
+      min-height: 470px;
+      display: block;
+    }
+
+    #nativeAudioFallback {
+      width: 100%;
+      margin: 0 16px 16px;
+      display: block;
+      border-radius: 12px;
+    }
+
+    .controls-bar {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 16px 16px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    button.control,
+    .control-btn {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font: inherit;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+    }
+
+    button.control:hover,
+    .control-btn:hover { transform: translateY(-1px); border-color: rgba(79,140,255,0.5); background: rgba(79,140,255,0.12); }
+    button.control.primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-color: transparent;
+      box-shadow: 0 12px 24px rgba(79, 140, 255, 0.22);
+    }
+    button.control.danger { border-color: rgba(251,113,133,0.3); }
+
+    .progress-wrap {
+      padding: 0 16px 16px;
+    }
+
+    .progress-track {
+      position: relative;
+      height: 14px;
+      border-radius: 999px;
+      background: var(--track);
+      overflow: hidden;
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .progress-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #5bd4ff, var(--accent), var(--accent-2));
+      box-shadow: 0 0 28px rgba(79, 140, 255, 0.5);
+      transition: width 0.08s linear;
+    }
+
+    .progress-labels {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .diagnostics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      padding: 0 16px 16px;
+    }
+
+    .stat {
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      min-width: 0;
+    }
+
+    .stat .label {
+      color: var(--muted);
+      font-size: 11px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .stat .value {
+      font-size: 14px;
+      word-break: break-word;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .log {
+      padding: 12px 16px 16px;
+      border-top: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+      max-height: 190px;
+      overflow: auto;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #c9d6ee;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .log-row {
+      display: grid;
+      grid-template-columns: 86px 1fr;
+      gap: 10px;
+      padding: 4px 0;
+      border-bottom: 1px dashed rgba(255,255,255,0.06);
+    }
+
+    .log-row:last-child { border-bottom: 0; }
+    .log-time { color: #8fb0ff; }
+    .log-msg { color: #dbe7ff; }
+
+    .hint {
+      margin-top: 8px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(251, 191, 36, 0.25);
+      background: rgba(251, 191, 36, 0.08);
+      color: #f8e6b4;
+      font-size: 12px;
+    }
+
+    .empty {
+      min-height: 120px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      padding: 20px;
+      text-align: center;
+    }
+
+    @media (max-width: 1100px) {
+      .grid { grid-template-columns: 1fr; }
+      .playlist { max-height: 360px; }
+      .player-stage { min-height: 500px; }
+      .diagnostics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .controls-bar { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .hero { flex-direction: column; align-items: start; }
+      .diagnostics { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div>
+        <h1>Prueba LunaRadio</h1>
+        <p>
+          Página de diagnóstico para revisar tres cosas: si el audio carga, si se lee <strong>duration/currentTime</strong>,
+          y si el cambio a la siguiente pista funciona al llegar al final. Las pistas de esta lista se generan localmente
+          para evitar CORS y aislar el problema real.
+        </p>
+      </div>
+      <div class="status-chip" id="connectionBadge">Inicializando...</div>
+    </section>
+
+    <section class="grid">
+      <aside class="card">
+        <div class="card-header">
+          <div>
+            <h2>Lista de pruebas</h2>
+            <div class="subtle">4 clips cortos, todos de menos de 30 segundos</div>
+          </div>
+          <small id="playlistCount">0 pistas</small>
+        </div>
+        <div class="playlist" id="playlist"></div>
+      </aside>
+
+      <main class="card right">
+        <div class="card-header">
+          <div>
+            <h2>Reproductor LunaRadio</h2>
+            <div class="subtle">Debe mostrar progreso, duración y avanzar en bucle</div>
+          </div>
+          <small id="trackNameHeader">Sin pista</small>
+        </div>
+
+        <div class="player-stage">
+          <div class="player-shell">
+            <div id="lunaMount"></div>
+          </div>
+        </div>
+
+        <div class="hint" id="playerHint">
+          Si LunaRadio no se ve o no carga el tiempo, el reproductor nativo de abajo sirve como referencia directa del archivo.
+        </div>
+        <audio id="nativeAudioFallback" controls preload="metadata" crossorigin="anonymous"></audio>
+
+        <div class="controls-bar">
+          <div class="control-group">
+            <button class="control" id="btnPrev">⟵ Anterior</button>
+            <button class="control primary" id="btnPlayPause">⏵ Play / Pausa</button>
+            <button class="control" id="btnNext">Siguiente ⟶</button>
+            <button class="control danger" id="btnRestart">↻ Reiniciar pista</button>
+          </div>
+          <div class="subtle" id="trackIndexLabel">0 / 0</div>
+          <label class="control-btn" style="display:inline-flex; align-items:center; gap:8px; user-select:none;">
+            <input type="checkbox" id="autoLoop" checked>
+            Bucle de lista
+          </label>
+        </div>
+
+        <div class="progress-wrap">
+          <div class="progress-track" id="progressTrack" title="Haz clic para buscar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="progress-labels">
+            <span id="elapsedLabel">0:00</span>
+            <span id="statusLabel">Esperando reproducción</span>
+            <span id="durationLabel">0:00</span>
+          </div>
+        </div>
+
+        <div class="diagnostics">
+          <div class="stat">
+            <div class="label">Estado</div>
+            <div class="value" id="diagState">stopped</div>
+          </div>
+          <div class="stat">
+            <div class="label">currentTime</div>
+            <div class="value" id="diagTime">0.000</div>
+          </div>
+          <div class="stat">
+            <div class="label">duration</div>
+            <div class="value" id="diagDuration">0.000</div>
+          </div>
+          <div class="stat">
+            <div class="label">src</div>
+            <div class="value" id="diagSrc">-</div>
+          </div>
+        </div>
+
+        <div class="log" id="log"></div>
+      </main>
+    </section>
+  </div>
+
+  <script src="./lib/jquery-3.2.1.min.js"></script>
+  <script src="./lib/lunaradio.min.js"></script>
+  <script>
+    (function () {
+      const $ = window.jQuery;
+      const playlistEl = document.getElementById('playlist');
+      const playlistCountEl = document.getElementById('playlistCount');
+      const trackIndexLabel = document.getElementById('trackIndexLabel');
+      const trackNameHeader = document.getElementById('trackNameHeader');
+      const connectionBadge = document.getElementById('connectionBadge');
+      const statusLabel = document.getElementById('statusLabel');
+      const elapsedLabel = document.getElementById('elapsedLabel');
+      const durationLabel = document.getElementById('durationLabel');
+      const progressFill = document.getElementById('progressFill');
+      const progressTrack = document.getElementById('progressTrack');
+      const btnPrev = document.getElementById('btnPrev');
+      const btnPlayPause = document.getElementById('btnPlayPause');
+      const btnNext = document.getElementById('btnNext');
+      const btnRestart = document.getElementById('btnRestart');
+      const autoLoop = document.getElementById('autoLoop');
+      const diagState = document.getElementById('diagState');
+      const diagTime = document.getElementById('diagTime');
+      const diagDuration = document.getElementById('diagDuration');
+      const diagSrc = document.getElementById('diagSrc');
+      const logEl = document.getElementById('log');
+      const lunaMount = document.getElementById('lunaMount');
+      const nativeAudioFallback = document.getElementById('nativeAudioFallback');
+      const playerHint = document.getElementById('playerHint');
+
+      const defaultCover = createSvgDataUrl('LunaRadio', 'Prueba');
+      const state = {
+        tracks: [],
+        currentIndex: 0,
+        instance: null,
+        plugin: null,
+        audio: null,
+        raf: 0,
+        listenersBoundTo: null,
+        hasUserGesture: false,
+        lastEndedAt: 0,
+        logLines: 0,
+      };
+
+      function pad(n) {
+        return String(n).padStart(2, '0');
+      }
+
+      function formatTime(seconds) {
+        const total = Number.isFinite(seconds) && seconds > 0 ? Math.floor(seconds) : 0;
+        const m = Math.floor(total / 60);
+        const s = total % 60;
+        return `${m}:${pad(s)}`;
+      }
+
+      function nowStamp() {
+        const d = new Date();
+        return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      }
+
+      function log(message, data) {
+        state.logLines += 1;
+        const row = document.createElement('div');
+        row.className = 'log-row';
+        const t = document.createElement('div');
+        t.className = 'log-time';
+        t.textContent = nowStamp();
+        const msg = document.createElement('div');
+        msg.className = 'log-msg';
+        msg.textContent = data ? `${message} ${JSON.stringify(data)}` : message;
+        row.appendChild(t);
+        row.appendChild(msg);
+        logEl.prepend(row);
+        while (logEl.childElementCount > 80) {
+          logEl.removeChild(logEl.lastElementChild);
+        }
+      }
+
+      function createSvgDataUrl(title, subtitle) {
+        const svg = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600">
+            <defs>
+              <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#1d4ed8"/>
+                <stop offset="100%" stop-color="#7c3aed"/>
+              </linearGradient>
+              <radialGradient id="r" cx="50%" cy="35%" r="70%">
+                <stop offset="0%" stop-color="#ffffff" stop-opacity="0.20"/>
+                <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+            <rect width="900" height="600" rx="36" fill="url(#g)"/>
+            <circle cx="650" cy="170" r="170" fill="url(#r)"/>
+            <circle cx="220" cy="380" r="110" fill="#ffffff" opacity="0.08"/>
+            <text x="64" y="110" fill="#ffffff" font-size="54" font-family="Inter, Arial, sans-serif" font-weight="700">${escapeXml(title)}</text>
+            <text x="64" y="164" fill="#e0e7ff" font-size="28" font-family="Inter, Arial, sans-serif">${escapeXml(subtitle)}</text>
+            <text x="64" y="520" fill="#dbeafe" font-size="22" font-family="Inter, Arial, sans-serif">LunaRadio / prueba local</text>
+          </svg>`;
+        return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+      }
+
+      function escapeXml(text) {
+        return String(text || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&apos;');
+      }
+
+      function makeToneWavUrl({ duration = 8, sampleRate = 44100, notes = [], gain = 0.18 }) {
+        const totalSamples = Math.max(1, Math.floor(duration * sampleRate));
+        const buffer = new ArrayBuffer(44 + totalSamples * 2);
+        const view = new DataView(buffer);
+        const writeStr = (offset, str) => {
+          for (let i = 0; i < str.length; i += 1) view.setUint8(offset + i, str.charCodeAt(i));
+        };
+
+        writeStr(0, 'RIFF');
+        view.setUint32(4, 36 + totalSamples * 2, true);
+        writeStr(8, 'WAVE');
+        writeStr(12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        writeStr(36, 'data');
+        view.setUint32(40, totalSamples * 2, true);
+
+        const segments = notes.length ? notes : [{ freq: 440, secs: duration }];
+        const segmentSamples = segments.map((seg) => Math.max(1, Math.floor(seg.secs * sampleRate)));
+        let segIndex = 0;
+        let segPos = 0;
+        let phase = 0;
+
+        for (let i = 0; i < totalSamples; i += 1) {
+          const seg = segments[segIndex];
+          const freq = seg.freq || 0;
+          const attack = Math.min(0.03, seg.secs * 0.1);
+          const release = Math.min(0.08, seg.secs * 0.12);
+          const t = segPos / sampleRate;
+          const envAttack = attack > 0 ? Math.min(1, t / attack) : 1;
+          const envReleaseStart = Math.max(0, seg.secs - release);
+          const envRelease = release > 0 && t > envReleaseStart ? Math.max(0, (seg.secs - t) / release) : 1;
+          const envelope = Math.min(envAttack, envRelease);
+          const vibrato = 1 + 0.002 * Math.sin(2 * Math.PI * 5 * i / sampleRate);
+          const sample = freq > 0
+            ? Math.sin(phase) * envelope * gain * vibrato
+            : 0;
+          phase += (2 * Math.PI * freq) / sampleRate;
+          const clipped = Math.max(-1, Math.min(1, sample));
+          view.setInt16(44 + i * 2, Math.floor(clipped * 32767), true);
+
+          segPos += 1;
+          if (segPos >= segmentSamples[segIndex]) {
+            segIndex = Math.min(segments.length - 1, segIndex + 1);
+            segPos = 0;
+            phase = 0;
+          }
+        }
+
+        const blob = new Blob([buffer], { type: 'audio/wav' });
+        return URL.createObjectURL(blob);
+      }
+
+      function buildTracks() {
+        const tracks = [
+          {
+            id: 't1',
+            title: 'Prueba 1 · Arpegio suave',
+            artist: 'Generado localmente',
+            album: 'LunaRadio Test',
+            duration: 8,
+            notes: [
+              { freq: 392, secs: 1.5 },
+              { freq: 494, secs: 1.5 },
+              { freq: 523, secs: 1.5 },
+              { freq: 587, secs: 1.5 },
+              { freq: 659, secs: 1.5 },
+              { freq: 784, secs: 1.5 },
+            ],
+          },
+          {
+            id: 't2',
+            title: 'Prueba 2 · Escala ascendente',
+            artist: 'Generado localmente',
+            album: 'LunaRadio Test',
+            duration: 10,
+            notes: [
+              { freq: 262, secs: 1 },
+              { freq: 294, secs: 1 },
+              { freq: 330, secs: 1 },
+              { freq: 349, secs: 1 },
+              { freq: 392, secs: 1 },
+              { freq: 440, secs: 1 },
+              { freq: 494, secs: 1 },
+              { freq: 523, secs: 1 },
+              { freq: 587, secs: 1 },
+              { freq: 659, secs: 1 },
+            ],
+          },
+          {
+            id: 't3',
+            title: 'Prueba 3 · Pulsos ritmados',
+            artist: 'Generado localmente',
+            album: 'LunaRadio Test',
+            duration: 12,
+            notes: [
+              { freq: 220, secs: 0.6 }, { freq: 0, secs: 0.15 },
+              { freq: 277, secs: 0.6 }, { freq: 0, secs: 0.15 },
+              { freq: 330, secs: 0.6 }, { freq: 0, secs: 0.15 },
+              { freq: 392, secs: 0.6 }, { freq: 0, secs: 0.15 },
+              { freq: 440, secs: 0.6 }, { freq: 0, secs: 0.15 },
+              { freq: 494, secs: 0.6 }, { freq: 0, secs: 0.15 },
+              { freq: 523, secs: 0.6 }, { freq: 0, secs: 0.15 },
+              { freq: 587, secs: 0.6 }, { freq: 0, secs: 0.15 },
+              { freq: 659, secs: 0.6 }, { freq: 0, secs: 0.15 },
+              { freq: 698, secs: 0.6 }, { freq: 0, secs: 0.15 },
+            ],
+          },
+          {
+            id: 't4',
+            title: 'Prueba 4 · Cadencia final',
+            artist: 'Generado localmente',
+            album: 'LunaRadio Test',
+            duration: 14,
+            notes: [
+              { freq: 523, secs: 1.5 },
+              { freq: 659, secs: 1.5 },
+              { freq: 784, secs: 1.5 },
+              { freq: 659, secs: 1.5 },
+              { freq: 587, secs: 1.5 },
+              { freq: 494, secs: 1.5 },
+              { freq: 440, secs: 1.5 },
+              { freq: 392, secs: 1.5 },
+              { freq: 330, secs: 1.5 },
+              { freq: 294, secs: 1.5 },
+            ],
+          },
+        ];
+
+        tracks.forEach((track, index) => {
+          track.cover = createSvgDataUrl(`Track ${index + 1}`, `${track.duration}s`);
+          track.url = makeToneWavUrl({ duration: track.duration, notes: track.notes, gain: 0.16 });
+        });
+
+        tracks.push({
+          id: 'ext-cors',
+          title: 'Prueba externa CORS',
+          artist: 'Archive.org',
+          album: 'Puede fallar por CORS',
+          duration: 26,
+          cover: createSvgDataUrl('CORS', 'External'),
+          url: 'https://archive.org/download/HimnarioAdventista-Instrumental/001-CantadAlegresAlSenor.mp3',
+          external: true,
+          note: 'Esta URL es útil para comprobar el fallo de CORS en comparación con las pistas locales.',
+        });
+
+        return tracks;
+      }
+
+      function renderPlaylist() {
+        playlistEl.innerHTML = '';
+        playlistCountEl.textContent = `${state.tracks.length} pistas`;
+
+        state.tracks.forEach((track, index) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'track-item';
+          if (index === state.currentIndex) button.classList.add('active');
+          button.innerHTML = `
+            <div class="track-index">${index + 1}</div>
+            <div>
+              <div class="track-title">${escapeHtml(track.title)}</div>
+              <div class="track-meta">${escapeHtml(track.artist)} · ${escapeHtml(track.album)}${track.external ? ' · externa' : ''}</div>
+            </div>
+            <div class="track-duration">${track.duration}s</div>
+          `;
+          button.addEventListener('click', () => {
+            state.hasUserGesture = true;
+            loadTrack(index, { autoplay: true, reason: 'click-track' });
+          });
+          playlistEl.appendChild(button);
+        });
+      }
+
+      function escapeHtml(text) {
+        return String(text || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function setConnectionState(text, tone = 'info') {
+        connectionBadge.textContent = text;
+        connectionBadge.style.borderColor = tone === 'danger' ? 'rgba(251, 113, 133, 0.35)' : tone === 'success' ? 'rgba(52, 211, 153, 0.35)' : 'rgba(79, 140, 255, 0.35)';
+        connectionBadge.style.background = tone === 'danger' ? 'rgba(251, 113, 133, 0.12)' : tone === 'success' ? 'rgba(52, 211, 153, 0.12)' : 'rgba(79, 140, 255, 0.12)';
+      }
+
+      function getMedia() {
+        if (state.plugin) {
+          if (typeof state.plugin.getAudio === 'function') return state.plugin.getAudio();
+          if (state.plugin.audio) return state.plugin.audio;
+          if (state.plugin.__audio) return state.plugin.__audio;
+        }
+        if (state.plugin?.getElement?.()) {
+          const host = state.plugin.getElement();
+          const direct = host?.querySelector?.('audio');
+          if (direct) return direct;
+        }
+        if (window.__lunaradioPlayers && window.__lunaradioPlayers['lunaMount']?.audio) {
+          return window.__lunaradioPlayers['lunaMount'].audio;
+        }
+        if (state.instance && state.instance.audio) return state.instance.audio;
+        const audio = lunaMount.querySelector('audio');
+        if (audio) return audio;
+        return null;
+      }
+
+      function stopTracking() {
+        cancelAnimationFrame(state.raf);
+        state.raf = 0;
+      }
+
+      function updateDiagnostics() {
+        const media = getMedia();
+        if (!media) {
+          diagState.textContent = 'no-media';
+          diagTime.textContent = '0.000';
+          diagDuration.textContent = '0.000';
+          diagSrc.textContent = '-';
+          return;
+        }
+        const duration = Number(media.duration) || 0;
+        const current = Number(media.currentTime) || 0;
+        const percent = duration > 0 ? (current / duration) * 100 : 0;
+        const hasDuration = Number.isFinite(duration) && duration > 0;
+        progressFill.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+        elapsedLabel.textContent = formatTime(current);
+        durationLabel.textContent = hasDuration ? formatTime(duration) : 'En vivo / sin duración';
+        diagState.textContent = media.paused ? (current > 0 ? 'paused' : 'stopped') : 'playing';
+        diagTime.textContent = current.toFixed(3);
+        diagDuration.textContent = Number.isFinite(duration) ? duration.toFixed(3) : 'NaN';
+        diagSrc.textContent = (media.currentSrc || media.src || '-').slice(0, 72);
+      }
+
+      function bindMediaListeners() {
+        const media = getMedia();
+        if (!media || state.listenersBoundTo === media) return;
+        state.listenersBoundTo = media;
+
+        const events = ['loadedmetadata', 'durationchange', 'timeupdate', 'play', 'pause', 'waiting', 'canplay', 'canplaythrough', 'ended', 'seeking', 'seeked', 'stalled', 'error'];
+        events.forEach((eventName) => {
+          media.addEventListener(eventName, () => {
+            if (eventName === 'ended') {
+              log('ended', { track: state.currentIndex + 1, currentTime: media.currentTime, duration: media.duration });
+              if (shouldAdvanceOnEnd()) {
+                nextTrack();
+              }
+            } else if (eventName === 'error') {
+              log('error', describeMediaError(media));
+              setConnectionState('Error de carga', 'danger');
+            } else {
+              log(eventName, { time: media.currentTime, duration: media.duration, paused: media.paused });
+            }
+            updateDiagnostics();
+          });
+        });
+
+        startTracking();
+      }
+
+      function describeMediaError(media) {
+        const code = media.error?.code;
+        const map = {
+          1: 'MEDIA_ERR_ABORTED',
+          2: 'MEDIA_ERR_NETWORK',
+          3: 'MEDIA_ERR_DECODE',
+          4: 'MEDIA_ERR_SRC_NOT_SUPPORTED',
+        };
+        return {
+          code: code || null,
+          name: map[code] || 'unknown',
+          src: media.src || media.currentSrc || '',
+        };
+      }
+
+      function shouldAdvanceOnEnd() {
+        return autoLoop.checked;
+      }
+
+      function startTracking() {
+        stopTracking();
+        const tick = () => {
+          updateDiagnostics();
+          state.raf = requestAnimationFrame(tick);
+        };
+        state.raf = requestAnimationFrame(tick);
+      }
+
+      function destroyPlayer() {
+        stopTracking();
+        try {
+          const media = getMedia();
+          if (media) {
+            media.pause();
+            media.removeAttribute('src');
+            media.querySelectorAll?.('source')?.forEach((s) => s.remove());
+            media.load?.();
+          }
+        } catch (err) {
+          log('destroy:error', { message: err?.message || String(err) });
+        }
+        state.listenersBoundTo = null;
+        state.instance = null;
+        state.plugin = null;
+        state.audio = null;
+        lunaMount.innerHTML = '';
+      }
+
+      function initPlayer(track, autoplay = false) {
+        destroyPlayer();
+        trackNameHeader.textContent = track.title;
+        trackIndexLabel.textContent = `${state.currentIndex + 1} / ${state.tracks.length}`;
+        updateTrackSelection();
+        setConnectionState('Cargando player...', 'info');
+        if (nativeAudioFallback) {
+          nativeAudioFallback.src = track.url;
+        }
+        if (playerHint) {
+          playerHint.textContent = track.external
+            ? 'Esta pista es externa y puede fallar por CORS. El audio nativo sirve para comprobar si el archivo responde.'
+            : 'Pista local de prueba generada en el navegador. Si LunaRadio no muestra interfaz, el fallback nativo debería seguir sonando.';
+        }
+
+        if (!$ || !$.fn || typeof $.fn.lunaradio !== 'function') {
+          setConnectionState('LunaRadio no disponible', 'danger');
+          log('LunaRadio no está cargado');
+          return;
+        }
+
+        lunaMount.innerHTML = '';
+        try {
+          const instance = $('#lunaMount').lunaradio({
+            userinterface: 'big',
+            backgroundcolor: 'rgba(9,15,25,0.2)',
+            fontcolor: '#FFFFFF',
+            hightlightcolor: '#3b82f6',
+            fontname: 'Saira Condensed',
+            googlefont: 'Saira+Condensed:wght@100',
+            fontratio: '0.6',
+            radioname: track.title,
+            scroll: 'true',
+            usecover: 'true',
+            radiocover: track.cover || defaultCover,
+            coverimage: track.cover || defaultCover,
+            usevisualizer: 'real',
+            coverstyle: 'animated',
+            visualizertype: '4',
+            multicolorvisualizer: 'true',
+            color1: 'dc143c',
+            color2: 'f1666d',
+            color3: 'e6f62f',
+            color4: '#e6f62f',
+            metadatatechnic: 'corsproxy',
+            ownmetadataurl: '',
+            streamurl: track.url,
+            streamtype: 'other',
+            streamsuffix: '#',
+            shoutcastid: '1',
+            metadatainterval: '20000',
+            volume: '100',
+            debug: 'false',
+            usestreamcorsproxy: 'false',
+            corsproxy: '',
+            autoplay: 'true'
+          });
+          state.instance = instance;
+          state.plugin = instance?.data?.('lunaradio') || $('#lunaMount').data('lunaradio') || null;
+          state.audio = state.plugin?.audio || instance?.audio || null;
+          setConnectionState('Player creado', 'success');
+          log('init', {
+            track: track.title,
+            external: !!track.external,
+            src: track.url,
+            hasPlugin: !!state.plugin,
+            hasPluginAudio: !!state.plugin?.audio,
+          });
+          setTimeout(() => {
+            state.plugin = state.plugin || $('#lunaMount').data('lunaradio') || null;
+            state.audio = getMedia();
+            bindMediaListeners();
+            updateDiagnostics();
+            if (state.audio) {
+              log('media-ready', {
+                duration: state.audio.duration,
+                currentTime: state.audio.currentTime,
+                src: state.audio.currentSrc || state.audio.src || ''
+              });
+            } else {
+              log('media-missing', { reason: 'LunaRadio no expuso audio visible todavía' });
+            }
+          }, 180);
+          if (autoplay) {
+            setTimeout(() => {
+              state.plugin = state.plugin || $('#lunaMount').data('lunaradio') || null;
+              state.audio = getMedia();
+              bindMediaListeners();
+              if (state.audio && typeof state.audio.play === 'function') {
+                state.audio.play().catch((err) => {
+                  log('play:blocked', { name: err?.name, message: err?.message });
+                  setConnectionState('Play bloqueado: haz clic en una pista', 'danger');
+                });
+              }
+            }, 350);
+          } else {
+            setTimeout(() => {
+              state.plugin = state.plugin || $('#lunaMount').data('lunaradio') || null;
+              state.audio = getMedia();
+              bindMediaListeners();
+              updateDiagnostics();
+            }, 180);
+          }
+
+          setTimeout(() => {
+            state.plugin = state.plugin || $('#lunaMount').data('lunaradio') || null;
+            const media = getMedia();
+            if (!media) {
+              setConnectionState('LunaRadio no expuso audio', 'danger');
+              log('fallback-native', { reason: 'no-media-after-timeout', hasPlugin: !!state.plugin, mountHtml: lunaMount.innerHTML.length });
+            }
+          }, 1400);
+        } catch (err) {
+          setConnectionState('Error al crear LunaRadio', 'danger');
+          log('init:error', { message: err?.message || String(err) });
+        }
+      }
+
+      function loadTrack(index, { autoplay = true, reason = 'manual' } = {}) {
+        if (!state.tracks.length) return;
+        const total = state.tracks.length;
+        const normalized = ((index % total) + total) % total;
+        state.currentIndex = normalized;
+        const track = state.tracks[normalized];
+        renderPlaylist();
+        trackIndexLabel.textContent = `${state.currentIndex + 1} / ${state.tracks.length}`;
+        trackNameHeader.textContent = track.title;
+        log('track-load', { index: normalized + 1, reason, title: track.title });
+        initPlayer(track, autoplay);
+        if (!autoplay) return;
+      }
+
+      function updateTrackSelection() {
+        [...playlistEl.querySelectorAll('.track-item')].forEach((item, idx) => {
+          item.classList.toggle('active', idx === state.currentIndex);
+        });
+      }
+
+      function currentMediaAction(action) {
+        const media = getMedia();
+        if (!media) return false;
+        try {
+          if (action === 'toggle') {
+            if (media.paused) {
+              return media.play().then(() => true).catch(() => false);
+            }
+            media.pause();
+            return true;
+          }
+          if (action === 'pause') {
+            media.pause();
+            return true;
+          }
+          if (action === 'play') {
+            const p = media.play();
+            if (p && typeof p.catch === 'function') {
+              p.catch((err) => log('play:error', { name: err?.name, message: err?.message }));
+            }
+            return true;
+          }
+          if (action === 'restart') {
+            media.currentTime = 0;
+            const p = media.play();
+            if (p && typeof p.catch === 'function') {
+              p.catch((err) => log('restart:error', { name: err?.name, message: err?.message }));
+            }
+            return true;
+          }
+        } catch (err) {
+          log(`${action}:error`, { message: err?.message || String(err) });
+        }
+        return false;
+      }
+
+      function nextTrack() {
+        if (!state.tracks.length) return;
+        loadTrack(state.currentIndex + 1, { autoplay: true, reason: 'next' });
+      }
+
+      function prevTrack() {
+        if (!state.tracks.length) return;
+        loadTrack(state.currentIndex - 1, { autoplay: true, reason: 'prev' });
+      }
+
+      function seekByPercent(percent) {
+        const media = getMedia();
+        if (!media || !Number.isFinite(media.duration) || media.duration <= 0) return;
+        const target = Math.max(0, Math.min(100, percent)) / 100 * media.duration;
+        try {
+          if (state.plugin && typeof state.plugin.seek === 'function') {
+            state.plugin.seek(target);
+          } else if (state.instance && typeof state.instance.seek === 'function') {
+            state.instance.seek(target);
+          } else {
+            media.currentTime = target;
+          }
+          log('seek', { percent: Math.round(percent), target: target.toFixed(3) });
+        } catch (err) {
+          log('seek:error', { message: err?.message || String(err) });
+        }
+      }
+
+      progressTrack.addEventListener('click', (event) => {
+        const rect = progressTrack.getBoundingClientRect();
+        const percent = ((event.clientX - rect.left) / rect.width) * 100;
+        seekByPercent(percent);
+      });
+
+      btnPrev.addEventListener('click', () => {
+        state.hasUserGesture = true;
+        prevTrack();
+      });
+
+      btnNext.addEventListener('click', () => {
+        state.hasUserGesture = true;
+        nextTrack();
+      });
+
+      btnRestart.addEventListener('click', () => {
+        state.hasUserGesture = true;
+        currentMediaAction('restart');
+      });
+
+      btnPlayPause.addEventListener('click', async () => {
+        state.hasUserGesture = true;
+        const media = getMedia();
+        if (!media) return;
+        if (media.paused) {
+          const ok = await currentMediaAction('play');
+          log('play-toggle', { action: ok ? 'play' : 'failed' });
+        } else {
+          currentMediaAction('pause');
+          log('play-toggle', { action: 'pause' });
+        }
+      });
+
+      autoLoop.addEventListener('change', () => {
+        log('loop', { enabled: autoLoop.checked });
+      });
+
+      window.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowLeft') prevTrack();
+        if (event.key === 'ArrowRight') nextTrack();
+        if (event.key === ' ' || event.code === 'Space') {
+          event.preventDefault();
+          btnPlayPause.click();
+        }
+      });
+
+      function init() {
+        state.tracks = buildTracks();
+        renderPlaylist();
+        setConnectionState('Listo para pruebas', 'success');
+        loadTrack(0, { autoplay: false, reason: 'bootstrap' });
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>

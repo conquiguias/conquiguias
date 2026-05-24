@@ -10585,6 +10585,133 @@
         }
       }
 
+     // ==================== CORE AUDIO/VIDEO PLAYBACK FUNCTIONS ====================
+     // Funciones públicas para control directo del elemento audio/video
+     // Acceso directo a la API HTML5
+
+     function musicGetAudioElement() {
+       const container = document.getElementById('lunaradioPlayerPlaceholder');
+       if (!container) return null;
+       return container.querySelector('audio');
+     }
+
+     function musicGetVideoElement() {
+       const container = document.getElementById('clapprPlayerPlaceholder');
+       if (!container) return null;
+       return container.querySelector('video') || container.querySelector('audio');
+     }
+
+     function musicPlayDirect(media) {
+       if (!media || typeof media.play !== 'function') return false;
+       try {
+         const playPromise = media.play();
+         if (playPromise && typeof playPromise.catch === 'function') {
+           playPromise.catch(err => musicDebugLog('play:error', { error: err?.message || String(err) }));
+         }
+         return true;
+       } catch (e) {
+         musicDebugLog('play:exception', { error: e?.message || String(e) });
+         return false;
+       }
+     }
+
+     function musicPauseDirect(media) {
+       if (!media || typeof media.pause !== 'function') return false;
+       try {
+         media.pause();
+         return true;
+       } catch (e) {
+         musicDebugLog('pause:exception', { error: e?.message || String(e) });
+         return false;
+       }
+     }
+
+     function musicStopDirect(media) {
+       if (!media) return false;
+       try {
+         media.pause();
+         if (typeof media.currentTime === 'number') media.currentTime = 0;
+         return true;
+       } catch (e) {
+         musicDebugLog('stop:exception', { error: e?.message || String(e) });
+         return false;
+       }
+     }
+
+     function musicGetCurrentTime(media) {
+       if (!media || typeof media.currentTime !== 'number') return 0;
+       return Number(media.currentTime) || 0;
+     }
+
+     function musicGetDuration(media) {
+       if (!media || typeof media.duration !== 'number') return 0;
+       const dur = Number(media.duration);
+       return Number.isFinite(dur) && dur > 0 ? dur : 0;
+     }
+
+     function musicSetCurrentTime(media, time) {
+       if (!media || typeof media.currentTime !== 'number') return false;
+       try {
+         const t = Number(time) || 0;
+         media.currentTime = Math.max(0, t);
+         return true;
+       } catch (e) {
+         musicDebugLog('settime:exception', { error: e?.message || String(e) });
+         return false;
+       }
+     }
+
+     function musicIsPlaying(media) {
+       if (!media) return false;
+       return !media.paused && media.currentTime > 0;
+     }
+
+     function musicGetPlaybackStatus(media) {
+       if (!media) return 'stopped';
+       if (media.paused) return 'paused';
+       if (media.currentTime === 0) return 'stopped';
+       return 'playing';
+         // Función para asegurar que la reproducción comienza
+         // Si LunaRadio no responde, intenta play() directo en el elemento audio
+         function musicEnsurePlaybackStarted(media, nonce) {
+           const state = window.__musicState;
+           if (state.playbackNonce !== nonce) return;
+           if (!media) return;
+       
+           if (musicIsPlaying(media)) {
+             musicDebugLog('playback:already-started', {
+               nonce,
+               status: musicGetPlaybackStatus(media)
+             });
+             return;
+           }
+       
+           musicDebugLog('playback:ensure-start-attempt', {
+             nonce,
+             status: musicGetPlaybackStatus(media),
+             currentTime: musicGetCurrentTime(media),
+             duration: musicGetDuration(media)
+           });
+       
+           // Intentar via LunaRadio primero
+           try {
+             if (state.lunaInstance && typeof state.lunaInstance.lunaradio === 'function') {
+               state.lunaInstance.lunaradio('play');
+               musicDebugLog('playback:via-lunaradio', { nonce });
+               return;
+             }
+           } catch (e) {
+             musicDebugLog('playback:lunaradio-failed', { nonce, error: e?.message });
+           }
+       
+           // Fallback: play directo en el elemento audio
+           if (musicPlayDirect(media)) {
+             musicDebugLog('playback:via-direct', { nonce });
+           } else {
+             musicDebugLog('playback:failed', { nonce });
+           }
+         }
+     }
 
       // 🔹 Detectar usuario logueado
       onAuthStateChanged(auth, async (user) => {
@@ -10597,6 +10724,100 @@
             console.warn('[WARN] authStateReady falló en panel:', stateReadyError);
           }
 
+     // ==================== ENHANCED END-OF-TRACK DETECTION ====================
+     
+     function musicSetupAudioEndListener(audioEl, playbackNonce) {
+       const state = window.__musicState;
+       if (!audioEl || audioEl.__music_end_listeners_bound === playbackNonce) return;
+       
+       audioEl.__music_end_listeners_bound = playbackNonce;
+       
+       musicDebugLog('audio:setup-end-listeners', {
+         playbackNonce,
+         hasAudio: !!audioEl,
+         src: audioEl?.src || ''
+       });
+
+       // LAYER 1: Native 'ended' event (most reliable when fired)
+       const onEnded = () => {
+         if (state.playbackNonce !== playbackNonce) return;
+         const currentTime = musicGetCurrentTime(audioEl);
+         const duration = musicGetDuration(audioEl);
+         musicDebugLog('audio:ended-native', {
+           playbackNonce,
+           currentTime,
+           duration,
+           remaining: duration - currentTime
+         });
+         musicAutoAdvanceToNextTrack();
+       };
+       audioEl.addEventListener('ended', onEnded);
+
+       // LAYER 2: Timeupdate with near-end detection
+       let lastTimeCheck = -1;
+       const onTimeUpdate = () => {
+         if (state.playbackNonce !== playbackNonce) return;
+         
+         const currentTime = musicGetCurrentTime(audioEl);
+         const duration = musicGetDuration(audioEl);
+         
+         if (duration <= 0) return;
+         
+         const remaining = duration - currentTime;
+         const isNearEnd = remaining < 0.5 && remaining >= -0.5;
+         
+         if (isNearEnd && lastTimeCheck !== currentTime) {
+           lastTimeCheck = currentTime;
+           musicDebugLog('audio:ended-timeupdate', {
+             playbackNonce,
+             currentTime,
+             duration,
+             remaining
+           });
+           musicAutoAdvanceToNextTrack();
+         }
+       };
+       audioEl.addEventListener('timeupdate', onTimeUpdate);
+
+       // LAYER 3: Explicit polling with requestAnimationFrame
+       let lastFrameCheck = 0;
+       const checkViaRaf = () => {
+         if (state.playbackNonce !== playbackNonce || state.activePlayerType !== 'audio') return;
+         
+         const now = Date.now();
+         if (now - lastFrameCheck < 500) {
+           requestAnimationFrame(checkViaRaf);
+           return;
+         }
+         lastFrameCheck = now;
+         
+         const currentTime = musicGetCurrentTime(audioEl);
+         const duration = musicGetDuration(audioEl);
+         
+         if (duration > 0 && !audioEl.paused) {
+           const remaining = duration - currentTime;
+           const isVeryNearEnd = remaining < 1 && remaining > -0.5;
+           
+           if (isVeryNearEnd && state.__trackEndProcessing === false) {
+             state.__trackEndProcessing = true;
+             musicDebugLog('audio:ended-raf', {
+               playbackNonce,
+               currentTime,
+               duration,
+               remaining
+             });
+             setTimeout(() => {
+               musicAutoAdvanceToNextTrack();
+               state.__trackEndProcessing = false;
+             }, 0);
+             return;
+           }
+         }
+         
+         requestAnimationFrame(checkViaRaf);
+       };
+       requestAnimationFrame(checkViaRaf);
+     }
           const recoveredUser = auth.currentUser;
           if (recoveredUser) {
             return;
@@ -11338,6 +11559,11 @@
         if (!Array.isArray(state.catalog) || state.catalog.length < 1) return;
         if (!Number.isInteger(state.currentIndex) || state.currentIndex < 0) return;
 
+        if (!Number.isFinite(state.playbackNonce)) {
+          musicDebugLog('auto-advance:invalid-nonce', { nonce: state.playbackNonce });
+          return;
+        }
+        
         const now = Date.now();
         if (state.autoAdvanceLocked) {
           musicDebugLog('auto-advance:locked', { lockTime: now - (state.lastAutoAdvanceAt || 0) });
@@ -11348,6 +11574,12 @@
           return;
         }
 
+        musicDebugLog('auto-advance:preparing-track-switch', {
+          currentIndex: state.currentIndex,
+          nextIndex: (state.currentIndex + 1) % state.catalog.length,
+          catalogLen: state.catalog.length
+        });
+
         state.autoAdvanceLocked = true;
         state.lastAutoAdvanceAt = now;
         window.clearTimeout(state.__autoAdvanceUnlockTimer);
@@ -11357,13 +11589,34 @@
         }, 1500);
 
         const nextIndex = (state.currentIndex + 1) % state.catalog.length;
+        // Validar que el track existe
+        const nextTrack = state.catalog[nextIndex];
+        if (!nextTrack || (!nextTrack.title && !nextTrack.url)) {
+          musicDebugLog('auto-advance:invalid-track', {
+            nextIndex,
+            hasTrack: !!nextTrack
+          });
+          state.autoAdvanceLocked = false;
+          return;
+        }
+
         musicDebugLog('auto-advance:executing', {
           currentIndex: state.currentIndex,
           nextIndex: nextIndex,
           catalogLength: state.catalog.length,
-          currentNonce: state.playbackNonce
+          currentNonce: state.playbackNonce,
+          nextTrack: nextTrack?.title || 'Sin título'
         });
+        
         playMusicTrackByIndex(nextIndex);
+        
+        // Ensure playback starts after a brief delay
+        window.setTimeout(() => {
+          const media = musicGetActiveMediaElement();
+          if (state.activePlayerType === 'audio') {
+            musicEnsurePlaybackStarted(media, state.playbackNonce);
+          }
+        }, 200);
       }
 
       function musicStopVolumeRamp() {
@@ -11717,6 +11970,16 @@
         }
         renderLocalMusicList();
         setTimeout(() => updateMusicPlayStates(), 100);
+          // Usar nueva función de setup con 3 capas de detección
+          const setupListeners = () => {
+            if (state.playbackNonce !== playbackNonce || state.activePlayerType !== 'audio') return;
+            const audioEl = musicGetAudioElement();
+            if (audioEl) {
+              musicSetupAudioEndListener(audioEl, playbackNonce);
+            }
+          };
+          setTimeout(setupListeners, 300);
+          setTimeout(setupListeners, 900);
         musicStartProgressTracker(playbackNonce);
         musicDebugLog('video:init:done', { elapsedMs: Math.round(performance.now() - startedAt) });
       }
@@ -11951,6 +12214,17 @@
             try {
               await deleteMusicPlaylist(playlistId);
               await loadMusicPlaylists();
+         
+               // Asegurar que comienza la reproducción
+               const ensurePlayback = () => {
+                 if (state.playbackNonce !== playbackNonce || state.activePlayerType !== 'audio') return;
+                 const audioEl = musicGetAudioElement();
+                 if (audioEl) {
+                   musicEnsurePlaybackStarted(audioEl, playbackNonce);
+                 }
+               };
+               setTimeout(ensurePlayback, 500);
+               setTimeout(ensurePlayback, 1200);
             } catch (err) {
               mostrarMensaje('error', 'No se pudo eliminar', err?.message || 'Intenta nuevamente');
             }

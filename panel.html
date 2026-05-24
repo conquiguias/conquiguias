@@ -10951,7 +10951,7 @@
         state.activePlayerType = String(playerType || '').toLowerCase();
         state.sessionStartedAt = Date.now();
         state.autoAdvanceLocked = false;
-        state.__lastTrackEndNotified = false;
+        state.__trackEndProcessing = false;
         window.clearInterval(state.volumeRampTimer);
         window.clearTimeout(state.volumeRampRetryTimer);
         state.volumeRampTimer = null;
@@ -11224,17 +11224,24 @@
         musicSetProgressUI({ progress, currentTime, duration, indeterminate: !hasDuration });
 
         // Detectar cuando la canción casi termina y avanzar a la siguiente
-        if (hasDuration && currentTime > 0 && !state.__lastTrackEndNotified) {
+        // Usar un threshold más amplio (2 segundos) para ser más confiable
+        if (hasDuration && currentTime > 0 && !state.__trackEndProcessing) {
           const remainingTime = duration - currentTime;
-          // Si quedan menos de 0.5 segundos, avanzar a la siguiente
-          if (remainingTime < 0.5 && remainingTime >= 0) {
-            state.__lastTrackEndNotified = true;
+          // Si quedan menos de 2 segundos O si ya pasó el 95% de la canción
+          const isNearEnd = remainingTime < 2 || progress >= 95;
+          if (isNearEnd && remainingTime >= -0.5) {
+            state.__trackEndProcessing = true;
             musicDebugLog('progress:end-detected', {
               currentTime,
               duration,
-              remainingTime
+              remainingTime,
+              progress,
+              isNearEnd
             });
-            musicAutoAdvanceToNextTrack();
+            setTimeout(() => {
+              musicAutoAdvanceToNextTrack();
+              state.__trackEndProcessing = false;
+            }, 0);
           }
         }
       }
@@ -11332,17 +11339,30 @@
         if (!Number.isInteger(state.currentIndex) || state.currentIndex < 0) return;
 
         const now = Date.now();
-        if (state.autoAdvanceLocked) return;
-        if (state.lastAutoAdvanceAt && now - state.lastAutoAdvanceAt < 2500) return;
+        if (state.autoAdvanceLocked) {
+          musicDebugLog('auto-advance:locked', { lockTime: now - (state.lastAutoAdvanceAt || 0) });
+          return;
+        }
+        if (state.lastAutoAdvanceAt && now - state.lastAutoAdvanceAt < 1500) {
+          musicDebugLog('auto-advance:throttled', { timeSinceLastAdvance: now - state.lastAutoAdvanceAt });
+          return;
+        }
 
         state.autoAdvanceLocked = true;
         state.lastAutoAdvanceAt = now;
         window.clearTimeout(state.__autoAdvanceUnlockTimer);
         state.__autoAdvanceUnlockTimer = window.setTimeout(() => {
           state.autoAdvanceLocked = false;
-        }, 2000);
+          musicDebugLog('auto-advance:unlocked', {});
+        }, 1500);
 
         const nextIndex = (state.currentIndex + 1) % state.catalog.length;
+        musicDebugLog('auto-advance:executing', {
+          currentIndex: state.currentIndex,
+          nextIndex: nextIndex,
+          catalogLength: state.catalog.length,
+          currentNonce: state.playbackNonce
+        });
         playMusicTrackByIndex(nextIndex);
       }
 
@@ -11564,14 +11584,40 @@
             container.querySelectorAll('audio').forEach((audioEl) => {
               if (audioEl.dataset.musicEndedBound === '1') return;
               audioEl.dataset.musicEndedBound = '1';
+              
+              // Listener para evento 'ended' nativo
               audioEl.addEventListener('ended', () => {
-                musicDebugLog('audio:ended', {
+                musicDebugLog('audio:ended:native-event', {
                   containerId: hostId,
                   playbackNonce,
                   currentNonce: state.playbackNonce,
-                  src: audioEl.src || ''
+                  src: audioEl.src || '',
+                  currentTime: audioEl.currentTime,
+                  duration: audioEl.duration
                 });
                 musicAutoAdvanceToNextTrack();
+              });
+              
+              // Listener adicional para 'timeupdate' cerca del final
+              // Para capturar casos donde 'ended' no se dispara correctamente
+              let lastTimeCheckForEnd = -1;
+              audioEl.addEventListener('timeupdate', function checkNearEnd() {
+                if (state.playbackNonce !== playbackNonce || state.activePlayerType !== 'audio') {
+                  audioEl.removeEventListener('timeupdate', checkNearEnd);
+                  return;
+                }
+                const currentTime = Number(audioEl.currentTime) || 0;
+                const duration = Number(audioEl.duration) || 0;
+                if (duration > 0 && duration - currentTime < 0.5 && lastTimeCheckForEnd !== currentTime) {
+                  lastTimeCheckForEnd = currentTime;
+                  musicDebugLog('audio:ended:timeupdate-fallback', {
+                    containerId: hostId,
+                    currentTime,
+                    duration,
+                    remaining: duration - currentTime
+                  });
+                  musicAutoAdvanceToNextTrack();
+                }
               });
             });
           };
@@ -11645,6 +11691,28 @@
             });
             if (state.playbackNonce !== playbackNonce || state.activePlayerType !== 'video') return;
             musicAutoAdvanceToNextTrack();
+          });
+        }
+        
+        // Fallback para asegurar que se detecte el fin si PLAYER_ENDED no se dispara
+        if (player && typeof player.on === 'function') {
+          player.on('timeupdate', function checkVideoNearEnd() {
+            if (state.playbackNonce !== playbackNonce || state.activePlayerType !== 'video') {
+              return;
+            }
+            const currentTime = Number(player.getCurrentTime?.() || player.core?.mediaControl?.currentTime || 0);
+            const duration = Number(player.getDuration?.() || player.core?.mediaControl?.duration || 0);
+            if (duration > 0 && duration - currentTime < 0.5 && duration - currentTime >= 0) {
+              musicDebugLog('video:ended:timeupdate-fallback', {
+                currentTime,
+                duration,
+                remaining: duration - currentTime
+              });
+              musicAutoAdvanceToNextTrack();
+              if (typeof player.off === 'function') {
+                player.off('timeupdate', checkVideoNearEnd);
+              }
+            }
           });
         }
         renderLocalMusicList();
@@ -11796,7 +11864,7 @@
           currentIndex: state.currentIndex,
           activePlayerType: state.activePlayerType
         });
-        state.__lastTrackEndNotified = false;
+        state.__trackEndProcessing = false;
         musicDestroyPlayers();
         musicStopProgressTracker();
         if (!keepTrack) {

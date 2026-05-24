@@ -6569,6 +6569,17 @@
               <label class="music-field"><small>Artista</small><input id="musicArtist" placeholder="Opcional"></label>
               <label class="music-field"><small>Álbum</small><input id="musicAlbum" placeholder="Opcional"></label>
               <label class="music-field-inline" style="max-width:140px;"><small>Año</small><input id="musicYear" type="number" placeholder="2026"></label>
+              <label class="music-field"><small>Imagen (Luna radio)</small><input id="musicImageFile" type="file" accept="image/*"></label>
+              <label class="music-field"><small>Portada (Clappr)</small><input id="musicCoverFile" type="file" accept="image/*"></label>
+            </div>
+            <div id="addMusicModalProgress" style="display:none; margin-top:8px;">
+              <div style="background:var(--bg-muted); height:8px; border-radius:6px; overflow:hidden;">
+                <div id="addMusicModalProgressFill" style="width:0%; height:100%; background:var(--accent-color);"></div>
+              </div>
+              <div style="font-size:12px; color:var(--text-secondary); margin-top:6px; display:flex; justify-content:space-between;">
+                <div id="addMusicModalProgressText">0%</div>
+                <div style="font-size:11px; color:var(--text-secondary);">Subida de imágenes</div>
+              </div>
             </div>
             <div style="margin-bottom:8px;">
               <label><small>Modo de subida</small></label>
@@ -11754,6 +11765,59 @@
               return;
             }
             const musicPayload = { title, url, artist, album, year };
+
+            // handle image uploads (individual mode)
+            musicPayload.metadata = musicPayload.metadata || {};
+            const imageFile = document.getElementById('musicImageFile')?.files?.[0] || null;
+            const coverFile = document.getElementById('musicCoverFile')?.files?.[0] || null;
+
+            // Defaults when not provided
+            const DEFAULT_LUNA_BG = '/images/logo oficial conquiguias world vectorial.png';
+            const DEFAULT_COVER = '/images/flayer conquiguias world.png';
+
+            try {
+              const confirmBtn = document.getElementById('confirmAddMusicBtn');
+              if (confirmBtn) {
+                confirmBtn.disabled = true;
+                const prevText = confirmBtn.textContent;
+                confirmBtn.dataset._prevText = prevText;
+                confirmBtn.textContent = 'Subiendo...';
+              }
+
+              const modalContainer = document.getElementById('addMusicModalProgress');
+              const modalBar = document.getElementById('addMusicModalProgressFill');
+              const modalText = document.getElementById('addMusicModalProgressText');
+
+              if (imageFile) {
+                const uploaded = await uploadToImgur(imageFile, { container: modalContainer, bar: modalBar, text: modalText });
+                musicPayload.metadata.luna_bg = uploaded?.url || DEFAULT_LUNA_BG;
+                musicPayload.metadata.imgur_image = { url: uploaded?.url, id: uploaded?.id, deletehash: uploaded?.deletehash };
+              } else {
+                musicPayload.metadata.luna_bg = DEFAULT_LUNA_BG;
+              }
+
+              if (coverFile) {
+                const uploadedCover = await uploadToImgur(coverFile, { container: modalContainer, bar: modalBar, text: modalText });
+                musicPayload.metadata.cover = uploadedCover?.url || DEFAULT_COVER;
+                musicPayload.metadata.imgur_cover = { url: uploadedCover?.url, id: uploadedCover?.id, deletehash: uploadedCover?.deletehash };
+              } else {
+                musicPayload.metadata.cover = DEFAULT_COVER;
+              }
+            } catch (imgErr) {
+              console.warn('Error subiendo imágenes, se usarán valores por defecto:', imgErr);
+              musicPayload.metadata.luna_bg = musicPayload.metadata.luna_bg || DEFAULT_LUNA_BG;
+              musicPayload.metadata.cover = musicPayload.metadata.cover || DEFAULT_COVER;
+            } finally {
+              const confirmBtn = document.getElementById('confirmAddMusicBtn');
+              if (confirmBtn) {
+                confirmBtn.disabled = false;
+                if (confirmBtn.dataset._prevText) {
+                  confirmBtn.textContent = confirmBtn.dataset._prevText;
+                  delete confirmBtn.dataset._prevText;
+                }
+              }
+            }
+
             const response = await fetch('/api/social?action=add-music', {
               method: 'POST',
               headers: {
@@ -16749,10 +16813,15 @@
 
       // 🔹 Subir a Imgur a través del backend unificado - VERSIÓN CORREGIDA
       // 🔹 Subir a Imgur DIRECTAMENTE desde el frontend
-      async function uploadToImgur(file) {
+      async function uploadToImgur(file, progressEls) {
+        // progressEls: { container, bar, text } - optional DOM elements to show progress
+        const localContainer = (progressEls && progressEls.container) ? progressEls.container : uploadProgress;
+        const localBar = (progressEls && progressEls.bar) ? progressEls.bar : progressBar;
+        const localText = (progressEls && progressEls.text) ? progressEls.text : progressText;
+
         try {
           console.log('[INFO] Subiendo directamente a Imgur...');
-          uploadProgress.style.display = 'block';
+          if (localContainer) localContainer.style.display = 'block';
 
           // Primero obtener el Client-ID del servidor
           const clientIdResponse = await fetch('/api/social?action=get-client-id');
@@ -16784,11 +16853,13 @@
 
           const data = await response.json();
 
-          // Simular progreso
+          // Simular progreso si no hay eventos de progreso disponibles
           for (let i = 0; i <= 100; i += 20) {
             setTimeout(() => {
-              progressBar.style.width = i + '%';
-              progressText.textContent = i + '%';
+              try {
+                if (localBar) localBar.style.width = i + '%';
+                if (localText) localText.textContent = i + '%';
+              } catch (e) {}
             }, i * 10);
           }
 
@@ -16804,9 +16875,11 @@
           throw new Error('No se pudo subir el archivo: ' + error.message);
         } finally {
           setTimeout(() => {
-            uploadProgress.style.display = 'none';
-            progressBar.style.width = '0%';
-            progressText.textContent = '0%';
+            try {
+              if (localContainer) localContainer.style.display = 'none';
+              if (localBar) localBar.style.width = '0%';
+              if (localText) localText.textContent = '0%';
+            } catch (e) {}
           }, 500);
         }
       }

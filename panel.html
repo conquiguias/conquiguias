@@ -10590,6 +10590,10 @@
      // Acceso directo a la API HTML5
 
      function musicGetAudioElement() {
+       const state = window.__musicState || {};
+       if (state.lunaInstance && state.lunaInstance.audio) {
+         return state.lunaInstance.audio;
+       }
        const container = document.getElementById('lunaradioPlayerPlaceholder');
        if (!container) return null;
        return container.querySelector('audio');
@@ -10664,6 +10668,14 @@
      function musicIsPlaying(media) {
        if (!media) return false;
        return !media.paused && media.currentTime > 0;
+     }
+
+     function musicGetCurrentPlaybackState() {
+       const media = musicGetActiveMediaElement();
+       if (!media) return 'stopped';
+       if (!media.paused && !media.ended) return 'playing';
+       if (media.paused && media.currentTime > 0) return 'paused';
+       return 'stopped';
      }
 
      function musicGetPlaybackStatus(media) {
@@ -11810,7 +11822,7 @@
             metadatatechnic: 'corsproxy',
             ownmetadataurl: '',
             streamurl: streamUrl,
-            streamtype: 'shoutcast2',
+            streamtype: 'other',
             shoutcastid: '1',
             metadatainterval: '20000',
             volume: '0',
@@ -12096,6 +12108,7 @@
       function updateMusicPlayStates() {
         const state = window.__musicState;
         const currentTrackId = musicGetCurrentTrackId();
+        const playbackState = musicGetCurrentPlaybackState();
         const section = document.getElementById('musicaSection');
         if (!section) return;
         const allPlayBtns = section.querySelectorAll('.music-folder-track-play');
@@ -12105,7 +12118,7 @@
           const trackItem = btn.closest('.music-folder-track');
           if (!trackItem) return;
           const trackId = trackItem.dataset.musicId;
-          const isPlaying = trackId && trackId === currentTrackId;
+          const isPlaying = trackId && trackId === currentTrackId && playbackState === 'playing';
           if (isPlaying) {
             btn.classList.add('is-playing');
             btn.innerHTML = '<i class="fas fa-stop"></i>';
@@ -12137,12 +12150,53 @@
         setTimeout(() => updateMusicPlayStates(), 100);
       }
 
+      function musicPauseCurrentPlayback() {
+        const state = window.__musicState;
+        const media = musicGetActiveMediaElement();
+        if (!media) return false;
+        try {
+          media.pause?.();
+          musicDebugLog('playback:pause', { currentIndex: state.currentIndex, activePlayerType: state.activePlayerType });
+          updateMusicPlayStates();
+          return true;
+        } catch (e) {
+          musicDebugLog('playback:pause-error', { error: e?.message || String(e) });
+          return false;
+        }
+      }
+
+      function musicResumeCurrentPlayback() {
+        const state = window.__musicState;
+        const media = musicGetActiveMediaElement();
+        if (!media) return false;
+        try {
+          const playPromise = media.play?.();
+          if (playPromise && typeof playPromise.catch === 'function') {
+            playPromise.catch((err) => musicDebugLog('playback:resume-error', { error: err?.message || String(err) }));
+          }
+          musicDebugLog('playback:resume', { currentIndex: state.currentIndex, activePlayerType: state.activePlayerType });
+          updateMusicPlayStates();
+          return true;
+        } catch (e) {
+          musicDebugLog('playback:resume-error', { error: e?.message || String(e) });
+          return false;
+        }
+      }
+
       function musicToggleTrackPlayback(trackId, { playlistId = '', expand = true, reason = 'playlist-track' } = {}) {
         const normalizedId = String(trackId || '').trim();
         if (!normalizedId) return;
         if (playlistId) setMusicPlaylistSelected(playlistId, { expand });
-        if (musicIsTrackPlaying(normalizedId)) {
-          musicStopCurrentPlayback({ keepTrack: true });
+        if (musicGetCurrentTrackId() === normalizedId) {
+          const playbackState = musicGetCurrentPlaybackState();
+          if (playbackState === 'playing') {
+            musicPauseCurrentPlayback();
+            return;
+          }
+          if (playbackState === 'paused') {
+            musicResumeCurrentPlayback();
+            return;
+          }
           return;
         }
         playMusicTrackById(normalizedId, { autoplay: true, reason });

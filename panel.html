@@ -11753,8 +11753,9 @@
                 mostrarMensaje('info', 'Lista requerida', 'Escribe el nombre de la nueva lista para agregar la canción.');
                 return;
               }
-              const createdPlaylist = await createMusicPlaylist(targetPlaylistName);
+              const createdPlaylist = await createMusicPlaylist({ name: targetPlaylistName, auto: true });
               destinationPlaylistId = String(createdPlaylist?.id || '').trim();
+              if (targetNewName) targetNewName.value = '';
             }
 
             if (destinationPlaylistId && createdMusic?.id) {
@@ -11972,11 +11973,13 @@
               mostrarMensaje('info', 'Nombre requerido', 'Escribe el nombre de la nueva lista');
               return;
             }
-            const created = await createMusicPlaylist(name);
+            const created = await createMusicPlaylist({ name, auto: true });
             if (!created?.id) {
               mostrarMensaje('error', 'No creada', 'No se pudo crear la lista');
               return;
             }
+            // clear input
+            if (playlistPickerNewName) playlistPickerNewName.value = '';
             const track = state.pendingPlaylistTrack;
             if (track?.id) {
               await addMusicToPlaylist(created.id, track.id);
@@ -12005,7 +12008,8 @@
                 mostrarMensaje('info', 'Nombre requerido', 'Escribe el nombre de la nueva lista');
                 return;
               }
-              const created = await createMusicPlaylist(name);
+              const created = await createMusicPlaylist({ name, auto: true });
+              if (playlistPickerNewName) playlistPickerNewName.value = '';
               targetId = String(created?.id || '');
             }
             if (!targetId) {

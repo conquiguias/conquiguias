@@ -4917,26 +4917,28 @@
     #musicaSection .music-folder-track-play.is-playing::before {
       content: '';
       position: absolute;
-      top: -4px;
-      right: -4px;
-      width: 8px;
-      height: 8px;
+      top: -6px;
+      right: -6px;
+      width: 10px;
+      height: 10px;
       border-radius: 70% 70% 70% 0;
-      background: #60a5fa;
+      background: #3b82f6;
       transform: rotate(-45deg);
-      box-shadow: 0 0 0 0 rgba(96, 165, 250, 0.45);
+      box-shadow: 0 0 4px rgba(59, 130, 246, 0.8), 0 0 0 0 rgba(96, 165, 250, 0.45);
       animation: musicStopDrop 1.6s ease-in-out infinite;
       pointer-events: none;
+      z-index: 10;
     }
 
     #musicaSection .music-folder-track-play.is-playing::after {
       content: '';
       position: absolute;
-      inset: -6px;
+      inset: -8px;
       border-radius: inherit;
-      border: 1px solid rgba(96, 165, 250, 0.22);
+      border: 2px solid rgba(96, 165, 250, 0.3);
       animation: musicStopRing 1.8s ease-out infinite;
       pointer-events: none;
+      z-index: 9;
     }
 
     #musicaSection .music-folder-track-info {
@@ -4962,6 +4964,29 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    #musicaSection .music-track-menu-btn {
+      background: rgba(255, 255, 255, 0.05) !important;
+      border: none !important;
+      color: var(--text-secondary) !important;
+      width: 36px !important;
+      height: 36px !important;
+      min-width: 36px !important;
+      flex: 0 0 auto !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border-radius: 6px !important;
+      cursor: pointer !important;
+      font-size: 14px !important;
+      transition: background 0.2s, color 0.2s !important;
+      padding: 0 !important;
+    }
+
+    #musicaSection .music-track-menu-btn:hover {
+      background: rgba(59, 130, 246, 0.2) !important;
+      color: var(--accent-color) !important;
     }
 
     #musicaSection .music-folder-empty {
@@ -10926,6 +10951,7 @@
         state.activePlayerType = String(playerType || '').toLowerCase();
         state.sessionStartedAt = Date.now();
         state.autoAdvanceLocked = false;
+        state.__lastTrackEndNotified = false;
         window.clearInterval(state.volumeRampTimer);
         window.clearTimeout(state.volumeRampRetryTimer);
         state.volumeRampTimer = null;
@@ -11196,6 +11222,21 @@
         const hasDuration = Number.isFinite(duration) && duration > 0;
         const progress = hasDuration ? (currentTime / duration) * 100 : 0;
         musicSetProgressUI({ progress, currentTime, duration, indeterminate: !hasDuration });
+
+        // Detectar cuando la canción casi termina y avanzar a la siguiente
+        if (hasDuration && currentTime > 0 && !state.__lastTrackEndNotified) {
+          const remainingTime = duration - currentTime;
+          // Si quedan menos de 0.5 segundos, avanzar a la siguiente
+          if (remainingTime < 0.5 && remainingTime >= 0) {
+            state.__lastTrackEndNotified = true;
+            musicDebugLog('progress:end-detected', {
+              currentTime,
+              duration,
+              remainingTime
+            });
+            musicAutoAdvanceToNextTrack();
+          }
+        }
       }
 
       function musicStartProgressTracker(expectedNonce) {
@@ -11323,15 +11364,58 @@
         if (!Number.isFinite(normalizedVolume)) return false;
         const safeVolume = Math.max(0, Math.min(1, normalizedVolume));
         try {
-          if ('muted' in media) media.muted = false;
-          if ('volume' in media) media.volume = safeVolume;
+          const candidates = new Set([media]);
+          const host = media.closest?.('#lunaradioPlayerPlaceholder, #clapprPlayerPlaceholder') || media.parentElement?.closest?.('#lunaradioPlayerPlaceholder, #clapprPlayerPlaceholder');
+          if (host) {
+            host.querySelectorAll('audio, video').forEach((el) => candidates.add(el));
+          }
+          candidates.forEach((el) => {
+            try {
+              if ('muted' in el) el.muted = false;
+              if ('volume' in el) el.volume = safeVolume;
+              if (typeof el.dispatchEvent === 'function') {
+                el.dispatchEvent(new Event('volumechange'));
+              }
+            } catch (_) { }
+          });
           return true;
         } catch (_) {
           return false;
         }
       }
 
-      function musicStartVolumeRamp(expectedNonce, { targetVolume = 1, durationMs = 1600, startVolume = 0, retryMs = 120, maxRetries = 25 } = {}) {
+      function musicSyncLunaStoredVolume(targetPercent = 100) {
+        const host = document.getElementById('lunaradioPlayerPlaceholder');
+        if (!host || !window.localStorage) return;
+        const suffixes = [
+          'smallvolumegrab',
+          'smallvolumebackground',
+          'smalltextvolume',
+          'smalliconvolume',
+          'volumewrapper',
+          'volumebackground',
+          'volumefill',
+          'volumeicon',
+          'volumegrab',
+          'textvolumeend',
+          'buttonvolumeoff',
+          'buttonvolumeon'
+        ];
+        const elements = Array.from(host.querySelectorAll('[id]'));
+        for (const el of elements) {
+          const id = String(el.id || '');
+          const suffix = suffixes.find((part) => id.endsWith(part));
+          if (!suffix) continue;
+          const prefix = id.slice(0, -suffix.length);
+          if (!prefix) continue;
+          try {
+            window.localStorage.setItem(prefix + 'volume', String(Math.max(0, Math.min(100, Number(targetPercent) || 0))));
+          } catch (_) { }
+          return;
+        }
+      }
+
+      function musicStartVolumeRamp(expectedNonce, { targetVolume = 1, durationMs = 5000, startVolume = 0, retryMs = 120, maxRetries = 25 } = {}) {
         const state = window.__musicState;
         musicStopVolumeRamp();
 
@@ -11369,9 +11453,14 @@
               }
               if (progress >= 1) {
                 musicSetMediaVolume(activeMedia, targetVolume);
+                window.setTimeout(() => {
+                  if (state.playbackNonce === expectedNonce && state.activePlayerType === 'audio') {
+                    musicSetMediaVolume(activeMedia, targetVolume);
+                  }
+                }, 180);
                 musicStopVolumeRamp();
               }
-            }, 80);
+            }, 50);
           };
 
           if (typeof media.addEventListener === 'function') {
@@ -11458,6 +11547,7 @@
             autoplay: 'true'
           });
           state.lunaInstance = instance;
+          musicSyncLunaStoredVolume(100);
           musicDebugLog('audio:init:lunaradio-created', {
             elapsedMs: Math.round(performance.now() - startedAt),
             hasInstance: !!instance
@@ -11491,7 +11581,7 @@
           };
           setTimeout(bindEndedGuarded, 300);
           setTimeout(bindEndedGuarded, 900);
-          musicStartVolumeRamp(playbackNonce, { startVolume: 0, targetVolume: 1, durationMs: 1600 });
+          musicStartVolumeRamp(playbackNonce, { startVolume: 0, targetVolume: 1, durationMs: 5000 });
           renderLocalMusicList();
           musicStartProgressTracker(playbackNonce);
           musicDebugLog('audio:init:done', { elapsedMs: Math.round(performance.now() - startedAt) });
@@ -11558,6 +11648,7 @@
           });
         }
         renderLocalMusicList();
+        setTimeout(() => updateMusicPlayStates(), 100);
         musicStartProgressTracker(playbackNonce);
         musicDebugLog('video:init:done', { elapsedMs: Math.round(performance.now() - startedAt) });
       }
@@ -11585,6 +11676,7 @@
         } else {
           initMusicAudioPlayer(track);
         }
+        setTimeout(() => updateMusicPlayStates(), 100);
       }
 
       function playMusicTrackById(trackId, options = {}) {
@@ -11670,6 +11762,33 @@
         return musicGetCurrentTrackId() === normalizedId;
       }
 
+      function updateMusicPlayStates() {
+        const state = window.__musicState;
+        const currentTrackId = musicGetCurrentTrackId();
+        const section = document.getElementById('musicaSection');
+        if (!section) return;
+        const allPlayBtns = section.querySelectorAll('.music-folder-track-play');
+        const allTrackItems = section.querySelectorAll('.music-folder-track');
+        
+        allPlayBtns.forEach((btn) => {
+          const trackItem = btn.closest('.music-folder-track');
+          if (!trackItem) return;
+          const trackId = trackItem.dataset.musicId;
+          const isPlaying = trackId && trackId === currentTrackId;
+          if (isPlaying) {
+            btn.classList.add('is-playing');
+            btn.innerHTML = '<i class="fas fa-stop"></i>';
+            btn.title = 'Detener';
+            trackItem.classList.add('is-playing');
+          } else {
+            btn.classList.remove('is-playing');
+            btn.innerHTML = '<i class="fas fa-play"></i>';
+            btn.title = 'Reproducir';
+            trackItem.classList.remove('is-playing');
+          }
+        });
+      }
+
       function musicStopCurrentPlayback({ keepTrack = true } = {}) {
         const state = window.__musicState;
         musicDebugLog('playback:stop', {
@@ -11677,12 +11796,14 @@
           currentIndex: state.currentIndex,
           activePlayerType: state.activePlayerType
         });
+        state.__lastTrackEndNotified = false;
         musicDestroyPlayers();
         musicStopProgressTracker();
         if (!keepTrack) {
           state.currentIndex = -1;
         }
         renderLocalMusicList();
+        setTimeout(() => updateMusicPlayStates(), 100);
       }
 
       function musicToggleTrackPlayback(trackId, { playlistId = '', expand = true, reason = 'playlist-track' } = {}) {
@@ -11835,8 +11956,108 @@
               }
             });
 
+            const menuBtn = document.createElement('button');
+            menuBtn.type = 'button';
+            menuBtn.className = 'music-track-menu-btn';
+            menuBtn.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
+            menuBtn.title = 'Opciones';
+            menuBtn.setAttribute('aria-label', 'Opciones');
+            menuBtn.style.display = 'flex';
+            menuBtn.style.alignItems = 'center';
+            menuBtn.style.justifyContent = 'center';
+            menuBtn.style.width = '36px';
+            menuBtn.style.height = '36px';
+            menuBtn.style.padding = '0';
+            menuBtn.style.borderRadius = '6px';
+            menuBtn.style.border = 'none';
+            menuBtn.style.background = 'rgba(255,255,255,0.05)';
+            menuBtn.style.color = 'var(--text-secondary)';
+            menuBtn.style.cursor = 'pointer';
+            menuBtn.style.transition = 'background 0.2s';
+            
+            menuBtn.addEventListener('mouseenter', () => {
+              menuBtn.style.background = 'rgba(255,255,255,0.1)';
+            });
+            menuBtn.addEventListener('mouseleave', () => {
+              menuBtn.style.background = 'rgba(255,255,255,0.05)';
+            });
+            
+            menuBtn.addEventListener('click', (event) => {
+              event.stopPropagation();
+              const modalEl = document.createElement('div');
+              modalEl.style.cssText = `
+                position: absolute;
+                top: ${event.clientY}px;
+                left: ${event.clientX}px;
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                padding: 6px;
+                min-width: 150px;
+                z-index: 9999;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+              `;
+              
+              const options = [
+                { label: '✎ Editar', icon: 'fa-edit', action: () => {
+                  mostrarMensaje('info', 'Editar', 'Próximamente estarán disponibles las opciones de edición');
+                  document.body.removeChild(modalEl);
+                }},
+                { label: '📋 Agregar a lista', icon: 'fa-list', action: () => {
+                  mostrarMensaje('info', 'Agregar a lista', 'Próximamente estarán disponibles las opciones de listas');
+                  document.body.removeChild(modalEl);
+                }},
+                { label: '🗑 Eliminar', icon: 'fa-trash', action: () => {
+                  mostrarMensaje('info', 'Eliminar pista', 'Próximamente estarán disponibles las opciones de eliminación');
+                  document.body.removeChild(modalEl);
+                }}
+              ];
+              
+              options.forEach((opt) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = opt.label;
+                btn.style.cssText = `
+                  display: block;
+                  width: 100%;
+                  padding: 8px 12px;
+                  background: none;
+                  border: none;
+                  color: var(--text-primary);
+                  text-align: left;
+                  cursor: pointer;
+                  font-size: 13px;
+                  border-radius: 4px;
+                  transition: background 0.15s;
+                `;
+                btn.addEventListener('mouseenter', () => {
+                  btn.style.background = 'rgba(59,130,246,0.2)';
+                });
+                btn.addEventListener('mouseleave', () => {
+                  btn.style.background = 'none';
+                });
+                btn.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  opt.action();
+                });
+                modalEl.appendChild(btn);
+              });
+              
+              document.body.appendChild(modalEl);
+              setTimeout(() => {
+                const closeHandler = (e) => {
+                  if (!modalEl.contains(e.target) && !menuBtn.contains(e.target)) {
+                    if (document.body.contains(modalEl)) document.body.removeChild(modalEl);
+                    document.removeEventListener('click', closeHandler);
+                  }
+                };
+                document.addEventListener('click', closeHandler);
+              }, 0);
+            });
+
             trackLi.appendChild(playBtn);
             trackLi.appendChild(info);
+            trackLi.appendChild(menuBtn);
             tracksList.appendChild(trackLi);
           });
 
@@ -12216,23 +12437,29 @@
 
               if (imageFile) {
                 const uploaded = await uploadToImgur(imageFile, { container: modalContainer, bar: modalBar, text: modalText });
-                musicPayload.metadata.luna_bg = uploaded?.url || DEFAULT_LUNA_BG;
-                musicPayload.metadata.imgur_image = { url: uploaded?.url, id: uploaded?.id, deletehash: uploaded?.deletehash };
+                musicPayload.metadata.cover = uploaded?.url || DEFAULT_COVER;
+                musicPayload.metadata.radiocover = uploaded?.url || DEFAULT_COVER;
+                musicPayload.metadata.coverimage = uploaded?.url || DEFAULT_COVER;
+                musicPayload.metadata.imgur_cover = { url: uploaded?.url, id: uploaded?.id, deletehash: uploaded?.deletehash };
               } else {
-                musicPayload.metadata.luna_bg = DEFAULT_LUNA_BG;
+                musicPayload.metadata.cover = DEFAULT_COVER;
+                musicPayload.metadata.radiocover = DEFAULT_COVER;
+                musicPayload.metadata.coverimage = DEFAULT_COVER;
               }
 
               if (coverFile) {
                 const uploadedCover = await uploadToImgur(coverFile, { container: modalContainer, bar: modalBar, text: modalText });
-                musicPayload.metadata.cover = uploadedCover?.url || DEFAULT_COVER;
-                musicPayload.metadata.imgur_cover = { url: uploadedCover?.url, id: uploadedCover?.id, deletehash: uploadedCover?.deletehash };
+                musicPayload.metadata.luna_bg = uploadedCover?.url || DEFAULT_LUNA_BG;
+                musicPayload.metadata.imgur_image = { url: uploadedCover?.url, id: uploadedCover?.id, deletehash: uploadedCover?.deletehash };
               } else {
-                musicPayload.metadata.cover = DEFAULT_COVER;
+                musicPayload.metadata.luna_bg = DEFAULT_LUNA_BG;
               }
             } catch (imgErr) {
               console.warn('Error subiendo imágenes, se usarán valores por defecto:', imgErr);
-              musicPayload.metadata.luna_bg = musicPayload.metadata.luna_bg || DEFAULT_LUNA_BG;
               musicPayload.metadata.cover = musicPayload.metadata.cover || DEFAULT_COVER;
+              musicPayload.metadata.radiocover = musicPayload.metadata.radiocover || DEFAULT_COVER;
+              musicPayload.metadata.coverimage = musicPayload.metadata.coverimage || DEFAULT_COVER;
+              musicPayload.metadata.luna_bg = musicPayload.metadata.luna_bg || DEFAULT_LUNA_BG;
             } finally {
               const confirmBtn = document.getElementById('confirmAddMusicBtn');
               if (confirmBtn) {

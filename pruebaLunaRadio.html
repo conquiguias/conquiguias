@@ -381,8 +381,8 @@
         <h1>Prueba LunaRadio</h1>
         <p>
           Página de diagnóstico para revisar tres cosas: si el audio carga, si se lee <strong>duration/currentTime</strong>,
-          y si el cambio a la siguiente pista funciona al llegar al final. Las pistas de esta lista se generan localmente
-          para evitar CORS y aislar el problema real.
+          y si el cambio a la siguiente pista funciona al llegar al final. Esta lista usa URLs externas y la metadata
+          se toma del reproductor/eventos cuando esté disponible.
         </p>
       </div>
       <div class="status-chip" id="connectionBadge">Inicializando...</div>
@@ -393,7 +393,7 @@
         <div class="card-header">
           <div>
             <h2>Lista de pruebas</h2>
-            <div class="subtle">4 clips cortos, todos de menos de 30 segundos</div>
+            <div class="subtle">Pistas externas (solo URL)</div>
           </div>
           <small id="playlistCount">0 pistas</small>
         </div>
@@ -506,6 +506,9 @@
         plugin: null,
         audio: null,
         raf: 0,
+        volumeFadeTimer: 0,
+        volumeFadeType: '',
+        endFadeArmedForSrc: '',
         listenersBoundTo: null,
         hasUserGesture: false,
         lastEndedAt: 0,
@@ -578,158 +581,29 @@
           .replace(/'/g, '&apos;');
       }
 
-      function makeToneWavUrl({ duration = 8, sampleRate = 44100, notes = [], gain = 0.18 }) {
-        const totalSamples = Math.max(1, Math.floor(duration * sampleRate));
-        const buffer = new ArrayBuffer(44 + totalSamples * 2);
-        const view = new DataView(buffer);
-        const writeStr = (offset, str) => {
-          for (let i = 0; i < str.length; i += 1) view.setUint8(offset + i, str.charCodeAt(i));
-        };
-
-        writeStr(0, 'RIFF');
-        view.setUint32(4, 36 + totalSamples * 2, true);
-        writeStr(8, 'WAVE');
-        writeStr(12, 'fmt ');
-        view.setUint32(16, 16, true);
-        view.setUint16(20, 1, true);
-        view.setUint16(22, 1, true);
-        view.setUint32(24, sampleRate, true);
-        view.setUint32(28, sampleRate * 2, true);
-        view.setUint16(32, 2, true);
-        view.setUint16(34, 16, true);
-        writeStr(36, 'data');
-        view.setUint32(40, totalSamples * 2, true);
-
-        const segments = notes.length ? notes : [{ freq: 440, secs: duration }];
-        const segmentSamples = segments.map((seg) => Math.max(1, Math.floor(seg.secs * sampleRate)));
-        let segIndex = 0;
-        let segPos = 0;
-        let phase = 0;
-
-        for (let i = 0; i < totalSamples; i += 1) {
-          const seg = segments[segIndex];
-          const freq = seg.freq || 0;
-          const attack = Math.min(0.03, seg.secs * 0.1);
-          const release = Math.min(0.08, seg.secs * 0.12);
-          const t = segPos / sampleRate;
-          const envAttack = attack > 0 ? Math.min(1, t / attack) : 1;
-          const envReleaseStart = Math.max(0, seg.secs - release);
-          const envRelease = release > 0 && t > envReleaseStart ? Math.max(0, (seg.secs - t) / release) : 1;
-          const envelope = Math.min(envAttack, envRelease);
-          const vibrato = 1 + 0.002 * Math.sin(2 * Math.PI * 5 * i / sampleRate);
-          const sample = freq > 0
-            ? Math.sin(phase) * envelope * gain * vibrato
-            : 0;
-          phase += (2 * Math.PI * freq) / sampleRate;
-          const clipped = Math.max(-1, Math.min(1, sample));
-          view.setInt16(44 + i * 2, Math.floor(clipped * 32767), true);
-
-          segPos += 1;
-          if (segPos >= segmentSamples[segIndex]) {
-            segIndex = Math.min(segments.length - 1, segIndex + 1);
-            segPos = 0;
-            phase = 0;
-          }
-        }
-
-        const blob = new Blob([buffer], { type: 'audio/wav' });
-        return URL.createObjectURL(blob);
-      }
+      // External tracks only (URL-only objects)
 
       function buildTracks() {
+        // Keep only URL in each track object.
         const tracks = [
-          {
-            id: 't1',
-            title: 'Prueba 1 · Arpegio suave',
-            artist: 'Generado localmente',
-            album: 'LunaRadio Test',
-            duration: 8,
-            notes: [
-              { freq: 392, secs: 1.5 },
-              { freq: 494, secs: 1.5 },
-              { freq: 523, secs: 1.5 },
-              { freq: 587, secs: 1.5 },
-              { freq: 659, secs: 1.5 },
-              { freq: 784, secs: 1.5 },
-            ],
-          },
-          {
-            id: 't2',
-            title: 'Prueba 2 · Escala ascendente',
-            artist: 'Generado localmente',
-            album: 'LunaRadio Test',
-            duration: 10,
-            notes: [
-              { freq: 262, secs: 1 },
-              { freq: 294, secs: 1 },
-              { freq: 330, secs: 1 },
-              { freq: 349, secs: 1 },
-              { freq: 392, secs: 1 },
-              { freq: 440, secs: 1 },
-              { freq: 494, secs: 1 },
-              { freq: 523, secs: 1 },
-              { freq: 587, secs: 1 },
-              { freq: 659, secs: 1 },
-            ],
-          },
-          {
-            id: 't3',
-            title: 'Prueba 3 · Pulsos ritmados',
-            artist: 'Generado localmente',
-            album: 'LunaRadio Test',
-            duration: 12,
-            notes: [
-              { freq: 220, secs: 0.6 }, { freq: 0, secs: 0.15 },
-              { freq: 277, secs: 0.6 }, { freq: 0, secs: 0.15 },
-              { freq: 330, secs: 0.6 }, { freq: 0, secs: 0.15 },
-              { freq: 392, secs: 0.6 }, { freq: 0, secs: 0.15 },
-              { freq: 440, secs: 0.6 }, { freq: 0, secs: 0.15 },
-              { freq: 494, secs: 0.6 }, { freq: 0, secs: 0.15 },
-              { freq: 523, secs: 0.6 }, { freq: 0, secs: 0.15 },
-              { freq: 587, secs: 0.6 }, { freq: 0, secs: 0.15 },
-              { freq: 659, secs: 0.6 }, { freq: 0, secs: 0.15 },
-              { freq: 698, secs: 0.6 }, { freq: 0, secs: 0.15 },
-            ],
-          },
-          {
-            id: 't4',
-            title: 'Prueba 4 · Cadencia final',
-            artist: 'Generado localmente',
-            album: 'LunaRadio Test',
-            duration: 14,
-            notes: [
-              { freq: 523, secs: 1.5 },
-              { freq: 659, secs: 1.5 },
-              { freq: 784, secs: 1.5 },
-              { freq: 659, secs: 1.5 },
-              { freq: 587, secs: 1.5 },
-              { freq: 494, secs: 1.5 },
-              { freq: 440, secs: 1.5 },
-              { freq: 392, secs: 1.5 },
-              { freq: 330, secs: 1.5 },
-              { freq: 294, secs: 1.5 },
-            ],
-          },
+          { url: 'https://radiolira.ice.infomaniak.ch/radiolira.aac' },
+          { url: 'https://archive.org/download/HimnarioAdventista-Instrumental/001-CantadAlegresAlSenor.mp3' },
         ];
 
-        tracks.forEach((track, index) => {
-          track.cover = createSvgDataUrl(`Track ${index + 1}`, `${track.duration}s`);
-          track.url = makeToneWavUrl({ duration: track.duration, notes: track.notes, gain: 0.16 });
-        });
-
-        tracks.push({
-          id: 'ext-cors',
-          title: 'Prueba externa CORS',
-          artist: 'Archive.org',
-          album: 'Puede fallar por CORS',
-          duration: 26,
-          cover: createSvgDataUrl('CORS', 'External'),
-          url: 'https://archive.org/download/HimnarioAdventista-Instrumental/001-CantadAlegresAlSenor.mp3',
-          external: true,
-          note: 'Esta URL es útil para comprobar el fallo de CORS en comparación con las pistas locales.',
-        });
-
+        playlistCountEl.textContent = `${tracks.length} pistas`;
         return tracks;
+      }
+
+      function getTrackDisplayName(track, index) {
+        const fallback = `Track ${index + 1}`;
+        if (!track || !track.url) return fallback;
+        try {
+          const parsed = new URL(track.url, window.location.href);
+          const file = decodeURIComponent((parsed.pathname || '').split('/').filter(Boolean).pop() || '');
+          return file || track.url;
+        } catch (_err) {
+          return track.url;
+        }
       }
 
       function renderPlaylist() {
@@ -741,13 +615,15 @@
           button.type = 'button';
           button.className = 'track-item';
           if (index === state.currentIndex) button.classList.add('active');
+          const displayTitle = escapeHtml(getTrackDisplayName(track, index));
+          const displayMeta = 'URL externa';
           button.innerHTML = `
             <div class="track-index">${index + 1}</div>
             <div>
-              <div class="track-title">${escapeHtml(track.title)}</div>
-              <div class="track-meta">${escapeHtml(track.artist)} · ${escapeHtml(track.album)}${track.external ? ' · externa' : ''}</div>
+              <div class="track-title">${displayTitle}</div>
+              <div class="track-meta">${displayMeta}</div>
             </div>
-            <div class="track-duration">${track.duration}s</div>
+            <div class="track-duration">—</div>
           `;
           button.addEventListener('click', () => {
             state.hasUserGesture = true;
@@ -792,6 +668,74 @@
         return null;
       }
 
+      function stopVolumeFade() {
+        if (state.volumeFadeTimer) {
+          clearInterval(state.volumeFadeTimer);
+          state.volumeFadeTimer = 0;
+        }
+        state.volumeFadeType = '';
+      }
+
+      function setPlaybackVolume(media, value01) {
+        if (!media) return;
+        const normalized01 = Math.max(0, Math.min(1, Number(value01) || 0));
+        media.volume = normalized01;
+        const pluginVolume = Math.round(normalized01 * 100);
+        if (state.plugin && typeof state.plugin.setVolume === 'function') {
+          try {
+            state.plugin.setVolume(pluginVolume);
+          } catch (_err) {}
+        }
+      }
+
+      function runVolumeFade(media, targetVolume, durationMs, kind) {
+        if (!media) return;
+        stopVolumeFade();
+        const to = Math.max(0, Math.min(1, Number(targetVolume) || 0));
+        const ms = Math.max(0, Number(durationMs) || 0);
+        if (ms === 0) {
+          setPlaybackVolume(media, to);
+          return;
+        }
+        const from = Math.max(0, Math.min(1, Number(media.volume) || 0));
+        const startedAt = performance.now();
+        state.volumeFadeType = kind || 'fade';
+        state.volumeFadeTimer = setInterval(() => {
+          const elapsed = performance.now() - startedAt;
+          const progress = Math.max(0, Math.min(1, elapsed / ms));
+          setPlaybackVolume(media, from + (to - from) * progress);
+          if (progress >= 1) {
+            setPlaybackVolume(media, to);
+            stopVolumeFade();
+            log('volume-fade:end', { type: kind, to: Number(to.toFixed(2)) });
+          }
+        }, 100);
+      }
+
+      function fadeInToFull(media) {
+        if (!media) return;
+        runVolumeFade(media, 1, 5000, 'fade-in');
+      }
+
+      function maybeStartEndFadeOut(media) {
+        if (!media || media.paused) return;
+        const duration = Number(media.duration);
+        const current = Number(media.currentTime);
+        if (!Number.isFinite(duration) || duration <= 0 || !Number.isFinite(current)) return;
+        const remaining = duration - current;
+        const srcKey = media.currentSrc || media.src || `idx-${state.currentIndex}`;
+        if (remaining <= 10 && remaining > 0 && state.endFadeArmedForSrc !== srcKey) {
+          state.endFadeArmedForSrc = srcKey;
+          const fadeDurationMs = Math.max(0, Math.min(10000, remaining * 1000));
+          runVolumeFade(media, 0, fadeDurationMs, 'fade-out-end');
+          log('volume-fade:start', {
+            type: 'fade-out-end',
+            remaining: Number(remaining.toFixed(2)),
+            ms: Math.round(fadeDurationMs),
+          });
+        }
+      }
+
       function stopTracking() {
         cancelAnimationFrame(state.raf);
         state.raf = 0;
@@ -823,18 +767,29 @@
         const media = getMedia();
         if (!media || state.listenersBoundTo === media) return;
         state.listenersBoundTo = media;
+        state.endFadeArmedForSrc = '';
 
         const events = ['loadedmetadata', 'durationchange', 'timeupdate', 'play', 'pause', 'waiting', 'canplay', 'canplaythrough', 'ended', 'seeking', 'seeked', 'stalled', 'error'];
         events.forEach((eventName) => {
           media.addEventListener(eventName, () => {
             if (eventName === 'ended') {
+              stopVolumeFade();
+              setPlaybackVolume(media, 0);
               log('ended', { track: state.currentIndex + 1, currentTime: media.currentTime, duration: media.duration });
               if (shouldAdvanceOnEnd()) {
                 nextTrack();
               }
+            } else if (eventName === 'play') {
+              fadeInToFull(media);
+              log('volume-fade:start', { type: 'fade-in', ms: 5000 });
+            } else if (eventName === 'timeupdate') {
+              maybeStartEndFadeOut(media);
             } else if (eventName === 'error') {
+              stopVolumeFade();
               log('error', describeMediaError(media));
               setConnectionState('Error de carga', 'danger');
+            } else if (eventName === 'pause') {
+              stopVolumeFade();
             } else {
               log(eventName, { time: media.currentTime, duration: media.duration, paused: media.paused });
             }
@@ -843,6 +798,11 @@
         });
 
         startTracking();
+
+        if (!media.paused && (Number(media.volume) || 0) < 0.01) {
+          fadeInToFull(media);
+          log('volume-fade:start', { type: 'fade-in-recovery', ms: 5000 });
+        }
       }
 
       function describeMediaError(media) {
@@ -875,6 +835,7 @@
 
       function destroyPlayer() {
         stopTracking();
+        stopVolumeFade();
         try {
           const media = getMedia();
           if (media) {
@@ -887,6 +848,7 @@
           log('destroy:error', { message: err?.message || String(err) });
         }
         state.listenersBoundTo = null;
+        state.endFadeArmedForSrc = '';
         state.instance = null;
         state.plugin = null;
         state.audio = null;
@@ -895,7 +857,7 @@
 
       function initPlayer(track, autoplay = false) {
         destroyPlayer();
-        trackNameHeader.textContent = track.title;
+        trackNameHeader.textContent = getTrackDisplayName(track, state.currentIndex);
         trackIndexLabel.textContent = `${state.currentIndex + 1} / ${state.tracks.length}`;
         updateTrackSelection();
         setConnectionState('Cargando player...', 'info');
@@ -903,9 +865,7 @@
           nativeAudioFallback.src = track.url;
         }
         if (playerHint) {
-          playerHint.textContent = track.external
-            ? 'Esta pista es externa y puede fallar por CORS. El audio nativo sirve para comprobar si el archivo responde.'
-            : 'Pista local de prueba generada en el navegador. Si LunaRadio no muestra interfaz, el fallback nativo debería seguir sonando.';
+          playerHint.textContent = 'Esta pista es externa y puede fallar por CORS. El audio nativo sirve para comprobar si el archivo responde.';
         }
 
         if (!$ || !$.fn || typeof $.fn.lunaradio !== 'function') {
@@ -924,7 +884,7 @@
             fontname: 'Saira Condensed',
             googlefont: 'Saira+Condensed:wght@100',
             fontratio: '0.6',
-            radioname: track.title,
+            radioname: getTrackDisplayName(track, state.currentIndex),
             scroll: 'true',
             usecover: 'true',
             radiocover: track.cover || defaultCover,
@@ -944,19 +904,18 @@
             streamsuffix: '#',
             shoutcastid: '1',
             metadatainterval: '20000',
-            volume: '100',
+            volume: '0',
             debug: 'false',
             usestreamcorsproxy: 'false',
             corsproxy: '',
-            autoplay: 'true'
+            autoplay: autoplay ? 'true' : 'false'
           });
           state.instance = instance;
           state.plugin = instance?.data?.('lunaradio') || $('#lunaMount').data('lunaradio') || null;
           state.audio = state.plugin?.audio || instance?.audio || null;
           setConnectionState('Player creado', 'success');
           log('init', {
-            track: track.title,
-            external: !!track.external,
+            track: getTrackDisplayName(track, state.currentIndex),
             src: track.url,
             hasPlugin: !!state.plugin,
             hasPluginAudio: !!state.plugin?.audio,
@@ -1019,8 +978,8 @@
         const track = state.tracks[normalized];
         renderPlaylist();
         trackIndexLabel.textContent = `${state.currentIndex + 1} / ${state.tracks.length}`;
-        trackNameHeader.textContent = track.title;
-        log('track-load', { index: normalized + 1, reason, title: track.title });
+        trackNameHeader.textContent = getTrackDisplayName(track, state.currentIndex);
+        log('track-load', { index: normalized + 1, reason, title: getTrackDisplayName(track, state.currentIndex) });
         initPlayer(track, autoplay);
         if (!autoplay) return;
       }

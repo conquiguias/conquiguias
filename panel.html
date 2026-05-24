@@ -5103,6 +5103,41 @@
       align-items: center;
     }
 
+    #musicaSection .music-transport {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px;
+      border-radius: 999px;
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    #musicaSection .music-transport-btn {
+      width: 34px;
+      height: 34px;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-primary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.18s ease, background 0.18s ease, opacity 0.18s ease;
+    }
+
+    #musicaSection .music-transport-btn:hover {
+      transform: translateY(-1px);
+      background: rgba(59, 130, 246, 0.22);
+    }
+
+    #musicaSection .music-transport-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
     #musicaSection .music-mode-switch {
       display: flex;
       gap: 8px;
@@ -6785,6 +6820,17 @@
               <div class="music-mode-slider" aria-hidden="true"></div>
               <button id="btnAudio" class="small-toggle active">Audio</button>
               <button id="btnVideo" class="small-toggle">Video</button>
+            </div>
+            <div class="music-transport" role="group" aria-label="Controles de reproducción">
+              <button id="musicPrevBtn" class="music-transport-btn" type="button" title="Anterior" aria-label="Anterior">
+                <i class="fas fa-backward"></i>
+              </button>
+              <button id="musicPlayPauseBtn" class="music-transport-btn" type="button" title="Reproducir" aria-label="Reproducir">
+                <i class="fas fa-play"></i>
+              </button>
+              <button id="musicNextBtn" class="music-transport-btn" type="button" title="Siguiente" aria-label="Siguiente">
+                <i class="fas fa-forward"></i>
+              </button>
             </div>
             <div style="flex:1"></div>
             <div style="font-size:11px; color:var(--text-secondary);">Modo: <strong id="playerModeLabel">Audio</strong></div>
@@ -11176,6 +11222,9 @@
         autoAdvanceLocked: false,
         volumeRampTimer: null,
         volumeRampRetryTimer: null,
+        endFadeTimer: null,
+        endFadeArmed: false,
+        endFadeNonce: 0,
       };
 
       function musicStartNewPlaybackSession(playerType) {
@@ -11187,8 +11236,12 @@
         state.__trackEndProcessing = false;
         window.clearInterval(state.volumeRampTimer);
         window.clearTimeout(state.volumeRampRetryTimer);
+        window.clearInterval(state.endFadeTimer);
         state.volumeRampTimer = null;
         state.volumeRampRetryTimer = null;
+        state.endFadeTimer = null;
+        state.endFadeArmed = false;
+        state.endFadeNonce = state.playbackNonce;
         return state.playbackNonce;
       }
 
@@ -11456,25 +11509,16 @@
         const progress = hasDuration ? (currentTime / duration) * 100 : 0;
         musicSetProgressUI({ progress, currentTime, duration, indeterminate: !hasDuration });
 
-        // Detectar cuando la canción casi termina y avanzar a la siguiente
-        // Usar un threshold más amplio (2 segundos) para ser más confiable
-        if (hasDuration && currentTime > 0 && !state.__trackEndProcessing) {
+        if (
+          state.activePlayerType === 'audio' &&
+          hasDuration &&
+          !state.endFadeArmed &&
+          currentTime > 0
+        ) {
           const remainingTime = duration - currentTime;
-          // Si quedan menos de 2 segundos O si ya pasó el 95% de la canción
-          const isNearEnd = remainingTime < 2 || progress >= 95;
-          if (isNearEnd && remainingTime >= -0.5) {
-            state.__trackEndProcessing = true;
-            musicDebugLog('progress:end-detected', {
-              currentTime,
-              duration,
-              remainingTime,
-              progress,
-              isNearEnd
-            });
-            setTimeout(() => {
-              musicAutoAdvanceToNextTrack();
-              state.__trackEndProcessing = false;
-            }, 0);
+          if (remainingTime <= 10 && remainingTime > 0) {
+            state.endFadeArmed = true;
+            musicStartEndFadeOut(state.playbackNonce, remainingTime);
           }
         }
       }
@@ -11643,6 +11687,14 @@
         }
       }
 
+      function musicStopEndFade() {
+        const state = window.__musicState;
+        if (state.endFadeTimer) {
+          window.clearInterval(state.endFadeTimer);
+          state.endFadeTimer = null;
+        }
+      }
+
       function musicSetMediaVolume(media, volume) {
         if (!media) return false;
         const normalizedVolume = Number(volume);
@@ -11663,10 +11715,50 @@
               }
             } catch (_) { }
           });
+          if (window.__musicState?.activePlayerType === 'audio') {
+            const luna = window.__musicState?.lunaInstance;
+            if (luna && typeof luna.lunaradio === 'function') {
+              try { luna.lunaradio('setVolume', Math.round(safeVolume * 100)); } catch (_) { }
+            }
+          }
           return true;
         } catch (_) {
           return false;
         }
+      }
+
+      function musicStartEndFadeOut(expectedNonce, remainingSeconds) {
+        const state = window.__musicState;
+        musicStopEndFade();
+        const media = musicGetActiveMediaElement();
+        if (!media) return;
+        const startVolume = Math.max(0, Math.min(1, Number(media.volume) || 0));
+        const fadeMs = Math.max(0, Math.min(10000, Math.round((Number(remainingSeconds) || 0) * 1000)));
+        if (fadeMs <= 0) {
+          musicSetMediaVolume(media, 0);
+          return;
+        }
+        const startedAt = Date.now();
+        state.endFadeNonce = expectedNonce;
+        state.endFadeTimer = window.setInterval(() => {
+          if (state.playbackNonce !== expectedNonce || state.activePlayerType !== 'audio') {
+            musicStopEndFade();
+            return;
+          }
+          const activeMedia = musicGetActiveMediaElement();
+          if (!activeMedia) {
+            musicStopEndFade();
+            return;
+          }
+          const elapsed = Date.now() - startedAt;
+          const progress = Math.max(0, Math.min(1, elapsed / fadeMs));
+          const nextVolume = startVolume * (1 - progress);
+          musicSetMediaVolume(activeMedia, nextVolume);
+          if (progress >= 1) {
+            musicSetMediaVolume(activeMedia, 0);
+            musicStopEndFade();
+          }
+        }, 100);
       }
 
       function musicSyncLunaStoredVolume(targetPercent = 100) {
@@ -12132,6 +12224,29 @@
             trackItem.classList.remove('is-playing');
           }
         });
+        musicUpdateTransportControls();
+      }
+
+      function musicUpdateTransportControls() {
+        const state = window.__musicState;
+        const prevBtn = document.getElementById('musicPrevBtn');
+        const playPauseBtn = document.getElementById('musicPlayPauseBtn');
+        const nextBtn = document.getElementById('musicNextBtn');
+        if (!prevBtn || !playPauseBtn || !nextBtn) return;
+
+        const hasTracks = Array.isArray(state.catalog) && state.catalog.length > 0;
+        const playbackState = musicGetCurrentPlaybackState();
+        const isPlaying = playbackState === 'playing';
+        const icon = playPauseBtn.querySelector('i');
+        if (icon) {
+          icon.className = isPlaying ? 'fas fa-pause' : 'fas fa-play';
+        }
+
+        playPauseBtn.title = isPlaying ? 'Pausar' : 'Reproducir';
+        playPauseBtn.setAttribute('aria-label', isPlaying ? 'Pausar' : 'Reproducir');
+        prevBtn.disabled = !hasTracks;
+        nextBtn.disabled = !hasTracks;
+        playPauseBtn.disabled = !hasTracks;
       }
 
       function musicStopCurrentPlayback({ keepTrack = true } = {}) {
@@ -12149,6 +12264,7 @@
         }
         renderLocalMusicList();
         setTimeout(() => updateMusicPlayStates(), 100);
+        musicUpdateTransportControls();
       }
 
       function musicPauseCurrentPlayback() {
@@ -12159,6 +12275,7 @@
           media.pause?.();
           musicDebugLog('playback:pause', { currentIndex: state.currentIndex, activePlayerType: state.activePlayerType });
           updateMusicPlayStates();
+          musicUpdateTransportControls();
           return true;
         } catch (e) {
           musicDebugLog('playback:pause-error', { error: e?.message || String(e) });
@@ -12177,6 +12294,7 @@
           }
           musicDebugLog('playback:resume', { currentIndex: state.currentIndex, activePlayerType: state.activePlayerType });
           updateMusicPlayStates();
+          musicUpdateTransportControls();
           return true;
         } catch (e) {
           musicDebugLog('playback:resume-error', { error: e?.message || String(e) });
@@ -13131,6 +13249,7 @@
           if (openAddMusicModalBtn) openAddMusicModalBtn.style.display = window.isOwner ? '' : 'none';
           loadMusicCatalog();
           loadMusicPlaylists();
+          musicUpdateTransportControls();
           return;
         }
 
@@ -13141,6 +13260,9 @@
         const audioWrap = document.getElementById('audioPlayerWrap');
         const videoWrap = document.getElementById('videoPlayerWrap');
         const modeLabel = document.getElementById('playerModeLabel');
+        const musicPrevBtn = document.getElementById('musicPrevBtn');
+        const musicPlayPauseBtn = document.getElementById('musicPlayPauseBtn');
+        const musicNextBtn = document.getElementById('musicNextBtn');
         const openAddMusicModalBtn = document.getElementById('openAddMusicModalBtn');
         const addMusicModal = document.getElementById('addMusicModal');
         const closeAddMusicModal = document.getElementById('closeAddMusicModal');
@@ -13191,6 +13313,40 @@
             }
           });
         }
+
+        musicPrevBtn?.addEventListener('click', () => {
+          if (!Array.isArray(state.catalog) || !state.catalog.length) return;
+          const current = Number.isInteger(state.currentIndex) && state.currentIndex >= 0 ? state.currentIndex : 0;
+          const target = (current - 1 + state.catalog.length) % state.catalog.length;
+          playMusicTrackByIndex(target, { autoplay: true, reason: 'transport-prev' });
+          musicUpdateTransportControls();
+        });
+
+        musicNextBtn?.addEventListener('click', () => {
+          if (!Array.isArray(state.catalog) || !state.catalog.length) return;
+          const current = Number.isInteger(state.currentIndex) && state.currentIndex >= 0 ? state.currentIndex : -1;
+          const target = (current + 1 + state.catalog.length) % state.catalog.length;
+          playMusicTrackByIndex(target, { autoplay: true, reason: 'transport-next' });
+          musicUpdateTransportControls();
+        });
+
+        musicPlayPauseBtn?.addEventListener('click', () => {
+          if (!Array.isArray(state.catalog) || !state.catalog.length) return;
+          if (state.currentIndex < 0) {
+            playMusicTrackByIndex(0, { autoplay: true, reason: 'transport-play' });
+            musicUpdateTransportControls();
+            return;
+          }
+          const playbackState = musicGetCurrentPlaybackState();
+          if (playbackState === 'playing') {
+            musicPauseCurrentPlayback();
+          } else if (playbackState === 'paused') {
+            musicResumeCurrentPlayback();
+          } else {
+            playMusicTrackByIndex(state.currentIndex, { autoplay: true, reason: 'transport-play' });
+          }
+          musicUpdateTransportControls();
+        });
 
         const showModal = () => {
           addMusicModal?.classList.remove('hiddenX');
@@ -13284,6 +13440,7 @@
 
         musicTargetPlaylistSelect?.addEventListener('change', syncDestinationPlaylistInput);
         syncDestinationPlaylistInput();
+        musicUpdateTransportControls();
 
         createAndUsePlaylistBtn?.addEventListener('click', async () => {
           try {

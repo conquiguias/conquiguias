@@ -283,6 +283,9 @@ export default async function handler(req, res) {
       case "cleanup-rate-limits":
         await handleCleanupRateLimits(req, res);
         break;
+      case "delete-music-playlist":
+        await handleDeleteMusicPlaylist(req, res);
+        break;
             case "get-or-create-certificate-code":
         await handleGetOrCreateCertificateCode(req, res);
         break;
@@ -847,6 +850,47 @@ async function handleGetMusicPlaylists(req, res) {
   } catch (err) {
     console.error('handleGetMusicPlaylists error:', err);
     return res.status(err.statusCode || 500).json({ success: false, error: err.message || 'Error obteniendo playlists' });
+  }
+}
+
+// ===== Música: eliminar playlist =====
+async function handleDeleteMusicPlaylist(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
+
+  try {
+    const body = req.body || {};
+    const requester = await requireAuthenticated(req, body);
+    const playlistId = String(body.playlistId || body.playlist_id || '').trim();
+    if (!playlistId) return res.status(400).json({ success: false, error: 'playlistId es requerido' });
+
+    const { data: found, error: findErr } = await supabase
+      .from('music_playlists')
+      .select('id, owner_id')
+      .eq('id', playlistId)
+      .limit(1);
+
+    if (findErr) throw findErr;
+    if (!Array.isArray(found) || found.length === 0) {
+      return res.status(404).json({ success: false, error: 'Playlist no encontrada' });
+    }
+
+    const playlist = found[0];
+    const requesterId = String(requester.uid || requester.email || '').trim();
+    if (String(playlist.owner_id || '') !== requesterId) {
+      return res.status(403).json({ success: false, error: 'No eres el propietario de la playlist' });
+    }
+
+    const { error: delErr } = await supabase
+      .from('music_playlists')
+      .delete()
+      .eq('id', playlistId);
+
+    if (delErr) throw delErr;
+
+    return res.status(200).json({ success: true, deleted: true, playlistId });
+  } catch (err) {
+    console.error('handleDeleteMusicPlaylist error:', err);
+    return res.status(err.statusCode || 500).json({ success: false, error: err.message || 'Error eliminando playlist' });
   }
 }
 

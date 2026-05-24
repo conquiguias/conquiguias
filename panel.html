@@ -11256,226 +11256,109 @@
 
       function renderLocalMusicList() {
         const state = window.__musicState;
-        const localMusicList = document.getElementById('localMusicList');
-        if (!localMusicList) return;
-        localMusicList.innerHTML = '';
-
+        const autoListEl = document.getElementById('musicaCarpetas');
+        const playlistsList = document.getElementById('playlistsList');
         const playlists = Array.isArray(state.playlists) ? state.playlists : [];
-        if (!playlists.length) {
-          localMusicList.innerHTML = '<li class="music-empty-state">Crea una lista para ver las canciones aquí.</li>';
-          return;
+
+        // separate auto-created playlists (prefix __AUTO__:) from user playlists
+        const autoPlaylists = playlists.filter(p => String(p.name || '').startsWith('__AUTO__:'));
+        const userPlaylists = playlists.filter(p => !String(p.name || '').startsWith('__AUTO__:'));
+
+        if (autoListEl) {
+          autoListEl.innerHTML = '';
+          if (!autoPlaylists.length) {
+            autoListEl.innerHTML = '<li class="music-empty-state">No hay listas automáticas.</li>';
+          } else {
+            autoPlaylists.forEach((playlist) => {
+              const li = document.createElement('li');
+              li.dataset.playlistId = playlist.id;
+              li.className = 'music-list-item';
+              const displayName = String(playlist.name || '').replace(/^__AUTO__:/, '').trim();
+              const name = document.createElement('span');
+              name.textContent = displayName || '(Sin nombre)';
+              const count = document.createElement('span');
+              count.className = 'playlist-count';
+              count.textContent = `(${Number(playlist.songs_count || 0)})`;
+              li.appendChild(name);
+              li.appendChild(count);
+              // delete icon for owner
+              const trash = document.createElement('button');
+              trash.type = 'button';
+              trash.className = 'music-pill-btn';
+              trash.style.marginLeft = '8px';
+              trash.innerHTML = '🗑';
+              trash.title = 'Eliminar lista';
+              trash.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                mostrarMensaje('confirm', 'Eliminar lista', `¿Eliminar lista "${displayName}"?`, async () => {
+                  try {
+                    await deleteMusicPlaylist(playlist.id);
+                    await loadMusicPlaylists();
+                  } catch (err) {
+                    mostrarMensaje('error', 'No se pudo eliminar', err?.message || 'Intenta nuevamente');
+                  }
+                });
+              });
+              li.appendChild(trash);
+              li.addEventListener('click', () => {
+                state.selectedPlaylistId = playlist.id;
+                renderMusicPlaylists();
+                renderLocalMusicList();
+              });
+              autoListEl.appendChild(li);
+            });
+          }
         }
 
-        playlists.forEach((playlist) => {
-          const playlistId = String(playlist.id || '').trim();
-          const items = Array.isArray(playlist.items) ? playlist.items : [];
-          const isExpanded = !!state.expandedPlaylists?.[playlistId];
+        if (playlistsList) {
+          playlistsList.innerHTML = '';
+          if (!userPlaylists.length) {
+            playlistsList.innerHTML = '<li class="music-empty-state">Crea tu primera lista de reproducción.</li>';
+          } else {
+            userPlaylists.forEach((playlist) => {
+              const li = document.createElement('li');
+              li.dataset.playlistId = playlist.id;
+              li.className = 'music-list-item';
+              if (state.selectedPlaylistId === playlist.id) {
+                li.classList.add('selected');
+              }
 
-          const folder = document.createElement('li');
-          folder.className = `music-folder-item${isExpanded ? ' is-open' : ''}`;
-
-          const headerBtn = document.createElement('button');
-          headerBtn.type = 'button';
-          headerBtn.className = 'music-folder-header';
-          headerBtn.title = isExpanded ? 'Contraer lista' : 'Desplegar lista';
-          headerBtn.innerHTML = `
-            <span class="music-folder-left">
-              <span class="music-folder-caret"><i class="fas fa-chevron-right"></i></span>
-              <span class="music-folder-name"></span>
-            </span>
-            <span class="music-folder-count">${Number(items.length || 0)}</span>
-          `;
-          headerBtn.querySelector('.music-folder-name').textContent = playlist.name || 'Sin nombre';
-          headerBtn.addEventListener('click', (ev) => {
-            ev.stopPropagation();
-            state.expandedPlaylists = state.expandedPlaylists || {};
-            state.expandedPlaylists[playlistId] = !isExpanded;
-            renderLocalMusicList();
-          });
-
-          folder.appendChild(headerBtn);
-
-          if (isExpanded) {
-            const songsList = document.createElement('ul');
-            songsList.className = 'music-folder-tracks';
-
-            if (!items.length) {
-              const empty = document.createElement('li');
-              empty.className = 'music-empty-state';
-              empty.textContent = 'Aún no hay canciones en esta lista.';
-              songsList.appendChild(empty);
-            } else {
-              items.forEach((entry) => {
-                const track = entry?.music || entry || null;
-                const trackId = String(track?.id || entry?.music_id || '').trim();
-                if (!trackId) return;
-
-                const songRow = document.createElement('li');
-                songRow.className = 'music-folder-track';
-
-                const playBtn = document.createElement('button');
-                playBtn.type = 'button';
-                playBtn.className = 'music-play-btn';
-                playBtn.style.background = 'none';
-                playBtn.style.border = 'none';
-                playBtn.style.cursor = 'pointer';
-                playBtn.style.padding = '4px 6px';
-                playBtn.style.borderRadius = '4px';
-                playBtn.style.color = 'var(--text-primary)';
-                playBtn.style.display = 'flex';
-                playBtn.style.alignItems = 'center';
-                playBtn.style.justifyContent = 'center';
-                const isPlaying = String(state.catalog?.[state.currentIndex]?.id || '') === trackId && state.activePlayerType === state.mode && state.playbackNonce > 0;
-                playBtn.title = isPlaying ? 'Detener' : 'Reproducir';
-                playBtn.innerHTML = isPlaying
-                  ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>'
-                  : '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
-                playBtn.addEventListener('click', (e) => {
-                  e.stopPropagation();
-                  if (isPlaying) {
-                    try { if (typeof musicDestroyPlayers === 'function') musicDestroyPlayers(); } catch (_) {}
-                    window.__musicState.currentIndex = -1;
-                    musicSetTrackInfo(null);
-                    renderLocalMusicList();
-                    return;
+              const name = document.createElement('span');
+              name.textContent = playlist.name;
+              const count = document.createElement('span');
+              count.className = 'playlist-count';
+              count.textContent = `(${Number(playlist.songs_count || 0)})`;
+              li.appendChild(name);
+              li.appendChild(count);
+              // delete icon
+              const trash = document.createElement('button');
+              trash.type = 'button';
+              trash.className = 'music-pill-btn';
+              trash.style.marginLeft = '8px';
+              trash.innerHTML = '🗑';
+              trash.title = 'Eliminar lista';
+              trash.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                mostrarMensaje('confirm', 'Eliminar lista', `¿Eliminar lista "${playlist.name}"?`, async () => {
+                  try {
+                    await deleteMusicPlaylist(playlist.id);
+                    await loadMusicPlaylists();
+                    renderMusicPlaylists();
+                  } catch (err) {
+                    mostrarMensaje('error', 'No se pudo eliminar', err?.message || 'Intenta nuevamente');
                   }
-                  playMusicTrackById(trackId);
                 });
-
-                const title = document.createElement('span');
-                title.className = 'music-folder-track-name';
-                title.textContent = track?.title || 'Sin título';
-
-                const menuBtn = document.createElement('button');
-                menuBtn.type = 'button';
-                menuBtn.className = 'music-menu-btn';
-                menuBtn.title = 'Más opciones';
-                menuBtn.style.background = 'none';
-                menuBtn.style.border = 'none';
-                menuBtn.style.cursor = 'pointer';
-                menuBtn.style.padding = '4px 6px';
-                menuBtn.style.borderRadius = '4px';
-                menuBtn.style.color = 'var(--text-secondary)';
-                menuBtn.style.display = 'flex';
-                menuBtn.style.alignItems = 'center';
-                menuBtn.style.justifyContent = 'center';
-                menuBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg>';
-                menuBtn.addEventListener('click', (ev) => {
-                  ev.stopPropagation();
-                  document.querySelectorAll('.music-item-context-menu').forEach((n) => n.remove());
-                  const menu = document.createElement('div');
-                  menu.className = 'music-item-context-menu';
-                  menu.style.position = 'absolute';
-                  menu.style.zIndex = 9999;
-                  menu.style.background = 'var(--bg-card)';
-                  menu.style.border = '1px solid var(--border-color)';
-                  menu.style.padding = '6px';
-                  menu.style.borderRadius = '6px';
-                  menu.style.boxShadow = '0 6px 18px rgba(0,0,0,0.12)';
-                  menu.style.minWidth = '170px';
-
-                  const favOpt = document.createElement('div');
-                  favOpt.textContent = isTrackFavorite(trackId) ? 'Quitar de favoritos' : 'Agregar a favoritos';
-                  favOpt.style.padding = '6px 8px';
-                  favOpt.style.cursor = 'pointer';
-                  favOpt.addEventListener('click', (e2) => {
-                    e2.stopPropagation();
-                    const nowFav = toggleTrackFavorite(trackId);
-                    mostrarMensaje('success', nowFav ? 'Favorito' : 'Quitado', nowFav ? 'Agregado a favoritos' : 'Eliminado de favoritos');
-                    document.querySelectorAll('.music-item-context-menu').forEach((n) => n.remove());
-                    renderLocalMusicList();
-                    musicSetTrackInfo(state.catalog[state.currentIndex] || null);
-                  });
-                  menu.appendChild(favOpt);
-
-                  const currentUid = String(window.currentUserId || auth?.currentUser?.uid || '').trim();
-                  const isOwner = !!currentUid && (String(track?.userId || '') === currentUid || !!window.isOwner);
-                  if (isOwner) {
-                    const editOpt = document.createElement('div');
-                    editOpt.textContent = 'Editar';
-                    editOpt.style.padding = '6px 8px';
-                    editOpt.style.cursor = 'pointer';
-                    editOpt.addEventListener('click', (e2) => {
-                      e2.stopPropagation();
-                      document.querySelectorAll('.music-item-context-menu').forEach((n) => n.remove());
-                      openEditMusicModal(track);
-                    });
-                    menu.appendChild(editOpt);
-
-                    const addToListOpt = document.createElement('div');
-                    addToListOpt.textContent = 'Añadir a lista';
-                    addToListOpt.style.padding = '6px 8px';
-                    addToListOpt.style.cursor = 'pointer';
-                    addToListOpt.addEventListener('click', (e2) => {
-                      e2.stopPropagation();
-                      document.querySelectorAll('.music-item-context-menu').forEach((n) => n.remove());
-                      openPlaylistPickerModal(track);
-                    });
-                    menu.appendChild(addToListOpt);
-
-                    const divider = document.createElement('div');
-                    divider.style.height = '1px';
-                    divider.style.margin = '4px 0';
-                    divider.style.background = 'var(--border-color)';
-                    menu.appendChild(divider);
-
-                    const delOpt = document.createElement('div');
-                    delOpt.textContent = 'Eliminar';
-                    delOpt.style.padding = '6px 8px';
-                    delOpt.style.cursor = 'pointer';
-                    delOpt.style.color = 'var(--error-color)';
-                    delOpt.addEventListener('click', async (e2) => {
-                      e2.stopPropagation();
-                      mostrarMensaje('confirm', 'Eliminar publicación', `¿Eliminar "${track?.title || 'esta pista'}"?`, async () => {
-                        try {
-                          const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
-                          const response = await fetch('/api/social?action=delete-music', {
-                            method: 'POST',
-                            headers: {
-                              'Content-Type': 'application/json',
-                              ...(idToken ? { 'Authorization': `Bearer ${idToken}` } : {})
-                            },
-                            body: JSON.stringify({ musicId: trackId })
-                          });
-                          const payload = await response.json().catch(() => ({}));
-                          if (!response.ok) throw new Error(payload.error || 'No se pudo eliminar la música');
-                          if (String(window.__musicState.catalog?.[window.__musicState.currentIndex]?.id || '') === trackId) {
-                            window.__musicState.currentIndex = -1;
-                            musicDestroyPlayers();
-                            musicSetTrackInfo(null);
-                          }
-                          mostrarMensaje('success', 'Eliminado', 'La pista fue eliminada.');
-                          await loadMusicCatalog();
-                          await loadMusicPlaylists();
-                        } catch (err) {
-                          mostrarMensaje('error', 'No se pudo eliminar', err?.message || 'Intenta nuevamente');
-                        }
-                      });
-                      document.querySelectorAll('.music-item-context-menu').forEach((n) => n.remove());
-                    });
-                    menu.appendChild(delOpt);
-                  }
-
-                  document.body.appendChild(menu);
-                  const rect = menuBtn.getBoundingClientRect();
-                  menu.style.top = `${rect.bottom + window.scrollY + 6}px`;
-                  menu.style.left = `${rect.left + window.scrollX - menu.offsetWidth + rect.width}px`;
-                  const onDocClick = (ev2) => { if (!menu.contains(ev2.target)) { menu.remove(); document.removeEventListener('click', onDocClick); } };
-                  document.addEventListener('click', onDocClick);
-                });
-
-                songRow.appendChild(playBtn);
-                songRow.appendChild(title);
-                songRow.appendChild(menuBtn);
-                songsList.appendChild(songRow);
               });
-            }
-
-            folder.appendChild(songsList);
+              li.appendChild(trash);
+              li.addEventListener('click', () => {
+                state.selectedPlaylistId = playlist.id;
+                renderMusicPlaylists();
+                renderLocalMusicList();
+              });
+              playlistsList.appendChild(li);
+            });
           }
-
-          localMusicList.appendChild(folder);
-        });
+        }
       }
 
       function renderMusicPlaylists() {
@@ -11615,8 +11498,22 @@
           mostrarMensaje('info', 'Sesión requerida', 'Debes iniciar sesión para crear playlists.');
           return;
         }
-        const name = String(nameArg || window.prompt('Nombre de la playlist:') || '').trim();
+        // nameArg may be a string or object { name, auto }
+        let name = '';
+        let options = {};
+        if (typeof nameArg === 'object' && nameArg !== null) {
+          options = nameArg || {};
+          name = String(options.name || '').trim();
+        } else {
+          name = String(nameArg || '').trim();
+        }
+
+        if (!name) {
+          name = String(window.prompt('Nombre de la playlist:') || '').trim();
+        }
         if (!name) return;
+
+        const autoFlag = !!options.auto;
 
         try {
           const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
@@ -11627,7 +11524,7 @@
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${idToken}`,
             },
-            body: JSON.stringify({ name })
+            body: JSON.stringify({ name: autoFlag ? `__AUTO__:${name}` : name })
           });
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(payload.error || 'No se pudo crear playlist');
@@ -11660,6 +11557,22 @@
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || 'No se pudo agregar a la lista');
         await loadMusicPlaylists();
+        return true;
+      }
+
+      async function deleteMusicPlaylist(playlistId) {
+        if (!playlistId) return false;
+        const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
+        const response = await fetch('/api/social?action=delete-music-playlist', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(idToken ? { 'Authorization': `Bearer ${idToken}` } : {})
+          },
+          body: JSON.stringify({ playlistId })
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || 'No se pudo eliminar la playlist');
         return true;
       }
 

@@ -11695,31 +11695,40 @@
         }
       }
 
+      function setPlaybackVolume(media, value01) {
+        if (!media) return;
+        const normalized01 = Math.max(0, Math.min(1, Number(value01) || 0));
+        media.volume = normalized01;
+        const pluginVolume = Math.round(normalized01 * 100);
+        const state = window.__musicState;
+        if (state.lunaInstance && typeof state.lunaInstance.lunaradio === 'function') {
+          try {
+            state.lunaInstance.lunaradio('setVolume', pluginVolume);
+          } catch (_err) {}
+        }
+      }
+
       function musicSetMediaVolume(media, volume) {
         if (!media) return false;
         const normalizedVolume = Number(volume);
         if (!Number.isFinite(normalizedVolume)) return false;
         const safeVolume = Math.max(0, Math.min(1, normalizedVolume));
         try {
+          setPlaybackVolume(media, safeVolume);
           const candidates = new Set([media]);
           const host = media.closest?.('#lunaradioPlayerPlaceholder, #clapprPlayerPlaceholder') || media.parentElement?.closest?.('#lunaradioPlayerPlaceholder, #clapprPlayerPlaceholder');
           if (host) {
-            host.querySelectorAll('audio, video').forEach((el) => candidates.add(el));
-          }
-          candidates.forEach((el) => {
-            try {
-              if ('muted' in el) el.muted = false;
-              if ('volume' in el) el.volume = safeVolume;
-              if (typeof el.dispatchEvent === 'function') {
-                el.dispatchEvent(new Event('volumechange'));
+            host.querySelectorAll('audio, video').forEach((el) => {
+              if (el !== media) {
+                try {
+                  if ('muted' in el) el.muted = false;
+                  if ('volume' in el) el.volume = safeVolume;
+                  if (typeof el.dispatchEvent === 'function') {
+                    el.dispatchEvent(new Event('volumechange'));
+                  }
+                } catch (_) { }
               }
-            } catch (_) { }
-          });
-          if (window.__musicState?.activePlayerType === 'audio') {
-            const luna = window.__musicState?.lunaInstance;
-            if (luna && typeof luna.lunaradio === 'function') {
-              try { luna.lunaradio('setVolume', Math.round(safeVolume * 100)); } catch (_) { }
-            }
+            });
           }
           return true;
         } catch (_) {
@@ -11790,6 +11799,36 @@
           } catch (_) { }
           return;
         }
+      }
+
+      function runVolumeFade(media, targetVolume, durationMs, kind) {
+        const state = window.__musicState;
+        if (!media) return;
+        musicStopVolumeRamp();
+        const to = Math.max(0, Math.min(1, Number(targetVolume) || 0));
+        const ms = Math.max(0, Number(durationMs) || 0);
+        if (ms === 0) {
+          setPlaybackVolume(media, to);
+          return;
+        }
+        const from = Math.max(0, Math.min(1, Number(media.volume) || 0));
+        const startedAt = performance.now();
+        state.volumeFadeType = kind || 'fade';
+        state.volumeFadeTimer = setInterval(() => {
+          const elapsed = performance.now() - startedAt;
+          const progress = Math.max(0, Math.min(1, elapsed / ms));
+          setPlaybackVolume(media, from + (to - from) * progress);
+          if (progress >= 1) {
+            setPlaybackVolume(media, to);
+            musicStopVolumeRamp();
+            musicDebugLog('volume-fade:end', { type: kind, to: Number(to.toFixed(2)) });
+          }
+        }, 100);
+      }
+
+      function fadeInToFull(media) {
+        if (!media) return;
+        runVolumeFade(media, 1, 5000, 'fade-in');
       }
 
       function musicStartVolumeRamp(expectedNonce, { targetVolume = 1, durationMs = 5000, startVolume = 0, retryMs = 120, maxRetries = 25 } = {}) {
@@ -11926,6 +11965,7 @@
           });
           state.lunaInstance = instance;
           musicSyncLunaStoredVolume(100);
+          setPlaybackVolume(musicGetActiveMediaElement(), 0);
           musicDebugLog('audio:init:lunaradio-created', {
             elapsedMs: Math.round(performance.now() - startedAt),
             hasInstance: !!instance
@@ -11943,7 +11983,17 @@
               if (audioEl.dataset.musicEndedBound === '1') return;
               audioEl.dataset.musicEndedBound = '1';
               
-              // Listener para evento 'ended' nativo
+              audioEl.addEventListener('play', () => {
+                if (state.playbackNonce !== playbackNonce || state.activePlayerType !== 'audio') return;
+                fadeInToFull(audioEl);
+                musicDebugLog('volume-fade:start', { type: 'fade-in', ms: 5000 });
+              });
+              
+              audioEl.addEventListener('pause', () => {
+                if (state.playbackNonce !== playbackNonce) return;
+                musicStopVolumeRamp();
+              });
+              
               audioEl.addEventListener('ended', () => {
                 musicDebugLog('audio:ended:native-event', {
                   containerId: hostId,
@@ -11956,8 +12006,6 @@
                 musicAutoAdvanceToNextTrack();
               });
               
-              // Listener adicional para 'timeupdate' cerca del final
-              // Para capturar casos donde 'ended' no se dispara correctamente
               let lastTimeCheckForEnd = -1;
               audioEl.addEventListener('timeupdate', function checkNearEnd() {
                 if (state.playbackNonce !== playbackNonce || state.activePlayerType !== 'audio') {
@@ -11982,10 +12030,20 @@
           const bindEndedGuarded = () => {
             if (state.playbackNonce !== playbackNonce || state.activePlayerType !== 'audio') return;
             bindEnded();
+            const media = musicGetActiveMediaElement();
+            if (media && media.paused && typeof media.play === 'function') {
+              media.play().catch(() => {});
+            }
           };
           setTimeout(bindEndedGuarded, 300);
           setTimeout(bindEndedGuarded, 900);
-          musicStartVolumeRamp(playbackNonce, { startVolume: 0, targetVolume: 1, durationMs: 5000 });
+          setTimeout(() => {
+            const media = musicGetActiveMediaElement();
+            if (media && state.playbackNonce === playbackNonce) {
+              fadeInToFull(media);
+              musicDebugLog('volume-fade:start', { type: 'fade-in', ms: 5000 });
+            }
+          }, 200);
           renderLocalMusicList();
           musicStartProgressTracker(playbackNonce);
           musicDebugLog('audio:init:done', { elapsedMs: Math.round(performance.now() - startedAt) });
@@ -12179,7 +12237,10 @@
         if (!key) return;
         state.selectedPlaylistId = key;
         if (expand) setMusicPlaylistExpanded(key, true);
-        renderMusicPlaylists();
+        musicStopCurrentPlayback({ keepTrack: false });
+        loadPlaylistTracks(key).then(() => {
+          renderMusicPlaylists();
+        });
       }
 
       function musicGetCurrentTrackId() {
@@ -12717,17 +12778,67 @@
         }
       }
 
+      async function loadPlaylistTracks(playlistId) {
+        const state = window.__musicState;
+        const normalizedId = String(playlistId || '').trim();
+        if (!normalizedId) {
+          state.catalog = [];
+          state.currentIndex = -1;
+          return [];
+        }
+        try {
+          const playlist = state.playlists?.find?.(p => String(p?.id) === normalizedId) || null;
+          if (!playlist) {
+            state.catalog = [];
+            state.currentIndex = -1;
+            return [];
+          }
+          const tracks = getMusicPlaylistTracks(playlist);
+          const catalogTracks = tracks.map(t => ({
+            id: t.id,
+            title: t.title,
+            artist: t.artist,
+            album: t.album,
+            year: t.year,
+            url: t.url
+          }));
+          state.catalog = catalogTracks;
+          state.currentIndex = -1;
+          musicDebugLog('playlist-tracks:load', {
+            playlistId: normalizedId,
+            total: catalogTracks.length
+          });
+          return catalogTracks;
+        } catch (error) {
+          state.catalog = [];
+          state.currentIndex = -1;
+          musicDebugLog('playlist-tracks:error', { message: error?.message || String(error) });
+          return [];
+        }
+      }
+
       async function loadMusicCatalog() {
+        const state = window.__musicState;
         try {
           musicDebugLog('catalog:load:start');
-          const response = await fetch('/api/social?action=get-musics&limit=300', { method: 'GET' });
-          const payload = await response.json().catch(() => ({}));
-          if (!response.ok) throw new Error(payload.error || 'No se pudo cargar catálogo');
-          window.__musicState.catalog = Array.isArray(payload.musics) ? payload.musics : [];
+          // Si hay una playlist seleccionada, cargar sus canciones
+          if (state.selectedPlaylistId) {
+            await loadPlaylistTracks(state.selectedPlaylistId);
+          } else {
+            // Si no, cargar la primera lista automática
+            const autoPlaylists = state.playlists?.filter?.(p => String(p?.name || '').startsWith('__AUTO__:')) || [];
+            if (autoPlaylists.length > 0) {
+              await loadPlaylistTracks(autoPlaylists[0].id);
+            } else {
+              state.catalog = [];
+              state.currentIndex = -1;
+            }
+          }
           musicDebugLog('catalog:load:done', {
-            total: window.__musicState.catalog.length,
-            currentIndex: window.__musicState.currentIndex,
-            mode: window.__musicState.mode
+            total: state.catalog.length,
+            currentIndex: state.currentIndex,
+            mode: state.mode,
+            selectedPlaylist: state.selectedPlaylistId
           });
           renderLocalMusicList();
         } catch (error) {
@@ -12741,6 +12852,7 @@
         if (window.isGuestSession) {
           state.playlists = [];
           state.selectedPlaylistId = '';
+          state.catalog = [];
           renderMusicPlaylists();
           return;
         }
@@ -12756,6 +12868,17 @@
           state.playlists = Array.isArray(payload.playlists) ? payload.playlists : [];
           if (state.selectedPlaylistId && !state.playlists.some((x) => x.id === state.selectedPlaylistId)) {
             state.selectedPlaylistId = '';
+          }
+          // Si no hay una playlist seleccionada, seleccionar automáticamente la primera
+          if (!state.selectedPlaylistId && state.playlists.length > 0) {
+            const autoPlaylists = state.playlists.filter(p => String(p?.name || '').startsWith('__AUTO__:'));
+            const firstPlaylist = autoPlaylists.length > 0 ? autoPlaylists[0] : state.playlists[0];
+            if (firstPlaylist?.id) {
+              state.selectedPlaylistId = firstPlaylist.id;
+              await loadPlaylistTracks(firstPlaylist.id);
+            }
+          } else if (state.selectedPlaylistId) {
+            await loadPlaylistTracks(state.selectedPlaylistId);
           }
           renderMusicPlaylists();
           renderLocalMusicList();

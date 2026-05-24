@@ -4671,7 +4671,7 @@
 
     #musicaSection .music-layout {
       display: grid;
-      grid-template-columns: minmax(180px, 220px) minmax(0, 1.45fr) minmax(200px, 250px);
+      grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
       gap: 12px;
       align-items: stretch;
       height: 100%;
@@ -4688,9 +4688,22 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+      overflow: hidden;
+      height: 100%;
+    }
+
+    #musicaSection .music-panel.scrollable {
       overflow-y: auto;
       overflow-x: hidden;
+    }
+
+    #musicaSection .music-sidebar {
+      min-width: 0;
+      min-height: 0;
       height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
     #musicaSection #trackInfo {
@@ -4902,16 +4915,6 @@
       padding: 8px 2px 2px;
     }
 
-    #musicaSection .music-folder-track {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 8px;
-      border-radius: 10px;
-      background: rgba(15, 23, 42, 0.48);
-      border: 1px solid rgba(255,255,255,0.05);
-    }
-
     #musicaSection .music-folder-track-name {
       min-width: 0;
       flex: 1;
@@ -4920,6 +4923,41 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    #musicaSection .music-now-card {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+
+    #musicaSection .music-now-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    #musicaSection .music-library-panel {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    #musicaSection .music-library-panel .music-list.scrollable {
+      max-height: none;
+    }
+
+    #musicaSection .music-detail-title {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    #musicaSection .music-detail-note {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.4;
     }
 
     #musicaSection .music-modal-selector {
@@ -5425,11 +5463,25 @@
 
     @media (max-width: 1100px) {
       #musicaSection .music-layout {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
       }
 
       #musicaSection .music-modal-grid {
         grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 900px) {
+      #musicaSection .music-layout {
+        grid-template-columns: 1fr;
+      }
+
+      #musicaSection .music-sidebar {
+        height: auto;
+      }
+
+      #musicaSection .music-library-panel {
+        max-height: 420px;
       }
     }
 
@@ -6563,8 +6615,41 @@
     <div id="musicaSection" class="card hidden">
       <h2><i class="fas fa-music" style="margin-right: 8px; color: var(--accent-color);"></i> Música</h2>
       <div class="music-layout">
-        <!-- Left panel: carpetas y playlists -->
-        <aside class="music-panel">
+        <!-- Columna izquierda: detalle fijo + biblioteca -->
+        <aside class="music-sidebar">
+          <section class="music-panel music-now-card music-now-panel">
+            <div class="music-panel-header">
+              <strong>Reproduciendo</strong>
+              <button id="openAddMusicModalBtn" class="music-pill-btn" style="display:none;">+ Agregar</button>
+            </div>
+            <div class="music-cover-wrap" id="musicCoverWrap">
+              <div id="musicCoverPlaceholder" class="music-cover-placeholder"><svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M9 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8zm0-14c-3.309 0-6 2.691-6 6s2.691 6 6 6 6-2.691 6-6-2.691-6-6-6zm3.5-1c0-.276-.224-.5-.5-.5s-.5.224-.5.5.224.5.5.5.5-.224.5-.5zm0 2c0-.276-.224-.5-.5-.5s-.5.224-.5.5.224.5.5.5.5-.224.5-.5zM18 9v6c0 .552-.447 1-1 1s-1-.448-1-1V9c0-.552.447-1 1-1s1 .448 1 1zm2-4v14c0 .552-.447 1-1 1H2c-.553 0-1-.448-1-1V5c0-.552.447-1 1-1h17c.553 0 1 .448 1 1z"></path></svg></div>
+              <img id="musicCoverImage" class="music-cover" alt="Carátula activa" style="display:none;">
+              <div class="music-detail-title">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                  <div id="musicNowPlayingBadge" class="music-now-playing">En espera</div>
+                  <button id="trackFavoriteBtn" class="music-fav-btn" title="Favorito" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:16px;display:inline-flex;align-items:center;padding:2px;margin:0;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                  </button>
+                </div>
+                <div id="trackTitle" class="music-track-title">Selecciona una pista</div>
+                <div id="trackArtist" class="music-track-line">Artista: —</div>
+                <div id="trackAlbum" class="music-track-line">Álbum: —</div>
+              </div>
+            </div>
+            <div class="music-progress">
+              <div id="musicProgressTrack" class="music-progress-track">
+                <span id="musicProgressFill" class="music-progress-fill"></span>
+              </div>
+              <div class="music-progress-labels">
+                <span id="musicProgressTime">0:00</span>
+                <span id="musicProgressDuration">0:00</span>
+              </div>
+            </div>
+            <div class="music-detail-note">Los datos técnicos y URLs del archivo permanecen ocultos para el usuario.</div>
+          </section>
+
+          <aside class="music-panel music-library-panel scrollable">
           <div class="music-panel-header">
             <strong>Biblioteca</strong>
             <button id="crearPlaylistBtn" class="music-pill-btn">+ Nueva</button>
@@ -6580,6 +6665,7 @@
             <ul id="playlistsList" class="music-list" style="min-height:40px;"></ul>
             <small id="playlistsHint" style="color:var(--text-secondary); font-size:11px;">(Máx 3 listas por usuario)</small>
           </div>
+          </aside>
         </aside>
 
         <!-- Center: player and controls -->
@@ -6603,41 +6689,6 @@
             </div>
           </div>
         </main>
-
-        <!-- Right: metadata and owner upload -->
-        <aside class="music-panel" style="overflow:hidden; min-width:0;">
-          <div class="music-panel-header">
-            <strong>Detalle</strong>
-            <button id="openAddMusicModalBtn" class="music-pill-btn" style="display:none;">+ Agregar</button>
-          </div>
-          <div class="music-cover-wrap" id="musicCoverWrap">
-            <div id="musicCoverPlaceholder" class="music-cover-placeholder"><svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M9 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8zm0-14c-3.309 0-6 2.691-6 6s2.691 6 6 6 6-2.691 6-6-2.691-6-6-6zm3.5-1c0-.276-.224-.5-.5-.5s-.5.224-.5.5.224.5.5.5.5-.224.5-.5zm0 2c0-.276-.224-.5-.5-.5s-.5.224-.5.5.224.5.5.5.5-.224.5-.5zM18 9v6c0 .552-.447 1-1 1s-1-.448-1-1V9c0-.552.447-1 1-1s1 .448 1 1zm2-4v14c0 .552-.447 1-1 1H2c-.553 0-1-.448-1-1V5c0-.552.447-1 1-1h17c.553 0 1 .448 1 1z"></path></svg></div>
-            <img id="musicCoverImage" class="music-cover" alt="Carátula activa" style="display:none;">
-            <div style="min-width:0; flex:1; display:flex; flex-direction:column; gap:2px;">
-              <div style="display:flex; align-items:center; gap:8px;">
-                <div id="musicNowPlayingBadge" class="music-now-playing">En espera</div>
-                <button id="trackFavoriteBtn" class="music-fav-btn" title="Favorito" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:16px;display:inline-flex;align-items:center;padding:2px;margin:0;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                </button>
-              </div>
-              <div id="trackTitle" class="music-track-title">Selecciona una pista</div>
-              <div id="trackArtist" class="music-track-line">Artista: —</div>
-              <div id="trackAlbum" class="music-track-line">Álbum: —</div>
-            </div>
-          </div>
-          <div class="music-progress">
-            <div id="musicProgressTrack" class="music-progress-track">
-              <span id="musicProgressFill" class="music-progress-fill"></span>
-            </div>
-            <div class="music-progress-labels">
-              <span id="musicProgressTime">0:00</span>
-              <span id="musicProgressDuration">0:00</span>
-            </div>
-          </div>
-          <div id="trackInfo" style="font-size:13px; color:var(--text-primary); overflow:auto; max-height:100%;">
-            <pre id="trackMetadata" style="display:none; font-size:10px; color:var(--text-secondary); white-space:pre-wrap; word-break:break-all; margin:0; max-height:80px; overflow:auto; max-width:100%;">{}</pre>
-          </div>
-        </aside>
       </div>
 
       <!-- Modal para subir música (solo se cierra con X) -->
@@ -10880,7 +10931,6 @@
         const trackTitle = document.getElementById('trackTitle');
         const trackArtist = document.getElementById('trackArtist');
         const trackAlbum = document.getElementById('trackAlbum');
-        const trackMetadata = document.getElementById('trackMetadata');
         const musicCoverImage = document.getElementById('musicCoverImage');
         const musicCoverPlaceholder = document.getElementById('musicCoverPlaceholder');
         const musicCoverWrap = document.getElementById('musicCoverWrap');
@@ -10889,14 +10939,13 @@
         const musicProgressFill = document.getElementById('musicProgressFill');
         const musicProgressTime = document.getElementById('musicProgressTime');
         const musicProgressDuration = document.getElementById('musicProgressDuration');
-        if (!trackTitle || !trackArtist || !trackAlbum || !trackMetadata) return;
+        if (!trackTitle || !trackArtist || !trackAlbum) return;
 
         if (!track) {
           musicDebugLog('track-info:cleared');
           trackTitle.textContent = 'Selecciona una pista';
           trackArtist.textContent = 'Artista: —';
           trackAlbum.textContent = 'Álbum: —';
-          trackMetadata.style.display = 'none';
           if (musicCoverImage) musicCoverImage.style.display = 'none';
           if (musicCoverPlaceholder) musicCoverPlaceholder.style.display = 'flex';
           if (musicCoverWrap) musicCoverWrap.classList.remove('is-active');
@@ -10939,14 +10988,6 @@
         if (musicProgressFill) musicProgressFill.style.width = '0%';
         if (musicProgressTime) musicProgressTime.textContent = '0:00';
         if (musicProgressDuration) musicProgressDuration.textContent = '0:00';
-
-        const metadata = track.metadata && Object.keys(track.metadata || {}).length ? track.metadata : null;
-        if (metadata) {
-          trackMetadata.textContent = JSON.stringify(metadata, null, 2);
-          trackMetadata.style.display = '';
-        } else {
-          trackMetadata.style.display = 'none';
-        }
 
         // Sync favorite button in the detail pane
         try {
@@ -11452,22 +11493,6 @@
         headerBtn.appendChild(left);
         headerBtn.appendChild(count);
 
-        const actionsWrap = document.createElement('div');
-        actionsWrap.style.display = 'flex';
-        actionsWrap.style.gap = '6px';
-        actionsWrap.style.alignItems = 'center';
-
-        const selectBtn = document.createElement('button');
-        selectBtn.type = 'button';
-        selectBtn.className = 'music-pill-btn';
-        selectBtn.textContent = 'Usar';
-        selectBtn.title = 'Seleccionar y abrir la lista';
-        selectBtn.addEventListener('click', (event) => {
-          event.stopPropagation();
-          if (!playlistId) return;
-          setMusicPlaylistSelected(playlistId, { expand: true });
-        });
-
         const deleteBtn = document.createElement('button');
         deleteBtn.type = 'button';
         deleteBtn.className = 'music-pill-btn';
@@ -11486,8 +11511,12 @@
           });
         });
 
-        actionsWrap.appendChild(selectBtn);
+        const actionsWrap = document.createElement('div');
+        actionsWrap.style.display = 'flex';
+        actionsWrap.style.gap = '6px';
+        actionsWrap.style.alignItems = 'center';
         actionsWrap.appendChild(deleteBtn);
+
         headerBtn.appendChild(actionsWrap);
 
         const body = document.createElement('div');
@@ -11532,7 +11561,6 @@
             if (track.artist) metaParts.push(track.artist);
             if (track.album) metaParts.push(track.album);
             if (track.year) metaParts.push(track.year);
-            if (track.url) metaParts.push(track.url);
             metaText.textContent = metaParts.length ? metaParts.join(' · ') : 'Sin metadatos';
 
             info.appendChild(title);

@@ -11993,32 +11993,46 @@
                 border: 1px solid var(--border-color);
                 border-radius: 8px;
                 padding: 6px;
-                min-width: 150px;
+                min-width: 160px;
                 z-index: 9999;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.3);
               `;
               
-              const options = [
-                { label: '✎ Editar', icon: 'fa-edit', action: () => {
-                  mostrarMensaje('info', 'Editar', 'Próximamente estarán disponibles las opciones de edición');
-                  document.body.removeChild(modalEl);
-                }},
-                { label: '📋 Agregar a lista', icon: 'fa-list', action: () => {
-                  mostrarMensaje('info', 'Agregar a lista', 'Próximamente estarán disponibles las opciones de listas');
-                  document.body.removeChild(modalEl);
-                }},
-                { label: '🗑 Eliminar', icon: 'fa-trash', action: () => {
-                  mostrarMensaje('info', 'Eliminar pista', 'Próximamente estarán disponibles las opciones de eliminación');
-                  document.body.removeChild(modalEl);
+              const options = [];
+              
+              // Mostrar opciones solo si es propietario
+              if (window.isOwner) {
+                options.push(
+                  { label: '<i class="fas fa-edit" style="margin-right:8px;"></i>Editar', action: () => {
+                    openEditMusicModal(track);
+                    if (document.body.contains(modalEl)) document.body.removeChild(modalEl);
+                  }}
+                );
+                options.push(
+                  { label: '<i class="fas fa-trash" style="margin-right:8px;"></i>Eliminar', action: () => {
+                    mostrarMensaje('confirm', 'Eliminar pista', `¿Estás seguro de que deseas eliminar "${track.title}"?`, async () => {
+                      await deleteMusicTrack(track.id);
+                      if (document.body.contains(modalEl)) document.body.removeChild(modalEl);
+                    });
+                  }}
+                );
+              }
+              
+              // Agregar a lista siempre visible
+              options.push(
+                { label: '<i class="fas fa-bookmark" style="margin-right:8px;"></i>Agregar a lista', action: () => {
+                  showPlaylistPickerForTrack(track);
+                  if (document.body.contains(modalEl)) document.body.removeChild(modalEl);
                 }}
-              ];
+              );
               
               options.forEach((opt) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.textContent = opt.label;
+                btn.innerHTML = opt.label;
                 btn.style.cssText = `
-                  display: block;
+                  display: flex;
+                  align-items: center;
                   width: 100%;
                   padding: 8px 12px;
                   background: none;
@@ -12383,6 +12397,160 @@
         } catch (err) {
           mostrarMensaje('error', 'Error', err?.message || String(err));
         }
+      }
+
+      async function deleteMusicTrack(trackId) {
+        if (!window.isOwner || !trackId) return;
+        try {
+          const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
+          const response = await fetch('/api/social?action=delete-music', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(idToken ? { 'Authorization': `Bearer ${idToken}` } : {})
+            },
+            body: JSON.stringify({ musicId: trackId })
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(payload.error || 'No se pudo eliminar la música');
+          mostrarMensaje('success', 'Eliminado', 'La pista fue eliminada correctamente.');
+          await Promise.all([loadMusicCatalog(), loadMusicPlaylists()]);
+        } catch (err) {
+          mostrarMensaje('error', 'Error', err?.message || 'No se pudo eliminar');
+        }
+      }
+
+      async function showPlaylistPickerForTrack(track) {
+        const state = window.__musicState;
+        if (!track?.id) return;
+        const playlists = Array.isArray(state.playlists) ? state.playlists.filter(p => !String(p.name || '').startsWith('__AUTO__:')) : [];
+        
+        const modalEl = document.createElement('div');
+        modalEl.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0,0,0,0.6);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 10000;
+        `;
+        
+        const cardEl = document.createElement('div');
+        cardEl.style.cssText = `
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-radius: 12px;
+          padding: 20px;
+          min-width: 300px;
+          max-width: 400px;
+          max-height: 500px;
+          overflow-y: auto;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        `;
+        
+        const titleEl = document.createElement('h3');
+        titleEl.textContent = 'Agregar a lista';
+        titleEl.style.cssText = 'color: var(--text-primary); margin-bottom: 15px; font-size: 16px; margin-top: 0;';
+        cardEl.appendChild(titleEl);
+        
+        if (!playlists.length) {
+          const emptyEl = document.createElement('p');
+          emptyEl.textContent = 'No tienes listas personalizadas. Crea una primero.';
+          emptyEl.style.cssText = 'color: var(--text-secondary); font-size: 13px;';
+          cardEl.appendChild(emptyEl);
+        } else {
+          const listEl = document.createElement('ul');
+          listEl.style.cssText = 'list-style: none; padding: 0; margin: 0;';
+          
+          playlists.forEach(playlist => {
+            const liEl = document.createElement('li');
+            liEl.style.cssText = `
+              padding: 10px;
+              margin-bottom: 8px;
+              background: rgba(59,130,246,0.08);
+              border: 1px solid rgba(59,130,246,0.2);
+              border-radius: 6px;
+              cursor: pointer;
+              transition: all 0.2s;
+              color: var(--text-primary);
+              font-size: 13px;
+            `;
+            liEl.innerHTML = `<i class="fas fa-music" style="margin-right: 8px; color: var(--accent-color);"></i>${playlist.name}`;
+            
+            liEl.addEventListener('mouseenter', () => {
+              liEl.style.background = 'rgba(59,130,246,0.15)';
+              liEl.style.borderColor = 'rgba(59,130,246,0.4)';
+            });
+            liEl.addEventListener('mouseleave', () => {
+              liEl.style.background = 'rgba(59,130,246,0.08)';
+              liEl.style.borderColor = 'rgba(59,130,246,0.2)';
+            });
+            
+            liEl.addEventListener('click', async () => {
+              try {
+                const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
+                const response = await fetch('/api/social?action=add-music-to-playlist', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    ...(idToken ? { 'Authorization': `Bearer ${idToken}` } : {})
+                  },
+                  body: JSON.stringify({ playlistId: playlist.id, musicId: track.id })
+                });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(payload.error || 'No se pudo agregar a la lista');
+                mostrarMensaje('success', 'Agregado', `Pista agregada a "${playlist.name}"`);
+                document.body.removeChild(modalEl);
+                await loadMusicPlaylists();
+              } catch (err) {
+                mostrarMensaje('error', 'Error', err?.message || 'No se pudo agregar');
+              }
+            });
+            
+            listEl.appendChild(liEl);
+          });
+          
+          cardEl.appendChild(listEl);
+        }
+        
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = 'Cerrar';
+        closeBtn.style.cssText = `
+          width: 100%;
+          margin-top: 15px;
+          padding: 10px;
+          background: rgba(59,130,246,0.15);
+          border: 1px solid rgba(59,130,246,0.3);
+          border-radius: 6px;
+          color: var(--text-primary);
+          cursor: pointer;
+          font-size: 13px;
+          transition: all 0.2s;
+        `;
+        closeBtn.addEventListener('click', () => {
+          if (document.body.contains(modalEl)) document.body.removeChild(modalEl);
+        });
+        closeBtn.addEventListener('mouseenter', () => {
+          closeBtn.style.background = 'rgba(59,130,246,0.25)';
+        });
+        closeBtn.addEventListener('mouseleave', () => {
+          closeBtn.style.background = 'rgba(59,130,246,0.15)';
+        });
+        cardEl.appendChild(closeBtn);
+        
+        modalEl.appendChild(cardEl);
+        
+        modalEl.addEventListener('click', (e) => {
+          if (e.target === modalEl) {
+            if (document.body.contains(modalEl)) document.body.removeChild(modalEl);
+          }
+        });
+        
+        document.body.appendChild(modalEl);
       }
 
       async function submitAddMusicForm(event) {

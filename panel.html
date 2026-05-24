@@ -11256,6 +11256,10 @@
 
       function renderLocalMusicList() {
         const state = window.__musicState;
+        // Debug: owner / auth visibility for playlist controls
+        try {
+          console.debug('[music] renderLocalMusicList owner?', { OWNER_EMAIL, isOwner: !!window.isOwner, userEmail: auth?.currentUser?.email, playlists: Array.isArray(state.playlists) ? state.playlists.length : 0 });
+        } catch (e) { /* ignore debug errors */ }
         const autoListEl = document.getElementById('musicaCarpetas');
         const playlistsList = document.getElementById('playlistsList');
         const playlists = Array.isArray(state.playlists) ? state.playlists : [];

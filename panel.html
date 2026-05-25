@@ -11469,8 +11469,8 @@
       function musicGetActiveMediaElement() {
         const state = window.__musicState;
         if (!state) return null;
-        
-        // Intentar obtener el audio del plugin LunaRadio
+
+        // Igual que en pruebaLunaRadio.html: API del plugin -> registry -> DOM
         if (state.plugin) {
           if (typeof state.plugin.getAudio === 'function') return state.plugin.getAudio();
           if (state.plugin.audio) return state.plugin.audio;
@@ -11484,15 +11484,18 @@
         if (window.__lunaradioPlayers && window.__lunaradioPlayers['lunaradioPlayerPlaceholder']?.audio) {
           return window.__lunaradioPlayers['lunaradioPlayerPlaceholder'].audio;
         }
+        if (state.lunaInstance && state.lunaInstance.audio) return state.lunaInstance.audio;
         if (state.instance && state.instance.audio) return state.instance.audio;
-        
-        // Fallback: buscar en el contenedor
-        const container = state.activePlayerType === 'video' 
-          ? document.getElementById('clapprPlayerPlaceholder')
-          : document.getElementById('lunaradioPlayerPlaceholder');
+
+        const container = document.getElementById('lunaradioPlayerPlaceholder');
         if (container) {
           const audio = container.querySelector('audio');
           if (audio) return audio;
+        }
+        const videoContainer = document.getElementById('clapprPlayerPlaceholder');
+        if (state.activePlayerType === 'video' && videoContainer) {
+          const video = videoContainer.querySelector('video') || videoContainer.querySelector('audio');
+          if (video) return video;
         }
         return null;
       }
@@ -11570,7 +11573,7 @@
         });
         
         try {
-          // **PASO 1: Parar todos los timers primero**
+          // PASO 1: parar timers primero
           musicStopProgressTracker();
           musicStopVolumeRamp();
           musicStopEndFade();
@@ -11582,25 +11585,31 @@
           state.autoAdvanceLocked = false;
           state.isCreatingPlayer = false;
 
-          // **PASO 2: REMOVER el HTML del contenedor de LunaRadio
-          // Esto dispara automáticamente el evento "remove.lunaradio" que llama a destroy()
-          // en LunaRadio**
-          const lunaContainer = document.getElementById('lunaradioPlayerPlaceholder');
-          if (lunaContainer) {
-            try {
-              // Primero pausa todos los audios dentro
-              lunaContainer.querySelectorAll('audio, video').forEach((el) => {
-                try { el.pause(); } catch (_) {}
-                try { el.muted = true; } catch (_) {}
-                try { el.currentTime = 0; } catch (_) {}
-                try { el.src = ''; } catch (_) {}
-              });
-              // CRÍTICO: Remover el HTML para disparar evento "remove.lunaradio"
-              lunaContainer.innerHTML = '';
-            } catch (_) {}
+          // PASO 2: detener la instancia activa como en la prueba
+          try {
+            if (state.lunaInstance && typeof state.lunaInstance.stop === 'function') {
+              state.lunaInstance.stop();
+              musicDebugLog('destroy-players:lunaradio-stop-called');
+            }
+          } catch (_) {}
+
+          // PASO 3: limpiar el media visible
+          const activeMedia = musicGetActiveMediaElement();
+          if (activeMedia) {
+            try { activeMedia.__lunaradio_destroyed = true; } catch (_) {}
+            try { activeMedia.pause(); } catch (_) {}
+            try { activeMedia.currentTime = 0; } catch (_) {}
+            try { activeMedia.removeAttribute('src'); } catch (_) {}
+            try { activeMedia.load?.(); } catch (_) {}
           }
 
-          // **PASO 3: Destruir Clappr explícitamente**
+          // PASO 4: vaciar el host de LunaRadio
+          const lunaContainer = document.getElementById('lunaradioPlayerPlaceholder');
+          if (lunaContainer) {
+            try { lunaContainer.innerHTML = ''; } catch (_) {}
+          }
+
+          // PASO 5: destruir Clappr explícitamente
           if (state.clapprPlayer) {
             try {
               if (typeof state.clapprPlayer.destroy === 'function') state.clapprPlayer.destroy();
@@ -11616,7 +11625,7 @@
             } catch (_) {}
           }
 
-          // **PASO 4: Limpiar el registro global de LunaRadio**
+          // PASO 6: limpiar el registro global de LunaRadio
           try {
             if (window.__lunaradioPlayers) {
               for (const key in window.__lunaradioPlayers) {
@@ -11631,17 +11640,18 @@
             }
           } catch (_) {}
 
-          // **PASO 5: Pausa todas las instancias <audio> y <video> en el documento**
+          // PASO 7: pausar todas las instancias <audio> y <video>
           try {
             Array.from(document.querySelectorAll('audio, video')).forEach((el) => {
               try { el.pause(); } catch (_) {}
               try { el.muted = true; } catch (_) {}
               try { el.currentTime = 0; } catch (_) {}
               try { el.src = ''; } catch (_) {}
+              try { el.load?.(); } catch (_) {}
             });
           } catch (_) {}
 
-          // **PASO 6: Nullear todas las referencias**
+          // PASO 8: nullear todas las referencias
           state.lunaInstance = null;
           state.instance = null;
           state.plugin = null;
@@ -11651,19 +11661,13 @@
           state.clapprPlayer = null;
           state.activePlayerType = '';
           state.isCreatingPlayer = false;
-          
-          // **PASO 7: Marcar audio como destruido y desactivar métodos (medida defensiva)**
+
+          // PASO 9: marcar medias como destruidas, pero sin reescribir play/load
           try {
             const allAudio = document.querySelectorAll('audio');
             const allVideo = document.querySelectorAll('video');
             [...allAudio, ...allVideo].forEach((media) => {
-              if (media) {
-                media.__lunaradio_destroyed = true;
-                const noop = function() { return Promise.reject('Destroyed'); };
-                try { media.play = noop; } catch(_) {}
-                try { media.load = noop; } catch(_) {}
-                try { media.src = ''; } catch(_) {}
-              }
+              if (media) media.__lunaradio_destroyed = true;
             });
           } catch (_) {}
           
@@ -11976,13 +11980,24 @@
         state.listenersBoundTo = media;
         state.endFadeArmedForSrc = '';
 
+        musicDebugLog('audio:setup-end-listeners', {
+          playbackNonce: state.playbackNonce,
+          hasAudio: !!media,
+          src: media?.src || ''
+        });
+
         const events = ['loadedmetadata', 'durationchange', 'timeupdate', 'play', 'pause', 'waiting', 'canplay', 'canplaythrough', 'ended', 'seeking', 'seeked', 'stalled', 'error'];
         events.forEach((eventName) => {
           media.addEventListener(eventName, () => {
             if (eventName === 'ended') {
               musicStopVolumeRamp();
               setPlaybackVolume(media, 0);
-              musicDebugLog('ended', { track: state.currentIndex + 1, currentTime: media.currentTime, duration: media.duration });
+              musicDebugLog('audio:ended-native', {
+                playbackNonce: state.playbackNonce,
+                currentTime: musicGetCurrentTime(media),
+                duration: musicGetDuration(media),
+                remaining: musicGetDuration(media) - musicGetCurrentTime(media)
+              });
               musicAutoAdvanceToNextTrack();
             } else if (eventName === 'play') {
               fadeInToFull(media);
@@ -11993,7 +12008,7 @@
               const current = Number(media.currentTime);
               if (Number.isFinite(duration) && duration > 0 && Number.isFinite(current) && (duration - current) <= 0.25 && !state.__trackEndProcessing) {
                 state.__trackEndProcessing = true;
-                musicDebugLog('ended:fallback-near-end', { currentTime: current, duration });
+                musicDebugLog('audio:ended-timeupdate', { playbackNonce: state.playbackNonce, currentTime: current, duration, remaining: duration - current });
                 window.setTimeout(() => {
                   state.__trackEndProcessing = false;
                   musicAutoAdvanceToNextTrack();
@@ -12001,7 +12016,12 @@
               }
             } else if (eventName === 'error') {
               musicStopVolumeRamp();
-              musicDebugLog('error', { code: media.error?.code, name: media.error?.message });
+              musicDebugLog('audio:error', {
+                playbackNonce: state.playbackNonce,
+                code: media.error?.code || null,
+                name: media.error?.message || 'unknown',
+                src: media.src || media.currentSrc || ''
+              });
             } else if (eventName === 'pause') {
               musicStopVolumeRamp();
             } else {
@@ -12121,13 +12141,12 @@
         const state = window.__musicState;
         const container = document.getElementById('lunaradioPlayerPlaceholder');
         if (!container || !track) return;
-        // Nueva sesión de reproducción (audio)
         const playbackNonce = musicStartNewPlaybackSession('audio');
         musicDebugLog('audio:init:session-start', { playbackNonce, autoplay });
 
+        // Igual que la prueba: destruir primero y luego crear de nuevo
         musicDestroyPlayers();
-        
-        // Configurar la información de la pista
+
         musicSetTrackInfo(track);
         renderLocalMusicList();
         
@@ -12167,7 +12186,7 @@
             streamsuffix: '#',
             shoutcastid: '1',
             metadatainterval: '20000',
-            volume: '100',
+            volume: '0',
             debug: 'false',
             usestreamcorsproxy: 'false',
             corsproxy: '',
@@ -12180,7 +12199,6 @@
           state.plugin = instance?.data?.('lunaradio') || window.jQuery('#lunaradioPlayerPlaceholder').data('lunaradio') || null;
           state.audio = state.plugin?.audio || instance?.audio || null;
           
-          // Esperar a que LunaRadio cree el elemento audio
           setTimeout(() => {
             state.plugin = state.plugin || window.jQuery('#lunaradioPlayerPlaceholder').data('lunaradio') || null;
             state.audio = musicGetActiveMediaElement();
@@ -12190,9 +12208,15 @@
             }
             musicBindMediaListeners();
             musicUpdateProgress();
+            if (state.audio) {
+              musicDebugLog('media-ready', {
+                duration: state.audio.duration,
+                currentTime: state.audio.currentTime,
+                src: state.audio.currentSrc || state.audio.src || ''
+              });
+            }
           }, 180);
           
-          // Si autoplay, forzar play después de un tiempo
           if (autoplay) {
             setTimeout(() => {
               state.plugin = state.plugin || window.jQuery('#lunaradioPlayerPlaceholder').data('lunaradio') || null;
@@ -12225,7 +12249,7 @@
             state.plugin = state.plugin || window.jQuery('#lunaradioPlayerPlaceholder').data('lunaradio') || null;
             const media = musicGetActiveMediaElement();
             if (!media) {
-              musicDebugLog('fallback-native', { reason: 'no-media-after-timeout', hasPlugin: !!state.plugin });
+              musicDebugLog('fallback-native', { reason: 'no-media-after-timeout', hasPlugin: !!state.plugin, mountHtml: container.innerHTML.length });
             }
           }, 1400);
           

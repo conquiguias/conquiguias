@@ -11237,6 +11237,7 @@
         endFadeTimer: null,
         endFadeArmed: false,
         endFadeNonce: 0,
+        isCreatingPlayer: false, // Guard para evitar múltiples instancias simultáneas
       };
 
       function musicStartNewPlaybackSession(playerType) {
@@ -11566,50 +11567,72 @@
           hasClappr: !!state.clapprPlayer,
           activePlayerType: state.activePlayerType
         });
-        musicStopProgressTracker();
+        
         try {
-          // Pause/detach plugin audio (supports different naming used across versions)
+          // **ESTRICTA: Detener TODOS los timers y promises**
+          musicStopProgressTracker();
+          musicStopVolumeRamp();
+          musicStopEndFade();
+          window.clearTimeout(state.__trackEndProcessingTimeout);
+          window.clearTimeout(state.__autoAdvanceUnlockTimer);
+          window.clearTimeout(state.__transitionTimer);
+          window.clearTimeout(state.__musicTransitionTimer);
+          state.__trackEndProcessing = false;
+          state.autoAdvanceLocked = false;
+
+          // **Detener TODAS las instancias del plugin**
+          const destroyPlugin = (plugin) => {
+            if (!plugin) return;
+            try { if (typeof plugin.lunaradio === 'function') plugin.lunaradio('pause'); } catch (_) {}
+            try { if (typeof plugin.destroy === 'function') plugin.destroy(); } catch (_) {}
+            try { if (typeof plugin.stop === 'function') plugin.stop(); } catch (_) {}
+            try { if (typeof plugin.dispose === 'function') plugin.dispose(); } catch (_) {}
+          };
+          destroyPlugin(state.plugin);
+          destroyPlugin(state.instance);
+          destroyPlugin(state.lunaInstance);
+
+          // **Destruir TODOS los elementos de audio en el DOM**
           try {
-            const plugin = state.plugin || state.instance || state.lunaInstance || null;
-            if (plugin) {
-              if (typeof plugin.lunaradio === 'function') {
-                try { plugin.lunaradio('pause'); } catch (_) {}
-              }
-              if (typeof plugin.destroy === 'function') {
-                try { plugin.destroy(); } catch (_) {}
-              }
+            const lunaContainer = document.getElementById('lunaradioPlayerPlaceholder');
+            if (lunaContainer) {
+              // Detener todos los audio/video dentro
+              lunaContainer.querySelectorAll('audio, video').forEach((el) => {
+                try { el.pause(); } catch (_) {}
+                try { el.currentTime = 0; } catch (_) {}
+                try { el.src = ''; } catch (_) {}
+                try { el.load?.(); } catch (_) {}
+                try { el.parentNode?.removeChild(el); } catch (_) {}
+              });
+              // Limpiar completamente el HTML
+              lunaContainer.innerHTML = '';
+              lunaContainer.classList.remove('lunaradio-host');
             }
           } catch (_) {}
 
-          // Try to stop any native audio element inside placeholder
           try {
-            const lunaAudio = document.querySelector('#lunaradioPlayerPlaceholder audio');
-            if (lunaAudio) {
-              try { lunaAudio.pause(); } catch (_) {}
-              try { lunaAudio.currentTime = 0; } catch (_) {}
-              try { lunaAudio.src = ''; } catch (_) {}
-              try { lunaAudio.load?.(); } catch (_) {}
+            const clapprContainer = document.getElementById('clapprPlayerPlaceholder');
+            if (clapprContainer) {
+              clapprContainer.innerHTML = '';
+              clapprContainer.classList.remove('clappr-host');
             }
           } catch (_) {}
 
-          const lunaMount = document.getElementById('lunaradioPlayerPlaceholder');
-          if (lunaMount) {
-            lunaMount.innerHTML = '';
-            lunaMount.classList.remove('lunaradio-host');
+          // **Destruir Clappr**
+          if (state.clapprPlayer) {
+            try {
+              if (typeof state.clapprPlayer.destroy === 'function') state.clapprPlayer.destroy();
+              else if (typeof state.clapprPlayer.dispose === 'function') state.clapprPlayer.dispose();
+            } catch (_) {}
           }
 
-          musicStopVolumeRamp();
-          // Clear stored references
+          // **Limpiar TODAS las referencias**
           state.lunaInstance = null;
           state.instance = null;
           state.plugin = null;
           state.audio = null;
           state.listenersBoundTo = null;
           state.endFadeArmedForSrc = '';
-
-          if (state.clapprPlayer && typeof state.clapprPlayer.destroy === 'function') {
-            try { state.clapprPlayer.destroy(); } catch (_) {}
-          }
           state.clapprPlayer = null;
           state.activePlayerType = '';
           musicDebugLog('destroy-players:end');
@@ -12206,6 +12229,13 @@
       function playMusicTrackByIndex(index, options = {}) {
         const state = window.__musicState;
         if (!Array.isArray(state.catalog) || !state.catalog[index]) return;
+        
+        // Guard: evitar múltiples creaciones simultáneas por clics rápidos
+        if (state.isCreatingPlayer) {
+          musicDebugLog('track-select:blocked-already-creating', { index });
+          return;
+        }
+        
         const autoplay = options.autoplay !== false;
         musicDebugLog('track-select', {
           index,
@@ -12220,13 +12250,21 @@
           musicDebugLog('track-select:bootstrap-only', { index, track: track?.title || 'Sin título' });
           return;
         }
+        
+        // **Marcar que se está creando para evitar duplicados**
+        state.isCreatingPlayer = true;
+        
         musicSetTrackInfo(track);
         if (state.mode === 'video') {
           initMusicVideoPlayer(track, { autoplay });
         } else {
           initMusicAudioPlayer(track, { autoplay });
         }
-        setTimeout(() => updateMusicPlayStates(), 100);
+        
+        setTimeout(() => {
+          updateMusicPlayStates();
+          state.isCreatingPlayer = false; // Liberar el guard después de renderizar
+        }, 150);
       }
 
       function playMusicTrackById(trackId, options = {}) {
@@ -12334,13 +12372,18 @@
           trackItem.classList.remove('is-playing', 'is-paused');
           btn.title = 'Reproducir';
           btn.setAttribute('aria-label', 'Reproducir');
-          btn.innerHTML = '';
+          
+          // Por defecto mostrar nota musical (icono por defecto)
+          if (!isCurrent) {
+            btn.innerHTML = '<i class="fas fa-music"></i>';
+            return;
+          }
 
           if (isCurrent) {
             if (playbackState === 'playing') {
               btn.classList.add('is-playing');
               trackItem.classList.add('is-playing');
-              btn.innerHTML = '<i class="fas fa-play"></i>'; // usar play icon cuando está en reproducción
+              btn.innerHTML = '<i class="fas fa-play"></i>'; // play icon cuando está en reproducción
               btn.title = 'En reproducción';
               btn.setAttribute('aria-label', 'En reproducción');
             } else if (playbackState === 'paused') {
@@ -12349,6 +12392,9 @@
               btn.innerHTML = '<i class="fas fa-pause"></i>'; // icono pausa cuando está pausado
               btn.title = 'Pausado';
               btn.setAttribute('aria-label', 'Pausado');
+            } else {
+              // Si es actual pero no está en playing/paused, mostrar nota musical por defecto
+              btn.innerHTML = '<i class="fas fa-music"></i>';
             }
           }
         });
@@ -12565,10 +12611,10 @@
             const playBtn = document.createElement('button');
             playBtn.type = 'button';
             playBtn.className = 'music-folder-track-play';
-            // Por defecto no mostramos icono; el estado se ajusta más abajo con updateMusicPlayStates()
+            // Icono de nota musical por defecto
             playBtn.title = 'Reproducir';
             playBtn.setAttribute('aria-label', 'Reproducir');
-            playBtn.innerHTML = '';
+            playBtn.innerHTML = '<i class="fas fa-music"></i>';
             playBtn.addEventListener('click', (event) => {
               event.stopPropagation();
               if (!track.id) return;

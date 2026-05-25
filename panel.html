@@ -11660,6 +11660,21 @@
         });
       }
 
+      // Intentar destruir LunaRadio
+      function musicDestroyAllPluginInstances() {
+        try {
+          const container = document.getElementById('lunaradioPlayerPlaceholder');
+          if (!container || !window.jQuery) return;
+          const jq = window.jQuery(container);
+          const inst = jq.data?.('lunaradio');
+          if (inst) {
+            try { inst.destroy?.(); } catch (_e1) {}
+            try { inst.stop?.(); } catch (_e2) {}
+            try { inst.dispose?.(); } catch (_e3) {}
+          }
+        } catch (_e) {}
+      }
+
       function musicSetPlayerMode(mode) {
         const normalizedMode = mode === 'video' ? 'video' : 'audio';
         const playerContainer = document.getElementById('playerContainer');
@@ -12302,6 +12317,20 @@
         try {
           await musicForceStopAllMedia(180);
         } catch (_) { }
+
+        // Intentar destruir cualquier instancia conocida del plugin por si quedó sin referencia
+        try { musicDestroyAllPluginInstances(); } catch (_) { }
+
+        // Debug: listar medios activos después de la limpieza
+        try {
+          const active = Array.from(document.querySelectorAll('audio, video')).map((el) => ({
+            tag: el.tagName,
+            src: el.currentSrc || el.src || '',
+            paused: !!el.paused,
+            volume: Number(el.volume || 0)
+          }));
+          musicDebugLog('active-media-after-cleanup', { count: active.length, active });
+        } catch (_) {}
 
         musicSetTrackInfo(track);
         if (state.mode === 'video') {

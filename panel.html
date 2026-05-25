@@ -5418,16 +5418,20 @@
     }
 
     #musicaSection .music-engagement {
-      display: flex;
+      display: none;
       flex-direction: column;
-      gap: 8px;
-      margin-top: 4px;
+      gap: 6px;
+      margin-top: 8px;
       flex-shrink: 0;
     }
 
-    #musicaSection .music-engagement-actions {
+    #musicaSection .music-engagement.is-visible {
       display: flex;
-      gap: 8px;
+    }
+
+    #musicaSection .music-engagement-actions {
+      display: inline-flex;
+      gap: 6px;
       flex-wrap: wrap;
       align-items: center;
     }
@@ -5435,17 +5439,18 @@
     #musicaSection .music-engagement-btn {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      min-height: 38px;
-      padding: 8px 12px;
+      gap: 6px;
+      min-height: 30px;
+      padding: 5px 9px;
       border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.16);
+      border: 1px solid rgba(148, 163, 184, 0.18);
       background: rgba(255, 255, 255, 0.04);
       color: var(--text-primary);
       cursor: pointer;
       transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
       user-select: none;
+      font-size: 11px;
     }
 
     #musicaSection .music-engagement-btn:hover {
@@ -5455,44 +5460,43 @@
     }
 
     #musicaSection .music-engagement-btn.active.like {
-      border-color: rgba(34, 197, 94, 0.55);
+      border-color: rgba(34, 197, 94, 0.58);
       background: linear-gradient(135deg, rgba(34, 197, 94, 0.18), rgba(16, 185, 129, 0.08));
-      box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.12) inset, 0 10px 20px rgba(34, 197, 94, 0.10);
     }
 
     #musicaSection .music-engagement-btn.active.dislike {
-      border-color: rgba(239, 68, 68, 0.55);
+      border-color: rgba(239, 68, 68, 0.58);
       background: linear-gradient(135deg, rgba(239, 68, 68, 0.18), rgba(244, 63, 94, 0.08));
-      box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.12) inset, 0 10px 20px rgba(239, 68, 68, 0.10);
     }
 
     #musicaSection .music-engagement-btn i {
-      font-size: 14px;
+      font-size: 12px;
     }
 
     #musicaSection .music-engagement-count {
       font-weight: 800;
-      font-size: 12px;
+      font-size: 11px;
       letter-spacing: 0.2px;
     }
 
     #musicaSection .music-views-pill {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       width: fit-content;
-      padding: 7px 12px;
+      padding: 5px 10px;
       border-radius: 999px;
       border: 1px solid rgba(239, 68, 68, 0.20);
       background: linear-gradient(135deg, rgba(239, 68, 68, 0.14), rgba(15, 23, 42, 0.08));
       color: #fecaca;
-      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
-      font-size: 12px;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+      font-size: 11px;
       font-weight: 700;
     }
 
     #musicaSection .music-views-pill i {
       color: #ef4444;
+      font-size: 11px;
     }
 
     /* Modal overlay positioned relative to the Música panel (fills the panel) */
@@ -6864,6 +6868,23 @@
               <div class="music-detail-title">
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                   <div id="musicNowPlayingBadge" class="music-now-playing">En espera</div>
+                  <div class="music-engagement" id="musicEngagementWrap">
+                    <div class="music-engagement-actions">
+                      <button id="trackLikeBtn" class="music-engagement-btn like" type="button" title="Like" aria-label="Like">
+                        <i class="fas fa-thumbs-up"></i>
+                        <span class="music-engagement-count" id="trackLikeCount">0</span>
+                      </button>
+                      <button id="trackDislikeBtn" class="music-engagement-btn dislike" type="button" title="Dislike" aria-label="Dislike">
+                        <i class="fas fa-thumbs-down"></i>
+                        <span class="music-engagement-count" id="trackDislikeCount">0</span>
+                      </button>
+                    </div>
+                    <div class="music-views-pill" id="trackViewBadge" aria-live="polite">
+                      <i class="fas fa-eye"></i>
+                      <span id="trackViewCount">0</span>
+                      <span>vistas únicas</span>
+                    </div>
+                  </div>
                 </div>
                 <div id="trackTitle" class="music-track-title">Selecciona una pista</div>
                 <div id="trackArtist" class="music-track-line">Artista: —</div>
@@ -6877,24 +6898,6 @@
               <div class="music-progress-labels">
                 <span id="musicProgressTime">0:00</span>
                 <span id="musicProgressDuration">0:00</span>
-              </div>
-            </div>
-
-            <div class="music-engagement">
-              <div class="music-engagement-actions">
-                <button id="trackLikeBtn" class="music-engagement-btn like" type="button" title="Like" aria-label="Like">
-                  <i class="fas fa-thumbs-up"></i>
-                  <span class="music-engagement-count" id="trackLikeCount">0</span>
-                </button>
-                <button id="trackDislikeBtn" class="music-engagement-btn dislike" type="button" title="Dislike" aria-label="Dislike">
-                  <i class="fas fa-thumbs-down"></i>
-                  <span class="music-engagement-count" id="trackDislikeCount">0</span>
-                </button>
-              </div>
-              <div class="music-views-pill" id="trackViewBadge" aria-live="polite">
-                <i class="fas fa-eye"></i>
-                <span id="trackViewCount">0</span>
-                <span>vistas únicas</span>
               </div>
             </div>
             
@@ -11603,6 +11606,7 @@
 
       function musicUpdateTrackEngagementUI(track = null) {
         const normalizedTrackId = musicNormalizeTrackId(track?.id || musicGetCurrentTrackId());
+        const wrap = document.getElementById('musicEngagementWrap');
         const likeBtn = document.getElementById('trackLikeBtn');
         const dislikeBtn = document.getElementById('trackDislikeBtn');
         const likeCount = document.getElementById('trackLikeCount');
@@ -11612,6 +11616,7 @@
         if (!likeBtn || !dislikeBtn || !likeCount || !dislikeCount || !viewCount) return;
 
         if (!normalizedTrackId) {
+          wrap?.classList.remove('is-visible');
           likeBtn.classList.remove('active');
           dislikeBtn.classList.remove('active');
           likeBtn.disabled = true;
@@ -11622,6 +11627,7 @@
           return;
         }
 
+        wrap?.classList.add('is-visible');
         const stats = musicLoadStoredTrackStats(normalizedTrackId);
         likeBtn.disabled = false;
         dislikeBtn.disabled = false;
@@ -11659,17 +11665,17 @@
 
         const pending = (async () => {
           try {
-            if (typeof getDoc !== 'function' || typeof setDoc !== 'function' || !db) {
+            if (typeof getDoc !== 'function' || !db) {
               return nextStats;
             }
 
-            const statsRef = doc(db, 'music_track_stats', normalizedTrackId);
-            const statsSnap = await getDoc(statsRef);
-            if (statsSnap.exists()) {
-              const statsData = statsSnap.data() || {};
-              nextStats.likes = Math.max(0, Number(statsData.likes) || 0);
-              nextStats.dislikes = Math.max(0, Number(statsData.dislikes) || 0);
-              nextStats.views = Math.max(0, Number(statsData.views) || 0);
+            const musicRef = doc(db, 'musics', normalizedTrackId);
+            const musicSnap = await getDoc(musicRef);
+            if (musicSnap.exists()) {
+              const statsData = musicSnap.data() || {};
+              nextStats.likes = Math.max(nextStats.likes, Math.max(0, Number(statsData.likes) || 0));
+              nextStats.dislikes = Math.max(nextStats.dislikes, Math.max(0, Number(statsData.dislikes) || 0));
+              nextStats.views = Math.max(nextStats.views, Math.max(0, Number(statsData.views) || 0));
             }
 
             const voteRef = doc(db, 'music_track_votes', `${normalizedTrackId}__${viewerKey}`);
@@ -11733,8 +11739,8 @@
 
         try {
           if (typeof setDoc === 'function' && db) {
-            const statsRef = doc(db, 'music_track_stats', normalizedTrackId);
-            await setDoc(statsRef, {
+            const musicRef = doc(db, 'musics', normalizedTrackId);
+            await setDoc(musicRef, {
               trackId: normalizedTrackId,
               views: increment(1),
               updatedAt: new Date().toISOString(),
@@ -11796,8 +11802,8 @@
 
         try {
           if (typeof setDoc === 'function' && db) {
-            const statsRef = doc(db, 'music_track_stats', normalizedTrackId);
-            await setDoc(statsRef, {
+            const musicRef = doc(db, 'musics', normalizedTrackId);
+            await setDoc(musicRef, {
               trackId: normalizedTrackId,
               likes: increment(likesDelta),
               dislikes: increment(dislikesDelta),
@@ -12600,7 +12606,6 @@
         }
         renderLocalMusicList();
         setTimeout(() => updateMusicPlayStates(), 100);
-        musicRegisterTrackView(track).catch(() => {});
           // Usar nueva función de setup con 3 capas de detección
           const setupListeners = () => {
             if (state.playbackNonce !== playbackNonce || state.activePlayerType !== 'audio') return;

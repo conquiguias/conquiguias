@@ -5417,6 +5417,84 @@
       line-height: 1;
     }
 
+    #musicaSection .music-engagement {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+
+    #musicaSection .music-engagement-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    #musicaSection .music-engagement-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+      user-select: none;
+    }
+
+    #musicaSection .music-engagement-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(96, 165, 250, 0.35);
+      background: rgba(59, 130, 246, 0.10);
+    }
+
+    #musicaSection .music-engagement-btn.active.like {
+      border-color: rgba(34, 197, 94, 0.55);
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.18), rgba(16, 185, 129, 0.08));
+      box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.12) inset, 0 10px 20px rgba(34, 197, 94, 0.10);
+    }
+
+    #musicaSection .music-engagement-btn.active.dislike {
+      border-color: rgba(239, 68, 68, 0.55);
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.18), rgba(244, 63, 94, 0.08));
+      box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.12) inset, 0 10px 20px rgba(239, 68, 68, 0.10);
+    }
+
+    #musicaSection .music-engagement-btn i {
+      font-size: 14px;
+    }
+
+    #musicaSection .music-engagement-count {
+      font-weight: 800;
+      font-size: 12px;
+      letter-spacing: 0.2px;
+    }
+
+    #musicaSection .music-views-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(239, 68, 68, 0.20);
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.14), rgba(15, 23, 42, 0.08));
+      color: #fecaca;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    #musicaSection .music-views-pill i {
+      color: #ef4444;
+    }
+
     /* Modal overlay positioned relative to the Música panel (fills the panel) */
     #musicaSection #addMusicModal {
       position: absolute;
@@ -6786,9 +6864,6 @@
               <div class="music-detail-title">
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                   <div id="musicNowPlayingBadge" class="music-now-playing">En espera</div>
-                  <button id="trackFavoriteBtn" class="music-fav-btn" title="Favorito" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:16px;display:inline-flex;align-items:center;padding:2px;margin:0;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                  </button>
                 </div>
                 <div id="trackTitle" class="music-track-title">Selecciona una pista</div>
                 <div id="trackArtist" class="music-track-line">Artista: —</div>
@@ -6802,6 +6877,24 @@
               <div class="music-progress-labels">
                 <span id="musicProgressTime">0:00</span>
                 <span id="musicProgressDuration">0:00</span>
+              </div>
+            </div>
+
+            <div class="music-engagement">
+              <div class="music-engagement-actions">
+                <button id="trackLikeBtn" class="music-engagement-btn like" type="button" title="Like" aria-label="Like">
+                  <i class="fas fa-thumbs-up"></i>
+                  <span class="music-engagement-count" id="trackLikeCount">0</span>
+                </button>
+                <button id="trackDislikeBtn" class="music-engagement-btn dislike" type="button" title="Dislike" aria-label="Dislike">
+                  <i class="fas fa-thumbs-down"></i>
+                  <span class="music-engagement-count" id="trackDislikeCount">0</span>
+                </button>
+              </div>
+              <div class="music-views-pill" id="trackViewBadge" aria-live="polite">
+                <i class="fas fa-eye"></i>
+                <span id="trackViewCount">0</span>
+                <span>vistas únicas</span>
               </div>
             </div>
             
@@ -11239,6 +11332,8 @@
         endFadeNonce: 0,
         volumeFadeArmedForSrc: '',
         hasUserSelectedTrack: false,
+        trackStatsCache: new Map(),
+        trackStatsPending: new Map(),
         isCreatingPlayer: false, // Guard para evitar múltiples instancias simultáneas
       };
 
@@ -11362,22 +11457,370 @@
       }
 
       function musicResolveMetadataImage(track = null, fallbackUrl = '') {
+        return musicResolveTrackImage(track, 'audio', fallbackUrl);
+      }
+
+      function musicResolveTrackImage(track = null, kind = 'audio', fallbackUrl = '') {
         const metadata = musicGetTrackMetadata(track);
-        const metadataImage = [
-          metadata.radiocover,
-          metadata.coverimage,
-          metadata.cover,
-          metadata.coverUrl,
-          metadata.posterUrl,
-          metadata.image,
-          metadata.img,
-          metadata.thumbnail,
-          metadata.luna_bg,
-        ]
+        const normalizedKind = String(kind || 'audio').trim().toLowerCase();
+        const candidates = normalizedKind === 'video'
+          ? [
+              track?.posterUrl,
+              metadata.posterUrl,
+              track?.thumbnailUrl,
+              metadata.thumbnailUrl,
+              track?.radiocover,
+              metadata.radiocover,
+              track?.coverimage,
+              metadata.coverimage,
+              track?.cover,
+              metadata.cover,
+              track?.image,
+              metadata.image,
+              track?.img,
+              metadata.img,
+              track?.thumbnail,
+              metadata.thumbnail,
+              track?.luna_bg,
+              metadata.luna_bg,
+            ]
+          : [
+              track?.radiocover,
+              metadata.radiocover,
+              track?.coverimage,
+              metadata.coverimage,
+              track?.cover,
+              metadata.cover,
+              track?.image,
+              metadata.image,
+              track?.img,
+              metadata.img,
+              track?.thumbnailUrl,
+              metadata.thumbnailUrl,
+              track?.thumbnail,
+              metadata.thumbnail,
+              track?.posterUrl,
+              metadata.posterUrl,
+              track?.luna_bg,
+              metadata.luna_bg,
+            ];
+
+        const resolvedImage = candidates
           .map((value) => String(value || '').trim())
           .find(Boolean);
 
-        return metadataImage || String(fallbackUrl || '').trim();
+        return resolvedImage || String(fallbackUrl || '').trim();
+      }
+
+      function musicNormalizeTrackId(trackId = '') {
+        return String(trackId || '').trim();
+      }
+
+      function musicGetViewerKey() {
+        const currentUid = String(window.currentUserId || auth?.currentUser?.uid || '').trim();
+        if (currentUid) return `user_${currentUid}`;
+
+        const storageKey = '_cx_music_anon_id';
+        let anonId = '';
+        try {
+          anonId = String(localStorage.getItem(storageKey) || '').trim();
+          if (!anonId) {
+            anonId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+            localStorage.setItem(storageKey, anonId);
+          }
+        } catch (_) {
+          anonId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+        }
+        return `anon_${anonId}`;
+      }
+
+      function musicGetTrackStatsDefault() {
+        return { likes: 0, dislikes: 0, views: 0, userVote: '' };
+      }
+
+      function musicGetTrackStatsStorageKey(trackId) {
+        return `music_track_stats_${musicNormalizeTrackId(trackId).replace(/[^a-zA-Z0-9:_-]/g, '_')}`;
+      }
+
+      function musicGetTrackVoteStorageKey(trackId, viewerKey) {
+        const safeTrackId = musicNormalizeTrackId(trackId).replace(/[^a-zA-Z0-9:_-]/g, '_');
+        const safeViewerKey = String(viewerKey || '').replace(/[^a-zA-Z0-9:_-]/g, '_');
+        return `music_track_vote_${safeTrackId}_${safeViewerKey}`;
+      }
+
+      function musicGetTrackViewStorageKey(trackId, viewerKey) {
+        const safeTrackId = musicNormalizeTrackId(trackId).replace(/[^a-zA-Z0-9:_-]/g, '_');
+        const safeViewerKey = String(viewerKey || '').replace(/[^a-zA-Z0-9:_-]/g, '_');
+        return `music_track_view_${safeTrackId}_${safeViewerKey}`;
+      }
+
+      function musicLoadStoredTrackStats(trackId) {
+        const state = window.__musicState;
+        const normalizedTrackId = musicNormalizeTrackId(trackId);
+        if (!normalizedTrackId) return musicGetTrackStatsDefault();
+
+        if (state.trackStatsCache.has(normalizedTrackId)) {
+          return { ...musicGetTrackStatsDefault(), ...state.trackStatsCache.get(normalizedTrackId) };
+        }
+
+        try {
+          const stored = JSON.parse(localStorage.getItem(musicGetTrackStatsStorageKey(normalizedTrackId)) || 'null');
+          if (stored && typeof stored === 'object') {
+            const normalized = {
+              likes: Math.max(0, Number(stored.likes) || 0),
+              dislikes: Math.max(0, Number(stored.dislikes) || 0),
+              views: Math.max(0, Number(stored.views) || 0),
+              userVote: String(stored.userVote || '').trim(),
+            };
+            state.trackStatsCache.set(normalizedTrackId, normalized);
+            return { ...musicGetTrackStatsDefault(), ...normalized };
+          }
+        } catch (_) {}
+
+        const defaults = musicGetTrackStatsDefault();
+        state.trackStatsCache.set(normalizedTrackId, defaults);
+        return { ...defaults };
+      }
+
+      function musicSaveStoredTrackStats(trackId, stats = {}) {
+        const state = window.__musicState;
+        const normalizedTrackId = musicNormalizeTrackId(trackId);
+        if (!normalizedTrackId) return musicGetTrackStatsDefault();
+
+        const normalized = {
+          likes: Math.max(0, Number(stats.likes) || 0),
+          dislikes: Math.max(0, Number(stats.dislikes) || 0),
+          views: Math.max(0, Number(stats.views) || 0),
+          userVote: String(stats.userVote || '').trim(),
+        };
+
+        state.trackStatsCache.set(normalizedTrackId, normalized);
+        try {
+          localStorage.setItem(musicGetTrackStatsStorageKey(normalizedTrackId), JSON.stringify(normalized));
+        } catch (_) {}
+        return normalized;
+      }
+
+      function musicUpdateTrackEngagementUI(track = null) {
+        const normalizedTrackId = musicNormalizeTrackId(track?.id || musicGetCurrentTrackId());
+        const likeBtn = document.getElementById('trackLikeBtn');
+        const dislikeBtn = document.getElementById('trackDislikeBtn');
+        const likeCount = document.getElementById('trackLikeCount');
+        const dislikeCount = document.getElementById('trackDislikeCount');
+        const viewCount = document.getElementById('trackViewCount');
+
+        if (!likeBtn || !dislikeBtn || !likeCount || !dislikeCount || !viewCount) return;
+
+        if (!normalizedTrackId) {
+          likeBtn.classList.remove('active');
+          dislikeBtn.classList.remove('active');
+          likeBtn.disabled = true;
+          dislikeBtn.disabled = true;
+          likeCount.textContent = '0';
+          dislikeCount.textContent = '0';
+          viewCount.textContent = '0';
+          return;
+        }
+
+        const stats = musicLoadStoredTrackStats(normalizedTrackId);
+        likeBtn.disabled = false;
+        dislikeBtn.disabled = false;
+        likeBtn.classList.toggle('active', stats.userVote === 'like');
+        dislikeBtn.classList.toggle('active', stats.userVote === 'dislike');
+        likeCount.textContent = formatReactionCount(stats.likes || 0);
+        dislikeCount.textContent = formatReactionCount(stats.dislikes || 0);
+        viewCount.textContent = formatReactionCount(stats.views || 0);
+      }
+
+      async function musicHydrateTrackEngagement(track = null) {
+        const normalizedTrackId = musicNormalizeTrackId(track?.id || '');
+        if (!normalizedTrackId) {
+          musicUpdateTrackEngagementUI(null);
+          return musicGetTrackStatsDefault();
+        }
+
+        const state = window.__musicState;
+        const currentStats = musicLoadStoredTrackStats(normalizedTrackId);
+        const viewerKey = musicGetViewerKey();
+        const storageVoteKey = musicGetTrackVoteStorageKey(normalizedTrackId, viewerKey);
+
+        let nextStats = { ...currentStats };
+        try {
+          const storedVote = String(localStorage.getItem(storageVoteKey) || '').trim();
+          if (storedVote === 'like' || storedVote === 'dislike') {
+            nextStats.userVote = storedVote;
+          }
+        } catch (_) {}
+
+        const pendingKey = normalizedTrackId;
+        if (state.trackStatsPending.has(pendingKey)) {
+          return state.trackStatsPending.get(pendingKey);
+        }
+
+        const pending = (async () => {
+          try {
+            if (typeof getDoc !== 'function' || typeof setDoc !== 'function' || !db) {
+              return nextStats;
+            }
+
+            const statsRef = doc(db, 'music_track_stats', normalizedTrackId);
+            const statsSnap = await getDoc(statsRef);
+            if (statsSnap.exists()) {
+              const statsData = statsSnap.data() || {};
+              nextStats.likes = Math.max(0, Number(statsData.likes) || 0);
+              nextStats.dislikes = Math.max(0, Number(statsData.dislikes) || 0);
+              nextStats.views = Math.max(0, Number(statsData.views) || 0);
+            }
+
+            const voteRef = doc(db, 'music_track_votes', `${normalizedTrackId}__${viewerKey}`);
+            const voteSnap = await getDoc(voteRef);
+            if (voteSnap.exists()) {
+              const voteValue = String(voteSnap.data()?.vote || '').trim();
+              if (voteValue === 'like' || voteValue === 'dislike') {
+                nextStats.userVote = voteValue;
+                try { localStorage.setItem(storageVoteKey, voteValue); } catch (_) {}
+              }
+            }
+          } catch (_) {
+            // Keep local values when Firestore is unavailable
+          }
+
+          musicSaveStoredTrackStats(normalizedTrackId, nextStats);
+          if (musicGetCurrentTrackId() === normalizedTrackId) {
+            musicUpdateTrackEngagementUI(track || { id: normalizedTrackId });
+          }
+          return nextStats;
+        })();
+
+        state.trackStatsPending.set(pendingKey, pending);
+        try {
+          return await pending;
+        } finally {
+          state.trackStatsPending.delete(pendingKey);
+        }
+      }
+
+      async function musicRegisterTrackView(track = null) {
+        const normalizedTrackId = musicNormalizeTrackId(track?.id || musicGetCurrentTrackId());
+        if (!normalizedTrackId) return false;
+
+        const state = window.__musicState;
+        const viewerKey = musicGetViewerKey();
+        const storageKey = musicGetTrackViewStorageKey(normalizedTrackId, viewerKey);
+        const ONE_HOUR = 60 * 60 * 1000;
+        const now = Date.now();
+
+        try {
+          const lastViewRaw = localStorage.getItem(storageKey);
+          if (lastViewRaw) {
+            const lastViewTime = Number.parseInt(lastViewRaw, 10);
+            if (Number.isFinite(lastViewTime) && now - lastViewTime < ONE_HOUR) {
+              return false;
+            }
+          }
+          localStorage.setItem(storageKey, String(now));
+        } catch (_) {}
+
+        const currentStats = musicLoadStoredTrackStats(normalizedTrackId);
+        const nextStats = {
+          ...currentStats,
+          views: Math.max(0, Number(currentStats.views) || 0) + 1,
+        };
+        musicSaveStoredTrackStats(normalizedTrackId, nextStats);
+        if (musicGetCurrentTrackId() === normalizedTrackId) {
+          musicUpdateTrackEngagementUI(track || { id: normalizedTrackId });
+        }
+
+        try {
+          if (typeof setDoc === 'function' && db) {
+            const statsRef = doc(db, 'music_track_stats', normalizedTrackId);
+            await setDoc(statsRef, {
+              trackId: normalizedTrackId,
+              views: increment(1),
+              updatedAt: new Date().toISOString(),
+            }, { merge: true });
+
+            const viewRef = doc(db, 'music_track_views', `${normalizedTrackId}__${viewerKey}`);
+            await setDoc(viewRef, {
+              trackId: normalizedTrackId,
+              viewerKey,
+              lastCountedAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            }, { merge: true });
+          }
+        } catch (_) {
+          // Local counter already updated
+        }
+
+        return true;
+      }
+
+      async function musicApplyTrackReaction(track = null, vote = '') {
+        const normalizedTrackId = musicNormalizeTrackId(track?.id || musicGetCurrentTrackId());
+        const normalizedVote = String(vote || '').trim().toLowerCase();
+        if (!normalizedTrackId || !['like', 'dislike'].includes(normalizedVote)) return false;
+
+        const viewerKey = musicGetViewerKey();
+        const voteStorageKey = musicGetTrackVoteStorageKey(normalizedTrackId, viewerKey);
+        const currentStats = musicLoadStoredTrackStats(normalizedTrackId);
+        const previousVote = String(currentStats.userVote || '').trim();
+        let nextVote = normalizedVote;
+        let likesDelta = 0;
+        let dislikesDelta = 0;
+
+        if (previousVote === normalizedVote) {
+          nextVote = '';
+        }
+
+        if (previousVote === 'like') likesDelta -= 1;
+        if (previousVote === 'dislike') dislikesDelta -= 1;
+        if (nextVote === 'like') likesDelta += 1;
+        if (nextVote === 'dislike') dislikesDelta += 1;
+
+        const nextStats = {
+          ...currentStats,
+          likes: Math.max(0, Number(currentStats.likes) + likesDelta),
+          dislikes: Math.max(0, Number(currentStats.dislikes) + dislikesDelta),
+          userVote: nextVote,
+        };
+        musicSaveStoredTrackStats(normalizedTrackId, nextStats);
+        try {
+          if (nextVote) {
+            localStorage.setItem(voteStorageKey, nextVote);
+          } else {
+            localStorage.removeItem(voteStorageKey);
+          }
+        } catch (_) {}
+
+        musicUpdateTrackEngagementUI(track || { id: normalizedTrackId });
+
+        try {
+          if (typeof setDoc === 'function' && db) {
+            const statsRef = doc(db, 'music_track_stats', normalizedTrackId);
+            await setDoc(statsRef, {
+              trackId: normalizedTrackId,
+              likes: increment(likesDelta),
+              dislikes: increment(dislikesDelta),
+              updatedAt: new Date().toISOString(),
+            }, { merge: true });
+
+            const voteRef = doc(db, 'music_track_votes', `${normalizedTrackId}__${viewerKey}`);
+            if (nextVote) {
+              await setDoc(voteRef, {
+                trackId: normalizedTrackId,
+                viewerKey,
+                vote: nextVote,
+                updatedAt: new Date().toISOString(),
+              }, { merge: true });
+            } else {
+              await deleteDoc(voteRef);
+            }
+          }
+        } catch (_) {
+          // Local state already updated
+        }
+
+        return true;
       }
 
       function musicSetTrackInfo(track = null) {
@@ -11407,6 +11850,7 @@
           if (musicProgressFill) musicProgressFill.style.width = '0%';
           if (musicProgressTime) musicProgressTime.textContent = '0:00';
           if (musicProgressDuration) musicProgressDuration.textContent = '0:00';
+          musicUpdateTrackEngagementUI(null);
           return;
         }
 
@@ -11421,7 +11865,7 @@
         trackArtist.textContent = `Artista: ${track.artist || '—'}`;
         trackAlbum.textContent = `Álbum: ${track.album || '—'}${track.year ? ` (${track.year})` : ''}`;
 
-        const coverCandidate = musicResolveMetadataImage(track, DEFAULT_MUSIC_COVER_IMAGE);
+        const coverCandidate = musicResolveTrackImage(track, 'audio', DEFAULT_MUSIC_COVER_IMAGE);
         if (coverCandidate && musicCoverImage) {
           musicCoverImage.src = coverCandidate;
           musicCoverImage.style.display = 'block';
@@ -11441,24 +11885,8 @@
         if (musicProgressFill) musicProgressFill.style.width = '0%';
         if (musicProgressTime) musicProgressTime.textContent = '0:00';
         if (musicProgressDuration) musicProgressDuration.textContent = '0:00';
-
-        // Sync favorite button in the detail pane
-        try {
-          const favBtn = document.getElementById('trackFavoriteBtn');
-          if (favBtn) {
-            const favState = isTrackFavorite(track.id);
-            favBtn.style.color = favState ? 'var(--accent-color)' : 'var(--text-secondary)';
-            favBtn.setAttribute('aria-pressed', favState ? 'true' : 'false');
-            favBtn.onclick = (e) => {
-              e.stopPropagation();
-              const now = toggleTrackFavorite(track.id);
-              favBtn.style.color = now ? 'var(--accent-color)' : 'var(--text-secondary)';
-              favBtn.setAttribute('aria-pressed', now ? 'true' : 'false');
-              mostrarMensaje('success', now ? 'Favorito' : 'Quitado', now ? 'Agregado a favoritos' : 'Eliminado de favoritos');
-              renderLocalMusicList();
-            };
-          }
-        } catch (e) {}
+        musicUpdateTrackEngagementUI(track);
+        musicHydrateTrackEngagement(track).catch(() => {});
       }
 
       function musicFormatTime(seconds) {
@@ -11981,7 +12409,9 @@
         musicDebugLog('audio:init:session-start', { playbackNonce, autoplay });
 
         // Igual que la prueba: destruir primero y luego crear de nuevo
+        musicSetPlayerMode('audio');
         musicDestroyPlayers();
+        state.activePlayerType = 'audio';
 
         musicSetTrackInfo(track);
         renderLocalMusicList();
@@ -11993,7 +12423,7 @@
 
         container.innerHTML = '';
         try {
-          const coverUrl = musicResolveMetadataImage(track, DEFAULT_MUSIC_COVER_IMAGE);
+          const coverUrl = musicResolveTrackImage(track, 'audio', DEFAULT_MUSIC_COVER_IMAGE);
           const instance = window.jQuery('#lunaradioPlayerPlaceholder').lunaradio({
             userinterface: 'big',
             backgroundcolor: 'rgba(9,15,25,0.2)',
@@ -12101,6 +12531,7 @@
         });
         musicSetPlayerMode('video');
         musicDestroyPlayers();
+        state.activePlayerType = 'video';
         if (typeof Clappr === 'undefined') {
           container.textContent = 'Video no disponible por el momento';
           return;
@@ -12113,9 +12544,11 @@
         } catch (_) { }
 
         container.innerHTML = '';
+        const posterUrl = musicResolveTrackImage(track, 'video', DEFAULT_TV_COVER_IMAGE);
         const player = new Clappr.Player({
           source: String(track.url || '').trim(),
           parentId: '#clapprPlayerPlaceholder',
+          poster: posterUrl,
           width: '100%',
           height: '100%',
           autoPlay: true,
@@ -12167,6 +12600,7 @@
         }
         renderLocalMusicList();
         setTimeout(() => updateMusicPlayStates(), 100);
+        musicRegisterTrackView(track).catch(() => {});
           // Usar nueva función de setup con 3 capas de detección
           const setupListeners = () => {
             if (state.playbackNonce !== playbackNonce || state.activePlayerType !== 'audio') return;
@@ -12235,6 +12669,8 @@
         } else {
           initMusicAudioPlayer(track, { autoplay });
         }
+
+        musicRegisterTrackView(track).catch(() => {});
         
         setTimeout(() => {
           updateMusicPlayStates();
@@ -13485,6 +13921,7 @@
         }
 
         state.initialized = true;
+        musicUpdateTrackEngagementUI(null);
         const btnAudio = document.getElementById('btnAudio');
         const btnVideo = document.getElementById('btnVideo');
         const toggleMediaBtns = document.getElementById('toggleMediaBtns');
@@ -13580,6 +14017,19 @@
             playMusicTrackByIndex(state.currentIndex, { autoplay: true, reason: 'transport-play' });
           }
           musicUpdateTransportControls();
+        });
+
+        const trackLikeBtn = document.getElementById('trackLikeBtn');
+        const trackDislikeBtn = document.getElementById('trackDislikeBtn');
+        trackLikeBtn?.addEventListener('click', () => {
+          const currentTrack = state.catalog?.[state.currentIndex] || null;
+          if (!currentTrack?.id) return;
+          musicApplyTrackReaction(currentTrack, 'like').catch(() => {});
+        });
+        trackDislikeBtn?.addEventListener('click', () => {
+          const currentTrack = state.catalog?.[state.currentIndex] || null;
+          if (!currentTrack?.id) return;
+          musicApplyTrackReaction(currentTrack, 'dislike').catch(() => {});
         });
 
         const showModal = () => {

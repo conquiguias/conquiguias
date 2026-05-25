@@ -5419,9 +5419,10 @@
 
     #musicaSection .music-engagement {
       display: none;
-      flex-direction: column;
-      gap: 6px;
-      margin-top: 8px;
+      flex-direction: row;
+      align-items: center;
+      gap: 3px;
+      margin-top: 4px;
       flex-shrink: 0;
     }
 
@@ -5431,17 +5432,17 @@
 
     #musicaSection .music-engagement-actions {
       display: inline-flex;
-      gap: 6px;
-      flex-wrap: wrap;
       align-items: center;
+      gap: 3px;
+      flex-wrap: nowrap;
     }
 
     #musicaSection .music-engagement-btn {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      min-height: 30px;
-      padding: 5px 9px;
+      gap: 2px;
+      min-height: 22px;
+      padding: 2px 6px;
       border-radius: 999px;
       border: 1px solid rgba(148, 163, 184, 0.18);
       background: rgba(255, 255, 255, 0.04);
@@ -5450,7 +5451,8 @@
       transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
       box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
       user-select: none;
-      font-size: 11px;
+      font-size: 9px;
+      line-height: 1;
     }
 
     #musicaSection .music-engagement-btn:hover {
@@ -5470,33 +5472,34 @@
     }
 
     #musicaSection .music-engagement-btn i {
-      font-size: 12px;
+      font-size: 9px;
     }
 
     #musicaSection .music-engagement-count {
       font-weight: 800;
-      font-size: 11px;
+      font-size: 9px;
       letter-spacing: 0.2px;
     }
 
     #musicaSection .music-views-pill {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 2px;
       width: fit-content;
-      padding: 5px 10px;
+      padding: 2px 6px;
       border-radius: 999px;
       border: 1px solid rgba(239, 68, 68, 0.20);
       background: linear-gradient(135deg, rgba(239, 68, 68, 0.14), rgba(15, 23, 42, 0.08));
       color: #fecaca;
       box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
-      font-size: 11px;
+      font-size: 9px;
       font-weight: 700;
+      line-height: 1;
     }
 
     #musicaSection .music-views-pill i {
       color: #ef4444;
-      font-size: 11px;
+      font-size: 9px;
     }
 
     /* Modal overlay positioned relative to the Música panel (fills the panel) */
@@ -6870,20 +6873,18 @@
                   <div id="musicNowPlayingBadge" class="music-now-playing">En espera</div>
                   <div class="music-engagement" id="musicEngagementWrap">
                     <div class="music-engagement-actions">
-                      <button id="trackLikeBtn" class="music-engagement-btn like" type="button" title="Like" aria-label="Like">
-                        <i class="fas fa-thumbs-up"></i>
-                        <span class="music-engagement-count" id="trackLikeCount">0</span>
-                      </button>
-                      <button id="trackDislikeBtn" class="music-engagement-btn dislike" type="button" title="Dislike" aria-label="Dislike">
-                        <i class="fas fa-thumbs-down"></i>
-                        <span class="music-engagement-count" id="trackDislikeCount">0</span>
-                      </button>
-                    </div>
-                    <div class="music-views-pill" id="trackViewBadge" aria-live="polite">
-                      <i class="fas fa-eye"></i>
-                      <span id="trackViewCount">0</span>
-                      <span>vistas únicas</span>
-                    </div>
+                        <button id="trackLikeBtn" class="music-engagement-btn like" type="button" title="Like" aria-label="Like">
+                          <i class="fas fa-thumbs-up"></i>
+                          <span class="music-engagement-count" id="trackLikeCount">0</span>
+                        </button>
+                        <button id="trackDislikeBtn" class="music-engagement-btn dislike" type="button" title="Dislike" aria-label="Dislike">
+                          <i class="fas fa-thumbs-down"></i>
+                          <span class="music-engagement-count" id="trackDislikeCount">0</span>
+                        </button>
+                        <div class="music-views-pill" id="trackViewBadge" aria-live="polite">
+                          <i class="fas fa-eye"></i>
+                          <span id="trackViewCount">0</span>
+                        </div>
                   </div>
                 </div>
                 <div id="trackTitle" class="music-track-title">Selecciona una pista</div>

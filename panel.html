@@ -11534,19 +11534,6 @@
         const hasDuration = Number.isFinite(duration) && duration > 0;
         const progress = hasDuration ? (currentTime / duration) * 100 : 0;
         musicSetProgressUI({ progress, currentTime, duration, indeterminate: !hasDuration });
-
-        if (
-          state.activePlayerType === 'audio' &&
-          hasDuration &&
-          !state.endFadeArmed &&
-          currentTime > 0
-        ) {
-          const remainingTime = duration - currentTime;
-          if (remainingTime <= 10 && remainingTime > 0) {
-            state.endFadeArmed = true;
-            musicStartEndFadeOut(state.playbackNonce, remainingTime);
-          }
-        }
       }
 
       function musicStartProgressTracker(expectedNonce) {
@@ -11845,68 +11832,6 @@
         }
       }
 
-      function musicSetMediaVolume(media, volume) {
-        if (!media) return false;
-        const normalizedVolume = Number(volume);
-        if (!Number.isFinite(normalizedVolume)) return false;
-        const safeVolume = Math.max(0, Math.min(1, normalizedVolume));
-        try {
-          setPlaybackVolume(media, safeVolume);
-          const candidates = new Set([media]);
-          const host = media.closest?.('#lunaradioPlayerPlaceholder, #clapprPlayerPlaceholder') || media.parentElement?.closest?.('#lunaradioPlayerPlaceholder, #clapprPlayerPlaceholder');
-          if (host) {
-            host.querySelectorAll('audio, video').forEach((el) => {
-              if (el !== media) {
-                try {
-                  if ('muted' in el) el.muted = false;
-                  if ('volume' in el) el.volume = safeVolume;
-                  if (typeof el.dispatchEvent === 'function') {
-                    el.dispatchEvent(new Event('volumechange'));
-                  }
-                } catch (_) { }
-              }
-            });
-          }
-          return true;
-        } catch (_) {
-          return false;
-        }
-      }
-
-      function musicStartEndFadeOut(expectedNonce, remainingSeconds) {
-        const state = window.__musicState;
-        musicStopEndFade();
-        const media = musicGetActiveMediaElement();
-        if (!media) return;
-        const startVolume = Math.max(0, Math.min(1, Number(media.volume) || 0));
-        const fadeMs = Math.max(0, Math.min(10000, Math.round((Number(remainingSeconds) || 0) * 1000)));
-        if (fadeMs <= 0) {
-          musicSetMediaVolume(media, 0);
-          return;
-        }
-        const startedAt = Date.now();
-        state.endFadeNonce = expectedNonce;
-        state.endFadeTimer = window.setInterval(() => {
-          if (state.playbackNonce !== expectedNonce || state.activePlayerType !== 'audio') {
-            musicStopEndFade();
-            return;
-          }
-          const activeMedia = musicGetActiveMediaElement();
-          if (!activeMedia) {
-            musicStopEndFade();
-            return;
-          }
-          const elapsed = Date.now() - startedAt;
-          const progress = Math.max(0, Math.min(1, elapsed / fadeMs));
-          const nextVolume = startVolume * (1 - progress);
-          musicSetMediaVolume(activeMedia, nextVolume);
-          if (progress >= 1) {
-            musicSetMediaVolume(activeMedia, 0);
-            musicStopEndFade();
-          }
-        }, 100);
-      }
-
       function musicSyncLunaStoredVolume(targetPercent = 100) {
         const host = document.getElementById('lunaradioPlayerPlaceholder');
         if (!host || !window.localStorage) return;
@@ -11964,13 +11889,8 @@
       }
 
       function fadeInToFull(media) {
-        if (!media) {
-          const current = musicGetActiveMediaElement();
-          if (!current) return;
-          runVolumeFade(current, 1, 5000, 'fade-in');
-        } else {
-          runVolumeFade(media, 1, 5000, 'fade-in');
-        }
+        if (!media) return;
+        runVolumeFade(media, 1, 5000, 'fade-in');
       }
 
       function musicBindMediaListeners() {
@@ -12068,74 +11988,6 @@
             });
           }
         }
-
-      function musicStartVolumeRamp(expectedNonce, { targetVolume = 1, durationMs = 5000, startVolume = 0, retryMs = 120, maxRetries = 25 } = {}) {
-        const state = window.__musicState;
-        musicStopVolumeRamp();
-
-        const startRamp = (attempt = 0) => {
-          if (state.playbackNonce !== expectedNonce || state.activePlayerType !== 'audio') return;
-          const media = musicGetActiveMediaElement();
-          if (!media) {
-            if (attempt >= maxRetries) return;
-            state.volumeRampRetryTimer = window.setTimeout(() => startRamp(attempt + 1), retryMs);
-            return;
-          }
-
-          let startTime = 0;
-          const begin = () => {
-            if (state.playbackNonce !== expectedNonce || state.activePlayerType !== 'audio') return;
-            startTime = Date.now();
-            musicSetMediaVolume(media, startVolume);
-            state.volumeRampTimer = window.setInterval(() => {
-              if (state.playbackNonce !== expectedNonce || state.activePlayerType !== 'audio') {
-                musicStopVolumeRamp();
-                return;
-              }
-              const activeMedia = musicGetActiveMediaElement();
-              if (!activeMedia) {
-                musicStopVolumeRamp();
-                return;
-              }
-              const elapsed = Date.now() - startTime;
-              const progress = Math.max(0, Math.min(1, elapsed / durationMs));
-              const eased = 1 - Math.pow(1 - progress, 2);
-              const nextVolume = startVolume + ((targetVolume - startVolume) * eased);
-              if (!musicSetMediaVolume(activeMedia, nextVolume)) {
-                musicStopVolumeRamp();
-                return;
-              }
-              if (progress >= 1) {
-                musicSetMediaVolume(activeMedia, targetVolume);
-                window.setTimeout(() => {
-                  if (state.playbackNonce === expectedNonce && state.activePlayerType === 'audio') {
-                    musicSetMediaVolume(activeMedia, targetVolume);
-                  }
-                }, 180);
-                musicStopVolumeRamp();
-              }
-            }, 50);
-          };
-
-          if (typeof media.addEventListener === 'function') {
-            const onCanPlay = () => {
-              media.removeEventListener('canplay', onCanPlay);
-              media.removeEventListener('loadedmetadata', onCanPlay);
-              begin();
-            };
-            media.addEventListener('canplay', onCanPlay);
-            media.addEventListener('loadedmetadata', onCanPlay);
-            window.setTimeout(() => {
-              if (state.playbackNonce !== expectedNonce || state.activePlayerType !== 'audio') return;
-              onCanPlay();
-            }, 350);
-          } else {
-            begin();
-          }
-        };
-
-        startRamp();
-      }
 
       function initMusicAudioPlayer(track, { autoplay = true } = {}) {
         const state = window.__musicState;

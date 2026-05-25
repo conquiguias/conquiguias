@@ -11570,7 +11570,7 @@
         });
         
         try {
-          // **ESTRICTA: Detener TODOS los timers y promises**
+          // **PASO 1: Parar todos los timers primero**
           musicStopProgressTracker();
           musicStopVolumeRamp();
           musicStopEndFade();
@@ -11582,45 +11582,25 @@
           state.autoAdvanceLocked = false;
           state.isCreatingPlayer = false;
 
-          // **Detener TODAS las instancias del plugin**
-          const destroyPlugin = (plugin) => {
-            if (!plugin) return;
-            try { if (typeof plugin.lunaradio === 'function') plugin.lunaradio('pause'); } catch (_) {}
-            try { if (typeof plugin.destroy === 'function') plugin.destroy(); } catch (_) {}
-            try { if (typeof plugin.stop === 'function') plugin.stop(); } catch (_) {}
-            try { if (typeof plugin.dispose === 'function') plugin.dispose(); } catch (_) {}
-          };
-          destroyPlugin(state.plugin);
-          destroyPlugin(state.instance);
-          destroyPlugin(state.lunaInstance);
-
-          // **Destruir TODOS los elementos de audio en el DOM**
-          try {
-            const lunaContainer = document.getElementById('lunaradioPlayerPlaceholder');
-            if (lunaContainer) {
-              // Detener todos los audio/video dentro
+          // **PASO 2: REMOVER el HTML del contenedor de LunaRadio
+          // Esto dispara automáticamente el evento "remove.lunaradio" que llama a destroy()
+          // en LunaRadio**
+          const lunaContainer = document.getElementById('lunaradioPlayerPlaceholder');
+          if (lunaContainer) {
+            try {
+              // Primero pausa todos los audios dentro
               lunaContainer.querySelectorAll('audio, video').forEach((el) => {
                 try { el.pause(); } catch (_) {}
+                try { el.muted = true; } catch (_) {}
                 try { el.currentTime = 0; } catch (_) {}
                 try { el.src = ''; } catch (_) {}
-                try { el.load?.(); } catch (_) {}
-                try { el.parentNode?.removeChild(el); } catch (_) {}
               });
-              // Limpiar completamente el HTML
+              // CRÍTICO: Remover el HTML para disparar evento "remove.lunaradio"
               lunaContainer.innerHTML = '';
-              lunaContainer.classList.remove('lunaradio-host');
-            }
-          } catch (_) {}
+            } catch (_) {}
+          }
 
-          try {
-            const clapprContainer = document.getElementById('clapprPlayerPlaceholder');
-            if (clapprContainer) {
-              clapprContainer.innerHTML = '';
-              clapprContainer.classList.remove('clappr-host');
-            }
-          } catch (_) {}
-
-          // **Destruir Clappr**
+          // **PASO 3: Destruir Clappr explícitamente**
           if (state.clapprPlayer) {
             try {
               if (typeof state.clapprPlayer.destroy === 'function') state.clapprPlayer.destroy();
@@ -11628,7 +11608,40 @@
             } catch (_) {}
           }
 
-          // **Limpiar TODAS las referencias**
+          const clapprContainer = document.getElementById('clapprPlayerPlaceholder');
+          if (clapprContainer) {
+            try {
+              clapprContainer.innerHTML = '';
+              clapprContainer.classList.remove('clappr-host');
+            } catch (_) {}
+          }
+
+          // **PASO 4: Limpiar el registro global de LunaRadio**
+          try {
+            if (window.__lunaradioPlayers) {
+              for (const key in window.__lunaradioPlayers) {
+                const entry = window.__lunaradioPlayers[key];
+                if (entry && entry.audio) {
+                  try { entry.audio.pause(); } catch (_) {}
+                  try { entry.audio.src = ''; } catch (_) {}
+                  try { entry.audio.load?.(); } catch (_) {}
+                }
+              }
+              window.__lunaradioPlayers = {};
+            }
+          } catch (_) {}
+
+          // **PASO 5: Pausa todas las instancias <audio> y <video> en el documento**
+          try {
+            Array.from(document.querySelectorAll('audio, video')).forEach((el) => {
+              try { el.pause(); } catch (_) {}
+              try { el.muted = true; } catch (_) {}
+              try { el.currentTime = 0; } catch (_) {}
+              try { el.src = ''; } catch (_) {}
+            });
+          } catch (_) {}
+
+          // **PASO 6: Nullear todas las referencias**
           state.lunaInstance = null;
           state.instance = null;
           state.plugin = null;
@@ -11638,8 +11651,9 @@
           state.clapprPlayer = null;
           state.activePlayerType = '';
           state.isCreatingPlayer = false;
+          
           musicDebugLog('destroy-players:end');
-        } catch (_) { }
+        } catch (_) {}
       }
 
       // Forzar detención y limpieza de cualquier elemento <audio> o <video>
@@ -11660,19 +11674,24 @@
         });
       }
 
-      // Intentar destruir LunaRadio
+      // Intentar destruir LunaRadio residual
       function musicDestroyAllPluginInstances() {
         try {
-          const container = document.getElementById('lunaradioPlayerPlaceholder');
-          if (!container || !window.jQuery) return;
-          const jq = window.jQuery(container);
-          const inst = jq.data?.('lunaradio');
-          if (inst) {
-            try { inst.destroy?.(); } catch (_e1) {}
-            try { inst.stop?.(); } catch (_e2) {}
-            try { inst.dispose?.(); } catch (_e3) {}
+          // Limpiar registry global de LunaRadio
+          if (window.__lunaradioPlayers) {
+            for (const key in window.__lunaradioPlayers) {
+              const entry = window.__lunaradioPlayers[key];
+              if (entry?.audio) {
+                try { entry.audio.pause?.(); } catch (_) {}
+                try { entry.audio.src = ''; } catch (_) {}
+              }
+              if (entry?.instance) {
+                try { entry.instance.destroy?.(); } catch (_) {}
+                try { entry.instance.stop?.(); } catch (_) {}
+              }
+            }
           }
-        } catch (_e) {}
+        } catch (_) {}
       }
 
       function musicSetPlayerMode(mode) {
@@ -12315,7 +12334,7 @@
         // Asegurar que no queden medias anteriores reproduciéndose:
         musicDestroyPlayers();
         try {
-          await musicForceStopAllMedia(180);
+          await musicForceStopAllMedia(320);
         } catch (_) { }
 
         // Intentar destruir cualquier instancia conocida del plugin por si quedó sin referencia

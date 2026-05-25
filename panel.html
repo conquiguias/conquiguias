@@ -11237,6 +11237,7 @@
         endFadeTimer: null,
         endFadeArmed: false,
         endFadeNonce: 0,
+        hasUserSelectedTrack: false,
         isCreatingPlayer: false, // Guard para evitar múltiples instancias simultáneas
       };
 
@@ -11579,6 +11580,7 @@
           window.clearTimeout(state.__musicTransitionTimer);
           state.__trackEndProcessing = false;
           state.autoAdvanceLocked = false;
+          state.isCreatingPlayer = false;
 
           // **Detener TODAS las instancias del plugin**
           const destroyPlugin = (plugin) => {
@@ -11635,6 +11637,7 @@
           state.endFadeArmedForSrc = '';
           state.clapprPlayer = null;
           state.activePlayerType = '';
+          state.isCreatingPlayer = false;
           musicDebugLog('destroy-players:end');
         } catch (_) { }
       }
@@ -11919,6 +11922,16 @@
               musicDebugLog('volume-fade:start', { type: 'fade-in', ms: 5000 });
             } else if (eventName === 'timeupdate') {
               musicMaybeStartEndFadeOut(media);
+              const duration = Number(media.duration);
+              const current = Number(media.currentTime);
+              if (Number.isFinite(duration) && duration > 0 && Number.isFinite(current) && (duration - current) <= 0.25 && !state.__trackEndProcessing) {
+                state.__trackEndProcessing = true;
+                musicDebugLog('ended:fallback-near-end', { currentTime: current, duration });
+                window.setTimeout(() => {
+                  state.__trackEndProcessing = false;
+                  musicAutoAdvanceToNextTrack();
+                }, 120);
+              }
             } else if (eventName === 'error') {
               musicStopVolumeRamp();
               musicDebugLog('error', { code: media.error?.code, name: media.error?.message });
@@ -12075,7 +12088,7 @@
             streamsuffix: '#',
             shoutcastid: '1',
             metadatainterval: '20000',
-            volume: '0',
+            volume: '100',
             debug: 'false',
             usestreamcorsproxy: 'false',
             corsproxy: '',
@@ -12092,6 +12105,10 @@
           setTimeout(() => {
             state.plugin = state.plugin || window.jQuery('#lunaradioPlayerPlaceholder').data('lunaradio') || null;
             state.audio = musicGetActiveMediaElement();
+            if (state.audio) {
+              setPlaybackVolume(state.audio, 1);
+              musicSyncLunaStoredVolume(100);
+            }
             musicBindMediaListeners();
             musicUpdateProgress();
           }, 180);
@@ -12101,6 +12118,10 @@
             setTimeout(() => {
               state.plugin = state.plugin || window.jQuery('#lunaradioPlayerPlaceholder').data('lunaradio') || null;
               state.audio = musicGetActiveMediaElement();
+              if (state.audio) {
+                setPlaybackVolume(state.audio, 1);
+                musicSyncLunaStoredVolume(100);
+              }
               musicBindMediaListeners();
               if (state.audio && typeof state.audio.play === 'function') {
                 state.audio.play().catch((err) => {
@@ -12112,6 +12133,10 @@
             setTimeout(() => {
               state.plugin = state.plugin || window.jQuery('#lunaradioPlayerPlaceholder').data('lunaradio') || null;
               state.audio = musicGetActiveMediaElement();
+              if (state.audio) {
+                setPlaybackVolume(state.audio, 1);
+                musicSyncLunaStoredVolume(100);
+              }
               musicBindMediaListeners();
               musicUpdateProgress();
             }, 180);
@@ -12325,15 +12350,22 @@
         renderMusicPlaylists();
       }
 
-      function setMusicPlaylistSelected(playlistId, { expand = true } = {}) {
+      function setMusicPlaylistSelected(playlistId, { expand = true, stopPlayback = false } = {}) {
         const state = window.__musicState;
         const key = String(playlistId || '').trim();
         if (!key) return;
         state.selectedPlaylistId = key;
         if (expand) setMusicPlaylistExpanded(key, true);
-        musicStopCurrentPlayback({ keepTrack: false });
-        loadPlaylistTracks(key).then(() => {
+        if (stopPlayback) {
+          musicStopCurrentPlayback({ keepTrack: false });
+          state.hasUserSelectedTrack = false;
+        }
+        return loadPlaylistTracks(key).then(() => {
           renderMusicPlaylists();
+          return true;
+        }).catch(() => {
+          renderMusicPlaylists();
+          return false;
         });
       }
 
@@ -12409,6 +12441,7 @@
         if (!prevBtn || !playPauseBtn || !nextBtn) return;
 
         const hasTracks = Array.isArray(state.catalog) && state.catalog.length > 0;
+        const canControlPlayback = hasTracks && !!state.hasUserSelectedTrack && Number.isInteger(state.currentIndex) && state.currentIndex >= 0;
         const playbackState = musicGetCurrentPlaybackState();
         const isPlaying = playbackState === 'playing';
         const icon = playPauseBtn.querySelector('i');
@@ -12418,9 +12451,9 @@
 
         playPauseBtn.title = isPlaying ? 'Pausar' : 'Reproducir';
         playPauseBtn.setAttribute('aria-label', isPlaying ? 'Pausar' : 'Reproducir');
-        prevBtn.disabled = !hasTracks;
-        nextBtn.disabled = !hasTracks;
-        playPauseBtn.disabled = !hasTracks;
+        prevBtn.disabled = !canControlPlayback;
+        nextBtn.disabled = !canControlPlayback;
+        playPauseBtn.disabled = !canControlPlayback;
       }
 
       function musicStopCurrentPlayback({ keepTrack = true } = {}) {
@@ -12476,11 +12509,13 @@
         }
       }
 
-      function musicToggleTrackPlayback(trackId, { playlistId = '', expand = true, reason = 'playlist-track' } = {}) {
+      async function musicToggleTrackPlayback(trackId, { playlistId = '', expand = true, reason = 'playlist-track' } = {}) {
+        const state = window.__musicState;
         const normalizedId = String(trackId || '').trim();
         if (!normalizedId) return;
-        if (playlistId) setMusicPlaylistSelected(playlistId, { expand });
-        if (musicGetCurrentTrackId() === normalizedId) {
+
+        const currentTrackId = musicGetCurrentTrackId();
+        if (currentTrackId === normalizedId) {
           const playbackState = musicGetCurrentPlaybackState();
           if (playbackState === 'playing') {
             musicPauseCurrentPlayback();
@@ -12492,6 +12527,14 @@
           }
           return;
         }
+
+        if (playlistId && String(state.selectedPlaylistId || '').trim() !== String(playlistId).trim()) {
+          await setMusicPlaylistSelected(playlistId, { expand, stopPlayback: true });
+        } else if (playlistId && expand) {
+          setMusicPlaylistExpanded(playlistId, true);
+        }
+
+        state.hasUserSelectedTrack = true;
         playMusicTrackById(normalizedId, { autoplay: true, reason });
       }
 
@@ -13570,8 +13613,11 @@
 
         musicPlayPauseBtn?.addEventListener('click', () => {
           if (!Array.isArray(state.catalog) || !state.catalog.length) return;
-          if (state.currentIndex < 0) {
-            playMusicTrackByIndex(0, { autoplay: true, reason: 'transport-play' });
+          if (!state.hasUserSelectedTrack || state.currentIndex < 0) {
+            musicDebugLog('transport-play:blocked-no-user-track', {
+              hasUserSelectedTrack: !!state.hasUserSelectedTrack,
+              currentIndex: state.currentIndex,
+            });
             musicUpdateTransportControls();
             return;
           }

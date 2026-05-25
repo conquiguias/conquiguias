@@ -11652,6 +11652,21 @@
           state.activePlayerType = '';
           state.isCreatingPlayer = false;
           
+          // **PASO 7: Marcar audio como destruido y desactivar métodos (medida defensiva)**
+          try {
+            const allAudio = document.querySelectorAll('audio');
+            const allVideo = document.querySelectorAll('video');
+            [...allAudio, ...allVideo].forEach((media) => {
+              if (media) {
+                media.__lunaradio_destroyed = true;
+                const noop = function() { return Promise.reject('Destroyed'); };
+                try { media.play = noop; } catch(_) {}
+                try { media.load = noop; } catch(_) {}
+                try { media.src = ''; } catch(_) {}
+              }
+            });
+          } catch (_) {}
+          
           musicDebugLog('destroy-players:end');
         } catch (_) {}
       }
@@ -12123,7 +12138,7 @@
 
         container.innerHTML = '';
         try {
-          const coverUrl = musicResolveMetadataImage(track, 'https://dummyimage.com/640x360/0f172a/ffffff&text=Conquiguias+Radio');
+          const coverUrl = musicResolveMetadataImage(track, DEFAULT_MUSIC_COVER_IMAGE);
           const instance = window.jQuery('#lunaradioPlayerPlaceholder').lunaradio({
             userinterface: 'big',
             backgroundcolor: 'rgba(9,15,25,0.2)',

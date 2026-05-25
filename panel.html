@@ -12002,25 +12002,37 @@
         }
       }
 
-      function musicMaybeStartEndFadeOut(media) {
-        const state = window.__musicState;
-        if (!media || media.paused) return;
-        const duration = Number(media.duration);
-        const current = Number(media.currentTime);
-        if (!Number.isFinite(duration) || duration <= 0 || !Number.isFinite(current)) return;
-        const remaining = duration - current;
-        const srcKey = media.currentSrc || media.src || `idx-${state.currentIndex}`;
-        if (remaining <= 10 && remaining > 0 && state.endFadeArmedForSrc !== srcKey) {
-          state.endFadeArmedForSrc = srcKey;
-          const fadeDurationMs = Math.max(0, Math.min(10000, remaining * 1000));
-          runVolumeFade(media, 0, fadeDurationMs, 'fade-out-end');
-          musicDebugLog('volume-fade:start', {
-            type: 'fade-out-end',
-            remaining: Number(remaining.toFixed(2)),
-            ms: Math.round(fadeDurationMs),
-          });
+      // Remover todos los listeners de un elemento media clonándolo y reemplazándolo
+      function musicRemoveMediaListeners(media) {
+        if (!media || !media.parentNode) return;
+        try {
+          const clone = media.cloneNode(false);
+          media.parentNode.replaceChild(clone, media);
+          musicDebugLog('media-listeners:removed-via-clone');
+          return clone;
+        } catch (_) {
+          return media;
         }
       }
+        function musicMaybeStartEndFadeOut(media) {
+          const state = window.__musicState;
+          if (!media || media.paused) return;
+          const duration = Number(media.duration);
+          const current = Number(media.currentTime);
+          if (!Number.isFinite(duration) || duration <= 0 || !Number.isFinite(current)) return;
+          const remaining = duration - current;
+          const srcKey = media.currentSrc || media.src || `idx-${state.currentIndex}`;
+          if (remaining <= 10 && remaining > 0 && state.endFadeArmedForSrc !== srcKey) {
+            state.endFadeArmedForSrc = srcKey;
+            const fadeDurationMs = Math.max(0, Math.min(10000, remaining * 1000));
+            runVolumeFade(media, 0, fadeDurationMs, 'fade-out-end');
+            musicDebugLog('volume-fade:start', {
+              type: 'fade-out-end',
+              remaining: Number(remaining.toFixed(2)),
+              ms: Math.round(fadeDurationMs),
+            });
+          }
+        }
 
       function musicStartVolumeRamp(expectedNonce, { targetVolume = 1, durationMs = 5000, startVolume = 0, retryMs = 120, maxRetries = 25 } = {}) {
         const state = window.__musicState;

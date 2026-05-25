@@ -13692,7 +13692,7 @@
               return;
             }
 
-            const created = await createMusicPlaylist({ name: typedName, auto: false });
+            const created = await createMusicPlaylist({ name: typedName, auto: true });
             if (!created?.id) {
               mostrarMensaje('error', 'No creada', 'No se pudo crear la lista.');
               return;

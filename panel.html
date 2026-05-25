@@ -4875,9 +4875,15 @@
     }
 
     #musicaSection .music-folder-track.is-playing {
-      border-color: rgba(96, 165, 250, 0.7);
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(15, 23, 42, 0.06));
-      box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.16), 0 10px 24px rgba(59, 130, 246, 0.12);
+      border-color: rgba(16, 185, 129, 0.9); /* verde */
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(15, 23, 42, 0.03));
+      box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.12), 0 10px 24px rgba(16, 185, 129, 0.06);
+    }
+
+    #musicaSection .music-folder-track.is-paused {
+      border-color: rgba(245, 158, 11, 0.95); /* amarillo */
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.06), rgba(15, 23, 42, 0.02));
+      box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.12), 0 6px 14px rgba(245, 158, 11, 0.04);
     }
 
     #musicaSection .music-folder-track:hover {
@@ -4908,9 +4914,9 @@
     }
 
     #musicaSection .music-folder-track-play.is-playing {
-      background: rgba(59, 130, 246, 0.22);
-      border-color: rgba(96, 165, 250, 0.78);
-      box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.12), 0 8px 18px rgba(59, 130, 246, 0.18);
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.95);
+      box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.12), 0 8px 18px rgba(16, 185, 129, 0.12);
       transform: scale(1.03);
     }
 
@@ -4922,9 +4928,9 @@
       width: 10px;
       height: 10px;
       border-radius: 70% 70% 70% 0;
-      background: #3b82f6;
+      background: rgba(16, 185, 129, 1);
       transform: rotate(-45deg);
-      box-shadow: 0 0 4px rgba(59, 130, 246, 0.8), 0 0 0 0 rgba(96, 165, 250, 0.45);
+      box-shadow: 0 0 6px rgba(16,185,129,0.9), 0 0 0 0 rgba(16,185,129,0.45);
       animation: musicStopDrop 1.6s ease-in-out infinite;
       pointer-events: none;
       z-index: 10;
@@ -4935,10 +4941,16 @@
       position: absolute;
       inset: -8px;
       border-radius: inherit;
-      border: 2px solid rgba(96, 165, 250, 0.3);
+      border: 2px solid rgba(16, 185, 129, 0.22);
       animation: musicStopRing 1.8s ease-out infinite;
       pointer-events: none;
       z-index: 9;
+    }
+
+    #musicaSection .music-folder-track-play.is-paused {
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.9);
+      box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.08);
     }
 
     #musicaSection .music-folder-track-info {
@@ -11556,33 +11568,52 @@
         });
         musicStopProgressTracker();
         try {
-          if (state.lunaInstance && typeof state.lunaInstance.lunaradio === 'function') {
-            try { state.lunaInstance.lunaradio('pause'); } catch (_) { }
-            try {
-              const lunaAudio = document.querySelector('#lunaradioPlayerPlaceholder audio');
-              if (lunaAudio) {
-                lunaAudio.pause();
-                lunaAudio.currentTime = 0;
-                lunaAudio.src = '';
-                lunaAudio.load?.();
+          // Pause/detach plugin audio (supports different naming used across versions)
+          try {
+            const plugin = state.plugin || state.instance || state.lunaInstance || null;
+            if (plugin) {
+              if (typeof plugin.lunaradio === 'function') {
+                try { plugin.lunaradio('pause'); } catch (_) {}
               }
-            } catch (_) { }
-          }
+              if (typeof plugin.destroy === 'function') {
+                try { plugin.destroy(); } catch (_) {}
+              }
+            }
+          } catch (_) {}
+
+          // Try to stop any native audio element inside placeholder
+          try {
+            const lunaAudio = document.querySelector('#lunaradioPlayerPlaceholder audio');
+            if (lunaAudio) {
+              try { lunaAudio.pause(); } catch (_) {}
+              try { lunaAudio.currentTime = 0; } catch (_) {}
+              try { lunaAudio.src = ''; } catch (_) {}
+              try { lunaAudio.load?.(); } catch (_) {}
+            }
+          } catch (_) {}
+
           const lunaMount = document.getElementById('lunaradioPlayerPlaceholder');
           if (lunaMount) {
             lunaMount.innerHTML = '';
             lunaMount.classList.remove('lunaradio-host');
           }
+
           musicStopVolumeRamp();
+          // Clear stored references
           state.lunaInstance = null;
+          state.instance = null;
+          state.plugin = null;
+          state.audio = null;
+          state.listenersBoundTo = null;
+          state.endFadeArmedForSrc = '';
 
           if (state.clapprPlayer && typeof state.clapprPlayer.destroy === 'function') {
-        musicDebugLog('destroy-players:end');
-            state.clapprPlayer.destroy();
+            try { state.clapprPlayer.destroy(); } catch (_) {}
           }
+          state.clapprPlayer = null;
+          state.activePlayerType = '';
+          musicDebugLog('destroy-players:end');
         } catch (_) { }
-        state.clapprPlayer = null;
-        state.activePlayerType = '';
       }
 
       function musicSetPlayerMode(mode) {
@@ -11975,7 +12006,10 @@
         const state = window.__musicState;
         const container = document.getElementById('lunaradioPlayerPlaceholder');
         if (!container || !track) return;
-        
+        // Nueva sesión de reproducción (audio)
+        const playbackNonce = musicStartNewPlaybackSession('audio');
+        musicDebugLog('audio:init:session-start', { playbackNonce, autoplay });
+
         musicDestroyPlayers();
         
         // Configurar la información de la pista
@@ -12026,6 +12060,8 @@
           });
           
           state.instance = instance;
+          // Mantener compatibilidad con nombres anteriores
+          state.lunaInstance = instance;
           state.plugin = instance?.data?.('lunaradio') || window.jQuery('#lunaradioPlayerPlaceholder').data('lunaradio') || null;
           state.audio = state.plugin?.audio || instance?.audio || null;
           
@@ -12287,22 +12323,33 @@
         if (!section) return;
         const allPlayBtns = section.querySelectorAll('.music-folder-track-play');
         const allTrackItems = section.querySelectorAll('.music-folder-track');
-        
         allPlayBtns.forEach((btn) => {
           const trackItem = btn.closest('.music-folder-track');
           if (!trackItem) return;
-          const trackId = trackItem.dataset.musicId;
-          const isPlaying = trackId && trackId === currentTrackId && playbackState === 'playing';
-          if (isPlaying) {
-            btn.classList.add('is-playing');
-            btn.innerHTML = '<i class="fas fa-stop"></i>';
-            btn.title = 'Detener';
-            trackItem.classList.add('is-playing');
-          } else {
-            btn.classList.remove('is-playing');
-            btn.innerHTML = '<i class="fas fa-play"></i>';
-            btn.title = 'Reproducir';
-            trackItem.classList.remove('is-playing');
+          const trackId = String(trackItem.dataset.musicId || '').trim();
+          const isCurrent = trackId && trackId === currentTrackId;
+
+          // Reset state
+          btn.classList.remove('is-playing', 'is-paused');
+          trackItem.classList.remove('is-playing', 'is-paused');
+          btn.title = 'Reproducir';
+          btn.setAttribute('aria-label', 'Reproducir');
+          btn.innerHTML = '';
+
+          if (isCurrent) {
+            if (playbackState === 'playing') {
+              btn.classList.add('is-playing');
+              trackItem.classList.add('is-playing');
+              btn.innerHTML = '<i class="fas fa-play"></i>'; // usar play icon cuando está en reproducción
+              btn.title = 'En reproducción';
+              btn.setAttribute('aria-label', 'En reproducción');
+            } else if (playbackState === 'paused') {
+              btn.classList.add('is-paused');
+              trackItem.classList.add('is-paused');
+              btn.innerHTML = '<i class="fas fa-pause"></i>'; // icono pausa cuando está pausado
+              btn.title = 'Pausado';
+              btn.setAttribute('aria-label', 'Pausado');
+            }
           }
         });
         musicUpdateTransportControls();
@@ -12518,10 +12565,10 @@
             const playBtn = document.createElement('button');
             playBtn.type = 'button';
             playBtn.className = 'music-folder-track-play';
-            if (isPlayingTrack) playBtn.classList.add('is-playing');
-            playBtn.innerHTML = isPlayingTrack ? '<i class="fas fa-stop"></i>' : '<i class="fas fa-play"></i>';
-            playBtn.title = isPlayingTrack ? 'Detener' : 'Reproducir';
-            playBtn.setAttribute('aria-label', playBtn.title);
+            // Por defecto no mostramos icono; el estado se ajusta más abajo con updateMusicPlayStates()
+            playBtn.title = 'Reproducir';
+            playBtn.setAttribute('aria-label', 'Reproducir');
+            playBtn.innerHTML = '';
             playBtn.addEventListener('click', (event) => {
               event.stopPropagation();
               if (!track.id) return;
@@ -12730,6 +12777,8 @@
           isAuto: false,
           emptyMessage: 'Crea tu primera lista de reproducción.'
         });
+        // Asegurar que los estados de reproducción se actualicen inmediatamente tras renderizar la lista
+        try { setTimeout(() => updateMusicPlayStates(), 50); } catch (_) {}
       }
 
       function renderMusicPlaylists() {

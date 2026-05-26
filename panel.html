@@ -10916,71 +10916,6 @@
          musicAutoAdvanceToNextTrack();
        };
        audioEl.addEventListener('ended', onEnded);
-
-       // LAYER 2: Timeupdate with near-end detection
-       let lastTimeCheck = -1;
-       const onTimeUpdate = () => {
-         if (state.playbackNonce !== playbackNonce) return;
-         
-         const currentTime = musicGetCurrentTime(audioEl);
-         const duration = musicGetDuration(audioEl);
-         
-         if (duration <= 0) return;
-         
-         const remaining = duration - currentTime;
-         const isNearEnd = remaining < 0.5 && remaining >= -0.5;
-         
-         if (isNearEnd && lastTimeCheck !== currentTime) {
-           lastTimeCheck = currentTime;
-           musicDebugLog('audio:ended-timeupdate', {
-             playbackNonce,
-             currentTime,
-             duration,
-             remaining
-           });
-           musicAutoAdvanceToNextTrack();
-         }
-       };
-       audioEl.addEventListener('timeupdate', onTimeUpdate);
-
-       // LAYER 3: Explicit polling with requestAnimationFrame
-       let lastFrameCheck = 0;
-       const checkViaRaf = () => {
-         if (state.playbackNonce !== playbackNonce || state.activePlayerType !== 'audio') return;
-         
-         const now = Date.now();
-         if (now - lastFrameCheck < 500) {
-           requestAnimationFrame(checkViaRaf);
-           return;
-         }
-         lastFrameCheck = now;
-         
-         const currentTime = musicGetCurrentTime(audioEl);
-         const duration = musicGetDuration(audioEl);
-         
-         if (duration > 0 && !audioEl.paused) {
-           const remaining = duration - currentTime;
-           const isVeryNearEnd = remaining < 1 && remaining > -0.5;
-           
-           if (isVeryNearEnd && state.__trackEndProcessing === false) {
-             state.__trackEndProcessing = true;
-             musicDebugLog('audio:ended-raf', {
-               playbackNonce,
-               currentTime,
-               duration,
-               remaining
-             });
-             setTimeout(() => {
-               musicAutoAdvanceToNextTrack();
-               state.__trackEndProcessing = false;
-             }, 0);
-             return;
-           }
-         }
-         
-         requestAnimationFrame(checkViaRaf);
-       };
-       requestAnimationFrame(checkViaRaf);
      }
           const recoveredUser = auth.currentUser;
           if (recoveredUser) {
@@ -12180,30 +12115,12 @@
           musicDebugLog('auto-advance:invalid-nonce', { nonce: state.playbackNonce });
           return;
         }
-        
-        const now = Date.now();
-        if (state.autoAdvanceLocked) {
-          musicDebugLog('auto-advance:locked', { lockTime: now - (state.lastAutoAdvanceAt || 0) });
-          return;
-        }
-        if (state.lastAutoAdvanceAt && now - state.lastAutoAdvanceAt < 1500) {
-          musicDebugLog('auto-advance:throttled', { timeSinceLastAdvance: now - state.lastAutoAdvanceAt });
-          return;
-        }
 
         musicDebugLog('auto-advance:preparing-track-switch', {
           currentIndex: state.currentIndex,
           nextIndex: (state.currentIndex + 1) % state.catalog.length,
           catalogLen: state.catalog.length
         });
-
-        state.autoAdvanceLocked = true;
-        state.lastAutoAdvanceAt = now;
-        window.clearTimeout(state.__autoAdvanceUnlockTimer);
-        state.__autoAdvanceUnlockTimer = window.setTimeout(() => {
-          state.autoAdvanceLocked = false;
-          musicDebugLog('auto-advance:unlocked', {});
-        }, 1500);
 
         const nextIndex = (state.currentIndex + 1) % state.catalog.length;
         // Validar que el track existe
@@ -12213,7 +12130,6 @@
             nextIndex,
             hasTrack: !!nextTrack
           });
-          state.autoAdvanceLocked = false;
           return;
         }
 
@@ -12225,7 +12141,7 @@
           nextTrack: nextTrack?.title || 'Sin título'
         });
         
-        playMusicTrackByIndex(nextIndex);
+        playMusicTrackByIndex(nextIndex, { autoplay: true, reason: 'auto-advance', force: true });
         
         // Ensure playback starts after a brief delay
         window.setTimeout(() => {
@@ -12234,6 +12150,16 @@
             musicEnsurePlaybackStarted(media, state.playbackNonce);
           }
         }, 200);
+        window.setTimeout(() => {
+          const media = musicGetActiveMediaElement();
+          if (state.activePlayerType === 'audio' && (!media || media.paused || media.ended)) {
+            musicDebugLog('auto-advance:retry-start', {
+              nextIndex,
+              currentNonce: state.playbackNonce
+            });
+            playMusicTrackByIndex(nextIndex, { autoplay: true, reason: 'auto-advance-retry', force: true });
+          }
+        }, 900);
         // Asegurar que la vista se contabilice también tras el auto-advance
         window.setTimeout(() => {
           try { musicRegisterTrackView({ id: nextTrack?.id }).catch(() => {}); } catch (_) {}
@@ -12294,37 +12220,16 @@
           src: media?.src || ''
         });
 
-        const events = ['loadedmetadata', 'durationchange', 'timeupdate', 'play', 'pause', 'waiting', 'canplay', 'canplaythrough', 'ended', 'seeking', 'seeked', 'stalled', 'error'];
+        const events = ['loadedmetadata', 'durationchange', 'timeupdate', 'play', 'pause', 'waiting', 'canplay', 'canplaythrough', 'seeking', 'seeked', 'stalled', 'error'];
         events.forEach((eventName) => {
           media.addEventListener(eventName, () => {
-            if (eventName === 'ended') {
-              musicStopVolumeRamp();
-              setPlaybackVolume(media, 0);
-              musicDebugLog('audio:ended-native', {
-                playbackNonce: state.playbackNonce,
-                currentTime: musicGetCurrentTime(media),
-                duration: musicGetDuration(media),
-                remaining: musicGetDuration(media) - musicGetCurrentTime(media)
-              });
-              musicAutoAdvanceToNextTrack();
-            } else if (eventName === 'canplaythrough') {
+            if (eventName === 'canplaythrough') {
               musicMaybeStartFadeInWhenReady(media);
             } else if (eventName === 'play') {
                   musicDebugLog('media:play', { readyState: media.readyState, volume: media.volume });
                   try {
                     musicRegisterTrackView({ id: musicGetCurrentTrackId() }).catch(() => {});
                   } catch (_) {}
-                } else if (eventName === 'timeupdate') {
-              const duration = Number(media.duration);
-              const current = Number(media.currentTime);
-              if (Number.isFinite(duration) && duration > 0 && Number.isFinite(current) && (duration - current) <= 0.25 && !state.__trackEndProcessing) {
-                state.__trackEndProcessing = true;
-                musicDebugLog('audio:ended-timeupdate', { playbackNonce: state.playbackNonce, currentTime: current, duration, remaining: duration - current });
-                window.setTimeout(() => {
-                  state.__trackEndProcessing = false;
-                  musicAutoAdvanceToNextTrack();
-                }, 120);
-              }
             } else if (eventName === 'error') {
               musicStopVolumeRamp();
               musicDebugLog('audio:error', {
@@ -12430,6 +12335,11 @@
             musicBindMediaListeners();
             setPlaybackVolume(state.audio, 1);
             musicStopVolumeRamp();
+            try {
+              if (state.plugin && typeof state.plugin.setLoopOnEnd === 'function') {
+                state.plugin.setLoopOnEnd(false);
+              }
+            } catch (_) {}
             musicUpdateProgress();
             if (state.audio) {
               musicDebugLog('media-ready', {
@@ -12447,6 +12357,11 @@
               musicBindMediaListeners();
               setPlaybackVolume(state.audio, 1);
               musicStopVolumeRamp();
+              try {
+                if (state.plugin && typeof state.plugin.setLoopOnEnd === 'function') {
+                  state.plugin.setLoopOnEnd(false);
+                }
+              } catch (_) {}
               if (state.audio && typeof state.audio.play === 'function') {
                 state.audio.play().catch((err) => {
                   musicDebugLog('play:blocked', { name: err?.name, message: err?.message });
@@ -12460,6 +12375,11 @@
               musicBindMediaListeners();
               setPlaybackVolume(state.audio, 1);
               musicStopVolumeRamp();
+              try {
+                if (state.plugin && typeof state.plugin.setLoopOnEnd === 'function') {
+                  state.plugin.setLoopOnEnd(false);
+                }
+              } catch (_) {}
               musicUpdateProgress();
             }, 180);
           }
@@ -12634,9 +12554,14 @@
         if (!Array.isArray(state.catalog) || !state.catalog[index]) return;
         
         // Guard: evitar múltiples creaciones simultáneas por clics rápidos
-        if (state.isCreatingPlayer) {
+        if (state.isCreatingPlayer && !options.force) {
           musicDebugLog('track-select:blocked-already-creating', { index });
           return;
+        }
+
+        if (options.force) {
+          musicDebugLog('track-select:force-switch', { index, reason: options.reason || 'force' });
+          state.isCreatingPlayer = false;
         }
         
         const autoplay = options.autoplay !== false;

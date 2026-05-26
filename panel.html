@@ -12305,42 +12305,19 @@
         const state = window.__musicState;
         if (!media) return;
         musicStopVolumeRamp();
-        const to = Math.max(0, Math.min(1, Number(targetVolume) || 0));
-        const ms = Math.max(0, Number(durationMs) || 0);
-        if (ms === 0) {
-          setPlaybackVolume(media, to);
-          return;
-        }
-        const from = Math.max(0, Math.min(1, Number(media.volume) || 0));
-        const startedAt = performance.now();
-        state.volumeFadeType = kind || 'fade';
-        state.volumeFadeTimer = setInterval(() => {
-          const elapsed = performance.now() - startedAt;
-          const progress = Math.max(0, Math.min(1, elapsed / ms));
-          setPlaybackVolume(media, from + (to - from) * progress);
-          if (progress >= 1) {
-            setPlaybackVolume(media, to);
-            musicStopVolumeRamp();
-            musicDebugLog('volume-fade:end', { type: kind, to: Number(to.toFixed(2)) });
-          }
-        }, 100);
+        state.volumeFadeType = kind || 'direct';
+        setPlaybackVolume(media, Math.max(0, Math.min(1, Number(targetVolume) || 0)));
       }
 
       function fadeInToFull(media) {
         if (!media) return;
-        runVolumeFade(media, 1, 5000, 'fade-in');
+        setPlaybackVolume(media, 1);
       }
 
       function musicMaybeStartFadeInWhenReady(media) {
-        const state = window.__musicState;
         if (!media) return;
-        const readyState = Number(media.readyState) || 0;
-        if (readyState < 4) return;
-        const srcKey = media.currentSrc || media.src || `idx-${state.currentIndex}`;
-        if (state.volumeFadeArmedForSrc === srcKey) return;
-        state.volumeFadeArmedForSrc = srcKey;
-        fadeInToFull(media);
-        musicDebugLog('volume-fade:start', { type: 'fade-in-ready', ms: 5000, readyState });
+        setPlaybackVolume(media, 1);
+        musicStopVolumeRamp();
       }
 
       function musicBindMediaListeners() {
@@ -12472,7 +12449,7 @@
             streamsuffix: '#',
             shoutcastid: '1',
             metadatainterval: '20000',
-            volume: '0',
+            volume: '100',
             debug: 'false',
             usestreamcorsproxy: 'false',
             corsproxy: '',
@@ -12489,7 +12466,8 @@
             state.plugin = state.plugin || window.jQuery('#lunaradioPlayerPlaceholder').data('lunaradio') || null;
             state.audio = musicGetActiveMediaElement();
             musicBindMediaListeners();
-            musicMaybeStartFadeInWhenReady(state.audio);
+            setPlaybackVolume(state.audio, 1);
+            musicStopVolumeRamp();
             musicUpdateProgress();
             if (state.audio) {
               musicDebugLog('media-ready', {
@@ -12505,7 +12483,8 @@
               state.plugin = state.plugin || window.jQuery('#lunaradioPlayerPlaceholder').data('lunaradio') || null;
               state.audio = musicGetActiveMediaElement();
               musicBindMediaListeners();
-              musicMaybeStartFadeInWhenReady(state.audio);
+              setPlaybackVolume(state.audio, 1);
+              musicStopVolumeRamp();
               if (state.audio && typeof state.audio.play === 'function') {
                 state.audio.play().catch((err) => {
                   musicDebugLog('play:blocked', { name: err?.name, message: err?.message });
@@ -12517,7 +12496,8 @@
               state.plugin = state.plugin || window.jQuery('#lunaradioPlayerPlaceholder').data('lunaradio') || null;
               state.audio = musicGetActiveMediaElement();
               musicBindMediaListeners();
-              musicMaybeStartFadeInWhenReady(state.audio);
+              setPlaybackVolume(state.audio, 1);
+              musicStopVolumeRamp();
               musicUpdateProgress();
             }, 180);
           }

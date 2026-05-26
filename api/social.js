@@ -841,7 +841,6 @@ async function handleGetMusicPlaylists(req, res) {
     const { data, error } = await supabase
       .from('music_playlists')
       .select('id,name,owner_id,created_at,music_playlist_items(id,position,music_id,musics(id,title,url,artist,album,is_video,metadata,owner_id,created_at))')
-      .eq('owner_id', requester.uid)
       .order('created_at', { ascending: false });
 
     if (error) throw error;

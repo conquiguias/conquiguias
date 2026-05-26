@@ -12799,6 +12799,13 @@
           });
       }
 
+      function canManageMusicPlaylist(playlist = {}) {
+        const playlistOwnerId = String(playlist?.owner_id || '').trim();
+        const currentUid = String(window.currentUserId || currentUserId || auth?.currentUser?.uid || '').trim();
+        if (!playlistOwnerId || !currentUid) return false;
+        return playlistOwnerId === currentUid;
+      }
+
       function isMusicPlaylistExpanded(playlistId) {
         const state = window.__musicState;
         return !!state.expandedPlaylists[String(playlistId || '').trim()];
@@ -13061,42 +13068,44 @@
         headerBtn.appendChild(left);
         headerBtn.appendChild(count);
 
-        const deleteBtn = document.createElement('button');
-        deleteBtn.type = 'button';
-        deleteBtn.className = 'music-pill-btn';
-        deleteBtn.style.minWidth = '36px';
-        deleteBtn.innerHTML = '<i class="fas fa-trash-can"></i>';
-        deleteBtn.title = 'Eliminar lista';
-        deleteBtn.addEventListener('click', async (event) => {
-          event.stopPropagation();
-          mostrarMensaje('confirm', 'Eliminar lista', `¿Eliminar lista "${displayName}"?`, async () => {
-            try {
-              await deleteMusicPlaylist(playlistId);
-              await loadMusicPlaylists();
-         
-               // Asegurar que comienza la reproducción
-               const ensurePlayback = () => {
-                 if (state.playbackNonce !== playbackNonce || state.activePlayerType !== 'audio') return;
-                 const audioEl = musicGetAudioElement();
-                 if (audioEl) {
-                   musicEnsurePlaybackStarted(audioEl, playbackNonce);
-                 }
-               };
-               setTimeout(ensurePlayback, 500);
-               setTimeout(ensurePlayback, 1200);
-            } catch (err) {
-              mostrarMensaje('error', 'No se pudo eliminar', err?.message || 'Intenta nuevamente');
-            }
+        if (canManageMusicPlaylist(playlist)) {
+          const deleteBtn = document.createElement('button');
+          deleteBtn.type = 'button';
+          deleteBtn.className = 'music-pill-btn';
+          deleteBtn.style.minWidth = '36px';
+          deleteBtn.innerHTML = '<i class="fas fa-trash-can"></i>';
+          deleteBtn.title = 'Eliminar lista';
+          deleteBtn.addEventListener('click', async (event) => {
+            event.stopPropagation();
+            mostrarMensaje('confirm', 'Eliminar lista', `¿Eliminar lista "${displayName}"?`, async () => {
+              try {
+                await deleteMusicPlaylist(playlistId);
+                await loadMusicPlaylists();
+        
+                 // Asegurar que comienza la reproducción
+                 const ensurePlayback = () => {
+                   if (state.playbackNonce !== playbackNonce || state.activePlayerType !== 'audio') return;
+                   const audioEl = musicGetAudioElement();
+                   if (audioEl) {
+                     musicEnsurePlaybackStarted(audioEl, playbackNonce);
+                   }
+                 };
+                 setTimeout(ensurePlayback, 500);
+                 setTimeout(ensurePlayback, 1200);
+              } catch (err) {
+                mostrarMensaje('error', 'No se pudo eliminar', err?.message || 'Intenta nuevamente');
+              }
+            });
           });
-        });
 
-        const actionsWrap = document.createElement('div');
-        actionsWrap.style.display = 'flex';
-        actionsWrap.style.gap = '6px';
-        actionsWrap.style.alignItems = 'center';
-        actionsWrap.appendChild(deleteBtn);
+          const actionsWrap = document.createElement('div');
+          actionsWrap.style.display = 'flex';
+          actionsWrap.style.gap = '6px';
+          actionsWrap.style.alignItems = 'center';
+          actionsWrap.appendChild(deleteBtn);
 
-        headerBtn.appendChild(actionsWrap);
+          headerBtn.appendChild(actionsWrap);
+        }
 
         const body = document.createElement('div');
         body.className = 'music-folder-body';
@@ -13379,6 +13388,7 @@
       function renderMusicPlaylistSelectors() {
         const state = window.__musicState;
         const playlists = Array.isArray(state.playlists) ? state.playlists : [];
+        const editablePlaylists = playlists.filter((playlist) => canManageMusicPlaylist(playlist));
         const selectIds = ['musicTargetPlaylistSelect', 'playlistPickerSelect'];
 
         selectIds.forEach((selectId) => {
@@ -13390,10 +13400,10 @@
 
           const placeholder = document.createElement('option');
           placeholder.value = '';
-          placeholder.textContent = playlists.length ? '— Seleccionar lista —' : '— Sin listas —';
+          placeholder.textContent = editablePlaylists.length ? '— Seleccionar lista —' : '— Sin listas —';
           select.appendChild(placeholder);
 
-          playlists.forEach((playlist) => {
+          editablePlaylists.forEach((playlist) => {
             const option = document.createElement('option');
             option.value = playlist.id;
             option.textContent = `${getMusicPlaylistDisplayName(playlist)} (${Number(playlist.songs_count || 0)})`;
@@ -13405,8 +13415,8 @@
           newOpt.textContent = 'Crear nueva lista';
           select.appendChild(newOpt);
 
-          const hasPrevious = playlists.some((playlist) => String(playlist.id) === previousValue);
-          select.value = hasPrevious ? previousValue : (playlists[0]?.id || '__new__');
+          const hasPrevious = editablePlaylists.some((playlist) => String(playlist.id) === previousValue);
+          select.value = hasPrevious ? previousValue : (editablePlaylists[0]?.id || '__new__');
         });
 
         const destinationSection = document.getElementById('musicPlaylistDestinationSection');
@@ -13745,7 +13755,9 @@
           document.body.removeChild(existingModal);
         }
         
-        const playlists = Array.isArray(state.playlists) ? state.playlists.filter(p => !String(p.name || '').startsWith('__AUTO__:')) : [];
+        const playlists = Array.isArray(state.playlists)
+          ? state.playlists.filter((p) => !String(p.name || '').startsWith('__AUTO__:') && canManageMusicPlaylist(p))
+          : [];
         
         const modalEl = document.createElement('div');
         modalEl.id = 'musicPlaylistPickerModal';

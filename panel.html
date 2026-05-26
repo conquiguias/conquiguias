@@ -4890,31 +4890,11 @@
       transform: scale(1.03);
     }
 
-    #musicaSection .music-folder-track-play.is-playing::before {
-      content: '';
-      position: absolute;
-      top: -6px;
-      right: -6px;
-      width: 10px;
-      height: 10px;
-      border-radius: 70% 70% 70% 0;
-      background: rgba(16, 185, 129, 1);
-      transform: rotate(-45deg);
-      box-shadow: 0 0 6px rgba(16,185,129,0.9), 0 0 0 0 rgba(16,185,129,0.45);
-      animation: musicStopDrop 1.6s ease-in-out infinite;
-      pointer-events: none;
-      z-index: 10;
-    }
-
+    /* Disabled floating green indicator - removed to save space */
+    #musicaSection .music-folder-track-play.is-playing::before,
     #musicaSection .music-folder-track-play.is-playing::after {
-      content: '';
-      position: absolute;
-      inset: -8px;
-      border-radius: inherit;
-      border: 2px solid rgba(16, 185, 129, 0.22);
-      animation: musicStopRing 1.8s ease-out infinite;
-      pointer-events: none;
-      z-index: 9;
+      display: none !important;
+      content: none !important;
     }
 
     #musicaSection .music-folder-track-play.is-paused {
@@ -11713,6 +11693,13 @@
           views: Math.max(0, Number(currentStats.views) || 0) + 1,
         };
         musicSaveStoredTrackStats(normalizedTrackId, nextStats);
+        try {
+          const viewEl = document.getElementById('trackViewCount');
+          if (viewEl) {
+            try { viewEl.textContent = formatReactionCount(nextStats.views || 0); } catch (_) { viewEl.textContent = String(nextStats.views || 0); }
+          }
+        } catch (_) {}
+        musicDebugLog && typeof musicDebugLog === 'function' ? musicDebugLog('view:registered', { track: normalizedTrackId, views: nextStats.views }) : null;
         if (musicGetCurrentTrackId() === normalizedTrackId) {
           musicUpdateTrackEngagementUI(track || { id: normalizedTrackId });
         }
@@ -13085,7 +13072,11 @@
           empty.textContent = 'La lista está vacía.';
           body.appendChild(empty);
         } else {
-          tracks.forEach((track, index) => {
+          // Lazy-render tracks in batches to avoid loading all DOM nodes at once
+          const BATCH_SIZE = 25;
+          let rendered = 0;
+
+          function createTrackListItem(track, idx) {
             const trackLi = document.createElement('li');
             trackLi.className = 'music-folder-track';
             trackLi.dataset.musicId = track.id;
@@ -13098,7 +13089,6 @@
             const playBtn = document.createElement('button');
             playBtn.type = 'button';
             playBtn.className = 'music-folder-track-play';
-            // Icono de nota musical por defecto
             playBtn.title = 'Reproducir';
             playBtn.setAttribute('aria-label', 'Reproducir');
             playBtn.innerHTML = '<i class="fas fa-music"></i>';
@@ -13113,7 +13103,7 @@
 
             const title = document.createElement('div');
             title.className = 'music-folder-track-title';
-            title.textContent = `${index + 1}. ${track.title}`;
+            title.textContent = `${idx + 1}. ${track.title}`;
 
             const metaText = document.createElement('div');
             metaText.className = 'music-folder-track-meta';
@@ -13150,23 +13140,23 @@
             menuBtn.style.color = 'var(--text-secondary)';
             menuBtn.style.cursor = 'pointer';
             menuBtn.style.transition = 'background 0.2s';
-            
+
             menuBtn.addEventListener('mouseenter', () => {
               menuBtn.style.background = 'rgba(255,255,255,0.1)';
             });
             menuBtn.addEventListener('mouseleave', () => {
               menuBtn.style.background = 'rgba(255,255,255,0.05)';
             });
-            
+
             menuBtn.addEventListener('click', (event) => {
               event.stopPropagation();
-              
+
               // Cerrar cualquier modal contextual existente
               const existingModal = document.getElementById('musicTrackContextMenu');
               if (existingModal && document.body.contains(existingModal)) {
                 document.body.removeChild(existingModal);
               }
-              
+
               const modalEl = document.createElement('div');
               modalEl.id = 'musicTrackContextMenu';
               modalEl.style.cssText = `
@@ -13181,9 +13171,9 @@
                 z-index: 9999;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.3);
               `;
-              
+
               const options = [];
-              
+
               // Mostrar opciones solo si es propietario
               if (window.isOwner) {
                 options.push(
@@ -13201,7 +13191,7 @@
                   }}
                 );
               }
-              
+
               // Agregar a lista siempre visible
               options.push(
                 { label: '<i class="fas fa-bookmark" style="margin-right:8px;"></i>Agregar a lista', action: () => {
@@ -13209,7 +13199,7 @@
                   if (document.body.contains(modalEl)) document.body.removeChild(modalEl);
                 }}
               );
-              
+
               options.forEach((opt) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
@@ -13240,7 +13230,7 @@
                 });
                 modalEl.appendChild(btn);
               });
-              
+
               document.body.appendChild(modalEl);
               setTimeout(() => {
                 const closeHandler = (e) => {
@@ -13257,8 +13247,37 @@
             trackLi.appendChild(info);
             trackLi.appendChild(menuBtn);
             tracksList.appendChild(trackLi);
-          });
+          }
 
+          function appendBatch() {
+            const start = rendered;
+            const end = Math.min(tracks.length, rendered + BATCH_SIZE);
+            for (let i = start; i < end; i++) {
+              const t = tracks[i];
+              const li = createTrackListItem(t, i);
+              tracksList.appendChild(li);
+            }
+            rendered = end;
+            try { updateMusicPlayStates(); } catch (_) {}
+            if (rendered >= tracks.length) {
+              tracksList.removeEventListener('scroll', onScroll);
+            }
+          }
+
+          function onScroll() {
+            try {
+              if (tracksList.scrollTop + tracksList.clientHeight >= tracksList.scrollHeight - 120) {
+                appendBatch();
+              }
+            } catch (_) {}
+          }
+
+          appendBatch();
+          if (tracks.length > rendered) {
+            tracksList.addEventListener('scroll', onScroll);
+            tracksList.style.overflow = 'auto';
+            tracksList.style.maxHeight = tracksList.style.maxHeight || '360px';
+          }
           body.appendChild(tracksList);
         }
 

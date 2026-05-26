@@ -11326,12 +11326,12 @@
         sessionStartedAt: 0,
         lastAutoAdvanceAt: 0,
         autoAdvanceLocked: false,
-        volumeRampTimer: null,
-        volumeRampRetryTimer: null,
-        endFadeTimer: null,
-        endFadeArmed: false,
-        endFadeNonce: 0,
-        volumeFadeArmedForSrc: '',
+        // volumeRampTimer: null, // Deshabilitado - sin fade de volumen
+        // volumeRampRetryTimer: null,
+        // endFadeTimer: null,
+        // endFadeArmed: false,
+        // endFadeNonce: 0,
+        // volumeFadeArmedForSrc: '',
         hasUserSelectedTrack: false,
         trackStatsCache: new Map(),
         trackStatsPending: new Map(),
@@ -11345,15 +11345,10 @@
         state.sessionStartedAt = Date.now();
         state.autoAdvanceLocked = false;
         state.__trackEndProcessing = false;
-        window.clearInterval(state.volumeRampTimer);
-        window.clearTimeout(state.volumeRampRetryTimer);
-        window.clearInterval(state.endFadeTimer);
-        state.volumeRampTimer = null;
-        state.volumeRampRetryTimer = null;
-        state.endFadeTimer = null;
-        state.endFadeArmed = false;
-        state.endFadeNonce = state.playbackNonce;
-        state.volumeFadeArmedForSrc = '';
+        // Limpiezas de fade/ramp deshabilitadas
+        // window.clearInterval(state.volumeRampTimer);
+        // window.clearTimeout(state.volumeRampRetryTimer);
+        // window.clearInterval(state.endFadeTimer);
         return state.playbackNonce;
       }
 
@@ -12245,16 +12240,10 @@
         }, 600);
       }
 
+      // Función deshabilitada - sin fade/ramp de volumen
       function musicStopVolumeRamp() {
-        const state = window.__musicState;
-        if (state.volumeRampTimer) {
-          window.clearInterval(state.volumeRampTimer);
-          state.volumeRampTimer = null;
-        }
-        if (state.volumeRampRetryTimer) {
-          window.clearTimeout(state.volumeRampRetryTimer);
-          state.volumeRampRetryTimer = null;
-        }
+        // No hacer nada
+        return;
       }
 
       function setPlaybackVolume(media, value01) {
@@ -12270,43 +12259,16 @@
         }
       }
 
+      // Función deshabilitada - localStorage de volumen eliminado
       function musicSyncLunaStoredVolume(targetPercent = 100) {
-        const host = document.getElementById('lunaradioPlayerPlaceholder');
-        if (!host || !window.localStorage) return;
-        const suffixes = [
-          'smallvolumegrab',
-          'smallvolumebackground',
-          'smalltextvolume',
-          'smalliconvolume',
-          'volumewrapper',
-          'volumebackground',
-          'volumefill',
-          'volumeicon',
-          'volumegrab',
-          'textvolumeend',
-          'buttonvolumeoff',
-          'buttonvolumeon'
-        ];
-        const elements = Array.from(host.querySelectorAll('[id]'));
-        for (const el of elements) {
-          const id = String(el.id || '');
-          const suffix = suffixes.find((part) => id.endsWith(part));
-          if (!suffix) continue;
-          const prefix = id.slice(0, -suffix.length);
-          if (!prefix) continue;
-          try {
-            window.localStorage.setItem(prefix + 'volume', String(Math.max(0, Math.min(100, Number(targetPercent) || 0))));
-          } catch (_) { }
-          return;
-        }
+        // No hacer nada - siempre usar volumen 100
+        return;
       }
 
+      // Función simplificada - fade deshabilitado, siempre volumen 1
       function runVolumeFade(media, targetVolume, durationMs, kind) {
-        const state = window.__musicState;
         if (!media) return;
-        musicStopVolumeRamp();
-        state.volumeFadeType = kind || 'direct';
-        setPlaybackVolume(media, Math.max(0, Math.min(1, Number(targetVolume) || 0)));
+        setPlaybackVolume(media, 1); // Siempre 100% inmediatamente
       }
 
       function fadeInToFull(media) {

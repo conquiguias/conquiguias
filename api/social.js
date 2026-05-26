@@ -838,9 +838,15 @@ async function handleGetMusicPlaylists(req, res) {
 
   try {
     const requester = await requireAuthenticated(req);
+    const requesterId = String(requester?.uid || requester?.email || '').trim();
+    if (!requesterId) {
+      return res.status(401).json({ success: false, error: 'Usuario no autenticado' });
+    }
+
     const { data, error } = await supabase
       .from('music_playlists')
       .select('id,name,owner_id,created_at,music_playlist_items(id,position,music_id,musics(id,title,url,artist,album,is_video,metadata,owner_id,created_at))')
+      .eq('owner_id', requesterId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;

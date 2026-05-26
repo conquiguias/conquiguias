@@ -566,10 +566,28 @@ async function handleCreateMusicPlaylist(req, res) {
     const name = String(body.name || '').trim();
     if (!name) return res.status(400).json({ success: false, error: 'name es requerido' });
 
+    const requesterEmail = normalizeEmail(requester?.email || '');
+    const requesterUid = String(requester?.uid || '').trim();
+    const isOwnerRequester = requesterEmail === normalizeEmail(OWNER_EMAIL);
+    const isAdminRequester = getAdminEmails().includes(requesterEmail);
+
+    let hasProAccess = isOwnerRequester || isAdminRequester;
+    if (!hasProAccess && requesterUid) {
+      const donationSnap = await admin
+        .firestore()
+        .collection('donaciones_paypal')
+        .where('donorUserId', '==', requesterUid)
+        .where('status', '==', 'approved')
+        .limit(1)
+        .get();
+
+      hasProAccess = !donationSnap.empty;
+    }
+
     // Contar playlists existentes
     const { data: existing, error: countErr } = await supabase.from('music_playlists').select('id').eq('owner_id', requester.uid).limit(100);
     if (countErr) throw countErr;
-    if (Array.isArray(existing) && existing.length >= 3) {
+    if (!hasProAccess && Array.isArray(existing) && existing.length >= 3) {
       return res.status(400).json({ success: false, error: 'Límite de 3 playlists alcanzado' });
     }
 

@@ -7353,6 +7353,23 @@
       </div>
     </div>
 
+    <!-- Modal para ver retroalimentación de tarea -->
+    <div id="modalRetroalimentacionTarea" class="preview-modal" style="z-index: 5500;">
+      <div class="preview-content" style="width: 90%; max-width: 620px; text-align: left;">
+        <button class="close-modal-btn" onclick="document.getElementById('modalRetroalimentacionTarea').style.display='none'"
+          style="top: 14px; right: 14px;">
+          <i class="fas fa-times"></i>
+        </button>
+        <h3 style="margin-top: 0; color: var(--warning-color);">
+          <i class="fas fa-comment-dots" style="margin-right: 8px;"></i> Retroalimentación
+        </h3>
+        <div id="retroalimentacionTareaTitulo"
+          style="margin-bottom: 12px; color: var(--text-secondary); font-size: 13px;"></div>
+        <div id="retroalimentacionTareaContenido"
+          style="white-space: pre-wrap; text-align: left; line-height: 1.6; padding: 14px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); min-height: 140px;"></div>
+      </div>
+    </div>
+
     <!-- 🔹 SECCIÓN INSTRUCTOR (Antiguo admin.html) -->
     <div id="instructorSection" class="card hidden">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -8305,6 +8322,20 @@
               —
             </div>
           </div>
+
+            <div id="retroalimentacionInstructorBox"
+              style="margin:0 0 14px 0; padding:12px; border:1px solid #334155; border-radius:10px; background:#111827;">
+              <div style="color:#94a3b8; font-size:11px; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px;">
+                Retroalimentación
+              </div>
+              <textarea id="inputRetroalimentacionTarea"
+                placeholder="Escribe aquí la retroalimentación para el estudiante..."
+                style="width:100%; height:120px; resize:none; padding:10px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:#e2e8f0; font-size:13px; line-height:1.5; text-align:left; outline:none;"></textarea>
+              <div style="margin-top:8px; color:#94a3b8; font-size:12px; line-height:1.35;">
+                Este texto solo se enviará cuando uses <strong>Devolver</strong>.
+              </div>
+            </div>
+
           <h4 style="color:#94a3b8; font-size:13px; text-transform:uppercase; letter-spacing:1px; margin:0 0 12px 0;">
             <i class="fas fa-clipboard-list" style="margin-right:6px; color:var(--accent-color);"></i> Rúbrica de
             Calificación
@@ -29875,6 +29906,7 @@
 
             let estadoTareaHtml = '<span style="color:#888; font-size:12px;">No requerida</span>';
             let botonTarea = '';
+            let botonRetroalimentacion = '';
             let estadoExamenHtml = '<span style="color:#888; font-size:12px;">Sin examen</span>';
             let botonExamen = '';
 
@@ -29913,6 +29945,22 @@
                     estadoTareaHtml = '<span style="color:#F59E0B; font-weight:600;"><i class="fas fa-undo-alt" style="margin-right:4px;"></i>Pendiente (tarea devuelta, enviar de nuevo)</span>';
                     const detalleSafe = (item.configTarea.detalle || '').replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, '\\n');
                     botonTarea = `<button onclick="abrirModalSubirTarea('${item.id}', '${item.titulo}', '${detalleSafe}')" style="background:var(--accent-color); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; transition:transform 0.2s;">Entregar</button>`;
+                  }
+                  const feedbackRaw = String(item.miTarea.retroalimentacion || '').trim();
+                  if (feedbackRaw) {
+                    const feedbackSafe = feedbackRaw
+                      .replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;')
+                      .replace(/'/g, "\\'");
+                    const tituloSafe = String(item.titulo || 'Tarea')
+                      .replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;')
+                      .replace(/'/g, "\\'");
+                    botonRetroalimentacion = `<button onclick="abrirRetroalimentacionTarea('${tituloSafe}', '${feedbackSafe}')" style="background:#f59e0b; color:#111827; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:700; margin-top:6px;">Retroalimentación</button>`;
                   }
                 }
               } else {
@@ -29984,6 +30032,7 @@
                   <td style="text-align:center;">
                       ${estadoTareaHtml}
                       <div style="margin-top:5px;">${botonTarea}</div>
+                      ${botonRetroalimentacion ? `<div style="margin-top:6px;">${botonRetroalimentacion}</div>` : ''}
                   </td>
                   <td style="text-align:center;">
                       ${item.miTarea && item.miTarea.rubrica
@@ -30007,6 +30056,16 @@
           tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:red;">Error al cargar datos. Intenta recargar.</td></tr>';
         }
       }
+
+      window.abrirRetroalimentacionTarea = function (titulo, contenido) {
+        const modal = document.getElementById('modalRetroalimentacionTarea');
+        if (!modal) return;
+        const tituloEl = document.getElementById('retroalimentacionTareaTitulo');
+        const contenidoEl = document.getElementById('retroalimentacionTareaContenido');
+        if (tituloEl) tituloEl.textContent = titulo || '';
+        if (contenidoEl) contenidoEl.innerHTML = (contenido || '').replace(/\\n/g, '<br>');
+        modal.style.display = 'flex';
+      };
 
       // --- SUBIDA DE TAREA ---
       window.abrirModalSubirTarea = function (id, titulo, detalle) {
@@ -30782,6 +30841,11 @@
           };
         }
 
+        const inputRetroalimentacion = document.getElementById('inputRetroalimentacionTarea');
+        if (inputRetroalimentacion) {
+          inputRetroalimentacion.value = actualData.retroalimentacion || '';
+        }
+
         const iframe = document.getElementById('iframePDFEvaluador');
         if (iframe) {
           // Limpiar primero para evitar flashes de contenido anterior
@@ -30846,6 +30910,8 @@
         if (taskTitleEl) taskTitleEl.textContent = '—';
         const taskDetailEl = document.getElementById('rubricaTaskDetail');
         if (taskDetailEl) taskDetailEl.textContent = '—';
+        const feedbackEl = document.getElementById('inputRetroalimentacionTarea');
+        if (feedbackEl) feedbackEl.value = '';
         const fechaCierreEl = document.getElementById('labelFechaCierreTarea');
         if (fechaCierreEl) {
           fechaCierreEl.textContent = '—';
@@ -31726,6 +31792,7 @@
         if (window.currentEvaluandoId && currentEntregasData[window.currentEvaluandoId]) {
           currentEntregasData[window.currentEvaluandoId].nota = nota;
           currentEntregasData[window.currentEvaluandoId].estado = 'calificado';
+          currentEntregasData[window.currentEvaluandoId].retroalimentacion = null;
           // Guardar rúbrica: { "1": "excelente", "2": "bueno", ... }
           const rubricaGuardada = {};
           for (let i = 1; i <= 7; i++) {
@@ -31790,6 +31857,13 @@
           return;
         }
 
+        const retroalimentacionEl = document.getElementById('inputRetroalimentacionTarea');
+        const retroalimentacion = String(retroalimentacionEl?.value || '').trim();
+        if (!retroalimentacion) {
+          alert('❌ Debes escribir una retroalimentación antes de devolver la tarea.');
+          return;
+        }
+
         const emailAlumno = String(entregaActual.email || evalId);
         const confirmar = confirm(`⚠️ Vas a devolver la tarea de ${emailAlumno}.\n\nEsta acción eliminará el archivo y su registro para que pueda volver a enviarla.\n\n¿Deseas continuar?`);
         if (!confirmar) return;
@@ -31826,10 +31900,26 @@
               ...currentEntregasData[evalId],
               estado: 'devuelta',
               nota: null,
+              retroalimentacion,
               url: '',
               storagePath: '',
               fechaDevuelta: new Date().toISOString(),
             };
+          }
+
+          const saveResp = await fetch('/api/formulario?action=calificarTareas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...authHeaders },
+            body: JSON.stringify({
+              id: formId,
+              tareas: currentEntregasData,
+              targetVisitanteId: evalId,
+            }),
+          });
+
+          if (!saveResp.ok) {
+            const savePayload = await saveResp.json().catch(() => ({}));
+            throw new Error(savePayload.error || saveResp.statusText || 'No se pudo guardar la devolución');
           }
 
           alert('✅ Tarea devuelta correctamente. El usuario ya puede volver a enviarla.');

@@ -843,16 +843,17 @@ async function handleGetMusicPlaylists(req, res) {
       return res.status(401).json({ success: false, error: 'Usuario no autenticado' });
     }
 
-    // 1) Obtener listas propias del usuario (privadas)
+    // 1) Obtener listas propias del usuario (privadas, excluyendo automáticas)
     const { data: userPlaylists, error: userErr } = await supabase
       .from('music_playlists')
       .select('id,name,owner_id,created_at,music_playlist_items(id,position,music_id,musics(id,title,url,artist,album,is_video,metadata,owner_id,created_at))')
       .eq('owner_id', requesterId)
+      .not('name', 'like', '__AUTO__%')
       .order('created_at', { ascending: false });
 
     if (userErr) throw userErr;
 
-    // 2) Obtener listas automáticas compartidas (de cualquier propietario pero nomin starting with __AUTO__)
+    // 2) Obtener listas automáticas compartidas (de cualquier propietario)
     const { data: autoPlaylists, error: autoErr } = await supabase
       .from('music_playlists')
       .select('id,name,owner_id,created_at,music_playlist_items(id,position,music_id,musics(id,title,url,artist,album,is_video,metadata,owner_id,created_at))')

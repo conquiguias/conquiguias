@@ -832,7 +832,7 @@ async function handleGetMusics(req, res) {
   }
 }
 
-// ===== Música: playlists del usuario autenticado =====
+// ===== Música: playlists del usuario autenticado + listas automáticas compartidas =====
 async function handleGetMusicPlaylists(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Método no permitido' });
 
@@ -843,15 +843,27 @@ async function handleGetMusicPlaylists(req, res) {
       return res.status(401).json({ success: false, error: 'Usuario no autenticado' });
     }
 
-    const { data, error } = await supabase
+    // 1) Obtener listas propias del usuario (privadas)
+    const { data: userPlaylists, error: userErr } = await supabase
       .from('music_playlists')
       .select('id,name,owner_id,created_at,music_playlist_items(id,position,music_id,musics(id,title,url,artist,album,is_video,metadata,owner_id,created_at))')
       .eq('owner_id', requesterId)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (userErr) throw userErr;
 
-    const playlists = (Array.isArray(data) ? data : []).map((row) => ({
+    // 2) Obtener listas automáticas compartidas (de cualquier propietario pero nomin starting with __AUTO__)
+    const { data: autoPlaylists, error: autoErr } = await supabase
+      .from('music_playlists')
+      .select('id,name,owner_id,created_at,music_playlist_items(id,position,music_id,musics(id,title,url,artist,album,is_video,metadata,owner_id,created_at))')
+      .like('name', '__AUTO__%')
+      .order('created_at', { ascending: false });
+
+    if (autoErr) throw autoErr;
+
+    // 3) Combinar y mapear
+    const allData = [...(Array.isArray(autoPlaylists) ? autoPlaylists : []), ...(Array.isArray(userPlaylists) ? userPlaylists : [])];
+    const playlists = allData.map((row) => ({
       id: row.id,
       name: row.name,
       owner_id: row.owner_id,

@@ -12214,6 +12214,10 @@
             musicEnsurePlaybackStarted(media, state.playbackNonce);
           }
         }, 200);
+        // Asegurar que la vista se contabilice también tras el auto-advance
+        window.setTimeout(() => {
+          try { musicRegisterTrackView({ id: nextTrack?.id }).catch(() => {}); } catch (_) {}
+        }, 600);
       }
 
       function musicStopVolumeRamp() {
@@ -12342,8 +12346,11 @@
             } else if (eventName === 'canplaythrough') {
               musicMaybeStartFadeInWhenReady(media);
             } else if (eventName === 'play') {
-              musicDebugLog('media:play', { readyState: media.readyState, volume: media.volume });
-            } else if (eventName === 'timeupdate') {
+                  musicDebugLog('media:play', { readyState: media.readyState, volume: media.volume });
+                  try {
+                    musicRegisterTrackView({ id: musicGetCurrentTrackId() }).catch(() => {});
+                  } catch (_) {}
+                } else if (eventName === 'timeupdate') {
               const duration = Number(media.duration);
               const current = Number(media.currentTime);
               if (Number.isFinite(duration) && duration > 0 && Number.isFinite(current) && (duration - current) <= 0.25 && !state.__trackEndProcessing) {
@@ -12533,25 +12540,78 @@
 
         container.innerHTML = '';
         const posterUrl = musicResolveTrackImage(track, 'video', DEFAULT_TV_COVER_IMAGE);
-        const player = new Clappr.Player({
-          source: String(track.url || '').trim(),
+        const mediaUrl = String(track.url || '').trim();
+        const ext = getMediaUrlExtension(mediaUrl);
+        const isHls = ext === 'm3u8' || /\.m3u8(?:$|[?#])/i.test(mediaUrl);
+        
+        const playerOptions = {
+          source: mediaUrl,
           parentId: '#clapprPlayerPlaceholder',
           poster: posterUrl,
           width: '100%',
           height: '100%',
           autoPlay: true,
-          mute: false,
-          volume: 100,
-          mediacontrol: { seekbar: '#3b82f6', buttons: '#ffffff' },
+          hideVolumeBar: false,
+          disableVideoTagContextMenu: true,
+          playbackNotSupportedMessage: 'No se puede reproducir.',
+          plugins: getAvailableClapprPlugins(mediaUrl),
+          playbackRateConfig: buildClapprPlaybackRateConfig(),
+          levelSelectorConfig: buildClapprLevelSelectorConfig(),
           playback: {
+            crossOrigin: 'anonymous',
+            extrapolatedWindowNumSegments: 2,
+            triggerFatalErrorOnResourceDenied: false,
             playInline: true,
+            hlsjsConfig: {
+              enableWebVTT: true,
+              captions: true,
+              maxBufferLength: 10,
+              maxBufferSize: 12 * 1000 * 1000,
+              liveSyncDuration: 5,
+              liveMaxLatencyDuration: 60,
+              enableWorker: true,
+              enableSoftwareAES: true,
+              capLevelToPlayerSize: true,
+              autoStartLoad: true,
+              startPosition: -1,
+              maxRetries: 6,
+              retryDelay: 2000,
+              lowLatencyMode: isHls,
+            },
           },
-        });
+        };
+        
+        if (isHls) {
+          Object.assign(playerOptions, {
+            actualLiveTime: true,
+            hideMediaControl: true,
+            hlsUseNextLevel: true,
+            hlsMinimumDvrSize: 120,
+            hlsRecoverAttempts: 16,
+            hlsPlayback: {
+              preload: true,
+              customListeners: [],
+            },
+          });
+        }
+        
+        const player = new Clappr.Player(playerOptions);
         state.clapprPlayer = player;
         musicDebugLog('video:init:player-created', {
           elapsedMs: Math.round(performance.now() - startedAt),
           hasPlayer: !!player
         });
+
+        if (Clappr.Events?.PLAYER_PLAY) {
+          player.on(Clappr.Events.PLAYER_PLAY, () => {
+            musicDebugLog('video:player-play', {
+              playbackNonce,
+              currentNonce: state.playbackNonce,
+              currentIndex: state.currentIndex
+            });
+            try { musicRegisterTrackView(track).catch(() => {}); } catch (_) {}
+          });
+        }
 
         if (Clappr.Events?.PLAYER_ENDED) {
           player.on(Clappr.Events.PLAYER_ENDED, () => {

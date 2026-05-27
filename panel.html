@@ -11897,57 +11897,6 @@
           return;
         }
 
-        // Update lunaradio plugin DOM elements (cover, title, artist) when reusing instance
-        function musicUpdateLunaradioMetadata(track = null) {
-          try {
-            const key = 'lunaradioPlayerPlaceholder';
-            const entry = window.__lunaradioPlayers && window.__lunaradioPlayers[key];
-            const title = track?.title || '';
-            const artist = track?.artist || '';
-            const cover = musicResolveTrackImage(track, 'audio', '') || String(track?.cover || track?.coverimage || track?.radiocover || track?.image || track?.img || track?.thumbnailUrl || track?.thumbnail || track?.posterUrl || track?.luna_bg || '').trim() || '';
-            // Update spans and titles
-            if (window.jQuery) {
-              try {
-                window.jQuery('.' + key + 'texttitlespan').html(title);
-                window.jQuery('.' + key + 'textradionamespan').html(artist || title || 'Conquiguias Música');
-              } catch (e) {}
-            } else {
-              const tspan = document.querySelectorAll('.' + key + 'texttitlespan');
-              tspan.forEach(s => s.innerHTML = title);
-              const nspan = document.querySelectorAll('.' + key + 'textradionamespan');
-              nspan.forEach(s => s.innerHTML = artist || title || 'Conquiguias Música');
-            }
-
-            // Update cover backgrounds (best-effort)
-            try {
-              const bg1 = document.getElementById(key + 'backgroundimage1');
-              const bg2 = document.getElementById(key + 'backgroundimage2');
-              const cw1 = document.getElementById(key + 'coverwrapper1');
-              const cw2 = document.getElementById(key + 'coverwrapper2');
-              if (cover) {
-                if (bg1) { bg1.style.background = `url(${cover})`; bg1.style.opacity = '1.0'; }
-                if (bg2) { bg2.style.opacity = '0.0'; }
-                if (cw1) { cw1.style.background = `url(${cover})`; cw1.style.opacity = '1.0'; }
-                if (cw2) { cw2.style.opacity = '0.0'; }
-              }
-            } catch (e) {}
-
-            // Also update small variants
-            try {
-              const scw1 = document.getElementById(key + 'smallcoverwrapper1');
-              const scw2 = document.getElementById(key + 'smallcoverwrapper2');
-              if (cover) {
-                if (scw1) { scw1.style.background = `url(${cover})`; scw1.style.opacity = '1.0'; }
-                if (scw2) { scw2.style.opacity = '0.0'; }
-              }
-            } catch (e) {}
-
-            return true;
-          } catch (e) {
-            return false;
-          }
-        }
-
         musicDebugLog('track-info:set', {
           title: track.title || 'Sin título',
           artist: track.artist || '—',
@@ -11983,6 +11932,48 @@
         if (musicProgressDuration) musicProgressDuration.textContent = '0:00';
         musicUpdateTrackEngagementUI(track);
         musicHydrateTrackEngagement(track).catch(() => {});
+      }
+
+      function musicUpdateLunaradioMetadata(track = null) {
+        try {
+          const host = document.getElementById('lunaradioPlayerPlaceholder');
+          if (!host) return false;
+          const title = String(track?.title || '').trim();
+          const artist = String(track?.artist || '').trim();
+          const cover = musicResolveTrackImage(track, 'audio', '') || String(track?.cover || track?.coverimage || track?.radiocover || track?.image || track?.img || track?.thumbnailUrl || track?.thumbnail || track?.posterUrl || track?.luna_bg || '').trim() || '';
+
+          const titleNodes = host.querySelectorAll('.lunaradioPlayerPlaceholdertexttitlespan, .lunaradioPlayerPlaceholdersmalltexttitlespan, .lunaradioPlayerPlaceholdertexttitle, .lunaradioPlayerPlaceholdersmalltexttitle');
+          titleNodes.forEach((node) => { try { node.textContent = title || 'Sin título'; } catch (_) {} });
+
+          const nameNodes = host.querySelectorAll('.lunaradioPlayerPlaceholdertextradionamespan, .lunaradioPlayerPlaceholdersmalltextradionamespan, .lunaradioPlayerPlaceholdertextradioname, .lunaradioPlayerPlaceholdersmalltextradioname');
+          nameNodes.forEach((node) => { try { node.textContent = artist || title || 'Conquiguias Música'; } catch (_) {} });
+
+          if (cover) {
+            const backgroundIds = [
+              'lunaradioPlayerPlaceholderbackgroundimage1',
+              'lunaradioPlayerPlaceholderbackgroundimage2',
+              'lunaradioPlayerPlaceholdercoverwrapper1',
+              'lunaradioPlayerPlaceholdercoverwrapper2',
+              'lunaradioPlayerPlaceholdersmallcoverwrapper1',
+              'lunaradioPlayerPlaceholdersmallcoverwrapper2'
+            ];
+            backgroundIds.forEach((id) => {
+              const el = document.getElementById(id);
+              if (el) {
+                try {
+                  el.style.background = `url(${cover})`;
+                  el.style.backgroundRepeat = 'no-repeat';
+                  el.style.backgroundSize = 'cover';
+                  el.style.opacity = '1';
+                } catch (_) {}
+              }
+            });
+          }
+
+          return true;
+        } catch (_) {
+          return false;
+        }
       }
 
       function musicFormatTime(seconds) {
@@ -12488,6 +12479,7 @@
             state.plugin = state.plugin || window.jQuery('#lunaradioPlayerPlaceholder').data('lunaradio') || null;
             state.audio = musicGetActiveMediaElement();
             musicBindMediaListeners();
+            try { musicUpdateLunaradioMetadata(track); } catch (_) {}
             setPlaybackVolume(state.audio, 1);
             musicStopVolumeRamp();
             const audioEl = musicGetActiveMediaElement();
@@ -12514,6 +12506,7 @@
               state.plugin = state.plugin || window.jQuery('#lunaradioPlayerPlaceholder').data('lunaradio') || null;
               state.audio = musicGetActiveMediaElement();
               musicBindMediaListeners();
+              try { musicUpdateLunaradioMetadata(track); } catch (_) {}
               setPlaybackVolume(state.audio, 1);
               musicStopVolumeRamp();
               const audioEl = musicGetActiveMediaElement();
@@ -12536,6 +12529,7 @@
               state.plugin = state.plugin || window.jQuery('#lunaradioPlayerPlaceholder').data('lunaradio') || null;
               state.audio = musicGetActiveMediaElement();
               musicBindMediaListeners();
+              try { musicUpdateLunaradioMetadata(track); } catch (_) {}
               setPlaybackVolume(state.audio, 1);
               musicStopVolumeRamp();
               const audioEl = musicGetActiveMediaElement();
@@ -12716,11 +12710,72 @@
         musicDebugLog('video:init:done', { elapsedMs: Math.round(performance.now() - startedAt) });
       }
 
+      function musicReuseLunaradioInstance(track, { autoplay = true } = {}) {
+        try {
+          const state = window.__musicState;
+          if (!state || state.mode !== 'audio') return false;
+          if (!window.__lunaradioPlayers) return false;
+          const entry = window.__lunaradioPlayers.lunaradioPlayerPlaceholder;
+          if (!entry || !entry.instance || !entry.audio) return false;
+          const audio = entry.audio;
+          const inst = entry.instance;
+          const nextSrc = String(track?.url || '').trim();
+          if (!nextSrc) return false;
+          audio.__lunaradio_destroyed = false;
+          if (String(audio.src || '') !== nextSrc) {
+            try { audio.pause(); } catch (_) {}
+            try { audio.src = nextSrc; } catch (_) {}
+            try { audio.load?.(); } catch (_) {}
+          }
+          if (autoplay) {
+            try {
+              if (typeof inst.play === 'function') inst.play();
+              else if (typeof audio.play === 'function') audio.play().catch(() => {});
+            } catch (_) {}
+          }
+          musicDebugLog('reuse-lunaradio:switched-src', { src: nextSrc });
+          return true;
+        } catch (e) {
+          musicDebugLog('reuse-lunaradio:error', { error: String(e) });
+          return false;
+        }
+      }
+
+      function musicReuseClapprInstance(track, { autoplay = true } = {}) {
+        try {
+          const state = window.__musicState;
+          if (!state || state.mode !== 'video' || !state.clapprPlayer) return false;
+          const player = state.clapprPlayer;
+          const nextSrc = String(track?.url || '').trim();
+          if (!nextSrc) return false;
+          if (typeof player.load === 'function') {
+            player.load(nextSrc);
+            if (autoplay && typeof player.play === 'function') player.play();
+            musicDebugLog('reuse-clappr:loaded', { src: nextSrc });
+            return true;
+          }
+          const videoEl = player.core?.mediaControl?._playback?.el || player.core?.mediaElement || player.core?.el || null;
+          if (videoEl && videoEl.tagName === 'VIDEO') {
+            try { videoEl.pause(); } catch (_) {}
+            videoEl.src = nextSrc;
+            try { videoEl.load(); } catch (_) {}
+            if (autoplay) {
+              try { videoEl.play().catch(() => {}); } catch (_) {}
+            }
+            musicDebugLog('reuse-clappr:html5-video-switched', { src: nextSrc });
+            return true;
+          }
+          return false;
+        } catch (e) {
+          musicDebugLog('reuse-clappr:error', { error: String(e) });
+          return false;
+        }
+      }
+
       async function playMusicTrackByIndex(index, options = {}) {
         const state = window.__musicState;
         if (!Array.isArray(state.catalog) || !state.catalog[index]) return;
-        
-        // Guard: evitar múltiples creaciones simultáneas por clics rápidos
+
         if (state.isCreatingPlayer && !options.force) {
           musicDebugLog('track-select:blocked-already-creating', { index });
           return;
@@ -12730,75 +12785,50 @@
           musicDebugLog('track-select:force-switch', { index, reason: options.reason || 'force' });
           state.isCreatingPlayer = false;
         }
-        
+
         const autoplay = options.autoplay !== false;
+        const desiredMode = state.mode === 'video' ? 'video' : 'audio';
+        const track = state.catalog[index];
         musicDebugLog('track-select', {
           index,
           autoplay,
+          desiredMode,
           reason: options.reason || 'manual',
-          track: state.catalog[index]?.title || 'Sin título'
+          track: track?.title || 'Sin título'
         });
         state.currentIndex = index;
-        const track = state.catalog[index];
+        state.hasUserSelectedTrack = true;
+        musicSetTrackInfo(track);
+        try { musicUpdateLunaradioMetadata(track); } catch (_) {}
+
         if (!autoplay) {
           renderLocalMusicList();
           musicDebugLog('track-select:bootstrap-only', { index, track: track?.title || 'Sin título' });
           return;
         }
-        
-        // Intento: si ya existe una instancia de LunaRadio, reutilizarla cambiando el `src`
-        function musicReuseLunaradioInstance(track, { autoplay = true } = {}) {
-          try {
-            if (!window.__lunaradioPlayers) return false;
-            const key = 'lunaradioPlayerPlaceholder';
-            const entry = window.__lunaradioPlayers[key];
-            if (!entry || !entry.instance || !entry.audio) return false;
-            const inst = entry.instance;
-            const audio = entry.audio;
-            // evitar usar instancia marcada como destruida
-            audio.__lunaradio_destroyed = false;
-            try { audio.pause(); } catch (e) {}
-            if (String(audio.src || '') !== String(track.url || '')) {
-              try { audio.src = track.url || ''; } catch(e){}
-              try { if (typeof audio.load === 'function') audio.load(); } catch (e) {}
-            }
-            try {
-              if (autoplay) {
-                if (inst && typeof inst.play === 'function') inst.play();
-                else audio.play && audio.play().catch(()=>{});
-              }
-            } catch (e) {}
-            musicDebugLog('reuse-lunaradio:switched-src', { src: track.url });
-            return true;
-          } catch (e) {
-            musicDebugLog('reuse-lunaradio:error', { error: String(e) });
-            return false;
-          }
-        }
 
-        // Si conseguimos reutilizar la instancia, evitamos destruir y crear de nuevo
-        if (musicReuseLunaradioInstance(track, { autoplay: options.autoplay !== false })) {
-          state.activePlayerType = 'audio';
-          // actualizar UI/estado y liberar guard si estaba marcado
+        const reuseOk = desiredMode === 'video'
+          ? false  // Clappr: crear/destruir siempre, sin reuso
+          : musicReuseLunaradioInstance(track, { autoplay });
+
+        if (reuseOk) {
+          state.activePlayerType = desiredMode;
           renderLocalMusicList();
           try { updateMusicPlayStates(); } catch (_) {}
-          state.isCreatingPlayer = false;
+          try { musicRegisterTrackView(track).catch(() => {}); } catch (_) {}
+          musicUpdateTransportControls();
           return;
         }
 
-        // **Marcar que se está creando para evitar duplicados**
         state.isCreatingPlayer = true;
 
-        // Asegurar que no queden medias anteriores reproduciéndose:
         musicDestroyPlayers();
         try {
           await musicForceStopAllMedia(320);
         } catch (_) { }
 
-        // Intentar destruir cualquier instancia conocida del plugin por si quedó sin referencia
         try { musicDestroyAllPluginInstances(); } catch (_) { }
 
-        // Debug: listar medios activos después de la limpieza
         try {
           const active = Array.from(document.querySelectorAll('audio, video')).map((el) => ({
             tag: el.tagName,
@@ -12809,18 +12839,17 @@
           musicDebugLog('active-media-after-cleanup', { count: active.length, active });
         } catch (_) {}
 
-        musicSetTrackInfo(track);
-        if (state.mode === 'video') {
+        if (desiredMode === 'video') {
           initMusicVideoPlayer(track, { autoplay });
         } else {
           initMusicAudioPlayer(track, { autoplay });
         }
 
         musicRegisterTrackView(track).catch(() => {});
-        
+
         setTimeout(() => {
           updateMusicPlayStates();
-          state.isCreatingPlayer = false; // Liberar el guard después de renderizar
+          state.isCreatingPlayer = false;
         }, 150);
       }
 
@@ -13407,7 +13436,6 @@
 
         headerBtn.addEventListener('click', () => {
           if (!playlistId) return;
-          setMusicPlaylistSelected(playlistId, { expand: false });
           toggleMusicPlaylistExpanded(playlistId);
         });
 

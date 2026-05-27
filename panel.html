@@ -5349,6 +5349,9 @@
       background: rgba(255, 255, 255, 0.08);
       overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.06);
+      cursor: pointer;
+      touch-action: none;
+      user-select: none;
     }
 
     #musicaSection .music-progress-fill {
@@ -10817,6 +10820,93 @@
        }
      }
 
+    function musicSeekToTime(time, { updatePlugin = true } = {}) {
+      const state = window.__musicState;
+      const media = musicGetActiveMediaElement();
+      const duration = musicGetDuration(media);
+      if (!media || !(duration > 0)) return false;
+
+      const targetTime = Math.max(0, Math.min(duration, Number(time) || 0));
+      let ok = false;
+
+      try {
+        if (state.plugin && updatePlugin && typeof state.plugin.seek === 'function') {
+          state.plugin.seek(targetTime);
+          ok = true;
+        } else if (state.lunaInstance && updatePlugin && typeof state.lunaInstance.seek === 'function') {
+          state.lunaInstance.seek(targetTime);
+          ok = true;
+        }
+      } catch (e) {
+        musicDebugLog('seek:plugin-exception', { error: e?.message || String(e), targetTime });
+      }
+
+      if (!musicSetCurrentTime(media, targetTime)) {
+        ok = false;
+      }
+
+      musicUpdateProgress();
+      return ok;
+    }
+
+    function musicBindProgressSeekControls() {
+      const track = document.getElementById('musicProgressTrack');
+      if (!track || track.__musicSeekBound) return;
+      track.__musicSeekBound = true;
+
+      let dragging = false;
+      let activePointerId = null;
+
+      const seekFromEvent = (event) => {
+        const media = musicGetActiveMediaElement();
+        const duration = musicGetDuration(media);
+        if (!media || !(duration > 0)) return;
+
+        const rect = track.getBoundingClientRect();
+        const clientX = Number(event?.clientX ?? (event?.touches && event.touches[0]?.clientX));
+        if (!Number.isFinite(clientX) || rect.width <= 0) return;
+
+        const fraction = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        const targetTime = fraction * duration;
+        musicSeekToTime(targetTime);
+      };
+
+      const beginDrag = (event) => {
+        if (event.button != null && event.button !== 0) return;
+        dragging = true;
+        activePointerId = event.pointerId ?? null;
+        try {
+          if (track.setPointerCapture && activePointerId != null) {
+            track.setPointerCapture(activePointerId);
+          }
+        } catch (_) {}
+        seekFromEvent(event);
+        event.preventDefault();
+      };
+
+      const moveDrag = (event) => {
+        if (!dragging) return;
+        if (activePointerId != null && event.pointerId != null && event.pointerId !== activePointerId) return;
+        seekFromEvent(event);
+        event.preventDefault();
+      };
+
+      const endDrag = (event) => {
+        if (!dragging) return;
+        if (activePointerId != null && event.pointerId != null && event.pointerId !== activePointerId) return;
+        seekFromEvent(event);
+        dragging = false;
+        activePointerId = null;
+        event.preventDefault();
+      };
+
+      track.addEventListener('pointerdown', beginDrag);
+      window.addEventListener('pointermove', moveDrag, { passive: false });
+      window.addEventListener('pointerup', endDrag, { passive: false });
+      window.addEventListener('pointercancel', endDrag, { passive: false });
+      track.addEventListener('click', seekFromEvent);
+    }
+
      function musicIsPlaying(media) {
        if (!media) return false;
        return !media.paused && media.currentTime > 0;
@@ -12250,6 +12340,8 @@
         if (!media.paused && (Number(media.volume) || 0) < 0.01) {
           musicMaybeStartFadeInWhenReady(media);
         }
+
+        musicBindProgressSeekControls();
       }
 
       // Remover todos los listeners de un elemento media clonándolo y reemplazándolo

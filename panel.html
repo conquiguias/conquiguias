@@ -10925,67 +10925,57 @@
        if (media.paused) return 'paused';
        if (media.currentTime === 0) return 'stopped';
        return 'playing';
-         // Función para asegurar que la reproducción comienza
-         // Si LunaRadio no responde, intenta play() directo en el elemento audio
-         function musicEnsurePlaybackStarted(media, nonce) {
-           const state = window.__musicState;
-           if (state.playbackNonce !== nonce) return;
-           if (!media) return;
-       
-           if (musicIsPlaying(media)) {
-             musicDebugLog('playback:already-started', {
-               nonce,
-               status: musicGetPlaybackStatus(media)
-             });
-             return;
-           }
-       
-           musicDebugLog('playback:ensure-start-attempt', {
-             nonce,
-             status: musicGetPlaybackStatus(media),
-             currentTime: musicGetCurrentTime(media),
-             duration: musicGetDuration(media)
-           });
-       
-           // Intentar via LunaRadio primero
-           try {
-             if (state.lunaInstance && typeof state.lunaInstance.lunaradio === 'function') {
-               state.lunaInstance.lunaradio('play');
-               musicDebugLog('playback:via-lunaradio', { nonce });
-               return;
-             }
-           } catch (e) {
-             musicDebugLog('playback:lunaradio-failed', { nonce, error: e?.message });
-           }
-       
-           // Fallback: play directo en el elemento audio
-           if (musicPlayDirect(media)) {
-             musicDebugLog('playback:via-direct', { nonce });
-           } else {
-             musicDebugLog('playback:failed', { nonce });
-           }
-         }
      }
 
-      // 🔹 Detectar usuario logueado
-      onAuthStateChanged(auth, async (user) => {
-        if (!user) {
-          try {
-            if (typeof auth.authStateReady === 'function') {
-              await auth.authStateReady();
-            }
-          } catch (stateReadyError) {
-            console.warn('[WARN] authStateReady falló en panel:', stateReadyError);
-          }
+     // Función para asegurar que la reproducción comienza
+     // Si LunaRadio no responde, intenta play() directo en el elemento audio
+     function musicEnsurePlaybackStarted(media, nonce) {
+       const state = window.__musicState;
+       if (state.playbackNonce !== nonce) return;
+       if (!media) return;
+
+       if (musicIsPlaying(media)) {
+         musicDebugLog('playback:already-started', {
+           nonce,
+           status: musicGetPlaybackStatus(media)
+         });
+         return;
+       }
+
+       musicDebugLog('playback:ensure-start-attempt', {
+         nonce,
+         status: musicGetPlaybackStatus(media),
+         currentTime: musicGetCurrentTime(media),
+         duration: musicGetDuration(media)
+       });
+
+       // Intentar via LunaRadio primero
+       try {
+         if (state.lunaInstance && typeof state.lunaInstance.lunaradio === 'function') {
+           state.lunaInstance.lunaradio('play');
+           musicDebugLog('playback:via-lunaradio', { nonce });
+           return;
+         }
+       } catch (e) {
+         musicDebugLog('playback:lunaradio-failed', { nonce, error: e?.message });
+       }
+
+       // Fallback: play directo en el elemento audio
+       if (musicPlayDirect(media)) {
+         musicDebugLog('playback:via-direct', { nonce });
+       } else {
+         musicDebugLog('playback:failed', { nonce });
+       }
+     }
 
      // ==================== ENHANCED END-OF-TRACK DETECTION ====================
-     
+
      function musicSetupAudioEndListener(audioEl, playbackNonce) {
        const state = window.__musicState;
        if (!audioEl || audioEl.__music_end_listeners_bound === playbackNonce) return;
-       
+
        audioEl.__music_end_listeners_bound = playbackNonce;
-       
+
        musicDebugLog('audio:setup-end-listeners', {
          playbackNonce,
          hasAudio: !!audioEl,
@@ -11007,6 +10997,18 @@
        };
        audioEl.addEventListener('ended', onEnded);
      }
+
+      // 🔹 Detectar usuario logueado
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          try {
+            if (typeof auth.authStateReady === 'function') {
+              await auth.authStateReady();
+            }
+          } catch (stateReadyError) {
+            console.warn('[WARN] authStateReady falló en panel:', stateReadyError);
+          }
+
           const recoveredUser = auth.currentUser;
           if (recoveredUser) {
             return;

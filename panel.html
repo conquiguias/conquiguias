@@ -12388,6 +12388,8 @@
               musicDebugLog(eventName, { time: media.currentTime, duration: media.duration, paused: media.paused });
             }
             musicUpdateProgress();
+            try { updateMusicPlayStates(); } catch (_) {}
+            try { musicUpdateTransportControls(); } catch (_) {}
           });
         });
 
@@ -12658,6 +12660,15 @@
               currentIndex: state.currentIndex
             });
             try { musicRegisterTrackView(track).catch(() => {}); } catch (_) {}
+            try { updateMusicPlayStates(); } catch (_) {}
+            try { musicUpdateTransportControls(); } catch (_) {}
+          });
+        }
+
+        if (Clappr.Events?.PLAYER_PAUSE) {
+          player.on(Clappr.Events.PLAYER_PAUSE, () => {
+            try { updateMusicPlayStates(); } catch (_) {}
+            try { musicUpdateTransportControls(); } catch (_) {}
           });
         }
 
@@ -14184,8 +14195,6 @@
         if (state.initialized) {
           const openAddMusicModalBtn = document.getElementById('openAddMusicModalBtn');
           if (openAddMusicModalBtn) openAddMusicModalBtn.style.display = window.isOwner ? '' : 'none';
-          loadMusicCatalog();
-          loadMusicPlaylists();
           musicUpdateTransportControls();
           return;
         }

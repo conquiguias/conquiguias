@@ -9619,6 +9619,8 @@
         return data;
       }
 
+      window.getTareasExamenesConCache = getTareasExamenesConCache;
+
       async function getCertificacionesEstadoConCache(forceReload = false) {
         const cacheKey = getAcademicCacheKey();
         if (!forceReload && certificacionesEstadoCache?.key === cacheKey && Array.isArray(certificacionesEstadoCache?.data) && isFreshCache(certificacionesEstadoCacheTime)) {
@@ -9660,9 +9662,13 @@
         return data;
       }
 
+      window.getCertificacionesEstadoConCache = getCertificacionesEstadoConCache;
+
       async function getEstadoUsuarioConCache(forceReload = false) {
         return getTareasExamenesConCache(forceReload);
       }
+
+      window.getEstadoUsuarioConCache = getEstadoUsuarioConCache;
 
       async function getCertificacionEvaluacionConCache(formularioId, forceReload = false) {
         const safeId = String(formularioId || '').trim();
@@ -9684,6 +9690,8 @@
         certificacionEvaluacionCache.set(safeId, { data: examen, cachedAt: Date.now() });
         return examen;
       }
+
+      window.getCertificacionEvaluacionConCache = getCertificacionEvaluacionConCache;
 
       window.isOwner = false;
       window.isInstructorRole = false;
@@ -15954,7 +15962,11 @@
           const user = auth.currentUser;
           if (!user || !user.email) return;
 
-          const rawData = await getCertificacionesEstadoConCache(forceReload);
+          const getCertificacionesEstadoConCacheFn = window.getCertificacionesEstadoConCache || globalThis.getCertificacionesEstadoConCache;
+          if (typeof getCertificacionesEstadoConCacheFn !== 'function') {
+            throw new Error('getCertificacionesEstadoConCache no está disponible');
+          }
+          const rawData = await getCertificacionesEstadoConCacheFn(forceReload);
 
           if (!rawData || rawData.length === 0) {
             if (loading) loading.style.display = 'none';
@@ -29879,7 +29891,11 @@
         if (!email) email = localStorage.getItem('userEmail');
 
         try {
-          const data = await getCertificacionesEstadoConCache(forceReload);
+          const getCertificacionesEstadoConCacheFn = window.getCertificacionesEstadoConCache || globalThis.getCertificacionesEstadoConCache;
+          if (typeof getCertificacionesEstadoConCacheFn !== 'function') {
+            throw new Error('getCertificacionesEstadoConCache no está disponible');
+          }
+          const data = await getCertificacionesEstadoConCacheFn(forceReload);
           const userPendingTasksCount = countTaskSpecialtiesNotDelivered(data);
           updateTaskPendingBadge(userPendingTasksCount);
           lastTaskPendingCount = userPendingTasksCount;
@@ -31186,7 +31202,11 @@
             return;
           }
 
-          const data = await getCertificacionesEstadoConCache(forceReload);
+          const getCertificacionesEstadoConCacheFn = window.getCertificacionesEstadoConCache || globalThis.getCertificacionesEstadoConCache;
+          if (typeof getCertificacionesEstadoConCacheFn !== 'function') {
+            throw new Error('getCertificacionesEstadoConCache no está disponible');
+          }
+          const data = await getCertificacionesEstadoConCacheFn(forceReload);
 
           tbody.innerHTML = ''; // Limpiar ahora sí
 

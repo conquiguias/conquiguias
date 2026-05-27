@@ -11402,6 +11402,21 @@
       window.__musicDebugEnabled = false;
       function musicDebugLog() { /* no-op: debug logs removed */ }
 
+      const POST_REACTION_COOLDOWN_MS = 1200;
+      const POST_COMMENT_COOLDOWN_MS = 1500;
+      window.__postInteractionGuards = window.__postInteractionGuards || {
+        reactionPending: new Set(),
+        reactionLastAt: new Map(),
+        commentPending: new Set(),
+        commentLastAt: new Map(),
+      };
+
+      function getPostInteractionKey(postId) {
+        const normalizedPostId = String(postId || '').trim();
+        const normalizedUid = String(currentUserId || 'guest').trim() || 'guest';
+        return `${normalizedPostId}::${normalizedUid}`;
+      }
+
       // Favorites helpers (persistent in localStorage)
       function getMusicFavorites() {
         try { return JSON.parse(localStorage.getItem('musicFavorites') || '[]'); } catch (e) { return []; }
@@ -11830,70 +11845,92 @@
         const normalizedVote = String(vote || '').trim().toLowerCase();
         if (!normalizedTrackId || !['like', 'dislike'].includes(normalizedVote)) return false;
 
-        const viewerKey = musicGetViewerKey();
-        const voteStorageKey = musicGetTrackVoteStorageKey(normalizedTrackId, viewerKey);
-        const currentStats = musicLoadStoredTrackStats(normalizedTrackId);
-        const previousVote = String(currentStats.userVote || '').trim();
-        let nextVote = normalizedVote;
-        let likesDelta = 0;
-        let dislikesDelta = 0;
-
-        if (previousVote === normalizedVote) {
-          nextVote = '';
+        const state = window.__musicState;
+        state.trackReactionPending = state.trackReactionPending || new Set();
+        if (state.trackReactionPending.has(normalizedTrackId)) {
+          return false;
         }
+        state.trackReactionPending.add(normalizedTrackId);
 
-        if (previousVote === 'like') likesDelta -= 1;
-        if (previousVote === 'dislike') dislikesDelta -= 1;
-        if (nextVote === 'like') likesDelta += 1;
-        if (nextVote === 'dislike') dislikesDelta += 1;
+        const likeBtn = document.getElementById('trackLikeBtn');
+        const dislikeBtn = document.getElementById('trackDislikeBtn');
+        if (likeBtn) likeBtn.disabled = true;
+        if (dislikeBtn) dislikeBtn.disabled = true;
 
-        const nextStats = {
-          ...currentStats,
-          likes: Math.max(0, Number(currentStats.likes) + likesDelta),
-          dislikes: Math.max(0, Number(currentStats.dislikes) + dislikesDelta),
-          userVote: nextVote,
-        };
-        musicSaveStoredTrackStats(normalizedTrackId, nextStats);
         try {
-          if (nextVote) {
-            localStorage.setItem(voteStorageKey, nextVote);
-          } else {
-            localStorage.removeItem(voteStorageKey);
+          const viewerKey = musicGetViewerKey();
+          const voteStorageKey = musicGetTrackVoteStorageKey(normalizedTrackId, viewerKey);
+          const currentStats = musicLoadStoredTrackStats(normalizedTrackId);
+          const previousVote = String(currentStats.userVote || '').trim();
+          let nextVote = normalizedVote;
+          let likesDelta = 0;
+          let dislikesDelta = 0;
+
+          if (previousVote === normalizedVote) {
+            nextVote = '';
           }
-        } catch (_) {}
 
-        musicUpdateTrackEngagementUI(track || { id: normalizedTrackId });
+          if (previousVote === 'like') likesDelta -= 1;
+          if (previousVote === 'dislike') dislikesDelta -= 1;
+          if (nextVote === 'like') likesDelta += 1;
+          if (nextVote === 'dislike') dislikesDelta += 1;
 
-        try {
-          const payload = await musicApiRequest('set-music-track-reaction', {
-            method: 'POST',
-            body: {
-              trackId: normalizedTrackId,
-              viewerKey,
-              vote: nextVote,
-            },
-          });
-          if (payload && payload.success) {
-            const mergedStats = {
-              likes: Math.max(0, Number(payload.likes) || 0),
-              dislikes: Math.max(0, Number(payload.dislikes) || 0),
-              views: Math.max(0, Number(payload.views) || 0),
-              userVote: String(payload.userVote || '').trim(),
-            };
-            musicSaveStoredTrackStats(normalizedTrackId, mergedStats);
-            try {
-              if (mergedStats.userVote) localStorage.setItem(voteStorageKey, mergedStats.userVote);
-              else localStorage.removeItem(voteStorageKey);
-            } catch (_) {}
-            if (musicGetCurrentTrackId() === normalizedTrackId) {
-              musicUpdateTrackEngagementUI(track || { id: normalizedTrackId });
+          const nextStats = {
+            ...currentStats,
+            likes: Math.max(0, Number(currentStats.likes) + likesDelta),
+            dislikes: Math.max(0, Number(currentStats.dislikes) + dislikesDelta),
+            userVote: nextVote,
+          };
+          musicSaveStoredTrackStats(normalizedTrackId, nextStats);
+          try {
+            if (nextVote) {
+              localStorage.setItem(voteStorageKey, nextVote);
+            } else {
+              localStorage.removeItem(voteStorageKey);
             }
-          }
-        } catch (_) {
-          // Local state already updated
-        }
+          } catch (_) {}
 
-        return true;
+          musicUpdateTrackEngagementUI(track || { id: normalizedTrackId });
+
+          try {
+            const payload = await musicApiRequest('set-music-track-reaction', {
+              method: 'POST',
+              body: {
+                trackId: normalizedTrackId,
+                viewerKey,
+                vote: nextVote,
+              },
+            });
+            if (payload && payload.success) {
+              const mergedStats = {
+                likes: Math.max(0, Number(payload.likes) || 0),
+                dislikes: Math.max(0, Number(payload.dislikes) || 0),
+                views: Math.max(0, Number(payload.views) || 0),
+                userVote: String(payload.userVote || '').trim(),
+              };
+              musicSaveStoredTrackStats(normalizedTrackId, mergedStats);
+              try {
+                if (mergedStats.userVote) localStorage.setItem(voteStorageKey, mergedStats.userVote);
+                else localStorage.removeItem(voteStorageKey);
+              } catch (_) {}
+              if (musicGetCurrentTrackId() === normalizedTrackId) {
+                musicUpdateTrackEngagementUI(track || { id: normalizedTrackId });
+              }
+            }
+          } catch (_) {
+            // Local state already updated
+          }
+
+          return true;
+        } finally {
+          state.trackReactionPending.delete(normalizedTrackId);
+          if (musicGetCurrentTrackId()) {
+            musicUpdateTrackEngagementUI({ id: musicGetCurrentTrackId() });
+          } else {
+            if (likeBtn) likeBtn.disabled = false;
+            if (dislikeBtn) dislikeBtn.disabled = false;
+          }
+        }
       }
 
       function musicSetTrackInfo(track = null) {
@@ -13188,12 +13225,23 @@
           return;
         }
 
-        if (playlistId && String(state.selectedPlaylistId || '').trim() !== String(playlistId).trim()) {
+        const normalizedPlaylistId = String(playlistId || '').trim();
+
+        if (normalizedPlaylistId && String(state.selectedPlaylistId || '').trim() !== normalizedPlaylistId) {
           // Si el modo actual es 'audio' NO detener la reproducción para evitar recrear LunaRadio
           const stopPlayback = state.mode !== 'audio';
-          await setMusicPlaylistSelected(playlistId, { expand, stopPlayback });
-        } else if (playlistId && expand) {
-          setMusicPlaylistExpanded(playlistId, true);
+          await setMusicPlaylistSelected(normalizedPlaylistId, { expand, stopPlayback });
+        } else if (normalizedPlaylistId && expand) {
+          setMusicPlaylistExpanded(normalizedPlaylistId, true);
+        }
+
+        // Caso clave: si la playlist ya estaba seleccionada, su catálogo puede no estar cargado aún
+        if (normalizedPlaylistId) {
+          const hasTrackInCatalog = Array.isArray(state.catalog)
+            && state.catalog.some((item) => String(item?.id || '').trim() === normalizedId);
+          if (!hasTrackInCatalog) {
+            await loadPlaylistTracks(normalizedPlaylistId);
+          }
         }
 
         state.hasUserSelectedTrack = true;
@@ -22469,11 +22517,16 @@
       }
 
       async function getPostComments(postId) {
-        const postRef = doc(db, 'posts', postId);
-        const postSnap = await getDoc(postRef);
-        if (!postSnap.exists()) return [];
-        const data = postSnap.data() || {};
-        return Array.isArray(data.comments) ? data.comments : [];
+        const normalizedPostId = String(postId || '').trim();
+        if (!normalizedPostId) return [];
+        try {
+          const response = await fetch(`/api/social?action=get-post-comments&postId=${encodeURIComponent(normalizedPostId)}`);
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !payload?.success) return [];
+          return Array.isArray(payload.comments) ? payload.comments : [];
+        } catch (_) {
+          return [];
+        }
       }
 
       async function syncCommentsUI(postId) {
@@ -22499,56 +22552,89 @@
       async function submitComment(postId, text) {
         if (isGuestSession || !currentUserId) {
           mostrarMensaje('info', 'Inicia sesión', 'Debes iniciar sesión para comentar.');
-          return;
+          return false;
         }
 
         const normalizedText = String(text || '').trim();
-        if (!normalizedText) return;
+        if (!normalizedText) return false;
         if (normalizedText.length > 300) {
           mostrarMensaje('info', 'Comentario muy largo', 'El comentario no puede superar 300 caracteres.');
-          return;
+          return false;
         }
 
-        const postRef = doc(db, 'posts', postId);
-        const postSnap = await getDoc(postRef);
-        if (!postSnap.exists()) {
-          mostrarMensaje('error', 'Post no encontrado', 'La publicación ya no existe.');
-          return;
+        const guardState = window.__postInteractionGuards || {};
+        const commentPending = guardState.commentPending || new Set();
+        const commentLastAt = guardState.commentLastAt || new Map();
+        guardState.commentPending = commentPending;
+        guardState.commentLastAt = commentLastAt;
+
+        const interactionKey = getPostInteractionKey(postId);
+        if (commentPending.has(interactionKey)) return false;
+
+        const now = Date.now();
+        const lastAt = Number(commentLastAt.get(interactionKey) || 0);
+        if (lastAt && now - lastAt < POST_COMMENT_COOLDOWN_MS) {
+          mostrarMensaje('info', 'Espera un momento', 'Evita enviar comentarios tan rápido.');
+          return false;
         }
 
-        const data = postSnap.data() || {};
-        const currentComments = Array.isArray(data.comments) ? data.comments : [];
-        const newComment = {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-          userId: currentUserId,
-          userName: `${window.userData?.nombre || ''} ${window.userData?.apellido || ''}`.trim() || 'Usuario',
-          userPhoto: window.userData?.fotoURL || '',
-          text: normalizedText,
-          createdAt: new Date().toISOString(),
-        };
+        commentPending.add(interactionKey);
 
-        await updateDoc(postRef, {
-          comments: [...currentComments, newComment],
-        });
+        try {
+          const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
+          if (!idToken) {
+            mostrarMensaje('info', 'Inicia sesión', 'Debes iniciar sesión para comentar.');
+            return false;
+          }
 
-        await syncCommentsUI(postId);
+          const response = await fetch('/api/social?action=add-post-comment', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${idToken}`,
+            },
+            body: JSON.stringify({
+              postId,
+              text: normalizedText,
+              userName: `${window.userData?.nombre || ''} ${window.userData?.apellido || ''}`.trim() || 'Usuario',
+              userPhoto: window.userData?.fotoURL || '',
+            }),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !payload?.success) {
+            mostrarMensaje('error', 'Error', payload?.error || 'No se pudo guardar el comentario.');
+            return false;
+          }
+
+          await syncCommentsUI(postId);
+          commentLastAt.set(interactionKey, Date.now());
+          return true;
+        } finally {
+          commentPending.delete(interactionKey);
+        }
       }
 
       async function deleteComment(postId, commentId) {
-        const postRef = doc(db, 'posts', postId);
-        const postSnap = await getDoc(postRef);
-        if (!postSnap.exists()) return;
-
-        const data = postSnap.data() || {};
-        const currentComments = Array.isArray(data.comments) ? data.comments : [];
-        const targetComment = currentComments.find((comment) => comment?.id === commentId);
-        if (!canDeleteComment(targetComment)) {
-          mostrarMensaje('error', 'Sin permisos', 'No puedes eliminar este comentario.');
+        const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
+        if (!idToken) {
+          mostrarMensaje('info', 'Inicia sesión', 'Debes iniciar sesión para eliminar comentarios.');
           return;
         }
 
-        const updatedComments = currentComments.filter((comment) => comment?.id !== commentId);
-        await updateDoc(postRef, { comments: updatedComments });
+        const response = await fetch('/api/social?action=delete-post-comment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({ postId, commentId }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload?.success) {
+          mostrarMensaje('error', 'Error', payload?.error || 'No se pudo eliminar el comentario.');
+          return;
+        }
+
         await syncCommentsUI(postId);
       }
 
@@ -23303,16 +23389,42 @@
         if (!form) return;
 
         event.preventDefault();
+        if (form.dataset.submitting === '1') return;
         const postId = form.getAttribute('data-postid');
         const input = form.querySelector('.comment-input');
+        const submitBtn = form.querySelector('.comment-submit-btn');
         const text = input?.value || '';
 
+        form.dataset.submitting = '1';
+        if (input) input.disabled = true;
+        if (submitBtn) submitBtn.disabled = true;
+
         try {
-          await submitComment(postId, text);
+          const ok = await submitComment(postId, text);
           if (input) input.value = '';
+          if (!ok) {
+            // keep current text if no-op by anti-spam guard
+            if (input) input.value = text;
+          }
         } catch (error) {
           console.error('Error guardando comentario:', error);
           mostrarMensaje('error', 'Error', 'No se pudo guardar el comentario.');
+        } finally {
+          form.dataset.submitting = '0';
+          if (input) input.disabled = false;
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') return;
+        const input = event.target?.closest?.('.comment-input');
+        if (!input) return;
+        const form = input.closest('.comment-form');
+        if (!form) return;
+        if (form.dataset.submitting === '1') {
+          event.preventDefault();
+          event.stopPropagation();
         }
       });
 
@@ -23627,73 +23739,78 @@
             return;
           }
 
-          const postRef = doc(db, "posts", postId);
-          const postDoc = await getDoc(postRef);
+          const guardState = window.__postInteractionGuards || {};
+          const reactionPending = guardState.reactionPending || new Set();
+          const reactionLastAt = guardState.reactionLastAt || new Map();
+          guardState.reactionPending = reactionPending;
+          guardState.reactionLastAt = reactionLastAt;
 
-          if (!postDoc.exists()) {
-            console.error('❌ El post no existe');
+          const interactionKey = getPostInteractionKey(postId);
+          if (reactionPending.has(interactionKey)) {
             return;
           }
 
-          const postData = postDoc.data();
-
-          // Inicializar reactions si no existen
-          if (!postData.reactions) {
-            postData.reactions = {
-              like: [], laugh: [], seven: []
-            };
+          const now = Date.now();
+          const lastAt = Number(reactionLastAt.get(interactionKey) || 0);
+          if (lastAt && now - lastAt < POST_REACTION_COOLDOWN_MS) {
+            mostrarMensaje('info', 'Espera un momento', 'Evita reaccionar tan rápido.');
+            return;
           }
 
-          // 🔥 NUEVA LÓGICA: Reacciones exclusivas
-          const updatedReactions = { ...postData.reactions };
-          const allReactionTypes = ['like', 'laugh', 'seven'];
-
-          // 1. Verificar si el usuario ya tenía esta misma reacción
-          const currentReactionIndex = updatedReactions[newReaction]?.indexOf(currentUserId);
-          const hadThisReaction = currentReactionIndex > -1;
-
-          if (hadThisReaction) {
-            // 🔄 Caso 1: Ya tenía esta reacción → REMOVERLA (toggle off)
-            console.log(`➖ Usuario ya tenía ${newReaction}, removiendo...`);
-            updatedReactions[newReaction].splice(currentReactionIndex, 1);
-          } else {
-            // 🔄 Caso 2: Nueva reacción → REMOVER de todas y AGREGAR a la nueva
-            console.log(`🔄 Usuario cambia a ${newReaction}`);
-
-            // Remover al usuario de TODAS las reacciones primero
-            allReactionTypes.forEach(reactionType => {
-              if (updatedReactions[reactionType]) {
-                const userIndex = updatedReactions[reactionType].indexOf(currentUserId);
-                if (userIndex > -1) {
-                  updatedReactions[reactionType].splice(userIndex, 1);
-                  console.log(`➖ Removido de ${reactionType}`);
-                }
-              }
-            });
-
-            // Agregar a la nueva reacción
-            if (!updatedReactions[newReaction]) {
-              updatedReactions[newReaction] = [];
-            }
-            updatedReactions[newReaction].push(currentUserId);
-            console.log(`➕ Agregado a ${newReaction}`);
-          }
-
-          console.log('📝 Reacciones actualizadas:', updatedReactions);
-
-          // Actualizar en Firestore
-          await updateDoc(postRef, {
-            reactions: updatedReactions
+          reactionPending.add(interactionKey);
+          const reactionButtons = document.querySelectorAll(`.reaction-btn[data-postid="${postId}"]`);
+          reactionButtons.forEach((button) => {
+            button.dataset.pendingLock = '1';
+            button.disabled = true;
           });
 
-          console.log('✅ Reacción actualizada exitosamente');
+          const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
+          if (!idToken) {
+            mostrarMensaje('info', 'Inicia sesión', 'Debes iniciar sesión para reaccionar.');
+            return;
+          }
 
-          // Actualizar visualmente TODOS los botones de este post
+          const response = await fetch('/api/social?action=set-post-reaction', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${idToken}`,
+            },
+            body: JSON.stringify({
+              postId,
+              reaction: newReaction,
+            }),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !payload?.success) {
+            mostrarMensaje('error', 'Error al reaccionar', payload?.error || 'No se pudo agregar la reacción. Intenta nuevamente.');
+            return;
+          }
+
+          const updatedReactions = payload?.reactions && typeof payload.reactions === 'object'
+            ? payload.reactions
+            : { like: [], laugh: [], seven: [] };
+
           updateReactionButtons(postId, updatedReactions);
+          reactionLastAt.set(interactionKey, Date.now());
 
         } catch (error) {
           console.error('❌ Error agregando reacción:', error);
           mostrarMensaje('error', 'Error al reaccionar', 'No se pudo agregar la reacción. Intenta nuevamente.');
+        } finally {
+          const guardState = window.__postInteractionGuards || {};
+          const reactionPending = guardState.reactionPending || new Set();
+          const interactionKey = getPostInteractionKey(postId);
+          reactionPending.delete(interactionKey);
+
+          const reactionButtons = document.querySelectorAll(`.reaction-btn[data-postid="${postId}"]`);
+          reactionButtons.forEach((button) => {
+            if (button.dataset.pendingLock === '1') {
+              delete button.dataset.pendingLock;
+              const permanentlyDisabled = button.classList.contains('disabled') || button.getAttribute('aria-disabled') === 'true';
+              button.disabled = permanentlyDisabled;
+            }
+          });
         }
       }
 

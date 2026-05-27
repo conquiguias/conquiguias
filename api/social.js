@@ -70,6 +70,21 @@ const ADMIN_NOTES_MAX_TABS = 30;
 const DELETE_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const DELETE_RATE_LIMIT_MAX_REQUESTS = 20;
 const deleteRateLimitStore = new Map();
+const REACTION_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const REACTION_RATE_LIMIT_MAX_REQUESTS = 40;
+const REACTION_TRACK_COOLDOWN_MS = 1200;
+const reactionRateLimitStore = new Map();
+const reactionTrackCooldownStore = new Map();
+const POST_REACTION_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const POST_REACTION_RATE_LIMIT_MAX_REQUESTS = 35;
+const POST_REACTION_COOLDOWN_MS = 1200;
+const postReactionRateLimitStore = new Map();
+const postReactionCooldownStore = new Map();
+const POST_COMMENT_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const POST_COMMENT_RATE_LIMIT_MAX_REQUESTS = 20;
+const POST_COMMENT_COOLDOWN_MS = 1500;
+const postCommentRateLimitStore = new Map();
+const postCommentCooldownStore = new Map();
 const SECURITY_RATE_LIMITS_COLLECTION = "security_rate_limits";
 
 function resolveUserNotesType() {
@@ -144,6 +159,89 @@ function enforceDeleteRateLimit(identityKey) {
 
   existing.count += 1;
   deleteRateLimitStore.set(key, existing);
+}
+
+function enforceReactionRateLimit(identityKey) {
+  const key = String(identityKey || "").trim();
+  if (!key) {
+    const error = new Error("No se pudo identificar la solicitud de reacción");
+    error.statusCode = 429;
+    throw error;
+  }
+
+  const now = Date.now();
+  const existing = reactionRateLimitStore.get(key) || { count: 0, windowStart: now };
+  const isExpired = now - existing.windowStart >= REACTION_RATE_LIMIT_WINDOW_MS;
+
+  if (isExpired) {
+    reactionRateLimitStore.set(key, { count: 1, windowStart: now });
+    return;
+  }
+
+  if (existing.count >= REACTION_RATE_LIMIT_MAX_REQUESTS) {
+    const error = new Error("Demasiadas reacciones en poco tiempo. Intenta de nuevo en unos segundos");
+    error.statusCode = 429;
+    throw error;
+  }
+
+  existing.count += 1;
+  reactionRateLimitStore.set(key, existing);
+}
+
+function enforceReactionTrackCooldown(viewerKey, trackId) {
+  const key = `${String(viewerKey || "").trim()}__${String(trackId || "").trim()}`;
+  if (!key || key === "__") return;
+
+  const now = Date.now();
+  const last = Number(reactionTrackCooldownStore.get(key) || 0);
+  if (last > 0 && now - last < REACTION_TRACK_COOLDOWN_MS) {
+    const error = new Error("Espera un momento antes de volver a reaccionar a esta canción");
+    error.statusCode = 429;
+    throw error;
+  }
+
+  reactionTrackCooldownStore.set(key, now);
+}
+
+function enforceWindowRateLimit(store, identityKey, windowMs, maxRequests, message) {
+  const key = String(identityKey || "").trim();
+  if (!key) {
+    const error = new Error("No se pudo identificar la solicitud");
+    error.statusCode = 429;
+    throw error;
+  }
+
+  const now = Date.now();
+  const existing = store.get(key) || { count: 0, windowStart: now };
+  const isExpired = now - existing.windowStart >= windowMs;
+
+  if (isExpired) {
+    store.set(key, { count: 1, windowStart: now });
+    return;
+  }
+
+  if (existing.count >= maxRequests) {
+    const error = new Error(message || "Demasiadas solicitudes. Intenta de nuevo en unos segundos");
+    error.statusCode = 429;
+    throw error;
+  }
+
+  existing.count += 1;
+  store.set(key, existing);
+}
+
+function enforcePairCooldown(store, pairKey, cooldownMs, message) {
+  const key = String(pairKey || "").trim();
+  if (!key) return;
+
+  const now = Date.now();
+  const last = Number(store.get(key) || 0);
+  if (last > 0 && now - last < cooldownMs) {
+    const error = new Error(message || "Espera un momento antes de repetir esta acción");
+    error.statusCode = 429;
+    throw error;
+  }
+  store.set(key, now);
 }
 
 export default async function handler(req, res) {
@@ -252,6 +350,18 @@ export default async function handler(req, res) {
         break;
       case "notify-post-approved":
         await handleNotifyPostApproved(req, res);
+        break;
+      case "get-post-comments":
+        await handleGetPostComments(req, res);
+        break;
+      case "add-post-comment":
+        await handleAddPostComment(req, res);
+        break;
+      case "delete-post-comment":
+        await handleDeletePostComment(req, res);
+        break;
+      case "set-post-reaction":
+        await handleSetPostReaction(req, res);
         break;
       case "check-stream":
         await handleCheckStream(req, res);
@@ -1014,10 +1124,10 @@ async function handleGetMusicTrackEngagement(req, res) {
   if (req.method !== "GET") return res.status(405).json({ error: "Método no permitido" });
 
   try {
-    await requireAuthenticated(req);
+    const requester = await requireAuthenticated(req);
 
     const trackId = String(req.query?.trackId || req.query?.musicId || "").trim();
-    const viewerKey = normalizeViewerKey(req.query?.viewerKey || "");
+    const viewerKey = normalizeViewerKey(`user_${String(requester?.uid || "").trim()}`);
     if (!trackId) return res.status(400).json({ success: false, error: "trackId es requerido" });
 
     const stats = await readMusicTrackStats(trackId);
@@ -1054,10 +1164,10 @@ async function handleRegisterMusicTrackView(req, res) {
 
   try {
     const body = req.body || {};
-    await requireAuthenticated(req, body);
+    const requester = await requireAuthenticated(req, body);
 
     const trackId = String(body.trackId || body.musicId || "").trim();
-    const viewerKey = normalizeViewerKey(body.viewerKey || "");
+    const viewerKey = normalizeViewerKey(`user_${String(requester?.uid || "").trim()}`);
     if (!trackId) return res.status(400).json({ success: false, error: "trackId es requerido" });
     if (!viewerKey) return res.status(400).json({ success: false, error: "viewerKey es requerido" });
 
@@ -1111,15 +1221,20 @@ async function handleSetMusicTrackReaction(req, res) {
 
   try {
     const body = req.body || {};
-    await requireAuthenticated(req, body);
+    const requester = await requireAuthenticated(req, body);
 
     const trackId = String(body.trackId || body.musicId || "").trim();
-    const viewerKey = normalizeViewerKey(body.viewerKey || "");
+    const viewerKey = normalizeViewerKey(`user_${String(requester?.uid || "").trim()}`);
     const voteRaw = String(body.vote || "").trim().toLowerCase();
     const nextVote = voteRaw === "like" || voteRaw === "dislike" ? voteRaw : "";
 
     if (!trackId) return res.status(400).json({ success: false, error: "trackId es requerido" });
     if (!viewerKey) return res.status(400).json({ success: false, error: "viewerKey es requerido" });
+
+    const requesterIp = getRequesterIp(req);
+    const identityKey = String(requester?.uid || requester?.email || requesterIp || "anonymous").trim();
+    enforceReactionRateLimit(identityKey);
+    enforceReactionTrackCooldown(viewerKey, trackId);
 
     const { data: previousRows, error: previousErr } = await supabase
       .from("music_track_votes")
@@ -2062,6 +2177,311 @@ async function handleGetPlatformAnalytics(req, res) {
     return res.status(error.statusCode || 500).json({
       success: false,
       error: error.message || "No se pudieron obtener las analíticas",
+    });
+  }
+}
+
+function normalizePostReactions(rawReactions = {}) {
+  const base = {
+    like: [],
+    laugh: [],
+    seven: [],
+  };
+
+  const normalized = { ...base };
+  Object.keys(base).forEach((type) => {
+    const values = Array.isArray(rawReactions?.[type]) ? rawReactions[type] : [];
+    normalized[type] = Array.from(new Set(values.map((v) => String(v || "").trim()).filter(Boolean)));
+  });
+
+  return normalized;
+}
+
+function normalizePostComments(rawComments = []) {
+  const list = Array.isArray(rawComments) ? rawComments : [];
+  return list
+    .map((comment) => ({
+      id: String(comment?.id || "").trim(),
+      userId: String(comment?.userId || "").trim(),
+      userName: String(comment?.userName || "Usuario").trim() || "Usuario",
+      userPhoto: String(comment?.userPhoto || "").trim(),
+      text: String(comment?.text || "").trim(),
+      createdAt: comment?.createdAt || new Date().toISOString(),
+    }))
+    .filter((comment) => comment.id && comment.text);
+}
+
+async function handleGetPostComments(req, res) {
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
+  try {
+    const postId = String(req.query?.postId || "").trim();
+    if (!postId) {
+      return res.status(400).json({ success: false, error: "postId requerido" });
+    }
+
+    const db = admin.firestore();
+    const postRef = db.collection("posts").doc(postId);
+    const postSnap = await postRef.get();
+    if (!postSnap.exists) {
+      return res.status(404).json({ success: false, error: "Post no encontrado" });
+    }
+
+    const postData = postSnap.data() || {};
+    const comments = normalizePostComments(postData.comments || []);
+
+    return res.status(200).json({
+      success: true,
+      postId,
+      comments,
+      commentsCount: comments.length,
+    });
+  } catch (error) {
+    console.error("handleGetPostComments error:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || "No se pudieron obtener comentarios",
+    });
+  }
+}
+
+async function handleAddPostComment(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
+  try {
+    const body = req.body || {};
+    const requester = await requireAuthenticated(req, body);
+    const postId = String(body.postId || "").trim();
+    const text = String(body.text || "").trim();
+
+    if (!postId) {
+      return res.status(400).json({ success: false, error: "postId requerido" });
+    }
+    if (!text) {
+      return res.status(400).json({ success: false, error: "text requerido" });
+    }
+    if (text.length > 300) {
+      return res.status(400).json({ success: false, error: "El comentario no puede superar 300 caracteres" });
+    }
+
+    const requesterIp = getRequesterIp(req);
+    const identityKey = String(requester?.uid || requester?.email || requesterIp || "anonymous").trim();
+    enforceWindowRateLimit(
+      postCommentRateLimitStore,
+      identityKey,
+      POST_COMMENT_RATE_LIMIT_WINDOW_MS,
+      POST_COMMENT_RATE_LIMIT_MAX_REQUESTS,
+      "Demasiados comentarios en poco tiempo. Intenta de nuevo en unos segundos",
+    );
+    enforcePairCooldown(
+      postCommentCooldownStore,
+      `${String(requester.uid || "").trim()}__${postId}`,
+      POST_COMMENT_COOLDOWN_MS,
+      "Espera un momento antes de volver a comentar en este post",
+    );
+
+    const db = admin.firestore();
+    const postRef = db.collection("posts").doc(postId);
+
+    let newComment = null;
+    let commentsCount = 0;
+    await db.runTransaction(async (transaction) => {
+      const postSnap = await transaction.get(postRef);
+      if (!postSnap.exists) {
+        const err = new Error("Post no encontrado");
+        err.statusCode = 404;
+        throw err;
+      }
+
+      const postData = postSnap.data() || {};
+      const comments = normalizePostComments(postData.comments || []);
+
+      newComment = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        userId: String(requester.uid || "").trim(),
+        userName: String(body.userName || "").trim() || "Usuario",
+        userPhoto: String(body.userPhoto || "").trim(),
+        text,
+        createdAt: new Date().toISOString(),
+      };
+
+      const updatedComments = [...comments, newComment];
+      commentsCount = updatedComments.length;
+
+      transaction.update(postRef, {
+        comments: updatedComments,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    });
+
+    return res.status(200).json({
+      success: true,
+      postId,
+      comment: newComment,
+      commentsCount,
+    });
+  } catch (error) {
+    console.error("handleAddPostComment error:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || "No se pudo guardar el comentario",
+    });
+  }
+}
+
+async function handleDeletePostComment(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
+  try {
+    const body = req.body || {};
+    const requester = await requireAuthenticated(req, body);
+    const postId = String(body.postId || "").trim();
+    const commentId = String(body.commentId || "").trim();
+
+    if (!postId) {
+      return res.status(400).json({ success: false, error: "postId requerido" });
+    }
+    if (!commentId) {
+      return res.status(400).json({ success: false, error: "commentId requerido" });
+    }
+
+    const requesterIsAdmin = getAdminEmails().includes(String(requester.email || "").trim());
+
+    const db = admin.firestore();
+    const postRef = db.collection("posts").doc(postId);
+
+    let commentsCount = 0;
+    await db.runTransaction(async (transaction) => {
+      const postSnap = await transaction.get(postRef);
+      if (!postSnap.exists) {
+        const err = new Error("Post no encontrado");
+        err.statusCode = 404;
+        throw err;
+      }
+
+      const postData = postSnap.data() || {};
+      const comments = normalizePostComments(postData.comments || []);
+      const target = comments.find((comment) => String(comment.id || "").trim() === commentId);
+      if (!target) {
+        const err = new Error("Comentario no encontrado");
+        err.statusCode = 404;
+        throw err;
+      }
+
+      const isOwner = String(target.userId || "").trim() === String(requester.uid || "").trim();
+      if (!isOwner && !requesterIsAdmin) {
+        const err = new Error("No tienes permisos para eliminar este comentario");
+        err.statusCode = 403;
+        throw err;
+      }
+
+      const updatedComments = comments.filter((comment) => String(comment.id || "").trim() !== commentId);
+      commentsCount = updatedComments.length;
+      transaction.update(postRef, {
+        comments: updatedComments,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    });
+
+    return res.status(200).json({
+      success: true,
+      postId,
+      commentId,
+      commentsCount,
+    });
+  } catch (error) {
+    console.error("handleDeletePostComment error:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || "No se pudo eliminar el comentario",
+    });
+  }
+}
+
+async function handleSetPostReaction(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Método no permitido" });
+  }
+
+  try {
+    const body = req.body || {};
+    const requester = await requireAuthenticated(req, body);
+    const postId = String(body.postId || "").trim();
+    const newReaction = String(body.reaction || "").trim().toLowerCase();
+    const allowedReactions = ["like", "laugh", "seven"];
+
+    if (!postId) {
+      return res.status(400).json({ success: false, error: "postId requerido" });
+    }
+    if (!allowedReactions.includes(newReaction)) {
+      return res.status(400).json({ success: false, error: "Reacción inválida" });
+    }
+
+    const requesterIp = getRequesterIp(req);
+    const identityKey = String(requester?.uid || requester?.email || requesterIp || "anonymous").trim();
+    enforceWindowRateLimit(
+      postReactionRateLimitStore,
+      identityKey,
+      POST_REACTION_RATE_LIMIT_WINDOW_MS,
+      POST_REACTION_RATE_LIMIT_MAX_REQUESTS,
+      "Demasiadas reacciones en poco tiempo. Intenta de nuevo en unos segundos",
+    );
+    enforcePairCooldown(
+      postReactionCooldownStore,
+      `${String(requester.uid || "").trim()}__${postId}`,
+      POST_REACTION_COOLDOWN_MS,
+      "Espera un momento antes de volver a reaccionar en este post",
+    );
+
+    const db = admin.firestore();
+    const postRef = db.collection("posts").doc(postId);
+
+    let updatedReactions = null;
+    await db.runTransaction(async (transaction) => {
+      const postSnap = await transaction.get(postRef);
+      if (!postSnap.exists) {
+        const err = new Error("Post no encontrado");
+        err.statusCode = 404;
+        throw err;
+      }
+
+      const postData = postSnap.data() || {};
+      const reactions = normalizePostReactions(postData.reactions || {});
+      const uid = String(requester.uid || "").trim();
+      const hadSameReaction = reactions[newReaction].includes(uid);
+
+      Object.keys(reactions).forEach((type) => {
+        reactions[type] = reactions[type].filter((entryUid) => entryUid !== uid);
+      });
+
+      if (!hadSameReaction) {
+        reactions[newReaction].push(uid);
+      }
+
+      updatedReactions = normalizePostReactions(reactions);
+
+      transaction.update(postRef, {
+        reactions: updatedReactions,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    });
+
+    return res.status(200).json({
+      success: true,
+      postId,
+      reactions: updatedReactions,
+    });
+  } catch (error) {
+    console.error("handleSetPostReaction error:", error);
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || "No se pudo guardar la reacción",
     });
   }
 }

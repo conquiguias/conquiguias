@@ -11585,6 +11585,37 @@
         return `music_track_view_${safeTrackId}_${safeViewerKey}`;
       }
 
+      async function musicApiRequest(action, { method = 'GET', query = {}, body = null } = {}) {
+        const state = window.__musicState;
+        try {
+          const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
+          if (!idToken) return null;
+
+          const params = new URLSearchParams({ action: String(action || '').trim() });
+          Object.entries(query || {}).forEach(([key, value]) => {
+            if (value === undefined || value === null) return;
+            params.set(String(key), String(value));
+          });
+
+          const response = await fetch(`/api/social?${params.toString()}`, {
+            method: String(method || 'GET').toUpperCase(),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${idToken}`,
+            },
+            body: body ? JSON.stringify(body) : undefined,
+          });
+
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(payload?.error || `Error en ${action}`);
+          return payload;
+        } catch (err) {
+          try { musicDebugLog('music-api:error', { action, message: err?.message || String(err) }); } catch (_) {}
+          if (state) state.lastMusicApiError = String(err?.message || err || 'music api error');
+          return null;
+        }
+      }
+
       function musicLoadStoredTrackStats(trackId) {
         const state = window.__musicState;
         const normalizedTrackId = musicNormalizeTrackId(trackId);
@@ -11693,30 +11724,25 @@
 
         const pending = (async () => {
           try {
-            if (typeof getDoc !== 'function' || !db) {
-              return nextStats;
-            }
-
-            const musicRef = doc(db, 'musics', normalizedTrackId);
-            const musicSnap = await getDoc(musicRef);
-            if (musicSnap.exists()) {
-              const statsData = musicSnap.data() || {};
-              nextStats.likes = Math.max(nextStats.likes, Math.max(0, Number(statsData.likes) || 0));
-              nextStats.dislikes = Math.max(nextStats.dislikes, Math.max(0, Number(statsData.dislikes) || 0));
-              nextStats.views = Math.max(nextStats.views, Math.max(0, Number(statsData.views) || 0));
-            }
-
-            const voteRef = doc(db, 'music_track_votes', `${normalizedTrackId}__${viewerKey}`);
-            const voteSnap = await getDoc(voteRef);
-            if (voteSnap.exists()) {
-              const voteValue = String(voteSnap.data()?.vote || '').trim();
+            const payload = await musicApiRequest('get-music-track-engagement', {
+              method: 'GET',
+              query: {
+                trackId: normalizedTrackId,
+                viewerKey,
+              },
+            });
+            if (payload && payload.success) {
+              nextStats.likes = Math.max(nextStats.likes, Math.max(0, Number(payload.likes) || 0));
+              nextStats.dislikes = Math.max(nextStats.dislikes, Math.max(0, Number(payload.dislikes) || 0));
+              nextStats.views = Math.max(nextStats.views, Math.max(0, Number(payload.views) || 0));
+              const voteValue = String(payload.userVote || '').trim();
               if (voteValue === 'like' || voteValue === 'dislike') {
                 nextStats.userVote = voteValue;
                 try { localStorage.setItem(storageVoteKey, voteValue); } catch (_) {}
               }
             }
           } catch (_) {
-            // Keep local values when Firestore is unavailable
+            // Keep local values when API is unavailable
           }
 
           musicSaveStoredTrackStats(normalizedTrackId, nextStats);
@@ -11773,21 +11799,24 @@
         }
 
         try {
-          if (typeof setDoc === 'function' && db) {
-            const musicRef = doc(db, 'musics', normalizedTrackId);
-            await setDoc(musicRef, {
-              trackId: normalizedTrackId,
-              views: increment(1),
-              updatedAt: new Date().toISOString(),
-            }, { merge: true });
-
-            const viewRef = doc(db, 'music_track_views', `${normalizedTrackId}__${viewerKey}`);
-            await setDoc(viewRef, {
+          const payload = await musicApiRequest('register-music-track-view', {
+            method: 'POST',
+            body: {
               trackId: normalizedTrackId,
               viewerKey,
-              lastCountedAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            }, { merge: true });
+            },
+          });
+          if (payload && payload.success) {
+            const mergedStats = {
+              likes: Math.max(0, Number(payload.likes) || 0),
+              dislikes: Math.max(0, Number(payload.dislikes) || 0),
+              views: Math.max(0, Number(payload.views) || 0),
+              userVote: String(musicLoadStoredTrackStats(normalizedTrackId).userVote || '').trim(),
+            };
+            musicSaveStoredTrackStats(normalizedTrackId, mergedStats);
+            if (musicGetCurrentTrackId() === normalizedTrackId) {
+              musicUpdateTrackEngagementUI(track || { id: normalizedTrackId });
+            }
           }
         } catch (_) {
           // Local counter already updated
@@ -11836,25 +11865,28 @@
         musicUpdateTrackEngagementUI(track || { id: normalizedTrackId });
 
         try {
-          if (typeof setDoc === 'function' && db) {
-            const musicRef = doc(db, 'musics', normalizedTrackId);
-            await setDoc(musicRef, {
+          const payload = await musicApiRequest('set-music-track-reaction', {
+            method: 'POST',
+            body: {
               trackId: normalizedTrackId,
-              likes: increment(likesDelta),
-              dislikes: increment(dislikesDelta),
-              updatedAt: new Date().toISOString(),
-            }, { merge: true });
-
-            const voteRef = doc(db, 'music_track_votes', `${normalizedTrackId}__${viewerKey}`);
-            if (nextVote) {
-              await setDoc(voteRef, {
-                trackId: normalizedTrackId,
-                viewerKey,
-                vote: nextVote,
-                updatedAt: new Date().toISOString(),
-              }, { merge: true });
-            } else {
-              await deleteDoc(voteRef);
+              viewerKey,
+              vote: nextVote,
+            },
+          });
+          if (payload && payload.success) {
+            const mergedStats = {
+              likes: Math.max(0, Number(payload.likes) || 0),
+              dislikes: Math.max(0, Number(payload.dislikes) || 0),
+              views: Math.max(0, Number(payload.views) || 0),
+              userVote: String(payload.userVote || '').trim(),
+            };
+            musicSaveStoredTrackStats(normalizedTrackId, mergedStats);
+            try {
+              if (mergedStats.userVote) localStorage.setItem(voteStorageKey, mergedStats.userVote);
+              else localStorage.removeItem(voteStorageKey);
+            } catch (_) {}
+            if (musicGetCurrentTrackId() === normalizedTrackId) {
+              musicUpdateTrackEngagementUI(track || { id: normalizedTrackId });
             }
           }
         } catch (_) {
@@ -12304,10 +12336,6 @@
             playMusicTrackByIndex(nextIndex, { autoplay: true, reason: 'auto-advance-retry', force: true });
           }
         }, 900);
-        // Asegurar que la vista se contabilice también tras el auto-advance
-        window.setTimeout(() => {
-          try { musicRegisterTrackView({ id: nextTrack?.id }).catch(() => {}); } catch (_) {}
-        }, 600);
       }
 
       // Función deshabilitada - sin fade/ramp de volumen
@@ -12826,7 +12854,6 @@
           state.activePlayerType = desiredMode;
           renderLocalMusicList();
           try { updateMusicPlayStates(); } catch (_) {}
-          try { musicRegisterTrackView(track).catch(() => {}); } catch (_) {}
           musicUpdateTransportControls();
           return;
         }
@@ -12855,8 +12882,6 @@
         } else {
           initMusicAudioPlayer(track, { autoplay });
         }
-
-        musicRegisterTrackView(track).catch(() => {});
 
         setTimeout(() => {
           updateMusicPlayStates();

@@ -283,6 +283,15 @@ export default async function handler(req, res) {
       case "get-music-playlist":
         await handleGetMusicPlaylist(req, res);
         break;
+      case "get-music-track-engagement":
+        await handleGetMusicTrackEngagement(req, res);
+        break;
+      case "register-music-track-view":
+        await handleRegisterMusicTrackView(req, res);
+        break;
+      case "set-music-track-reaction":
+        await handleSetMusicTrackReaction(req, res);
+        break;
       case "cleanup-rate-limits":
         await handleCleanupRateLimits(req, res);
         break;
@@ -935,6 +944,240 @@ async function handleGetMusicPlaylist(req, res) {
   } catch (err) {
     console.error('handleGetMusicPlaylist error:', err);
     return res.status(err.statusCode || 500).json({ success: false, error: err.message || 'Error obteniendo playlist' });
+  }
+}
+
+function normalizeViewerKey(rawValue = "") {
+  const normalized = String(rawValue || "").trim().slice(0, 180);
+  return normalized.replace(/[^a-zA-Z0-9:_-]/g, "_");
+}
+
+function getUtcHourBucketIso(dateValue = new Date()) {
+  const date = new Date(dateValue);
+  date.setUTCMinutes(0, 0, 0);
+  return date.toISOString();
+}
+
+async function readMusicTrackStats(trackId) {
+  const normalizedTrackId = String(trackId || "").trim();
+  if (!normalizedTrackId) {
+    return { likes: 0, dislikes: 0, views: 0 };
+  }
+
+  const { data, error } = await supabase
+    .from("music_track_stats")
+    .select("track_id,likes,dislikes,views")
+    .eq("track_id", normalizedTrackId)
+    .limit(1);
+
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : null;
+  if (!row) {
+    return { likes: 0, dislikes: 0, views: 0 };
+  }
+
+  return {
+    likes: Math.max(0, Number(row.likes) || 0),
+    dislikes: Math.max(0, Number(row.dislikes) || 0),
+    views: Math.max(0, Number(row.views) || 0),
+  };
+}
+
+async function writeMusicTrackStats(trackId, stats = {}) {
+  const normalizedTrackId = String(trackId || "").trim();
+  if (!normalizedTrackId) {
+    return { likes: 0, dislikes: 0, views: 0 };
+  }
+
+  const payload = {
+    track_id: normalizedTrackId,
+    likes: Math.max(0, Number(stats.likes) || 0),
+    dislikes: Math.max(0, Number(stats.dislikes) || 0),
+    views: Math.max(0, Number(stats.views) || 0),
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error } = await supabase
+    .from("music_track_stats")
+    .upsert(payload, { onConflict: "track_id" });
+
+  if (error) throw error;
+
+  return {
+    likes: payload.likes,
+    dislikes: payload.dislikes,
+    views: payload.views,
+  };
+}
+
+async function handleGetMusicTrackEngagement(req, res) {
+  if (req.method !== "GET") return res.status(405).json({ error: "Método no permitido" });
+
+  try {
+    await requireAuthenticated(req);
+
+    const trackId = String(req.query?.trackId || req.query?.musicId || "").trim();
+    const viewerKey = normalizeViewerKey(req.query?.viewerKey || "");
+    if (!trackId) return res.status(400).json({ success: false, error: "trackId es requerido" });
+
+    const stats = await readMusicTrackStats(trackId);
+    let userVote = "";
+
+    if (viewerKey) {
+      const { data: voteRows, error: voteErr } = await supabase
+        .from("music_track_votes")
+        .select("vote")
+        .eq("track_id", trackId)
+        .eq("viewer_key", viewerKey)
+        .limit(1);
+      if (voteErr) throw voteErr;
+      const vote = String((Array.isArray(voteRows) ? voteRows[0]?.vote : "") || "").trim();
+      if (vote === "like" || vote === "dislike") userVote = vote;
+    }
+
+    return res.status(200).json({
+      success: true,
+      trackId,
+      likes: stats.likes,
+      dislikes: stats.dislikes,
+      views: stats.views,
+      userVote,
+    });
+  } catch (err) {
+    console.error("handleGetMusicTrackEngagement error:", err);
+    return res.status(err.statusCode || 500).json({ success: false, error: err.message || "Error obteniendo engagement" });
+  }
+}
+
+async function handleRegisterMusicTrackView(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "Método no permitido" });
+
+  try {
+    const body = req.body || {};
+    await requireAuthenticated(req, body);
+
+    const trackId = String(body.trackId || body.musicId || "").trim();
+    const viewerKey = normalizeViewerKey(body.viewerKey || "");
+    if (!trackId) return res.status(400).json({ success: false, error: "trackId es requerido" });
+    if (!viewerKey) return res.status(400).json({ success: false, error: "viewerKey es requerido" });
+
+    const hourBucket = getUtcHourBucketIso();
+
+    const { error: insertErr } = await supabase
+      .from("music_track_views_hourly")
+      .insert({
+        track_id: trackId,
+        viewer_key: viewerKey,
+        hour_bucket: hourBucket,
+        created_at: new Date().toISOString(),
+      });
+
+    let counted = true;
+    if (insertErr) {
+      const code = String(insertErr?.code || "").trim();
+      if (code === "23505") {
+        counted = false;
+      } else {
+        throw insertErr;
+      }
+    }
+
+    let stats = await readMusicTrackStats(trackId);
+    if (counted) {
+      stats = await writeMusicTrackStats(trackId, {
+        likes: stats.likes,
+        dislikes: stats.dislikes,
+        views: stats.views + 1,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      counted,
+      trackId,
+      hourBucket,
+      likes: stats.likes,
+      dislikes: stats.dislikes,
+      views: stats.views,
+    });
+  } catch (err) {
+    console.error("handleRegisterMusicTrackView error:", err);
+    return res.status(err.statusCode || 500).json({ success: false, error: err.message || "Error registrando vista" });
+  }
+}
+
+async function handleSetMusicTrackReaction(req, res) {
+  if (req.method !== "POST") return res.status(405).json({ error: "Método no permitido" });
+
+  try {
+    const body = req.body || {};
+    await requireAuthenticated(req, body);
+
+    const trackId = String(body.trackId || body.musicId || "").trim();
+    const viewerKey = normalizeViewerKey(body.viewerKey || "");
+    const voteRaw = String(body.vote || "").trim().toLowerCase();
+    const nextVote = voteRaw === "like" || voteRaw === "dislike" ? voteRaw : "";
+
+    if (!trackId) return res.status(400).json({ success: false, error: "trackId es requerido" });
+    if (!viewerKey) return res.status(400).json({ success: false, error: "viewerKey es requerido" });
+
+    const { data: previousRows, error: previousErr } = await supabase
+      .from("music_track_votes")
+      .select("vote")
+      .eq("track_id", trackId)
+      .eq("viewer_key", viewerKey)
+      .limit(1);
+    if (previousErr) throw previousErr;
+
+    const previousVote = String((Array.isArray(previousRows) ? previousRows[0]?.vote : "") || "").trim();
+    const effectiveVote = previousVote === nextVote ? "" : nextVote;
+
+    if (effectiveVote) {
+      const { error: upsertErr } = await supabase
+        .from("music_track_votes")
+        .upsert({
+          track_id: trackId,
+          viewer_key: viewerKey,
+          vote: effectiveVote,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "track_id,viewer_key" });
+      if (upsertErr) throw upsertErr;
+    } else {
+      const { error: deleteErr } = await supabase
+        .from("music_track_votes")
+        .delete()
+        .eq("track_id", trackId)
+        .eq("viewer_key", viewerKey);
+      if (deleteErr) throw deleteErr;
+    }
+
+    let likesDelta = 0;
+    let dislikesDelta = 0;
+    if (previousVote === "like") likesDelta -= 1;
+    if (previousVote === "dislike") dislikesDelta -= 1;
+    if (effectiveVote === "like") likesDelta += 1;
+    if (effectiveVote === "dislike") dislikesDelta += 1;
+
+    let stats = await readMusicTrackStats(trackId);
+    if (likesDelta !== 0 || dislikesDelta !== 0) {
+      stats = await writeMusicTrackStats(trackId, {
+        likes: Math.max(0, stats.likes + likesDelta),
+        dislikes: Math.max(0, stats.dislikes + dislikesDelta),
+        views: stats.views,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      trackId,
+      userVote: effectiveVote,
+      likes: stats.likes,
+      dislikes: stats.dislikes,
+      views: stats.views,
+    });
+  } catch (err) {
+    console.error("handleSetMusicTrackReaction error:", err);
+    return res.status(err.statusCode || 500).json({ success: false, error: err.message || "Error guardando reacción" });
   }
 }
 

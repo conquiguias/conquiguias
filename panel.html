@@ -12427,6 +12427,10 @@
             musicBindMediaListeners();
             setPlaybackVolume(state.audio, 1);
             musicStopVolumeRamp();
+            const audioEl = musicGetActiveMediaElement();
+            if (audioEl) {
+              musicSetupAudioEndListener(audioEl, playbackNonce);
+            }
             try {
               if (state.plugin && typeof state.plugin.setLoopOnEnd === 'function') {
                 state.plugin.setLoopOnEnd(false);
@@ -12449,6 +12453,10 @@
               musicBindMediaListeners();
               setPlaybackVolume(state.audio, 1);
               musicStopVolumeRamp();
+              const audioEl = musicGetActiveMediaElement();
+              if (audioEl) {
+                musicSetupAudioEndListener(audioEl, playbackNonce);
+              }
               try {
                 if (state.plugin && typeof state.plugin.setLoopOnEnd === 'function') {
                   state.plugin.setLoopOnEnd(false);
@@ -12467,6 +12475,10 @@
               musicBindMediaListeners();
               setPlaybackVolume(state.audio, 1);
               musicStopVolumeRamp();
+              const audioEl = musicGetActiveMediaElement();
+              if (audioEl) {
+                musicSetupAudioEndListener(audioEl, playbackNonce);
+              }
               try {
                 if (state.plugin && typeof state.plugin.setLoopOnEnd === 'function') {
                   state.plugin.setLoopOnEnd(false);

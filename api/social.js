@@ -280,6 +280,9 @@ export default async function handler(req, res) {
       case "get-music-playlists":
         await handleGetMusicPlaylists(req, res);
         break;
+      case "get-music-playlist":
+        await handleGetMusicPlaylist(req, res);
+        break;
       case "cleanup-rate-limits":
         await handleCleanupRateLimits(req, res);
         break;
@@ -846,7 +849,7 @@ async function handleGetMusicPlaylists(req, res) {
     // 1) Obtener listas propias del usuario (privadas, excluyendo automáticas)
     const { data: userPlaylists, error: userErr } = await supabase
       .from('music_playlists')
-      .select('id,name,owner_id,created_at,music_playlist_items(id,position,music_id,musics(id,title,url,artist,album,is_video,metadata,owner_id,created_at))')
+      .select('id,name,owner_id,created_at,music_playlist_items(id,position,music_id)')
       .eq('owner_id', requesterId)
       .not('name', 'like', '__AUTO__%')
       .order('created_at', { ascending: false });
@@ -856,7 +859,7 @@ async function handleGetMusicPlaylists(req, res) {
     // 2) Obtener listas automáticas compartidas (de cualquier propietario)
     const { data: autoPlaylists, error: autoErr } = await supabase
       .from('music_playlists')
-      .select('id,name,owner_id,created_at,music_playlist_items(id,position,music_id,musics(id,title,url,artist,album,is_video,metadata,owner_id,created_at))')
+      .select('id,name,owner_id,created_at,music_playlist_items(id,position,music_id)')
       .like('name', '__AUTO__%')
       .order('created_at', { ascending: false });
 
@@ -865,6 +868,52 @@ async function handleGetMusicPlaylists(req, res) {
     // 3) Combinar y mapear
     const allData = [...(Array.isArray(autoPlaylists) ? autoPlaylists : []), ...(Array.isArray(userPlaylists) ? userPlaylists : [])];
     const playlists = allData.map((row) => ({
+      id: row.id,
+      name: row.name,
+      owner_id: row.owner_id,
+      created_at: row.created_at,
+      songs_count: Array.isArray(row.music_playlist_items) ? row.music_playlist_items.length : 0,
+      // NOTE: items include only minimal info (music_id). Full music details
+      // will be loaded lazily via `get-music-playlist` endpoint when needed.
+      items: Array.isArray(row.music_playlist_items)
+        ? row.music_playlist_items
+            .map((item) => ({
+              id: item.id,
+              position: item.position,
+              music_id: item.music_id,
+              music: null,
+            }))
+            .sort((a, b) => Number(a.position || 0) - Number(b.position || 0))
+        : [],
+    }));
+
+    return res.status(200).json({ success: true, playlists });
+  } catch (err) {
+    console.error('handleGetMusicPlaylists error:', err);
+    return res.status(err.statusCode || 500).json({ success: false, error: err.message || 'Error obteniendo playlists' });
+  }
+}
+
+async function handleGetMusicPlaylist(req, res) {
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Método no permitido' });
+  try {
+    const requester = await requireAuthenticated(req);
+    const requesterId = String(requester?.uid || requester?.email || '').trim();
+    if (!requesterId) return res.status(401).json({ success: false, error: 'Usuario no autenticado' });
+
+    const playlistId = String(req.query?.playlistId || req.query?.playlist_id || '').trim();
+    if (!playlistId) return res.status(400).json({ success: false, error: 'playlistId es requerido' });
+
+    const { data: rows, error } = await supabase
+      .from('music_playlists')
+      .select('id,name,owner_id,created_at,music_playlist_items(id,position,music_id,musics(id,title,url,artist,album,is_video,metadata,owner_id,created_at))')
+      .eq('id', playlistId)
+      .limit(1);
+
+    if (error) throw error;
+    if (!Array.isArray(rows) || rows.length === 0) return res.status(404).json({ success: false, error: 'Playlist no encontrada' });
+    const row = rows[0];
+    const playlist = {
       id: row.id,
       name: row.name,
       owner_id: row.owner_id,
@@ -880,12 +929,12 @@ async function handleGetMusicPlaylists(req, res) {
             }))
             .sort((a, b) => Number(a.position || 0) - Number(b.position || 0))
         : [],
-    }));
+    };
 
-    return res.status(200).json({ success: true, playlists });
+    return res.status(200).json({ success: true, playlist });
   } catch (err) {
-    console.error('handleGetMusicPlaylists error:', err);
-    return res.status(err.statusCode || 500).json({ success: false, error: err.message || 'Error obteniendo playlists' });
+    console.error('handleGetMusicPlaylist error:', err);
+    return res.status(err.statusCode || 500).json({ success: false, error: err.message || 'Error obteniendo playlist' });
   }
 }
 

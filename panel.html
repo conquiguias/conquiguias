@@ -12902,6 +12902,33 @@
           });
       }
 
+      async function fetchPlaylistTracksFromServer(playlistId) {
+        const state = window.__musicState;
+        const key = String(playlistId || '').trim();
+        if (!key) return [];
+        try {
+          const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
+          const response = await fetch(`/api/social?action=get-music-playlist&playlistId=${encodeURIComponent(key)}`, {
+            method: 'GET',
+            headers: { 'Authorization': idToken ? `Bearer ${idToken}` : '' }
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(payload.error || 'No se pudieron cargar pistas');
+          const playlists = Array.isArray(state.playlists) ? state.playlists : [];
+          const idx = playlists.findIndex((p) => String(p.id) === key);
+          if (idx >= 0) {
+            // payload.playlist.items expected
+            playlists[idx].items = Array.isArray(payload.playlist?.items) ? payload.playlist.items : [];
+            state.playlists = playlists;
+            return playlists[idx].items;
+          }
+          return [];
+        } catch (err) {
+          musicDebugLog('fetch-playlist-error', { playlistId: key, message: err?.message || String(err) });
+          return [];
+        }
+      }
+
       function canManageMusicPlaylist(playlist = {}) {
         const playlistOwnerId = String(playlist?.owner_id || '').trim();
         const currentUid = String(window.currentUserId || currentUserId || auth?.currentUser?.uid || '').trim();
@@ -12924,7 +12951,25 @@
       function toggleMusicPlaylistExpanded(playlistId) {
         const key = String(playlistId || '').trim();
         if (!key) return;
-        setMusicPlaylistExpanded(key, !isMusicPlaylistExpanded(key));
+        const willExpand = !isMusicPlaylistExpanded(key);
+        setMusicPlaylistExpanded(key, willExpand);
+
+        // Si vamos a expandir, y la playlist no tiene detalles cargados, obtenerlos del servidor
+        if (willExpand) {
+          const state = window.__musicState;
+          const playlist = Array.isArray(state.playlists) ? state.playlists.find(p => String(p.id) === key) : null;
+          const needsFetch = playlist && (!Array.isArray(playlist.items) || playlist.items.length === 0 || !playlist.items[0]?.music);
+          if (needsFetch) {
+            state.loadingPlaylistId = key;
+            renderMusicPlaylists();
+            fetchPlaylistTracksFromServer(key).finally(() => {
+              state.loadingPlaylistId = '';
+              renderMusicPlaylists();
+            });
+            return;
+          }
+        }
+
         renderMusicPlaylists();
       }
 
@@ -13108,7 +13153,9 @@
         }
 
         if (playlistId && String(state.selectedPlaylistId || '').trim() !== String(playlistId).trim()) {
-          await setMusicPlaylistSelected(playlistId, { expand, stopPlayback: true });
+          // Si el modo actual es 'audio' NO detener la reproducción para evitar recrear LunaRadio
+          const stopPlayback = state.mode !== 'audio';
+          await setMusicPlaylistSelected(playlistId, { expand, stopPlayback });
         } else if (playlistId && expand) {
           setMusicPlaylistExpanded(playlistId, true);
         }
@@ -13121,18 +13168,16 @@
         const state = window.__musicState;
         const playlistId = String(playlist?.id || '').trim();
         const displayName = getMusicPlaylistDisplayName(playlist);
-        const tracks = getMusicPlaylistTracks(playlist);
+        const isOpen = isMusicPlaylistExpanded(playlistId);
+        const tracks = isOpen ? getMusicPlaylistTracks(playlist) : [];
+
         const li = document.createElement('li');
         li.className = 'music-list-item music-folder-item';
         li.dataset.playlistId = playlistId;
         li.dataset.playlistType = isAuto ? 'auto' : 'user';
 
-        if (playlistId && state.selectedPlaylistId === playlistId) {
-          li.classList.add('selected');
-        }
-        if (playlistId && isMusicPlaylistExpanded(playlistId)) {
-          li.classList.add('is-open');
-        }
+        if (playlistId && state.selectedPlaylistId === playlistId) li.classList.add('selected');
+        if (playlistId && isOpen) li.classList.add('is-open');
 
         const headerBtn = document.createElement('button');
         headerBtn.type = 'button';
@@ -13166,7 +13211,8 @@
 
         const count = document.createElement('span');
         count.className = 'music-folder-count';
-        count.textContent = `${tracks.length} pista${tracks.length === 1 ? '' : 's'}`;
+        const songsCount = Number(playlist?.songs_count || tracks.length || 0);
+        count.textContent = `${songsCount} pista${songsCount === 1 ? '' : 's'}`;
 
         headerBtn.appendChild(left);
         headerBtn.appendChild(count);
@@ -13178,23 +13224,12 @@
           deleteBtn.style.minWidth = '36px';
           deleteBtn.innerHTML = '<i class="fas fa-trash-can"></i>';
           deleteBtn.title = 'Eliminar lista';
-          deleteBtn.addEventListener('click', async (event) => {
+          deleteBtn.addEventListener('click', (event) => {
             event.stopPropagation();
             mostrarMensaje('confirm', 'Eliminar lista', `¿Eliminar lista "${displayName}"?`, async () => {
               try {
                 await deleteMusicPlaylist(playlistId);
                 await loadMusicPlaylists();
-        
-                 // Asegurar que comienza la reproducción
-                 const ensurePlayback = () => {
-                   if (state.playbackNonce !== playbackNonce || state.activePlayerType !== 'audio') return;
-                   const audioEl = musicGetAudioElement();
-                   if (audioEl) {
-                     musicEnsurePlaybackStarted(audioEl, playbackNonce);
-                   }
-                 };
-                 setTimeout(ensurePlayback, 500);
-                 setTimeout(ensurePlayback, 1200);
               } catch (err) {
                 mostrarMensaje('error', 'No se pudo eliminar', err?.message || 'Intenta nuevamente');
               }
@@ -13206,7 +13241,6 @@
           actionsWrap.style.gap = '6px';
           actionsWrap.style.alignItems = 'center';
           actionsWrap.appendChild(deleteBtn);
-
           headerBtn.appendChild(actionsWrap);
         }
 
@@ -13216,13 +13250,19 @@
         const tracksList = document.createElement('ul');
         tracksList.className = 'music-folder-tracks';
 
-        if (!tracks.length) {
+        if (!isOpen) {
+          if (state.loadingPlaylistId === playlistId) {
+            const loader = document.createElement('div');
+            loader.className = 'music-folder-loading';
+            loader.innerHTML = '<span class="music-loading-spinner"></span><span>Cargando canciones...</span>';
+            body.appendChild(loader);
+          }
+        } else if (!tracks.length) {
           const empty = document.createElement('div');
           empty.className = 'music-folder-empty';
           empty.textContent = 'La lista está vacía.';
           body.appendChild(empty);
         } else {
-          // Lazy-render tracks in batches to avoid loading all DOM nodes at once
           const BATCH_SIZE = 25;
           let rendered = 0;
 
@@ -13300,8 +13340,6 @@
 
             menuBtn.addEventListener('click', (event) => {
               event.stopPropagation();
-
-              // Cerrar cualquier modal contextual existente
               const existingModal = document.getElementById('musicTrackContextMenu');
               if (existingModal && document.body.contains(existingModal)) {
                 document.body.removeChild(existingModal);
@@ -13323,32 +13361,23 @@
               `;
 
               const options = [];
-
-              // Mostrar opciones solo si es propietario
               if (window.isOwner) {
-                options.push(
-                  { label: '<i class="fas fa-edit" style="margin-right:8px;"></i>Editar', action: () => {
-                    openEditMusicModal(track);
+                options.push({ label: '<i class="fas fa-edit" style="margin-right:8px;"></i>Editar', action: () => {
+                  openEditMusicModal(track);
+                  if (document.body.contains(modalEl)) document.body.removeChild(modalEl);
+                }});
+                options.push({ label: '<i class="fas fa-trash" style="margin-right:8px;"></i>Eliminar', action: () => {
+                  mostrarMensaje('confirm', 'Eliminar pista', `¿Estás seguro de que deseas eliminar "${track.title}"?`, async () => {
+                    await deleteMusicTrack(track.id);
                     if (document.body.contains(modalEl)) document.body.removeChild(modalEl);
-                  }}
-                );
-                options.push(
-                  { label: '<i class="fas fa-trash" style="margin-right:8px;"></i>Eliminar', action: () => {
-                    mostrarMensaje('confirm', 'Eliminar pista', `¿Estás seguro de que deseas eliminar "${track.title}"?`, async () => {
-                      await deleteMusicTrack(track.id);
-                      if (document.body.contains(modalEl)) document.body.removeChild(modalEl);
-                    });
-                  }}
-                );
+                  });
+                }});
               }
 
-              // Agregar a lista siempre visible
-              options.push(
-                { label: '<i class="fas fa-bookmark" style="margin-right:8px;"></i>Agregar a lista', action: () => {
-                  showPlaylistPickerForTrack(track);
-                  if (document.body.contains(modalEl)) document.body.removeChild(modalEl);
-                }}
-              );
+              options.push({ label: '<i class="fas fa-bookmark" style="margin-right:8px;"></i>Agregar a lista', action: () => {
+                showPlaylistPickerForTrack(track);
+                if (document.body.contains(modalEl)) document.body.removeChild(modalEl);
+              }});
 
               options.forEach((opt) => {
                 const btn = document.createElement('button');
@@ -13368,12 +13397,8 @@
                   border-radius: 4px;
                   transition: background 0.15s;
                 `;
-                btn.addEventListener('mouseenter', () => {
-                  btn.style.background = 'rgba(59,130,246,0.2)';
-                });
-                btn.addEventListener('mouseleave', () => {
-                  btn.style.background = 'none';
-                });
+                btn.addEventListener('mouseenter', () => { btn.style.background = 'rgba(59,130,246,0.2)'; });
+                btn.addEventListener('mouseleave', () => { btn.style.background = 'none'; });
                 btn.addEventListener('click', (e) => {
                   e.stopPropagation();
                   opt.action();
@@ -13403,15 +13428,11 @@
             const start = rendered;
             const end = Math.min(tracks.length, rendered + BATCH_SIZE);
             for (let i = start; i < end; i++) {
-              const t = tracks[i];
-              const li = createTrackListItem(t, i);
-              tracksList.appendChild(li);
+              tracksList.appendChild(createTrackListItem(tracks[i], i));
             }
             rendered = end;
             try { updateMusicPlayStates(); } catch (_) {}
-            if (rendered >= tracks.length) {
-              tracksList.removeEventListener('scroll', onScroll);
-            }
+            if (rendered >= tracks.length) tracksList.removeEventListener('scroll', onScroll);
           }
 
           function onScroll() {
@@ -13564,6 +13585,11 @@
             state.currentIndex = -1;
             return [];
           }
+
+          // Si el playlist no tiene detalles de tracks cargados, solicitarlos al servidor
+          if (!Array.isArray(playlist.items) || playlist.items.length === 0 || !playlist.items[0]?.music) {
+            await fetchPlaylistTracksFromServer(normalizedId);
+          }
           const tracks = getMusicPlaylistTracks(playlist);
           const catalogTracks = tracks.map(t => ({
             id: t.id,
@@ -13602,19 +13628,9 @@
         const state = window.__musicState;
         try {
           musicDebugLog('catalog:load:start');
-          // Si hay una playlist seleccionada, cargar sus canciones
-          if (state.selectedPlaylistId) {
-            await loadPlaylistTracks(state.selectedPlaylistId);
-          } else {
-            // Si no, cargar la primera lista automática
-            const autoPlaylists = state.playlists?.filter?.(p => String(p?.name || '').startsWith('__AUTO__:')) || [];
-            if (autoPlaylists.length > 0) {
-              await loadPlaylistTracks(autoPlaylists[0].id);
-            } else {
-              state.catalog = [];
-              state.currentIndex = -1;
-            }
-          }
+          // No cargar canciones automáticamente aquí: la carga se hará cuando el usuario expanda la lista
+          state.catalog = [];
+          state.currentIndex = -1;
           musicDebugLog('catalog:load:done', {
             total: state.catalog.length,
             currentIndex: state.currentIndex,
@@ -13656,10 +13672,9 @@
             const firstPlaylist = autoPlaylists.length > 0 ? autoPlaylists[0] : state.playlists[0];
             if (firstPlaylist?.id) {
               state.selectedPlaylistId = firstPlaylist.id;
-              await loadPlaylistTracks(firstPlaylist.id);
             }
           } else if (state.selectedPlaylistId) {
-            await loadPlaylistTracks(state.selectedPlaylistId);
+            // No auto-cargar tracks; se cargarán al expandir la lista
           }
           renderMusicPlaylists();
           renderLocalMusicList();

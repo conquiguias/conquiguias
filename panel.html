@@ -11982,132 +11982,7 @@
         if (musicProgressTime) musicProgressTime.textContent = '0:00';
         if (musicProgressDuration) musicProgressDuration.textContent = '0:00';
         musicUpdateTrackEngagementUI(track);
-        try { musicUpdateClapprMetadata(track); } catch (_) {}
         musicHydrateTrackEngagement(track).catch(() => {});
-      }
-
-      // Try to reuse existing Clappr instance by loading a new source (best-effort)
-      function musicReuseClapprInstance(postOrTrack, { autoplay = true } = {}) {
-        try {
-          const state = window.__musicState;
-          if (!state || !state.clapprPlayer) return false;
-          const player = state.clapprPlayer;
-          // Resolve media URL using existing helper when available
-          let mediaUrl = String(postOrTrack?.url || postOrTrack?.mediaUrl || postOrTrack?.stream || '').trim();
-          try {
-            if (typeof resolveClapprSourceUrl === 'function') {
-              mediaUrl = resolveClapprSourceUrl(postOrTrack) || mediaUrl;
-            }
-          } catch (_) {}
-          if (!mediaUrl) return false;
-
-          // Prefer using Clappr's load API if present
-          if (typeof player.load === 'function') {
-            try {
-              player.load(mediaUrl);
-              try { player.options = player.options || {}; player.options.source = mediaUrl; player.options.poster = musicResolveTrackImage(postOrTrack, 'video', DEFAULT_TV_COVER_IMAGE) || player.options.poster; } catch (_) {}
-              if (autoplay && typeof player.play === 'function') player.play();
-              try { musicUpdateClapprMetadata(postOrTrack); } catch (_) {}
-              musicDebugLog('reuse-clappr:loaded', { src: mediaUrl });
-              return true;
-            } catch (e) {
-              musicDebugLog('reuse-clappr:load-error', { error: String(e) });
-            }
-          }
-
-          // Try to change the source on the underlying HTML5 video element
-          try {
-            const videoEl = player.core && (player.core.mediaElement || player.core.el || player.core.mediaControl && player.core.mediaControl._playback && player.core.mediaControl._playback.el) ? (player.core.mediaElement || player.core.el || player.core.mediaControl._playback.el) : null;
-            if (videoEl && videoEl.tagName === 'VIDEO') {
-              if (videoEl.src !== mediaUrl) {
-                try { videoEl.pause(); } catch(_){}
-                videoEl.src = mediaUrl;
-                try { videoEl.load(); } catch(_){}
-              }
-              if (autoplay) try { videoEl.play().catch(()=>{}); } catch(_){}
-              try { musicUpdateClapprMetadata(postOrTrack); } catch (_) {}
-              musicDebugLog('reuse-clappr:html5-video-switched', { src: mediaUrl });
-              return true;
-            }
-          } catch (e) {}
-
-          return false;
-        } catch (e) {
-          return false;
-        }
-      }
-
-      function musicUpdateClapprMetadata(track = null) {
-        try {
-          const wrap = document.getElementById('videoPlayerWrap');
-          const container = document.getElementById('clapprPlayerPlaceholder');
-          if (!wrap) return false;
-
-          const title = String(track?.title || 'Sin título').trim();
-          const artist = String(track?.artist || '').trim();
-          const album = String(track?.album || '').trim();
-          const year = track?.year ? ` (${track.year})` : '';
-          const cover = musicResolveTrackImage(track, 'video', DEFAULT_TV_COVER_IMAGE) || String(track?.posterUrl || track?.cover || track?.coverimage || track?.radiocover || track?.image || track?.img || track?.thumbnailUrl || track?.thumbnail || track?.luna_bg || '').trim() || DEFAULT_TV_COVER_IMAGE;
-
-          wrap.style.position = wrap.style.position || 'relative';
-
-          let overlay = document.getElementById('clapprMetadataOverlay');
-          if (!overlay) {
-            overlay = document.createElement('div');
-            overlay.id = 'clapprMetadataOverlay';
-            overlay.style.cssText = [
-              'position:absolute',
-              'left:12px',
-              'right:12px',
-              'bottom:12px',
-              'z-index:10',
-              'display:flex',
-              'align-items:flex-end',
-              'gap:12px',
-              'pointer-events:none',
-              'padding:12px',
-              'border-radius:16px',
-              'background:linear-gradient(180deg, rgba(3,7,18,.10), rgba(3,7,18,.72))',
-              'backdrop-filter:blur(8px)',
-              'box-shadow:0 10px 30px rgba(0,0,0,.25)',
-              'color:#fff'
-            ].join(';');
-
-            overlay.innerHTML = `
-              <div class="clappr-meta-cover" style="width:72px;height:72px;flex:0 0 72px;border-radius:14px;overflow:hidden;background:rgba(255,255,255,.08);box-shadow:0 8px 24px rgba(0,0,0,.28);">
-                <img id="clapprMetadataCoverImg" alt="Portada" style="display:block;width:100%;height:100%;object-fit:cover;" />
-              </div>
-              <div style="min-width:0;flex:1 1 auto;">
-                <div id="clapprMetadataTitle" style="font-size:16px;font-weight:800;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Sin título</div>
-                <div id="clapprMetadataArtist" style="font-size:13px;opacity:.92;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
-                <div id="clapprMetadataAlbum" style="font-size:12px;opacity:.78;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
-              </div>
-            `;
-            wrap.appendChild(overlay);
-          }
-
-          const titleEl = document.getElementById('clapprMetadataTitle');
-          const artistEl = document.getElementById('clapprMetadataArtist');
-          const albumEl = document.getElementById('clapprMetadataAlbum');
-          const coverImg = document.getElementById('clapprMetadataCoverImg');
-          if (titleEl) titleEl.textContent = title;
-          if (artistEl) artistEl.textContent = artist ? artist : '—';
-          if (albumEl) albumEl.textContent = album ? `${album}${year}` : `${year}`.trim();
-          if (coverImg) {
-            coverImg.src = cover;
-            coverImg.alt = title || 'Portada';
-          }
-
-          // If there is no active Clappr player yet, make the placeholder speak the current metadata
-          if (container && (!window.__musicState || !window.__musicState.clapprPlayer)) {
-            container.innerHTML = '';
-            container.appendChild(overlay);
-          }
-
-          return true;
-        } catch (e) {
-          return false;
-        }
       }
 
       function musicFormatTime(seconds) {
@@ -12776,7 +12651,6 @@
         
         const player = new Clappr.Player(playerOptions);
         state.clapprPlayer = player;
-        try { musicUpdateClapprMetadata(track); } catch (_) {}
         musicDebugLog('video:init:player-created', {
           elapsedMs: Math.round(performance.now() - startedAt),
           hasPlayer: !!player
@@ -12908,24 +12782,9 @@
           // actualizar UI/estado y liberar guard si estaba marcado
           renderLocalMusicList();
           try { updateMusicPlayStates(); } catch (_) {}
-          try { musicUpdateLunaradioMetadata(track); } catch (_) {}
           state.isCreatingPlayer = false;
           return;
         }
-
-        // Intentar reutilizar Clappr si existe (para fuentes de video/audio gestionadas por Clappr)
-        try {
-          if (musicReuseClapprInstance && typeof musicReuseClapprInstance === 'function') {
-            const reused = musicReuseClapprInstance(track, { autoplay: options.autoplay !== false });
-            if (reused) {
-              state.activePlayerType = 'video';
-              renderLocalMusicList();
-              try { updateMusicPlayStates(); } catch (_) {}
-              state.isCreatingPlayer = false;
-              return;
-            }
-          }
-        } catch (e) {}
 
         // **Marcar que se está creando para evitar duplicados**
         state.isCreatingPlayer = true;

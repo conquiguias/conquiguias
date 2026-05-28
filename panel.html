@@ -10811,9 +10811,17 @@
      }
 
      function musicGetDuration(media) {
-       if (!media || typeof media.duration !== 'number') return 0;
+       if (!media) return 0;
        const dur = Number(media.duration);
-       return Number.isFinite(dur) && dur > 0 ? dur : 0;
+       if (Number.isFinite(dur) && dur > 0) return dur;
+       try {
+         const seekable = media.seekable;
+         if (seekable && Number(seekable.length) > 0) {
+           const end = Number(seekable.end(seekable.length - 1));
+           if (Number.isFinite(end) && end > 0) return end;
+         }
+       } catch (_) {}
+       return 0;
      }
 
      function musicSetCurrentTime(media, time) {
@@ -10867,7 +10875,15 @@
 
       const seekFromEvent = (event) => {
         const media = musicGetActiveMediaElement();
-        const duration = musicGetDuration(media);
+        let duration = musicGetDuration(media);
+        if (!(duration > 0)) {
+          try {
+            const seekable = media?.seekable;
+            if (seekable && Number(seekable.length) > 0) {
+              duration = Number(seekable.end(seekable.length - 1)) || 0;
+            }
+          } catch (_) {}
+        }
         if (!media || !(duration > 0)) return;
 
         const rect = track.getBoundingClientRect();
@@ -12422,6 +12438,7 @@
         const media = musicGetActiveMediaElement();
         if (!media || state.listenersBoundTo === media) return;
         state.listenersBoundTo = media;
+        media.__music_auto_advanced_nonce = null;
 
         musicDebugLog('audio:setup-end-listeners', {
           playbackNonce: state.playbackNonce,
@@ -12449,6 +12466,17 @@
               });
             } else if (eventName === 'pause') {
               musicStopVolumeRamp();
+            } else if (eventName === 'timeupdate') {
+              if (state.activePlayerType === 'audio') {
+                const duration = musicGetDuration(media);
+                const currentTime = musicGetCurrentTime(media);
+                const remaining = duration - currentTime;
+                if (duration > 0 && remaining <= 0.35 && remaining >= -0.2 && media.__music_auto_advanced_nonce !== state.playbackNonce) {
+                  media.__music_auto_advanced_nonce = state.playbackNonce;
+                  musicDebugLog('audio:ended:timeupdate-fallback', { currentTime, duration, remaining, playbackNonce: state.playbackNonce });
+                  musicAutoAdvanceToNextTrack();
+                }
+              }
             } else {
               musicDebugLog(eventName, { time: media.currentTime, duration: media.duration, paused: media.paused });
             }
@@ -13106,7 +13134,10 @@
       function updateMusicPlayStates() {
         const state = window.__musicState;
         const currentTrackId = musicGetCurrentTrackId();
+        const media = musicGetActiveMediaElement();
         const playbackState = musicGetCurrentPlaybackState();
+        const mediaIsPlaying = !!media && !media.paused && !media.ended;
+        const effectivePlaybackState = mediaIsPlaying ? 'playing' : playbackState;
         const section = document.getElementById('musicaSection');
         if (!section) return;
         const allPlayBtns = section.querySelectorAll('.music-folder-track-play');
@@ -13130,18 +13161,18 @@
           }
 
           if (isCurrent) {
-            if (playbackState === 'playing') {
+            if (effectivePlaybackState === 'playing') {
               btn.classList.add('is-playing');
               trackItem.classList.add('is-playing');
-              btn.innerHTML = '<i class="fas fa-play"></i>'; // play icon cuando está en reproducción
-              btn.title = 'En reproducción';
-              btn.setAttribute('aria-label', 'En reproducción');
-            } else if (playbackState === 'paused') {
+              btn.innerHTML = '<i class="fas fa-pause"></i>';
+              btn.title = 'Pausar';
+              btn.setAttribute('aria-label', 'Pausar');
+            } else if (effectivePlaybackState === 'paused') {
               btn.classList.add('is-paused');
               trackItem.classList.add('is-paused');
-              btn.innerHTML = '<i class="fas fa-pause"></i>'; // icono pausa cuando está pausado
-              btn.title = 'Pausado';
-              btn.setAttribute('aria-label', 'Pausado');
+              btn.innerHTML = '<i class="fas fa-play"></i>';
+              btn.title = 'Reanudar';
+              btn.setAttribute('aria-label', 'Reanudar');
             } else {
               // Si es actual pero no está en playing/paused, mostrar nota musical por defecto
               btn.innerHTML = '<i class="fas fa-music"></i>';
@@ -13597,6 +13628,18 @@
                 
                 // Update the stored count in both local reference and state
                 playlist._loadedTrackCount = rendered;
+
+                // Keep playback catalog in sync if this is the selected playlist
+                if (String(window.__musicState?.selectedPlaylistId || '').trim() === playlistId) {
+                  const currentTrackId = musicGetCurrentTrackId();
+                  const refreshedCatalog = await loadPlaylistTracks(playlistId);
+                  if (currentTrackId && Array.isArray(refreshedCatalog) && refreshedCatalog.length) {
+                    const restoredIndex = refreshedCatalog.findIndex((track) => String(track?.id || '').trim() === String(currentTrackId).trim());
+                    if (restoredIndex >= 0) {
+                      window.__musicState.currentIndex = restoredIndex;
+                    }
+                  }
+                }
                 
                 // Also update in state.playlists to persist across closes/opens
                 const state = window.__musicState;

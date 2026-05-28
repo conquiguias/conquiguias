@@ -30254,7 +30254,7 @@
         menuTareas.addEventListener('click', () => {
           mostrarSeccion(sectionTareas, menuTareas);
           window.taskPendingWatcherEnabled = true;
-          window.ensureTaskReminderPush?.(true);
+          window.ensureTaskReminderPush?.(false);
           if (!window.taskPendingWatcherActive) {
             window.refreshTaskPendingBadge?.();
             window.startTaskPendingWatcher?.();

@@ -11533,6 +11533,16 @@
         const key = String(hostId || '').trim();
         if (!key) return false;
         const now = Date.now();
+
+        if (!forceReload && adminNotesCloudLoadedOnce) {
+          setAdminNotesSyncState('Sincronizado (ya cargado)');
+          return true;
+        }
+
+        if (!forceReload && adminNotesCloudLoadedOnce) {
+          setAdminNotesSyncState('Sincronizado (ya cargado)');
+          return true;
+        }
         const lastHandledAt = window.__mediaPlayGuards.get(key) || 0;
         if (now - lastHandledAt < cooldownMs) {
           window.__musicDebugCounters.playThrottled += 1;
@@ -13176,6 +13186,28 @@
         });
       }
 
+      async function refreshOwnerMusicPlaylistView(playlistId = '', { keepSelected = true } = {}) {
+        if (!window.isOwner) return false;
+        const state = window.__musicState;
+        const normalizedId = String(playlistId || state.selectedPlaylistId || '').trim();
+        if (!normalizedId) return false;
+        try {
+          await loadPlaylistTracks(normalizedId);
+          if (keepSelected) {
+            state.selectedPlaylistId = normalizedId;
+            setMusicPlaylistExpanded(normalizedId, true);
+          }
+          renderMusicPlaylists();
+          renderLocalMusicList();
+          try { updateMusicPlayStates(); } catch (_) {}
+          musicUpdateTransportControls();
+          return true;
+        } catch (error) {
+          console.warn('No se pudo refrescar la vista de música del propietario:', error);
+          return false;
+        }
+      }
+
       function musicGetCurrentTrackId() {
         const state = window.__musicState;
         if (!Array.isArray(state.catalog) || state.currentIndex < 0) return '';
@@ -14258,7 +14290,9 @@
                 if (!response.ok) throw new Error(payload.error || 'No se pudo agregar a la lista');
                 mostrarMensaje('success', 'Agregado', `Pista agregada a "${playlist.name}"`);
                 document.body.removeChild(modalEl);
-                await loadMusicPlaylists();
+                if (window.isOwner) {
+                  await refreshOwnerMusicPlaylistView(playlist.id, { keepSelected: true });
+                }
               } catch (err) {
                 mostrarMensaje('error', 'Error', err?.message || 'No se pudo agregar');
               }
@@ -14757,8 +14791,12 @@
               mostrarMensaje('success', 'Agregado', 'Se agregó la canción a la lista nueva');
             }
             closePlaylistPickerModal();
-            await loadMusicPlaylists();
-            renderMusicPlaylists();
+            if (window.isOwner) {
+              await refreshOwnerMusicPlaylistView(created?.id || targetId, { keepSelected: true });
+            } else {
+              await loadMusicPlaylists();
+              renderMusicPlaylists();
+            }
           } catch (err) {
             mostrarMensaje('error', 'Error', err?.message || String(err));
           }
@@ -14790,8 +14828,12 @@
             await addMusicToPlaylist(targetId, track.id);
             mostrarMensaje('success', 'Agregado', 'Se agregó la canción a la lista');
             closePlaylistPickerModal();
-            await loadMusicPlaylists();
-            renderMusicPlaylists();
+            if (window.isOwner) {
+              await refreshOwnerMusicPlaylistView(targetId, { keepSelected: true });
+            } else {
+              await loadMusicPlaylists();
+              renderMusicPlaylists();
+            }
           } catch (err) {
             mostrarMensaje('error', 'Error', err?.message || String(err));
           }
@@ -24846,6 +24888,9 @@
       let adminNotesDraggedDocId = null;
       let adminNotesTabDragHappened = false;
       let adminNotesSyncEnabled = false;
+      // Only load admin notes from cloud once per page load. Subsequent opens
+      // of the Bloc de Notas will reuse already-loaded data unless forced.
+      let adminNotesCloudLoadedOnce = false;
       let adminNotesScopeMode = 'private';
       let adminNotesLimitNoticeShown = false;
       const ADMIN_NOTES_STORAGE_KEY_BASE = 'conquiguias_admin_notas_v1';
@@ -27621,6 +27666,8 @@
         const cacheTtlMs = 10 * 60 * 1000;
         const now = Date.now();
 
+        // Existing cache-path: if we have a recent cloud cache (up to cacheTtlMs)
+        // use it immediately before attempting a new cloud request.
         if (!forceReload) {
           const cachedTime = Number(localStorage.getItem(cacheTimeKey) || 0);
           const cachedRaw = localStorage.getItem(cacheBaseKey);
@@ -27628,7 +27675,6 @@
             try {
               const cached = JSON.parse(cachedRaw);
               const currentHasEdits = adminNotesDocuments.some((doc) => !!doc?.dirty);
-
               if (!currentHasEdits) {
                 if (Array.isArray(cached?.tabs) && cached.tabs.length) {
                   replaceAdminNotesDocuments(cached.tabs, cached.activeDocId || '');
@@ -27644,9 +27690,9 @@
                 }
                 saveAdminNotesToLocalStorage();
               }
-
               adminNotesSyncEnabled = true;
               setAdminNotesSyncState('Sincronizado en caché');
+              adminNotesCloudLoadedOnce = true;
               return true;
             } catch (error) {
               localStorage.removeItem(cacheBaseKey);
@@ -27695,7 +27741,7 @@
             saveAdminNotesToLocalStorage();
           }
 
-          try {
+            try {
             localStorage.setItem(cacheBaseKey, JSON.stringify(notes));
             localStorage.setItem(cacheTimeKey, String(now));
           } catch (cacheError) {
@@ -27704,6 +27750,7 @@
 
           adminNotesSyncEnabled = true;
           setAdminNotesSyncState('Sincronizado en la nube');
+          adminNotesCloudLoadedOnce = true;
           return true;
         } catch (error) {
           adminNotesSyncEnabled = false;

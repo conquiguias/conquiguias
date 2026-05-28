@@ -13046,6 +13046,11 @@
         if (willExpand) {
           const state = window.__musicState;
           const playlist = Array.isArray(state.playlists) ? state.playlists.find(p => String(p.id) === key) : null;
+                // RESET items to force fresh load from page 0
+                if (playlist) {
+                  playlist.items = [];
+                  playlist.songs_count = 0;
+                }
           const needsFetch = playlist && (!Array.isArray(playlist.items) || playlist.items.length === 0 || !playlist.items[0]?.music);
           if (needsFetch) {
             state.loadingPlaylistId = key;

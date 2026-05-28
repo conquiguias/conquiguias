@@ -12985,7 +12985,7 @@
           const playlists = Array.isArray(state.playlists) ? state.playlists : [];
           const idx = playlists.findIndex((p) => String(p.id) === key);
           const existingItems = idx >= 0 && Array.isArray(playlists[idx].items) ? playlists[idx].items : [];
-          const pageSize = 3;
+          const pageSize = 20;
           const nextPage = Math.floor(existingItems.length / pageSize);
 
           const headers = {};
@@ -13047,7 +13047,13 @@
         if (willExpand) {
           const state = window.__musicState;
           const playlist = Array.isArray(state.playlists) ? state.playlists.find(p => String(p.id) === key) : null;
-          const needsFetch = playlist && (!Array.isArray(playlist.items) || playlist.items.length === 0 || !playlist.items[0]?.music);
+          
+          // Check if we need to fetch:
+          // - Don't fetch if _loadedTrackCount is set (means user already loaded more items)
+          // - Don't fetch if items already exist with proper music data
+          const hasLoadedMoreItems = playlist?._loadedTrackCount && playlist._loadedTrackCount > 0;
+          const needsFetch = playlist && !hasLoadedMoreItems && (!Array.isArray(playlist.items) || playlist.items.length === 0 || !playlist.items[0]?.music);
+          
           if (needsFetch) {
             state.loadingPlaylistId = key;
             renderMusicPlaylists();
@@ -13363,7 +13369,7 @@
           empty.textContent = 'La lista está vacía.';
           body.appendChild(empty);
         } else {
-          const BATCH_SIZE = 3;
+          const BATCH_SIZE = 20;
           const initialRenderLimit = Math.max(BATCH_SIZE, Number(playlist?._loadedTrackCount || BATCH_SIZE));
           let rendered = 0;
 
@@ -13588,7 +13594,19 @@
                 });
                 
                 rendered = currentCount + newItems.length;
+                
+                // Update the stored count in both local reference and state
                 playlist._loadedTrackCount = rendered;
+                
+                // Also update in state.playlists to persist across closes/opens
+                const state = window.__musicState;
+                const statePlaylist = state.playlists?.find(p => String(p.id) === playlistId);
+                if (statePlaylist) {
+                  statePlaylist._loadedTrackCount = rendered;
+                  // Force state update to ensure persistence
+                  state.playlists = [...state.playlists];
+                }
+                
                 try { updateMusicPlayStates(); } catch (_) {}
                 updateLoadMoreVisibility();
                 
@@ -13813,7 +13831,22 @@
           });
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(payload.error || 'No se pudo cargar playlists');
-          state.playlists = Array.isArray(payload.playlists) ? payload.playlists : [];
+          
+          // Preserve existing _loadedTrackCount and items from previous state
+          const oldPlaylists = Array.isArray(state.playlists) ? state.playlists : [];
+          const newPlaylists = Array.isArray(payload.playlists) ? payload.playlists : [];
+          
+          newPlaylists.forEach(newPlaylist => {
+            const oldPlaylist = oldPlaylists.find(p => p.id === newPlaylist.id);
+            if (oldPlaylist && oldPlaylist._loadedTrackCount) {
+              newPlaylist._loadedTrackCount = oldPlaylist._loadedTrackCount;
+            }
+            if (oldPlaylist && oldPlaylist.items && Array.isArray(oldPlaylist.items) && oldPlaylist.items.length > 0) {
+              newPlaylist.items = oldPlaylist.items;
+            }
+          });
+          
+          state.playlists = newPlaylists;
           if (state.selectedPlaylistId && !state.playlists.some((x) => x.id === state.selectedPlaylistId)) {
             state.selectedPlaylistId = '';
           }

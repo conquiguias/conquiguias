@@ -1012,11 +1012,11 @@ async function handleGetMusicPlaylist(req, res) {
     const playlistId = String(req.query?.playlistId || req.query?.playlist_id || '').trim();
     if (!playlistId) return res.status(400).json({ success: false, error: 'playlistId es requerido' });
     // Support pagination for playlist items to reduce egress.
-    // Query params: page (0-based) and pageSize (default 3)
+    // Query params: page (0-based) and pageSize (default 20)
     const pageRaw = Number.parseInt(String(req.query?.page || '0'), 10);
     const page = Number.isFinite(pageRaw) && pageRaw >= 0 ? pageRaw : 0;
-    const pageSizeRaw = Number.parseInt(String(req.query?.pageSize || '3'), 10);
-    const pageSize = Number.isFinite(pageSizeRaw) ? Math.min(200, Math.max(1, pageSizeRaw)) : 3;
+    const pageSizeRaw = Number.parseInt(String(req.query?.pageSize || '20'), 10);
+    const pageSize = Number.isFinite(pageSizeRaw) ? Math.min(200, Math.max(1, pageSizeRaw)) : 20;
 
     // 1) Verify playlist exists and basic metadata
     const { data: playlistRows, error: pErr } = await supabase

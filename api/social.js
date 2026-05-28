@@ -965,45 +965,34 @@ async function handleGetMusicPlaylists(req, res) {
       return res.status(401).json({ success: false, error: 'Usuario no autenticado' });
     }
 
-    // 1) Obtener listas propias del usuario (privadas, excluyendo automáticas)
+    // 1) Obtener listas propias del usuario (privadas, excluyendo automáticas) - NO incluir items
     const { data: userPlaylists, error: userErr } = await supabase
       .from('music_playlists')
-      .select('id,name,owner_id,created_at,music_playlist_items(id,position,music_id)')
+      .select('id,name,owner_id,created_at')
       .eq('owner_id', requesterId)
       .not('name', 'like', '__AUTO__%')
       .order('created_at', { ascending: false });
 
     if (userErr) throw userErr;
 
-    // 2) Obtener listas automáticas compartidas (de cualquier propietario)
+    // 2) Obtener listas automáticas compartidas (de cualquier propietario) - NO incluir items
     const { data: autoPlaylists, error: autoErr } = await supabase
       .from('music_playlists')
-      .select('id,name,owner_id,created_at,music_playlist_items(id,position,music_id)')
+      .select('id,name,owner_id,created_at')
       .like('name', '__AUTO__%')
       .order('created_at', { ascending: false });
 
     if (autoErr) throw autoErr;
 
-    // 3) Combinar y mapear
+    // 3) Combinar y mapear (NO incluir items aquí - se cargarán paginados bajo demanda)
     const allData = [...(Array.isArray(autoPlaylists) ? autoPlaylists : []), ...(Array.isArray(userPlaylists) ? userPlaylists : [])];
     const playlists = allData.map((row) => ({
       id: row.id,
       name: row.name,
       owner_id: row.owner_id,
       created_at: row.created_at,
-      songs_count: Array.isArray(row.music_playlist_items) ? row.music_playlist_items.length : 0,
-      // NOTE: items include only minimal info (music_id). Full music details
-      // will be loaded lazily via `get-music-playlist` endpoint when needed.
-      items: Array.isArray(row.music_playlist_items)
-        ? row.music_playlist_items
-            .map((item) => ({
-              id: item.id,
-              position: item.position,
-              music_id: item.music_id,
-              music: null,
-            }))
-            .sort((a, b) => Number(a.position || 0) - Number(b.position || 0))
-        : [],
+      songs_count: 0,
+      items: [],
     }));
 
     return res.status(200).json({ success: true, playlists });

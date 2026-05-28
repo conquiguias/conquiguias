@@ -12988,9 +12988,12 @@
           const pageSize = 3;
           const nextPage = Math.floor(existingItems.length / pageSize);
 
+          const headers = {};
+          if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
+
           const response = await fetch(`/api/social?action=get-music-playlist&playlistId=${encodeURIComponent(key)}&page=${nextPage}&pageSize=${pageSize}`, {
             method: 'GET',
-            headers: { 'Authorization': idToken ? `Bearer ${idToken}` : '' }
+            headers
           });
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(payload.error || 'No se pudieron cargar pistas');
@@ -13565,7 +13568,8 @@
             loadMoreBtn.type = 'button';
             loadMoreBtn.className = 'music-load-more-btn music-pill-btn';
             loadMoreBtn.textContent = 'Cargar más';
-            loadMoreBtn.style.margin = '8px 0';
+            loadMoreBtn.style.display = 'block';
+            loadMoreBtn.style.margin = '8px auto';
             loadMoreBtn.addEventListener('click', async (ev) => {
               try {
                 loadMoreBtn.disabled = true;

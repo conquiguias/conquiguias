@@ -1022,32 +1022,57 @@ async function handleGetMusicPlaylist(req, res) {
 
     const playlistId = String(req.query?.playlistId || req.query?.playlist_id || '').trim();
     if (!playlistId) return res.status(400).json({ success: false, error: 'playlistId es requerido' });
+    // Support pagination for playlist items to reduce egress.
+    // Query params: page (0-based) and pageSize (default 3)
+    const pageRaw = Number.parseInt(String(req.query?.page || '0'), 10);
+    const page = Number.isFinite(pageRaw) && pageRaw >= 0 ? pageRaw : 0;
+    const pageSizeRaw = Number.parseInt(String(req.query?.pageSize || '3'), 10);
+    const pageSize = Number.isFinite(pageSizeRaw) ? Math.min(200, Math.max(1, pageSizeRaw)) : 3;
 
-    const { data: rows, error } = await supabase
+    // 1) Verify playlist exists and basic metadata
+    const { data: playlistRows, error: pErr } = await supabase
       .from('music_playlists')
-      .select('id,name,owner_id,created_at,music_playlist_items(id,position,music_id,musics(id,title,url,artist,album,is_video,metadata,owner_id,created_at))')
+      .select('id,name,owner_id,created_at')
       .eq('id', playlistId)
       .limit(1);
+    if (pErr) throw pErr;
+    if (!Array.isArray(playlistRows) || playlistRows.length === 0) return res.status(404).json({ success: false, error: 'Playlist no encontrada' });
+    const base = playlistRows[0];
 
-    if (error) throw error;
-    if (!Array.isArray(rows) || rows.length === 0) return res.status(404).json({ success: false, error: 'Playlist no encontrada' });
-    const row = rows[0];
+    // 2) Fetch paginated items from music_playlist_items and include related music row
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+
+    const { data: itemsData, error: itemsErr, count } = await supabase
+      .from('music_playlist_items')
+      .select('id,position,music_id,musics(id,title,url,artist,album,is_video,metadata,owner_id,created_at)', { count: 'exact' })
+      .eq('playlist_id', playlistId)
+      .order('position', { ascending: true })
+      .range(from, to);
+
+    if (itemsErr) throw itemsErr;
+
+    const total = Number.isFinite(Number(count)) ? Number(count) : (Array.isArray(itemsData) ? itemsData.length : 0);
+
+    const items = Array.isArray(itemsData)
+      ? itemsData.map((item) => ({
+          id: item.id,
+          position: item.position,
+          music_id: item.music_id,
+          music: item.musics || null,
+        }))
+      : [];
+
     const playlist = {
-      id: row.id,
-      name: row.name,
-      owner_id: row.owner_id,
-      created_at: row.created_at,
-      songs_count: Array.isArray(row.music_playlist_items) ? row.music_playlist_items.length : 0,
-      items: Array.isArray(row.music_playlist_items)
-        ? row.music_playlist_items
-            .map((item) => ({
-              id: item.id,
-              position: item.position,
-              music_id: item.music_id,
-              music: item.musics || null,
-            }))
-            .sort((a, b) => Number(a.position || 0) - Number(b.position || 0))
-        : [],
+      id: base.id,
+      name: base.name,
+      owner_id: base.owner_id,
+      created_at: base.created_at,
+      songs_count: total,
+      items,
+      page,
+      pageSize,
+      totalItems: total,
     };
 
     return res.status(200).json({ success: true, playlist });
@@ -2180,7 +2205,6 @@ async function handleGetPlatformAnalytics(req, res) {
     });
   }
 }
-
 function normalizePostReactions(rawReactions = {}) {
   const base = {
     like: [],

@@ -12981,20 +12981,32 @@
         if (!key) return [];
         try {
           const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
-          const response = await fetch(`/api/social?action=get-music-playlist&playlistId=${encodeURIComponent(key)}`, {
+          // determine next page based on already loaded items (3 items per page)
+          const playlists = Array.isArray(state.playlists) ? state.playlists : [];
+          const idx = playlists.findIndex((p) => String(p.id) === key);
+          const existingItems = idx >= 0 && Array.isArray(playlists[idx].items) ? playlists[idx].items : [];
+          const pageSize = 3;
+          const nextPage = Math.floor(existingItems.length / pageSize);
+
+          const response = await fetch(`/api/social?action=get-music-playlist&playlistId=${encodeURIComponent(key)}&page=${nextPage}&pageSize=${pageSize}`, {
             method: 'GET',
             headers: { 'Authorization': idToken ? `Bearer ${idToken}` : '' }
           });
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(payload.error || 'No se pudieron cargar pistas');
-          const playlists = Array.isArray(state.playlists) ? state.playlists : [];
-          const idx = playlists.findIndex((p) => String(p.id) === key);
+
           if (idx >= 0) {
-            // payload.playlist.items expected
-            playlists[idx].items = Array.isArray(payload.playlist?.items) ? payload.playlist.items : [];
+            const incoming = Array.isArray(payload.playlist?.items) ? payload.playlist.items : [];
+            if (!Array.isArray(playlists[idx].items) || playlists[idx].items.length === 0) {
+              playlists[idx].items = incoming;
+            } else {
+              playlists[idx].items = playlists[idx].items.concat(incoming);
+            }
+            playlists[idx].songs_count = Number(payload.playlist?.songs_count || payload.playlist?.totalItems || playlists[idx].songs_count || 0);
             state.playlists = playlists;
             return playlists[idx].items;
           }
+
           return [];
         } catch (err) {
           musicDebugLog('fetch-playlist-error', { playlistId: key, message: err?.message || String(err) });
@@ -13347,7 +13359,7 @@
           empty.textContent = 'La lista está vacía.';
           body.appendChild(empty);
         } else {
-          const BATCH_SIZE = 25;
+          const BATCH_SIZE = 3;
           let rendered = 0;
 
           function createTrackListItem(track, idx) {
@@ -13534,6 +13546,41 @@
             tracksList.style.maxHeight = tracksList.style.maxHeight || '360px';
           }
           body.appendChild(tracksList);
+
+          // Add "Cargar más" button if server has more items than currently loaded
+          const totalSongs = Number(playlist?.songs_count || 0);
+          let loadMoreBtn = null;
+
+          function updateLoadMoreVisibility() {
+            if (!loadMoreBtn) return;
+            if (rendered < Math.min(tracks.length, totalSongs) || (rendered < totalSongs && tracks.length < totalSongs)) {
+              loadMoreBtn.style.display = '';
+            } else {
+              loadMoreBtn.style.display = 'none';
+            }
+          }
+
+          if (totalSongs > 0 && rendered < totalSongs) {
+            loadMoreBtn = document.createElement('button');
+            loadMoreBtn.type = 'button';
+            loadMoreBtn.className = 'music-load-more-btn music-pill-btn';
+            loadMoreBtn.textContent = 'Cargar más';
+            loadMoreBtn.style.margin = '8px 0';
+            loadMoreBtn.addEventListener('click', async (ev) => {
+              try {
+                loadMoreBtn.disabled = true;
+                await fetchPlaylistTracksFromServer(playlistId);
+                // Re-render playlist section so new items are visible
+                renderMusicPlaylists();
+              } catch (e) {
+                console.warn('Error cargando más pistas:', e);
+              } finally {
+                loadMoreBtn.disabled = false;
+              }
+            });
+            body.appendChild(loadMoreBtn);
+            updateLoadMoreVisibility();
+          }
         }
 
         li.appendChild(headerBtn);

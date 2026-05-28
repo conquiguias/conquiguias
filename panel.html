@@ -12975,6 +12975,164 @@
           });
       }
 
+      function createMusicPlaylistTrackItem(track, idx, playlistId) {
+        const trackLi = document.createElement('li');
+        trackLi.className = 'music-folder-track';
+        trackLi.dataset.musicId = track.id;
+
+        const isSelectedTrack = musicGetCurrentTrackId() && musicGetCurrentTrackId() === String(track.id || '').trim();
+        const isPlayingTrack = musicIsTrackPlaying(track.id);
+        if (isSelectedTrack) trackLi.classList.add('is-selected');
+        if (isPlayingTrack) trackLi.classList.add('is-playing');
+
+        const playBtn = document.createElement('button');
+        playBtn.type = 'button';
+        playBtn.className = 'music-folder-track-play';
+        playBtn.title = 'Reproducir';
+        playBtn.setAttribute('aria-label', 'Reproducir');
+        playBtn.innerHTML = '<i class="fas fa-music"></i>';
+        playBtn.addEventListener('click', (event) => {
+          event.stopPropagation();
+          if (!track.id) return;
+          musicToggleTrackPlayback(track.id, { playlistId, expand: true, reason: 'playlist-track' });
+        });
+
+        const info = document.createElement('div');
+        info.className = 'music-folder-track-info';
+
+        const title = document.createElement('div');
+        title.className = 'music-folder-track-title';
+        title.textContent = `${idx + 1}. ${track.title}`;
+
+        const metaText = document.createElement('div');
+        metaText.className = 'music-folder-track-meta';
+        const metaParts = [];
+        if (track.artist) metaParts.push(track.artist);
+        if (track.album) metaParts.push(track.album);
+        if (track.year) metaParts.push(track.year);
+        metaText.textContent = metaParts.length ? metaParts.join(' · ') : 'Sin metadatos';
+
+        info.appendChild(title);
+        info.appendChild(metaText);
+
+        trackLi.addEventListener('click', () => {
+          if (track.id) {
+            musicToggleTrackPlayback(track.id, { playlistId, expand: true, reason: 'playlist-track' });
+          }
+        });
+
+        const menuBtn = document.createElement('button');
+        menuBtn.type = 'button';
+        menuBtn.className = 'music-track-menu-btn';
+        menuBtn.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
+        menuBtn.title = 'Opciones';
+        menuBtn.setAttribute('aria-label', 'Opciones');
+        menuBtn.style.display = 'flex';
+        menuBtn.style.alignItems = 'center';
+        menuBtn.style.justifyContent = 'center';
+        menuBtn.style.width = '36px';
+        menuBtn.style.height = '36px';
+        menuBtn.style.padding = '0';
+        menuBtn.style.borderRadius = '6px';
+        menuBtn.style.border = 'none';
+        menuBtn.style.background = 'rgba(255,255,255,0.05)';
+        menuBtn.style.color = 'var(--text-secondary)';
+        menuBtn.style.cursor = 'pointer';
+        menuBtn.style.transition = 'background 0.2s';
+
+        menuBtn.addEventListener('mouseenter', () => {
+          menuBtn.style.background = 'rgba(255,255,255,0.1)';
+        });
+        menuBtn.addEventListener('mouseleave', () => {
+          menuBtn.style.background = 'rgba(255,255,255,0.05)';
+        });
+
+        menuBtn.addEventListener('click', (event) => {
+          event.stopPropagation();
+          const existingModal = document.getElementById('musicTrackContextMenu');
+          if (existingModal && document.body.contains(existingModal)) {
+            document.body.removeChild(existingModal);
+          }
+
+          const modalEl = document.createElement('div');
+          modalEl.id = 'musicTrackContextMenu';
+          modalEl.style.cssText = `
+            position: absolute;
+            top: ${event.clientY}px;
+            left: ${event.clientX}px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 6px;
+            min-width: 160px;
+            z-index: 9999;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+          `;
+
+          const options = [];
+          if (window.isOwner) {
+            options.push({ label: '<i class="fas fa-edit" style="margin-right:8px;"></i>Editar', action: () => {
+              openEditMusicModal(track);
+              if (document.body.contains(modalEl)) document.body.removeChild(modalEl);
+            }});
+            options.push({ label: '<i class="fas fa-trash" style="margin-right:8px;"></i>Eliminar', action: () => {
+              mostrarMensaje('confirm', 'Eliminar pista', `¿Estás seguro de que deseas eliminar "${track.title}"?`, async () => {
+                await deleteMusicTrack(track.id);
+                if (document.body.contains(modalEl)) document.body.removeChild(modalEl);
+              });
+            }});
+          }
+
+          options.push({ label: '<i class="fas fa-bookmark" style="margin-right:8px;"></i>Agregar a lista', action: () => {
+            showPlaylistPickerForTrack(track);
+            if (document.body.contains(modalEl)) document.body.removeChild(modalEl);
+          }});
+
+          options.forEach((opt) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.innerHTML = opt.label;
+            btn.style.cssText = `
+              display: flex;
+              align-items: center;
+              width: 100%;
+              padding: 8px 12px;
+              background: none;
+              border: none;
+              color: var(--text-primary);
+              text-align: left;
+              cursor: pointer;
+              font-size: 13px;
+              border-radius: 4px;
+              transition: background 0.15s;
+            `;
+            btn.addEventListener('mouseenter', () => { btn.style.background = 'rgba(59,130,246,0.2)'; });
+            btn.addEventListener('mouseleave', () => { btn.style.background = 'none'; });
+            btn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              opt.action();
+            });
+            modalEl.appendChild(btn);
+          });
+
+          document.body.appendChild(modalEl);
+          setTimeout(() => {
+            const closeHandler = (e) => {
+              if (!modalEl.contains(e.target) && !menuBtn.contains(e.target)) {
+                if (document.body.contains(modalEl)) document.body.removeChild(modalEl);
+                document.removeEventListener('click', closeHandler);
+              }
+            };
+            document.addEventListener('click', closeHandler);
+          }, 0);
+        });
+
+        trackLi.appendChild(playBtn);
+        trackLi.appendChild(info);
+        trackLi.appendChild(menuBtn);
+        return trackLi;
+      }
+
       async function fetchPlaylistTracksFromServer(playlistId) {
         const state = window.__musicState;
         const key = String(playlistId || '').trim();
@@ -13367,6 +13525,7 @@
           let rendered = 0;
 
           function createTrackListItem(track, idx) {
+
             const trackLi = document.createElement('li');
             trackLi.className = 'music-folder-track';
             trackLi.dataset.musicId = track.id;
@@ -13533,9 +13692,6 @@
             rendered = end;
             try { updateMusicPlayStates(); } catch (_) {}
             if (rendered >= tracks.length) tracksList.removeEventListener('scroll', onScroll);
-          }
-
-          function onScroll() {
             try {
               if (tracksList.scrollTop + tracksList.clientHeight >= tracksList.scrollHeight - 120) {
                 appendBatch();
@@ -13598,88 +13754,9 @@
                 const newItems = allItems.slice(itemsBeforeFetch);
                 
                 // Append ONLY new items to tracksList in the DOM (elegant append)
-                function createTrackListItem(track) {
-                  const trackLi = document.createElement('li');
-                  trackLi.className = 'music-folder-track';
-                  trackLi.dataset.musicId = track.id;
-
-                  const isSelectedTrack = musicGetCurrentTrackId() && musicGetCurrentTrackId() === String(track.id || '').trim();
-                  const isPlayingTrack = musicIsTrackPlaying(track.id);
-                  if (isSelectedTrack) trackLi.classList.add('is-selected');
-                  if (isPlayingTrack) trackLi.classList.add('is-playing');
-
-                  const playBtn = document.createElement('button');
-                  playBtn.type = 'button';
-                  playBtn.className = 'music-track-play-btn';
-                  playBtn.innerHTML = '<i class="fas fa-play"></i>';
-                  playBtn.title = 'Reproducir';
-                  playBtn.setAttribute('aria-label', 'Reproducir');
-
-                  const info = document.createElement('div');
-                  info.className = 'music-track-info';
-                  
-                  const title = document.createElement('div');
-                  title.className = 'music-track-title';
-                  title.textContent = track.title || 'Sin título';
-
-                  const metaText = document.createElement('div');
-                  metaText.className = 'music-track-meta';
-                  const metaParts = [];
-                  if (track.artist) metaParts.push(track.artist);
-                  if (track.album) metaParts.push(track.album);
-                  if (track.year) metaParts.push(track.year);
-                  metaText.textContent = metaParts.length ? metaParts.join(' · ') : 'Sin metadatos';
-
-                  info.appendChild(title);
-                  info.appendChild(metaText);
-
-                  playBtn.addEventListener('click', () => {
-                    if (track.id) {
-                      musicToggleTrackPlayback(track.id, { playlistId, expand: true, reason: 'playlist-track' });
-                    }
-                  });
-
-                  trackLi.addEventListener('click', () => {
-                    if (track.id) {
-                      musicToggleTrackPlayback(track.id, { playlistId, expand: true, reason: 'playlist-track' });
-                    }
-                  });
-
-                  const menuBtn = document.createElement('button');
-                  menuBtn.type = 'button';
-                  menuBtn.className = 'music-track-menu-btn';
-                  menuBtn.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
-                  menuBtn.title = 'Opciones';
-                  menuBtn.setAttribute('aria-label', 'Opciones');
-                  menuBtn.style.display = 'flex';
-                  menuBtn.style.alignItems = 'center';
-                  menuBtn.style.justifyContent = 'center';
-                  menuBtn.style.width = '36px';
-                  menuBtn.style.height = '36px';
-                  menuBtn.style.padding = '0';
-                  menuBtn.style.borderRadius = '6px';
-                  menuBtn.style.border = 'none';
-                  menuBtn.style.background = 'rgba(255,255,255,0.05)';
-                  menuBtn.style.color = 'var(--text-secondary)';
-                  menuBtn.style.cursor = 'pointer';
-                  menuBtn.style.transition = 'background 0.2s';
-
-                  menuBtn.addEventListener('mouseenter', () => {
-                    menuBtn.style.background = 'rgba(255,255,255,0.1)';
-                  });
-                  menuBtn.addEventListener('mouseleave', () => {
-                    menuBtn.style.background = 'rgba(255,255,255,0.05)';
-                  });
-
-                  trackLi.appendChild(playBtn);
-                  trackLi.appendChild(info);
-                  trackLi.appendChild(menuBtn);
-                  return trackLi;
-                }
-                
-                // Append new items to the list
-                newItems.forEach(track => {
-                  tracksList.appendChild(createTrackListItem(track));
+                newItems.forEach((track, idx) => {
+                  const globalIdx = itemsBeforeFetch + idx;
+                  tracksList.appendChild(createMusicPlaylistTrackItem(track, globalIdx, playlistId));
                 });
                 
                 // Update play states for newly added items
@@ -13697,35 +13774,6 @@
             body.appendChild(loadMoreBtn);
             updateLoadMoreVisibility();
           }
-        }
-
-        li.appendChild(headerBtn);
-        li.appendChild(body);
-
-        headerBtn.addEventListener('click', () => {
-          if (!playlistId) return;
-          toggleMusicPlaylistExpanded(playlistId);
-        });
-
-        return li;
-      }
-
-      function renderMusicPlaylistSection(container, playlists, { isAuto = false, emptyMessage = 'Sin listas' } = {}) {
-        if (!container) return;
-        const list = Array.isArray(playlists) ? playlists : [];
-        container.innerHTML = '';
-
-        if (!list.length) {
-          const empty = document.createElement('li');
-          empty.className = 'music-folder-empty';
-          empty.textContent = emptyMessage;
-          container.appendChild(empty);
-          return;
-        }
-
-        list.forEach((playlist) => {
-          container.appendChild(buildMusicPlaylistFolderItem(playlist, { isAuto }));
-        });
       }
 
       function renderLocalMusicList() {
@@ -13909,7 +13957,18 @@
           });
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(payload.error || 'No se pudo cargar playlists');
-          state.playlists = Array.isArray(payload.playlists) ? payload.playlists : [];
+          // Preserve any locally-loaded items/hasMore for playlists when reloading the list
+          const incomingPlaylists = Array.isArray(payload.playlists) ? payload.playlists : [];
+          const existing = Array.isArray(state.playlists) ? state.playlists : [];
+          const merged = incomingPlaylists.map((pl) => {
+            const found = existing.find((e) => String(e?.id) === String(pl?.id));
+            if (found && Array.isArray(found.items) && found.items.length > 0) {
+              // Keep previously loaded items and hasMore flag
+              return Object.assign({}, pl, { items: found.items, hasMore: found.hasMore === true });
+            }
+            return pl;
+          });
+          state.playlists = merged;
           if (state.selectedPlaylistId && !state.playlists.some((x) => x.id === state.selectedPlaylistId)) {
             state.selectedPlaylistId = '';
           }
@@ -32426,6 +32485,7 @@
       };
 
       window.cargarTablaCertificacionesCorrecta = cargarTablaCertificacionesCorrecta;
+    }
     </script>
 
 </body>

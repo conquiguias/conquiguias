@@ -363,9 +363,6 @@ export default async function handler(req, res) {
       case "set-post-reaction":
         await handleSetPostReaction(req, res);
         break;
-      case "check-stream":
-        await handleCheckStream(req, res);
-        break;
       case "add-music":
         await handleAddMusic(req, res);
         break;
@@ -3793,58 +3790,14 @@ async function handleNotifyPostApproved(req, res) {
 const LIVE_STREAM_URL =
   "https://edge1-us-losangeles.picarto.tv/stream/hls/golive%2bXSTUDIOCODE/1_0/index.m3u8";
 const LIVE_POST_ID = "live_stream";
-const STREAM_CHECK_CACHE_MS = 30000;
 const OWNER_PROFILE_CACHE_MS = 10 * 60 * 1000;
 const LIVE_POST_SYNC_INTERVAL_MS = 120000;
 
-let streamStatusCache = { checkedAt: 0, data: { live: false } };
 let ownerProfileCache = {
   checkedAt: 0,
   data: { email: OWNER_EMAIL, name: "Admin", photo: "", uid: "", age: null },
 };
 let lastLivePostSyncAt = 0;
-
-async function detectLiveStatus() {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 2800);
-
-  try {
-    const streamRes = await fetch(LIVE_STREAM_URL, {
-      method: "GET",
-      signal: controller.signal,
-      headers: {
-        Accept:
-          "application/vnd.apple.mpegurl, application/x-mpegURL, text/plain;q=0.9, */*;q=0.8",
-        "Cache-Control": "no-cache",
-      },
-    });
-
-    if (!streamRes.ok) {
-      return { live: false };
-    }
-
-    const playlist = await streamRes.text();
-    const hasSegments = /#EXTINF/i.test(playlist);
-    const hasVariantInfo = /#EXT-X-STREAM-INF/i.test(playlist);
-    const hasMediaOrVariantUrls =
-      /^[^#\n\r][^\n\r]*\.(ts|m4s|m3u8)(\?[^\n\r]*)?\s*$/im.test(playlist);
-    const looksOffline =
-      /\boffline\b|\bnot.?found\b|\bforbidden\b|\berror\b/i.test(
-        playlist.slice(0, 500),
-      );
-
-    return {
-      live:
-        (hasSegments || hasVariantInfo || hasMediaOrVariantUrls) &&
-        !looksOffline &&
-        playlist.trim().length > 30,
-    };
-  } catch (_error) {
-    return { live: false };
-  } finally {
-    clearTimeout(timer);
-  }
-}
 
 async function getOwnerProfileCached(force = false) {
   const now = Date.now();
@@ -3933,50 +3886,5 @@ async function syncLivePost(ownerProfile) {
     },
     { merge: true },
   );
-}
-
-async function handleCheckStream(req, res) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "MÃ©todo no permitido" });
-  }
-
-  const now = Date.now();
-  const streamCacheFresh =
-    streamStatusCache.checkedAt &&
-    now - streamStatusCache.checkedAt < STREAM_CHECK_CACHE_MS;
-
-  const streamPromise = streamCacheFresh
-    ? Promise.resolve(streamStatusCache.data)
-    : detectLiveStatus();
-
-  const [streamData, ownerProfile] = await Promise.all([
-    streamPromise,
-    getOwnerProfileCached(),
-  ]);
-
-  if (!streamCacheFresh) {
-    streamStatusCache = {
-      checkedAt: Date.now(),
-      data: streamData || { live: false },
-    };
-  }
-
-  const live = !!(streamData && streamData.live);
-  if (live) {
-    syncLivePost(ownerProfile).catch((error) => {
-      console.warn("[WARN] No se pudo sincronizar post live:", error);
-    });
-  }
-
-  const publicOwnerProfile = {
-    name: String(ownerProfile?.name || "Admin").trim() || "Admin",
-    photo: String(ownerProfile?.photo || "").trim(),
-  };
-
-  return res.status(200).json({
-    live,
-    ownerProfile: publicOwnerProfile,
-    livePostId: LIVE_POST_ID,
-  });
 }
 

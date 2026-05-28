@@ -15232,6 +15232,29 @@
         donacionesUserPanel.classList.remove("hidden");
 
         if (isLoadingUserDonationsHistory && !forceReload) {
+
+                  // 🔧 OPTIMIZACIÓN: Caché local de donaciones (10 minutos)
+                  const DONATIONS_CACHE_KEY = '_cx_donations_cache';
+                  const DONATIONS_CACHE_TIME_KEY = '_cx_donations_cache_time';
+                  const CACHE_TTL_MS = 10 * 60 * 1000;
+                  const now = Date.now();
+        
+                  if (!forceReload) {
+                    const cachedTime = Number(localStorage.getItem(DONATIONS_CACHE_TIME_KEY) || 0);
+                    const cachedData = localStorage.getItem(DONATIONS_CACHE_KEY);
+                    if (cachedData && (now - cachedTime < CACHE_TTL_MS)) {
+                      try {
+                        const cached = JSON.parse(cachedData);
+                        donacionesUserBody.innerHTML = cached.html;
+                        donacionesUserStatus.textContent = cached.status;
+                        console.log('[Donaciones] ✅ Cargadas desde caché');
+                        return;
+                      } catch (e) {
+                        localStorage.removeItem(DONATIONS_CACHE_KEY);
+                        localStorage.removeItem(DONATIONS_CACHE_TIME_KEY);
+                      }
+                    }
+                  }
           return;
         }
 
@@ -15280,8 +15303,20 @@
                 <td style="padding:8px; font-family:monospace; font-size:12px;">${subscriptionId}</td>
               </tr>`;
           }).join("");
-
           donacionesUserStatus.textContent = `Tienes ${donations.length} donación${donations.length !== 1 ? 'es' : ''}.`;
+
+                  // Guardar en caché
+                  const statusMsg = `Tienes ${donations.length} donación${donations.length !== 1 ? 'es' : ''}.`;
+                  try {
+                    localStorage.setItem(DONATIONS_CACHE_KEY, JSON.stringify({
+                      html: donacionesUserBody.innerHTML,
+                      status: statusMsg
+                    }));
+                    localStorage.setItem(DONATIONS_CACHE_TIME_KEY, String(now));
+                  } catch (e) {
+                    console.warn('[Donaciones] ⚠ No se pudo guardar caché:', e);
+                  }
+                  donacionesUserStatus.textContent = statusMsg;
         } catch (error) {
           console.error("No se pudo cargar historial de donaciones del usuario:", error);
           donacionesUserStatus.textContent = error.message || "Error cargando tu historial de donaciones.";
@@ -20697,12 +20732,38 @@
         const grabFeed = document.getElementById('grabacionesFeed');
         const grabEmpty = document.getElementById('grabacionesEmpty');
         if (!grabFeed) { console.error('[Grabaciones] ❌ grabacionesFeed no encontrado en el DOM'); return; }
+        // 🔧 OPTIMIZACIÓN: Caché local de grabaciones (5 minutos)
+        const GRABACIONES_CACHE_KEY = '_cx_grabaciones_cache';
+        const GRABACIONES_CACHE_TIME_KEY = '_cx_grabaciones_cache_time';
+        const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
+        const now = Date.now();
+        const cachedTime = Number(localStorage.getItem(GRABACIONES_CACHE_TIME_KEY) || 0);
+        const cachedData = localStorage.getItem(GRABACIONES_CACHE_KEY);
+        
+        // Si hay caché fresca, usarla
+        if (cachedData && (now - cachedTime < CACHE_TTL_MS)) {
+          try {
+            const recordings = JSON.parse(cachedData);
+            grabFeed.innerHTML = '';
+            recordings.forEach(post => {
+              displayPost(post, 'grab-' + post.id, grabFeed);
+            });
+            console.log(`[Grabaciones] ✅ Cargadas desde caché (${recordings.length})`);
+            return;
+          } catch (e) {
+            console.warn('[Grabaciones] ⚠ Caché corrupta, recargando...');
+            localStorage.removeItem(GRABACIONES_CACHE_KEY);
+            localStorage.removeItem(GRABACIONES_CACHE_TIME_KEY);
+          }
+        }
+        
         grabFeed.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:30px;">Cargando grabaciones...</p>';
         grabEmpty?.classList.add('hidden');
         try {
           const q = query(collection(db, 'posts'), where('status', '==', 'approved'), orderBy('timestamp', 'desc'));
           const snapshot = await getDocs(q);
           grabFeed.innerHTML = '';
+                    const recordingsData = [];
           let count = 0;
 
           snapshot.forEach(docSnap => {
@@ -20713,11 +20774,20 @@
 
             if (esVideo && tieneEtiqueta) {
               try {
+                recordingsData.push(post);
                 // Prefijo 'grab-' para evitar IDs duplicados con el feed principal
                 displayPost(post, 'grab-' + docSnap.id, grabFeed);
                 count++;
               } catch (renderErr) {
                 console.error(`[Grabaciones] ❌ Error renderizando post ${docSnap.id}:`, renderErr);
+                        // Guardar en caché
+                        try {
+                          localStorage.setItem(GRABACIONES_CACHE_KEY, JSON.stringify(recordingsData));
+                          localStorage.setItem(GRABACIONES_CACHE_TIME_KEY, String(now));
+                        } catch (e) {
+                          console.warn('[Grabaciones] ⚠ No se pudo guardar caché:', e);
+                        }
+          
               }
             }
           });
@@ -20735,12 +20805,38 @@
         const tutFeed = document.getElementById('tutorialesFeed');
         const tutEmpty = document.getElementById('tutorialesEmpty');
         if (!tutFeed) { console.error('[Tutoriales] ❌ tutorialesFeed no encontrado en el DOM'); return; }
+        // 🔧 OPTIMIZACIÓN: Caché local de tutoriales (5 minutos)
+        const TUTORIALES_CACHE_KEY = '_cx_tutoriales_cache';
+        const TUTORIALES_CACHE_TIME_KEY = '_cx_tutoriales_cache_time';
+        const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
+        const now = Date.now();
+        const cachedTime = Number(localStorage.getItem(TUTORIALES_CACHE_TIME_KEY) || 0);
+        const cachedData = localStorage.getItem(TUTORIALES_CACHE_KEY);
+        
+        // Si hay caché fresca, usarla
+        if (cachedData && (now - cachedTime < CACHE_TTL_MS)) {
+          try {
+            const tutorials = JSON.parse(cachedData);
+            tutFeed.innerHTML = '';
+            tutorials.forEach(post => {
+              displayPost(post, 'tut-' + post.id, tutFeed);
+            });
+            console.log(`[Tutoriales] ✅ Cargados desde caché (${tutorials.length})`);
+            return;
+          } catch (e) {
+            console.warn('[Tutoriales] ⚠ Caché corrupta, recargando...');
+            localStorage.removeItem(TUTORIALES_CACHE_KEY);
+            localStorage.removeItem(TUTORIALES_CACHE_TIME_KEY);
+          }
+        }
+        
         tutFeed.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:30px;">Cargando tutoriales...</p>';
         tutEmpty?.classList.add('hidden');
         try {
           const q = query(collection(db, 'posts'), where('status', '==', 'approved'), orderBy('timestamp', 'desc'));
           const snapshot = await getDocs(q);
           tutFeed.innerHTML = '';
+                    const tutorialsData = [];
           let count = 0;
 
           snapshot.forEach(docSnap => {
@@ -20751,8 +20847,17 @@
 
             if (esVideo && tieneEtiqueta) {
               try {
+                tutorialsData.push(post);
                 // Prefijo 'tut-' para evitar IDs duplicados con el feed principal
                 displayPost(post, 'tut-' + docSnap.id, tutFeed);
+                          // Guardar en caché
+                          try {
+                            localStorage.setItem(TUTORIALES_CACHE_KEY, JSON.stringify(tutorialsData));
+                            localStorage.setItem(TUTORIALES_CACHE_TIME_KEY, String(now));
+                          } catch (e) {
+                            console.warn('[Tutoriales] ⚠ No se pudo guardar caché:', e);
+                          }
+          
                 count++;
               } catch (renderErr) {
                 console.error(`[Tutoriales] ❌ Error renderizando post ${docSnap.id}:`, renderErr);
@@ -20772,6 +20877,66 @@
       const LIVE_STREAM_URL = 'https://edge1-us-losangeles.picarto.tv/stream/hls/golive%2bXSTUDIOCODE/1_0/index.m3u8';
       const LIVE_POST_ID = 'live_stream';
 
+      // LIVE STREAM VERIFICATION (Pure JavaScript - No Backend Call)
+      // Verificación estricta del estado del stream basada en análisis del M3U8
+      async function detectLiveStatusDirect(streamUrl = LIVE_STREAM_URL) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2800);
+
+        try {
+          const streamRes = await fetch(streamUrl, {
+            method: "GET",
+            signal: controller.signal,
+            headers: {
+              Accept: "application/vnd.apple.mpegurl, application/x-mpegURL, text/plain;q=0.9, */*;q=0.8",
+              "Cache-Control": "no-cache",
+              pragma: "no-cache"
+            },
+            cache: 'no-store'
+          });
+
+          if (!streamRes.ok) {
+            return { live: false, reason: `HTTP ${streamRes.status}` };
+          }
+
+          const playlist = await streamRes.text();
+          
+          // Validaciones estrictas del M3U8:
+          // 1. Debe contener #EXTM3U al inicio
+          if (!/^#EXTM3U/i.test(playlist.trim())) {
+            return { live: false, reason: "No M3U header" };
+          }
+
+          // 2. Verificar peso mínimo del contenido (debe tener datos significativos)
+          if (playlist.trim().length < 50) {
+            return { live: false, reason: "Playlist too small" };
+          }
+
+          // 3. Buscar indicadores de stream activo
+          const hasSegments = /#EXTINF/i.test(playlist);
+          const hasVariantInfo = /#EXT-X-STREAM-INF/i.test(playlist);
+          const hasMediaUrls = /^[^#\n\r][^\n\r]*\.(ts|m4s|m3u8)(\?[^\n\r]*)?\s*$/im.test(playlist);
+
+          // 4. Buscar indicadores de stream offline/error en el header (primeros 500 chars)
+          const looksOffline = /\boffline\b|\bnot.?found\b|\bforbidden\b|\berror\b|\bunavailable\b/i.test(
+            playlist.slice(0, 500)
+          );
+
+          // Criterio final: debe tener al menos segmentos válidos y NO parecer offline
+          const isLiveStream = (hasSegments || hasVariantInfo || hasMediaUrls) && !looksOffline;
+
+          return { 
+            live: isLiveStream, 
+            reason: !isLiveStream ? "No valid segments" : "Stream active" 
+          };
+        } catch (error) {
+          const reason = error?.name === 'AbortError' ? 'Timeout' : error?.message || 'Unknown error';
+          return { live: false, reason };
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      }
+
       async function checkLiveStream(forceRefresh = false) {
         const now = Date.now();
         if (!forceRefresh && liveStreamCache.checkedAt && (now - liveStreamCache.checkedAt < LIVE_STREAM_CACHE_MS)) {
@@ -20783,38 +20948,30 @@
         }
 
         liveStreamRequestPromise = (async () => {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 2800);
-
           try {
-            const res = await fetch('/api/social?action=check-stream', {
-              cache: 'no-store',
-              signal: controller.signal
-            });
-
-            if (!res.ok) {
-              liveStreamCache = {
-                data: { live: false },
-                checkedAt: Date.now()
-              };
-              return { live: false };
-            }
-
-            const data = await res.json();
+            // 🔧 DIRECT verification - No API call needed
+            const streamStatus = await detectLiveStatusDirect(LIVE_STREAM_URL);
+            
             liveStreamCache = {
-              data: data || { live: false },
+              data: { live: streamStatus.live },
               checkedAt: Date.now()
             };
+            
+            if (streamStatus.live) {
+              console.log('[Live] ✅ Stream is live');
+            } else {
+              console.log(`[Live] ⏸ Stream offline: ${streamStatus.reason}`);
+            }
+            
             return liveStreamCache.data;
           } catch (e) {
-            console.warn('[Live] No se pudo verificar stream:', e);
+            console.warn('[Live] ❌ Verification failed:', e);
             liveStreamCache = {
               data: { live: false },
               checkedAt: Date.now()
             };
             return { live: false };
           } finally {
-            clearTimeout(timeoutId);
             liveStreamRequestPromise = null;
           }
         })();
@@ -24275,6 +24432,18 @@
 
         try {
           const visitorKey = getAnalyticsVisitorKey(user);
+          // 🔧 OPTIMIZACIÓN: No registrar visitas múltiples en menos de 10 minutos
+          const VISIT_TRACKING_INTERVAL_MS = 10 * 60 * 1000; // 10 minutos
+          const lastVisitKey = '_cx_last_visit_tracked_time';
+          const now = Date.now();
+          
+          // Verificar si ya se registró una visita recientemente
+          const lastTrackedTime = Number(localStorage.getItem(lastVisitKey) || 0);
+          if (now - lastTrackedTime < VISIT_TRACKING_INTERVAL_MS) {
+            console.log('[Analytics] ⏭ Visita ya registrada hace poco, omitiendo...');
+            return;
+          }
+
           const response = await fetch('/api/social?action=track-platform-visit', {
             method: 'POST',
             headers: {
@@ -24289,6 +24458,10 @@
           }
         } catch (analyticsError) {
           console.warn('[Analytics] No se pudo registrar visita:', analyticsError);
+
+                  // Guardar timestamp en localStorage para futuros chequeos
+                  localStorage.setItem(lastVisitKey, String(now));
+                  console.log('[Analytics] ✅ Visita registrada (próxima en 10 min)');
         }
       }
 

@@ -2150,16 +2150,50 @@
         };
       }
 
+      // 🔧 Direct stream verification (Pure JS - No API call)
+      async function detectLiveStatusDirect(streamUrl) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2800);
+
+        try {
+          const streamRes = await fetch(streamUrl, {
+            method: "GET",
+            signal: controller.signal,
+            headers: {
+              Accept: "application/vnd.apple.mpegurl, application/x-mpegURL, text/plain;q=0.9, */*;q=0.8",
+              "Cache-Control": "no-cache",
+              pragma: "no-cache"
+            },
+            cache: 'no-store'
+          });
+
+          if (!streamRes.ok) return { live: false };
+
+          const playlist = await streamRes.text();
+          
+          // Strict validation
+          if (!/^#EXTM3U/i.test(playlist.trim())) return { live: false };
+          if (playlist.trim().length < 50) return { live: false };
+
+          const hasSegments = /#EXTINF/i.test(playlist);
+          const hasVariantInfo = /#EXT-X-STREAM-INF/i.test(playlist);
+          const hasMediaUrls = /^[^#\n\r][^\n\r]*\.(ts|m4s|m3u8)(\?[^\n\r]*)?\s*$/im.test(playlist);
+          const looksOffline = /\boffline\b|\bnot.?found\b|\bforbidden\b|\berror\b|\bunavailable\b/i.test(playlist.slice(0, 500));
+
+          return { live: (hasSegments || hasVariantInfo || hasMediaUrls) && !looksOffline };
+        } catch (_error) {
+          return { live: false };
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      }
+
       async function checkLiveStream() {
         try {
-          const res = await fetch("/api/social?action=check-stream", {
-            cache: "no-store",
-          });
-          if (!res.ok) return { live: false };
-          const data = await res.json();
-          return data || { live: false };
+          const result = await detectLiveStatusDirect(LIVE_STREAM_URL);
+          return result || { live: false };
         } catch (e) {
-          console.warn("[post] No se pudo verificar stream en vivo:", e);
+          console.warn("[post] Stream verification failed:", e);
           return { live: false };
         }
       }

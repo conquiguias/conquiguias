@@ -13364,6 +13364,7 @@
           body.appendChild(empty);
         } else {
           const BATCH_SIZE = 3;
+          const initialRenderLimit = Math.max(BATCH_SIZE, Number(playlist?._loadedTrackCount || BATCH_SIZE));
           let rendered = 0;
 
           function createTrackListItem(track, idx) {
@@ -13525,21 +13526,15 @@
           }
 
           function appendBatch() {
-            // Determine batch size: if _minRenderCount is set, load more items per batch until we reach it
-            let batchSize = BATCH_SIZE;
-            if (playlist?._minRenderCount && playlist._minRenderCount > rendered) {
-              // Load in BATCH_SIZE increments until we reach _minRenderCount
-              batchSize = Math.min(BATCH_SIZE, playlist._minRenderCount - rendered);
-            }
-            
+            const renderLimit = Math.min(tracks.length, initialRenderLimit);
             const start = rendered;
-            const end = Math.min(tracks.length, rendered + batchSize);
+            const end = Math.min(renderLimit, rendered + BATCH_SIZE);
             for (let i = start; i < end; i++) {
               tracksList.appendChild(createTrackListItem(tracks[i], i));
             }
             rendered = end;
             try { updateMusicPlayStates(); } catch (_) {}
-            if (rendered >= tracks.length) tracksList.removeEventListener('scroll', onScroll);
+            if (rendered >= renderLimit) tracksList.removeEventListener('scroll', onScroll);
           }
 
           function onScroll() {
@@ -13551,10 +13546,6 @@
           }
 
           appendBatch();
-          // Clean up _minRenderCount after initial render if we've reached it
-          if (playlist?._minRenderCount && rendered >= playlist._minRenderCount) {
-            delete playlist._minRenderCount;
-          }
           if (tracks.length > rendered) {
             tracksList.addEventListener('scroll', onScroll);
             tracksList.style.overflow = 'auto';
@@ -13563,12 +13554,10 @@
           body.appendChild(tracksList);
 
           // Add "Cargar más" button if server has more items than currently loaded
-          const hasMore = playlist?.hasMore === true;
           let loadMoreBtn = null;
 
           function updateLoadMoreVisibility() {
             if (!loadMoreBtn) return;
-            // Lee dinámicamente de playlist.hasMore, no de la variable capturada
             if (playlist?.hasMore === true) {
               loadMoreBtn.style.display = '';
             } else {
@@ -13587,18 +13576,21 @@
               try {
                 loadMoreBtn.disabled = true;
                 
-                // Fetch more items from server
+                const currentCount = rendered;
                 await fetchPlaylistTracksFromServer(playlistId);
                 
-                // Mark how many items we should render (for next collapse/expand)
-                if (playlist && Array.isArray(playlist.items)) {
-                  playlist._minRenderCount = playlist.items.length;
-                }
+                const refreshedPlaylist = playlist;
+                const refreshedTracks = getMusicPlaylistTracks(refreshedPlaylist);
+                const newItems = refreshedTracks.slice(currentCount);
                 
-                // Close and reopen playlist to trigger full re-render with all loaded items
-                toggleMusicPlaylistExpanded(playlistId);
-                await new Promise(r => setTimeout(r, 100));
-                toggleMusicPlaylistExpanded(playlistId);
+                newItems.forEach((track, offset) => {
+                  tracksList.appendChild(createTrackListItem(track, currentCount + offset));
+                });
+                
+                rendered = currentCount + newItems.length;
+                playlist._loadedTrackCount = rendered;
+                try { updateMusicPlayStates(); } catch (_) {}
+                updateLoadMoreVisibility();
                 
               } catch (e) {
                 console.warn('Error cargando más pistas:', e);

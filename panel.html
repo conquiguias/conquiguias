@@ -10890,8 +10890,18 @@
     function musicSeekToTime(time, { updatePlugin = true } = {}) {
       const state = window.__musicState;
       const media = musicGetActiveMediaElement();
-      const duration = musicGetDuration(media);
-      if (!media || !(duration > 0)) return false;
+      if (!media) return false;
+
+      let duration = musicGetDuration(media);
+      if (!(duration > 0)) {
+        try {
+          const seekable = media.seekable;
+          if (seekable && Number(seekable.length) > 0) {
+            duration = Number(seekable.end(seekable.length - 1)) || 0;
+          }
+        } catch (_) {}
+      }
+      if (!(duration > 0)) return false;
 
       const targetTime = Math.max(0, Math.min(duration, Number(time) || 0));
       let ok = false;
@@ -11372,7 +11382,7 @@
       }
       if (refreshUserDonacionesBtn) {
         refreshUserDonacionesBtn.addEventListener("click", () => {
-          loadUserDonationHistory(true);
+          loadUserDonationHistory();
         });
       }
 
@@ -13188,11 +13198,24 @@
         const media = musicGetActiveMediaElement();
         const playbackState = musicGetCurrentPlaybackState();
         const mediaIsPlaying = !!media && !media.paused && !media.ended;
-        const effectivePlaybackState = mediaIsPlaying ? 'playing' : playbackState;
+        const mediaIsPaused = !!media && !!media.paused && Number(media.currentTime) > 0;
+        const effectivePlaybackState = mediaIsPlaying
+          ? 'playing'
+          : mediaIsPaused
+            ? 'paused'
+            : playbackState;
         const section = document.getElementById('musicaSection');
         if (!section) return;
         const allPlayBtns = section.querySelectorAll('.music-folder-track-play');
         const allTrackItems = section.querySelectorAll('.music-folder-track');
+
+        // Si existe media y aún no se detectó el tipo activo, inferirlo.
+        if (media && !state.activePlayerType) {
+          try {
+            state.activePlayerType = media.tagName === 'VIDEO' ? 'video' : 'audio';
+          } catch (_) {}
+        }
+
         allPlayBtns.forEach((btn) => {
           const trackItem = btn.closest('.music-folder-track');
           if (!trackItem) return;
@@ -13212,13 +13235,13 @@
           }
 
           if (isCurrent) {
-            if (effectivePlaybackState === 'playing') {
+            if (mediaIsPlaying || effectivePlaybackState === 'playing') {
               btn.classList.add('is-playing');
               trackItem.classList.add('is-playing');
               btn.innerHTML = '<i class="fas fa-pause"></i>';
               btn.title = 'Pausar';
               btn.setAttribute('aria-label', 'Pausar');
-            } else if (effectivePlaybackState === 'paused') {
+            } else if (effectivePlaybackState === 'paused' || mediaIsPaused) {
               btn.classList.add('is-paused');
               trackItem.classList.add('is-paused');
               btn.innerHTML = '<i class="fas fa-play"></i>';
@@ -15232,33 +15255,32 @@
         donacionesUserPanel.classList.remove("hidden");
 
         if (isLoadingUserDonationsHistory && !forceReload) {
-
-                  // 🔧 OPTIMIZACIÓN: Caché local de donaciones (10 minutos)
-                  const DONATIONS_CACHE_KEY = '_cx_donations_cache';
-                  const DONATIONS_CACHE_TIME_KEY = '_cx_donations_cache_time';
-                  const CACHE_TTL_MS = 10 * 60 * 1000;
-                  const now = Date.now();
-        
-                  if (!forceReload) {
-                    const cachedTime = Number(localStorage.getItem(DONATIONS_CACHE_TIME_KEY) || 0);
-                    const cachedData = localStorage.getItem(DONATIONS_CACHE_KEY);
-                    if (cachedData && (now - cachedTime < CACHE_TTL_MS)) {
-                      try {
-                        const cached = JSON.parse(cachedData);
-                        donacionesUserBody.innerHTML = cached.html;
-                        donacionesUserStatus.textContent = cached.status;
-                        console.log('[Donaciones] ✅ Cargadas desde caché');
-                        return;
-                      } catch (e) {
-                        localStorage.removeItem(DONATIONS_CACHE_KEY);
-                        localStorage.removeItem(DONATIONS_CACHE_TIME_KEY);
-                      }
-                    }
-                  }
           return;
         }
 
         const authUser = auth?.currentUser || null;
+        const userCacheKey = String(authUser?.uid || authUser?.email || "guest").trim().toLowerCase();
+        const DONATIONS_CACHE_KEY = `_cx_donations_user_${userCacheKey}`;
+        const DONATIONS_CACHE_TIME_KEY = `_cx_donations_user_time_${userCacheKey}`;
+        const CACHE_TTL_MS = 10 * 60 * 1000;
+        const now = Date.now();
+
+        if (!forceReload) {
+          const cachedTime = Number(localStorage.getItem(DONATIONS_CACHE_TIME_KEY) || 0);
+          const cachedData = localStorage.getItem(DONATIONS_CACHE_KEY);
+          if (cachedData && (now - cachedTime < CACHE_TTL_MS)) {
+            try {
+              const cached = JSON.parse(cachedData);
+              donacionesUserBody.innerHTML = cached.html || "";
+              donacionesUserStatus.textContent = cached.status || "";
+              return;
+            } catch (cacheError) {
+              localStorage.removeItem(DONATIONS_CACHE_KEY);
+              localStorage.removeItem(DONATIONS_CACHE_TIME_KEY);
+            }
+          }
+        }
+
         const idToken = authUser ? await authUser.getIdToken(true) : "";
         if (!idToken) {
           donacionesUserStatus.textContent = "Inicia sesión para ver tu historial de donaciones.";
@@ -15282,41 +15304,39 @@
           }
 
           const donations = Array.isArray(payload?.donations) ? payload.donations : [];
+          let html = "";
+          let status = "";
 
           if (!donations.length) {
-            donacionesUserBody.innerHTML = `
+            html = `
               <tr>
                 <td colspan="3" style="padding:12px; text-align:center; color:var(--text-secondary);">Aún no has realizado donaciones.</td>
               </tr>`;
-            donacionesUserStatus.textContent = "No hay registros por el momento.";
-            return;
+            status = "No hay registros por el momento.";
+          } else {
+            html = donations.map((item) => {
+              const approvedAt = formatDonationDate(item?.approvedAt);
+              const statusText = escapeHtml(String(item?.status || "aprobada"));
+              const subscriptionId = escapeHtml(String(item?.subscriptionId || item?.id || "—"));
+
+              return `<tr style="border-bottom:1px solid var(--border-color);">
+                  <td style="padding:8px; white-space:nowrap;">${approvedAt}</td>
+                  <td style="padding:8px; text-transform:capitalize;">${statusText}</td>
+                  <td style="padding:8px; font-family:monospace; font-size:12px;">${subscriptionId}</td>
+                </tr>`;
+            }).join("");
+            status = `Tienes ${donations.length} donación${donations.length !== 1 ? 'es' : ''}.`;
           }
 
-          donacionesUserBody.innerHTML = donations.map((item) => {
-            const approvedAt = formatDonationDate(item?.approvedAt);
-            const status = escapeHtml(String(item?.status || "aprobada"));
-            const subscriptionId = escapeHtml(String(item?.subscriptionId || item?.id || "—"));
+          donacionesUserBody.innerHTML = html;
+          donacionesUserStatus.textContent = status;
 
-            return `<tr style="border-bottom:1px solid var(--border-color);">
-                <td style="padding:8px; white-space:nowrap;">${approvedAt}</td>
-                <td style="padding:8px; text-transform:capitalize;">${status}</td>
-                <td style="padding:8px; font-family:monospace; font-size:12px;">${subscriptionId}</td>
-              </tr>`;
-          }).join("");
-          donacionesUserStatus.textContent = `Tienes ${donations.length} donación${donations.length !== 1 ? 'es' : ''}.`;
-
-                  // Guardar en caché
-                  const statusMsg = `Tienes ${donations.length} donación${donations.length !== 1 ? 'es' : ''}.`;
-                  try {
-                    localStorage.setItem(DONATIONS_CACHE_KEY, JSON.stringify({
-                      html: donacionesUserBody.innerHTML,
-                      status: statusMsg
-                    }));
-                    localStorage.setItem(DONATIONS_CACHE_TIME_KEY, String(now));
-                  } catch (e) {
-                    console.warn('[Donaciones] ⚠ No se pudo guardar caché:', e);
-                  }
-                  donacionesUserStatus.textContent = statusMsg;
+          try {
+            localStorage.setItem(DONATIONS_CACHE_KEY, JSON.stringify({ html, status }));
+            localStorage.setItem(DONATIONS_CACHE_TIME_KEY, String(now));
+          } catch (e) {
+            console.warn('[Donaciones] ⚠ No se pudo guardar caché:', e);
+          }
         } catch (error) {
           console.error("No se pudo cargar historial de donaciones del usuario:", error);
           donacionesUserStatus.textContent = error.message || "Error cargando tu historial de donaciones.";
@@ -15340,6 +15360,28 @@
         }
 
         const authUser = auth?.currentUser || null;
+        const cacheId = String(authUser?.uid || authUser?.email || "admin").trim().toLowerCase();
+        const DONATIONS_CACHE_KEY = `_cx_admin_donations_${cacheId}`;
+        const DONATIONS_CACHE_TIME_KEY = `_cx_admin_donations_time_${cacheId}`;
+        const CACHE_TTL_MS = 10 * 60 * 1000;
+        const now = Date.now();
+
+        if (!forceReload) {
+          const cachedTime = Number(localStorage.getItem(DONATIONS_CACHE_TIME_KEY) || 0);
+          const cachedData = localStorage.getItem(DONATIONS_CACHE_KEY);
+          if (cachedData && (now - cachedTime < CACHE_TTL_MS)) {
+            try {
+              const cached = JSON.parse(cachedData);
+              adminDonacionesBody.innerHTML = cached.html || "";
+              adminDonacionesStatus.textContent = cached.status || "";
+              return;
+            } catch (cacheError) {
+              localStorage.removeItem(DONATIONS_CACHE_KEY);
+              localStorage.removeItem(DONATIONS_CACHE_TIME_KEY);
+            }
+          }
+        }
+
         const idToken = authUser ? await authUser.getIdToken(true) : "";
         if (!idToken) {
           adminDonacionesStatus.textContent = "Inicia sesión para ver el historial de donaciones.";
@@ -15363,33 +15405,43 @@
           }
 
           const donations = Array.isArray(payload?.donations) ? payload.donations : [];
+          let html = "";
+          let status = "";
 
           if (!donations.length) {
-            adminDonacionesBody.innerHTML = `
+            html = `
               <tr>
                 <td colspan="5" style="padding:12px; text-align:center; color:var(--text-secondary);">Sin donaciones registradas.</td>
               </tr>`;
-            adminDonacionesStatus.textContent = "No hay registros por el momento.";
-            return;
+            status = "No hay registros por el momento.";
+          } else {
+            html = donations.map((item) => {
+              const approvedAt = formatDonationDate(item?.approvedAt);
+              const donorName = escapeHtml(String(item?.donorName || "Sin nombre"));
+              const donorEmail = escapeHtml(String(item?.donorEmail || item?.donorEmailMasked || "Sin correo"));
+              const planId = escapeHtml(String(item?.planId || "—"));
+              const subscriptionId = escapeHtml(String(item?.subscriptionId || item?.id || "—"));
+
+              return `<tr style="border-bottom:1px solid var(--border-color);">
+                  <td style="padding:8px; white-space:nowrap;">${approvedAt}</td>
+                  <td style="padding:8px;">${donorName}</td>
+                  <td style="padding:8px;">${donorEmail}</td>
+                  <td style="padding:8px;">${planId}</td>
+                  <td style="padding:8px; font-family:monospace; font-size:12px;">${subscriptionId}</td>
+                </tr>`;
+            }).join("");
+            status = `Mostrando ${donations.length} donaciones totales.`;
           }
 
-          adminDonacionesBody.innerHTML = donations.map((item) => {
-            const approvedAt = formatDonationDate(item?.approvedAt);
-            const donorName = escapeHtml(String(item?.donorName || "Sin nombre"));
-            const donorEmail = escapeHtml(String(item?.donorEmail || item?.donorEmailMasked || "Sin correo"));
-            const planId = escapeHtml(String(item?.planId || "—"));
-            const subscriptionId = escapeHtml(String(item?.subscriptionId || item?.id || "—"));
+          adminDonacionesBody.innerHTML = html;
+          adminDonacionesStatus.textContent = status;
 
-            return `<tr style="border-bottom:1px solid var(--border-color);">
-                <td style="padding:8px; white-space:nowrap;">${approvedAt}</td>
-                <td style="padding:8px;">${donorName}</td>
-                <td style="padding:8px;">${donorEmail}</td>
-                <td style="padding:8px;">${planId}</td>
-                <td style="padding:8px; font-family:monospace; font-size:12px;">${subscriptionId}</td>
-              </tr>`;
-          }).join("");
-
-          adminDonacionesStatus.textContent = `Mostrando ${donations.length} donaciones totales.`;
+          try {
+            localStorage.setItem(DONATIONS_CACHE_KEY, JSON.stringify({ html, status }));
+            localStorage.setItem(DONATIONS_CACHE_TIME_KEY, String(now));
+          } catch (e) {
+            console.warn('[Donaciones] ⚠ No se pudo guardar caché admin:', e);
+          }
         } catch (error) {
           console.error("No se pudo cargar historial de donaciones para admin:", error);
           adminDonacionesStatus.textContent = error.message || "Error cargando historial de donaciones.";
@@ -15415,6 +15467,28 @@
         }
 
         const authUser = auth?.currentUser || null;
+        const cacheId = String(authUser?.uid || authUser?.email || "guest").trim().toLowerCase();
+        const DONATIONS_CACHE_KEY = `_cx_paypal_donations_${cacheId}`;
+        const DONATIONS_CACHE_TIME_KEY = `_cx_paypal_donations_time_${cacheId}`;
+        const CACHE_TTL_MS = 10 * 60 * 1000;
+        const now = Date.now();
+
+        if (!forceReload) {
+          const cachedTime = Number(localStorage.getItem(DONATIONS_CACHE_TIME_KEY) || 0);
+          const cachedData = localStorage.getItem(DONATIONS_CACHE_KEY);
+          if (cachedData && (now - cachedTime < CACHE_TTL_MS)) {
+            try {
+              const cached = JSON.parse(cachedData);
+              donacionesUserBody.innerHTML = cached.html || "";
+              donacionesUserStatus.textContent = cached.status || "";
+              return;
+            } catch (cacheError) {
+              localStorage.removeItem(DONATIONS_CACHE_KEY);
+              localStorage.removeItem(DONATIONS_CACHE_TIME_KEY);
+            }
+          }
+        }
+
         const idToken = authUser ? await authUser.getIdToken(true) : "";
         if (!idToken) {
           donacionesUserStatus.textContent = "Inicia sesión para ver el historial de donaciones.";
@@ -15438,33 +15512,43 @@
           }
 
           const donations = Array.isArray(payload?.donations) ? payload.donations : [];
+          let html = "";
+          let status = "";
 
           if (!donations.length) {
-            donacionesUserBody.innerHTML = `
+            html = `
               <tr>
                 <td colspan="3" style="padding:12px; text-align:center; color:var(--text-secondary);">Sin donaciones registradas.</td>
               </tr>`;
-            donacionesUserStatus.textContent = "No hay registros por el momento.";
-            return;
+            status = "No hay registros por el momento.";
+          } else {
+            html = donations.map((item) => {
+              const approvedAt = formatDonationDate(item?.approvedAt);
+              const donorName = escapeHtml(String(item?.donorName || "Sin nombre"));
+              const donorEmail = escapeHtml(String(item?.donorEmail || item?.donorEmailMasked || "Sin correo"));
+              const planId = escapeHtml(String(item?.planId || "—"));
+              const subscriptionId = escapeHtml(String(item?.subscriptionId || item?.id || "—"));
+
+              return `<tr style="border-bottom:1px solid var(--border-color);">
+                  <td style="padding:8px; white-space:nowrap;">${approvedAt}</td>
+                  <td style="padding:8px;">${donorName}</td>
+                  <td style="padding:8px;">${donorEmail}</td>
+                  <td style="padding:8px;">${planId}</td>
+                  <td style="padding:8px; font-family:monospace; font-size:12px;">${subscriptionId}</td>
+                </tr>`;
+            }).join("");
+            status = `Mostrando ${donations.length} donaciones.`;
           }
 
-          donacionesUserBody.innerHTML = donations.map((item) => {
-            const approvedAt = formatDonationDate(item?.approvedAt);
-            const donorName = escapeHtml(String(item?.donorName || "Sin nombre"));
-            const donorEmail = escapeHtml(String(item?.donorEmail || item?.donorEmailMasked || "Sin correo"));
-            const planId = escapeHtml(String(item?.planId || "—"));
-            const subscriptionId = escapeHtml(String(item?.subscriptionId || item?.id || "—"));
+          donacionesUserBody.innerHTML = html;
+          donacionesUserStatus.textContent = status;
 
-            return `<tr style="border-bottom:1px solid var(--border-color);">
-                <td style="padding:8px; white-space:nowrap;">${approvedAt}</td>
-                <td style="padding:8px;">${donorName}</td>
-                <td style="padding:8px;">${donorEmail}</td>
-                <td style="padding:8px;">${planId}</td>
-                <td style="padding:8px; font-family:monospace; font-size:12px;">${subscriptionId}</td>
-              </tr>`;
-          }).join("");
-
-          donacionesUserStatus.textContent = `Mostrando ${donations.length} donaciones.`;
+          try {
+            localStorage.setItem(DONATIONS_CACHE_KEY, JSON.stringify({ html, status }));
+            localStorage.setItem(DONATIONS_CACHE_TIME_KEY, String(now));
+          } catch (e) {
+            console.warn('[Donaciones] ⚠ No se pudo guardar caché lista:', e);
+          }
         } catch (error) {
           console.error("No se pudo cargar historial de donaciones:", error);
           donacionesUserStatus.textContent = error.message || "Error cargando historial de donaciones.";
@@ -20732,38 +20816,33 @@
         const grabFeed = document.getElementById('grabacionesFeed');
         const grabEmpty = document.getElementById('grabacionesEmpty');
         if (!grabFeed) { console.error('[Grabaciones] ❌ grabacionesFeed no encontrado en el DOM'); return; }
-        // 🔧 OPTIMIZACIÓN: Caché local de grabaciones (5 minutos)
         const GRABACIONES_CACHE_KEY = '_cx_grabaciones_cache';
         const GRABACIONES_CACHE_TIME_KEY = '_cx_grabaciones_cache_time';
-        const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
+        const CACHE_TTL_MS = 5 * 60 * 1000;
         const now = Date.now();
         const cachedTime = Number(localStorage.getItem(GRABACIONES_CACHE_TIME_KEY) || 0);
         const cachedData = localStorage.getItem(GRABACIONES_CACHE_KEY);
-        
-        // Si hay caché fresca, usarla
+
         if (cachedData && (now - cachedTime < CACHE_TTL_MS)) {
           try {
             const recordings = JSON.parse(cachedData);
             grabFeed.innerHTML = '';
-            recordings.forEach(post => {
-              displayPost(post, 'grab-' + post.id, grabFeed);
-            });
-            console.log(`[Grabaciones] ✅ Cargadas desde caché (${recordings.length})`);
+            recordings.forEach(post => displayPost(post, 'grab-' + post.id, grabFeed));
+            grabEmpty?.classList.toggle('hidden', recordings.length > 0);
             return;
           } catch (e) {
-            console.warn('[Grabaciones] ⚠ Caché corrupta, recargando...');
             localStorage.removeItem(GRABACIONES_CACHE_KEY);
             localStorage.removeItem(GRABACIONES_CACHE_TIME_KEY);
           }
         }
-        
+
         grabFeed.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:30px;">Cargando grabaciones...</p>';
         grabEmpty?.classList.add('hidden');
         try {
           const q = query(collection(db, 'posts'), where('status', '==', 'approved'), orderBy('timestamp', 'desc'));
           const snapshot = await getDocs(q);
           grabFeed.innerHTML = '';
-                    const recordingsData = [];
+          const recordingsData = [];
           let count = 0;
 
           snapshot.forEach(docSnap => {
@@ -20780,17 +20859,16 @@
                 count++;
               } catch (renderErr) {
                 console.error(`[Grabaciones] ❌ Error renderizando post ${docSnap.id}:`, renderErr);
-                        // Guardar en caché
-                        try {
-                          localStorage.setItem(GRABACIONES_CACHE_KEY, JSON.stringify(recordingsData));
-                          localStorage.setItem(GRABACIONES_CACHE_TIME_KEY, String(now));
-                        } catch (e) {
-                          console.warn('[Grabaciones] ⚠ No se pudo guardar caché:', e);
-                        }
-          
               }
             }
           });
+
+          try {
+            localStorage.setItem(GRABACIONES_CACHE_KEY, JSON.stringify(recordingsData));
+            localStorage.setItem(GRABACIONES_CACHE_TIME_KEY, String(now));
+          } catch (e) {
+            console.warn('[Grabaciones] ⚠ No se pudo guardar caché:', e);
+          }
 
           console.log(`[Grabaciones] 🎬 Total grabaciones mostradas: ${count}`);
           if (count === 0) grabEmpty?.classList.remove('hidden');
@@ -20805,38 +20883,33 @@
         const tutFeed = document.getElementById('tutorialesFeed');
         const tutEmpty = document.getElementById('tutorialesEmpty');
         if (!tutFeed) { console.error('[Tutoriales] ❌ tutorialesFeed no encontrado en el DOM'); return; }
-        // 🔧 OPTIMIZACIÓN: Caché local de tutoriales (5 minutos)
         const TUTORIALES_CACHE_KEY = '_cx_tutoriales_cache';
         const TUTORIALES_CACHE_TIME_KEY = '_cx_tutoriales_cache_time';
-        const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
+        const CACHE_TTL_MS = 5 * 60 * 1000;
         const now = Date.now();
         const cachedTime = Number(localStorage.getItem(TUTORIALES_CACHE_TIME_KEY) || 0);
         const cachedData = localStorage.getItem(TUTORIALES_CACHE_KEY);
-        
-        // Si hay caché fresca, usarla
+
         if (cachedData && (now - cachedTime < CACHE_TTL_MS)) {
           try {
             const tutorials = JSON.parse(cachedData);
             tutFeed.innerHTML = '';
-            tutorials.forEach(post => {
-              displayPost(post, 'tut-' + post.id, tutFeed);
-            });
-            console.log(`[Tutoriales] ✅ Cargados desde caché (${tutorials.length})`);
+            tutorials.forEach(post => displayPost(post, 'tut-' + post.id, tutFeed));
+            tutEmpty?.classList.toggle('hidden', tutorials.length > 0);
             return;
           } catch (e) {
-            console.warn('[Tutoriales] ⚠ Caché corrupta, recargando...');
             localStorage.removeItem(TUTORIALES_CACHE_KEY);
             localStorage.removeItem(TUTORIALES_CACHE_TIME_KEY);
           }
         }
-        
+
         tutFeed.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:30px;">Cargando tutoriales...</p>';
         tutEmpty?.classList.add('hidden');
         try {
           const q = query(collection(db, 'posts'), where('status', '==', 'approved'), orderBy('timestamp', 'desc'));
           const snapshot = await getDocs(q);
           tutFeed.innerHTML = '';
-                    const tutorialsData = [];
+          const tutorialsData = [];
           let count = 0;
 
           snapshot.forEach(docSnap => {
@@ -20850,20 +20923,19 @@
                 tutorialsData.push(post);
                 // Prefijo 'tut-' para evitar IDs duplicados con el feed principal
                 displayPost(post, 'tut-' + docSnap.id, tutFeed);
-                          // Guardar en caché
-                          try {
-                            localStorage.setItem(TUTORIALES_CACHE_KEY, JSON.stringify(tutorialsData));
-                            localStorage.setItem(TUTORIALES_CACHE_TIME_KEY, String(now));
-                          } catch (e) {
-                            console.warn('[Tutoriales] ⚠ No se pudo guardar caché:', e);
-                          }
-          
                 count++;
               } catch (renderErr) {
                 console.error(`[Tutoriales] ❌ Error renderizando post ${docSnap.id}:`, renderErr);
               }
             }
           });
+
+          try {
+            localStorage.setItem(TUTORIALES_CACHE_KEY, JSON.stringify(tutorialsData));
+            localStorage.setItem(TUTORIALES_CACHE_TIME_KEY, String(now));
+          } catch (e) {
+            console.warn('[Tutoriales] ⚠ No se pudo guardar caché:', e);
+          }
 
           console.log(`[Tutoriales] 🎥 Total tutoriales mostrados: ${count}`);
           if (count === 0) tutEmpty?.classList.remove('hidden');
@@ -27032,7 +27104,7 @@
         }
         if (refreshAdminDonacionesBtn) {
           refreshAdminDonacionesBtn.addEventListener('click', () => {
-            loadAdminDonationHistory(true);
+            loadAdminDonationHistory();
           });
         }
         if (refreshAdminAnalyticsBtn) {
@@ -27543,7 +27615,46 @@
         renderAdminNotesTabs();
       }
 
-      async function loadAdminNotesFromSupabase() {
+      async function loadAdminNotesFromSupabase(forceReload = false) {
+        const cacheBaseKey = `${getAdminNotesStorageKey()}_cloud_cache`;
+        const cacheTimeKey = `${cacheBaseKey}_time`;
+        const cacheTtlMs = 10 * 60 * 1000;
+        const now = Date.now();
+
+        if (!forceReload) {
+          const cachedTime = Number(localStorage.getItem(cacheTimeKey) || 0);
+          const cachedRaw = localStorage.getItem(cacheBaseKey);
+          if (cachedRaw && (now - cachedTime < cacheTtlMs)) {
+            try {
+              const cached = JSON.parse(cachedRaw);
+              const currentHasEdits = adminNotesDocuments.some((doc) => !!doc?.dirty);
+
+              if (!currentHasEdits) {
+                if (Array.isArray(cached?.tabs) && cached.tabs.length) {
+                  replaceAdminNotesDocuments(cached.tabs, cached.activeDocId || '');
+                } else {
+                  replaceAdminNotesDocuments([
+                    {
+                      title: String(cached?.fileName || 'Sin título'),
+                      html: String(cached?.html || ''),
+                      zoom: Number(cached?.zoom) || 100,
+                      wrap: cached?.wrap !== false,
+                    }
+                  ]);
+                }
+                saveAdminNotesToLocalStorage();
+              }
+
+              adminNotesSyncEnabled = true;
+              setAdminNotesSyncState('Sincronizado en caché');
+              return true;
+            } catch (error) {
+              localStorage.removeItem(cacheBaseKey);
+              localStorage.removeItem(cacheTimeKey);
+            }
+          }
+        }
+
         const idToken = await getAdminNotesAuthToken();
         if (!idToken) {
           adminNotesSyncEnabled = false;
@@ -27582,6 +27693,13 @@
               ]);
             }
             saveAdminNotesToLocalStorage();
+          }
+
+          try {
+            localStorage.setItem(cacheBaseKey, JSON.stringify(notes));
+            localStorage.setItem(cacheTimeKey, String(now));
+          } catch (cacheError) {
+            console.warn('No se pudo guardar caché de notas admin:', cacheError);
           }
 
           adminNotesSyncEnabled = true;

@@ -13006,6 +13006,7 @@
               playlists[idx].items = playlists[idx].items.concat(incoming);
             }
             playlists[idx].songs_count = Number(payload.playlist?.songs_count || payload.playlist?.totalItems || playlists[idx].songs_count || 0);
+            playlists[idx].hasMore = incoming.length === pageSize;
             state.playlists = playlists;
             return playlists[idx].items;
           }
@@ -13551,19 +13552,20 @@
           body.appendChild(tracksList);
 
           // Add "Cargar más" button if server has more items than currently loaded
-          const totalSongs = Number(playlist?.songs_count || 0);
+          const hasMore = playlist?.hasMore === true;
           let loadMoreBtn = null;
 
           function updateLoadMoreVisibility() {
             if (!loadMoreBtn) return;
-            if (rendered < Math.min(tracks.length, totalSongs) || (rendered < totalSongs && tracks.length < totalSongs)) {
+            // Lee dinámicamente de playlist.hasMore, no de la variable capturada
+            if (playlist?.hasMore === true) {
               loadMoreBtn.style.display = '';
             } else {
               loadMoreBtn.style.display = 'none';
             }
           }
 
-          if (totalSongs > 0 && rendered < totalSongs) {
+          if (playlist?.hasMore === true) {
             loadMoreBtn = document.createElement('button');
             loadMoreBtn.type = 'button';
             loadMoreBtn.className = 'music-load-more-btn music-pill-btn';
@@ -13573,9 +13575,119 @@
             loadMoreBtn.addEventListener('click', async (ev) => {
               try {
                 loadMoreBtn.disabled = true;
+                
+                // Find the tracks list in the DOM
+                const playlistFolder = body;
+                const tracksList = playlistFolder.querySelector('.music-folder-tracks');
+                if (!tracksList) {
+                  throw new Error('No se encontró la lista de canciones en el DOM');
+                }
+                
+                // Count items currently in the DOM
+                const itemsBeforeFetch = tracksList.querySelectorAll('li').length;
+                
+                // Fetch new items from server (these are concatenated to playlist.items)
                 await fetchPlaylistTracksFromServer(playlistId);
-                // Re-render playlist section so new items are visible
-                renderMusicPlaylists();
+                
+                // Get new items from playlist.items (already concatenated by fetchPlaylistTracksFromServer)
+                if (!playlist || !playlist.items) {
+                  throw new Error('Playlist no encontrada después de fetch');
+                }
+                
+                const allItems = playlist.items;
+                const newItems = allItems.slice(itemsBeforeFetch);
+                
+                // Append ONLY new items to tracksList in the DOM (elegant append)
+                function createTrackListItem(track) {
+                  const trackLi = document.createElement('li');
+                  trackLi.className = 'music-folder-track';
+                  trackLi.dataset.musicId = track.id;
+
+                  const isSelectedTrack = musicGetCurrentTrackId() && musicGetCurrentTrackId() === String(track.id || '').trim();
+                  const isPlayingTrack = musicIsTrackPlaying(track.id);
+                  if (isSelectedTrack) trackLi.classList.add('is-selected');
+                  if (isPlayingTrack) trackLi.classList.add('is-playing');
+
+                  const playBtn = document.createElement('button');
+                  playBtn.type = 'button';
+                  playBtn.className = 'music-track-play-btn';
+                  playBtn.innerHTML = '<i class="fas fa-play"></i>';
+                  playBtn.title = 'Reproducir';
+                  playBtn.setAttribute('aria-label', 'Reproducir');
+
+                  const info = document.createElement('div');
+                  info.className = 'music-track-info';
+                  
+                  const title = document.createElement('div');
+                  title.className = 'music-track-title';
+                  title.textContent = track.title || 'Sin título';
+
+                  const metaText = document.createElement('div');
+                  metaText.className = 'music-track-meta';
+                  const metaParts = [];
+                  if (track.artist) metaParts.push(track.artist);
+                  if (track.album) metaParts.push(track.album);
+                  if (track.year) metaParts.push(track.year);
+                  metaText.textContent = metaParts.length ? metaParts.join(' · ') : 'Sin metadatos';
+
+                  info.appendChild(title);
+                  info.appendChild(metaText);
+
+                  playBtn.addEventListener('click', () => {
+                    if (track.id) {
+                      musicToggleTrackPlayback(track.id, { playlistId, expand: true, reason: 'playlist-track' });
+                    }
+                  });
+
+                  trackLi.addEventListener('click', () => {
+                    if (track.id) {
+                      musicToggleTrackPlayback(track.id, { playlistId, expand: true, reason: 'playlist-track' });
+                    }
+                  });
+
+                  const menuBtn = document.createElement('button');
+                  menuBtn.type = 'button';
+                  menuBtn.className = 'music-track-menu-btn';
+                  menuBtn.innerHTML = '<i class="fas fa-ellipsis-v"></i>';
+                  menuBtn.title = 'Opciones';
+                  menuBtn.setAttribute('aria-label', 'Opciones');
+                  menuBtn.style.display = 'flex';
+                  menuBtn.style.alignItems = 'center';
+                  menuBtn.style.justifyContent = 'center';
+                  menuBtn.style.width = '36px';
+                  menuBtn.style.height = '36px';
+                  menuBtn.style.padding = '0';
+                  menuBtn.style.borderRadius = '6px';
+                  menuBtn.style.border = 'none';
+                  menuBtn.style.background = 'rgba(255,255,255,0.05)';
+                  menuBtn.style.color = 'var(--text-secondary)';
+                  menuBtn.style.cursor = 'pointer';
+                  menuBtn.style.transition = 'background 0.2s';
+
+                  menuBtn.addEventListener('mouseenter', () => {
+                    menuBtn.style.background = 'rgba(255,255,255,0.1)';
+                  });
+                  menuBtn.addEventListener('mouseleave', () => {
+                    menuBtn.style.background = 'rgba(255,255,255,0.05)';
+                  });
+
+                  trackLi.appendChild(playBtn);
+                  trackLi.appendChild(info);
+                  trackLi.appendChild(menuBtn);
+                  return trackLi;
+                }
+                
+                // Append new items to the list
+                newItems.forEach(track => {
+                  tracksList.appendChild(createTrackListItem(track));
+                });
+                
+                // Update play states for newly added items
+                try { updateMusicPlayStates(); } catch (_) {}
+                
+                // Update button visibility based on new hasMore value
+                updateLoadMoreVisibility();
+                
               } catch (e) {
                 console.warn('Error cargando más pistas:', e);
               } finally {

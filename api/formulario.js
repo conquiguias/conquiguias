@@ -1480,6 +1480,9 @@ async function handleObtenerEstadoUsuario(req, res) {
     ? requestedEmail
     : requesterEmail;
 
+  // 🔧 OPTIMIZACIÓN: Modo conteo solo (para evitar traer todos los formularios)
+  const countOnly = req.body?.countOnly === true || req.query?.count_only === "true";
+
   // Leemos TODO de Supabase de un golpe (como hacia antes con GH)
   const { data: docs } = await supabase.from("formularios").select("id, data");
   const { data: asists } = await supabase
@@ -1490,6 +1493,7 @@ async function handleObtenerEstadoUsuario(req, res) {
     .select("especialidad_id, contenido_resultados, contenido_tareas");
 
   const resultado = [];
+  let pendingCount = 0;
 
   (docs || []).forEach((doc) => {
     const id = doc.id;
@@ -1532,6 +1536,36 @@ async function handleObtenerEstadoUsuario(req, res) {
     }
 
     if (misA.length === 0) return; // Si no participó de ninguna forma, skip
+
+    // 🔧 OPTIMIZACIÓN: Si es modo conteo, solo contar tareas pendientes sin procesar full data
+    if (countOnly) {
+      const eData = evals?.find((x) => x.especialidad_id === id);
+      const tData = eData?.contenido_tareas || {};
+      
+      // Buscar tarea
+      let miTarea = null;
+      if (email && tData[email]) {
+        miTarea = tData[email];
+      } else {
+        for (const uid of allUserIds) {
+          if (tData[uid]) {
+            miTarea = tData[uid];
+            break;
+          }
+        }
+      }
+
+      // Contar si la tarea está activa pero no entregada
+      const tareaActiva = form.tarea && form.tarea.activa;
+      if (tareaActiva) {
+        const estadoTarea = String(miTarea?.estado || "").trim().toLowerCase();
+        const yaEntregada = estadoTarea === "entregado" || estadoTarea === "calificado";
+        if (!yaEntregada) {
+          pendingCount += 1;
+        }
+      }
+      return; // No agregar a resultado en modo conteo
+    }
 
     const nombreParticipante =
       misA.find((a) => typeof a?.nombre === "string" && a.nombre.trim() !== "")
@@ -1593,6 +1627,11 @@ async function handleObtenerEstadoUsuario(req, res) {
       fechaCierre: form.fechaCierre || null,
     });
   });
+
+  // 🔧 OPTIMIZACIÓN: Retornar solo el contador si se solicita
+  if (countOnly) {
+    return res.status(200).json({ pendientes: pendingCount });
+  }
 
   res
     .status(200)

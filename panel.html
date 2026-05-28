@@ -9621,6 +9621,50 @@
 
       window.getTareasExamenesConCache = getTareasExamenesConCache;
 
+      // 🔧 OPTIMIZACIÓN: Obtener solo el conteo de tareas pendientes (sin traer todos los formularios)
+      let tareasCountCache = { count: 0, time: 0 };
+      async function getTareasExamenesCountOnly(forceReload = false) {
+        const cacheKey = getAcademicCacheKey();
+        const CACHE_TTL_MS = 60000; // 1 minuto
+        
+        // Usar cache si está fresh
+        if (!forceReload && tareasCountCache?.cacheKey === cacheKey && Date.now() - (tareasCountCache?.time || 0) < CACHE_TTL_MS) {
+          return tareasCountCache.count;
+        }
+
+        const authHeaders = await window.getFormularioAuthHeaders();
+        const visitanteId = String(
+          currentUserId ||
+          localStorage.getItem('visitanteId') ||
+          auth?.currentUser?.uid ||
+          ''
+        ).trim();
+        const email = String(
+          userData?.email ||
+          auth?.currentUser?.email ||
+          localStorage.getItem('userEmail') ||
+          ''
+        ).trim();
+
+        const resp = await fetch('/api/formulario?action=obtenerEstadoUsuario', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
+          body: JSON.stringify({ visitanteId, email, countOnly: true })
+        });
+
+        if (!resp.ok) {
+          throw new Error('No se pudo obtener conteo de tareas pendientes');
+        }
+
+        const data = await resp.json();
+        const count = Number(data?.pendientes || 0);
+        
+        tareasCountCache = { cacheKey, count, time: Date.now() };
+        return count;
+      }
+
+      window.getTareasExamenesCountOnly = getTareasExamenesCountOnly;
+
       async function getCertificacionesEstadoConCache(forceReload = false) {
         const cacheKey = getAcademicCacheKey();
         if (!forceReload && certificacionesEstadoCache?.key === cacheKey && Array.isArray(certificacionesEstadoCache?.data) && isFreshCache(certificacionesEstadoCacheTime)) {
@@ -10404,8 +10448,15 @@
         const identity = resolveCurrentUserIdentity();
         if (!identity.visitanteId || !identity.email) return 0;
 
-        const data = await getTareasExamenesConCache(false);
-        return countTaskSpecialtiesNotDelivered(data);
+        // 🔧 OPTIMIZACIÓN: Use count-only endpoint instead of fetching all data
+        try {
+          return await getTareasExamenesCountOnly(false);
+        } catch (error) {
+          console.warn('[WARN] Fallback a conteo local:', error);
+          // Fallback: traer datos completos y contar
+          const data = await getTareasExamenesConCache(false);
+          return countTaskSpecialtiesNotDelivered(data);
+        }
       }
 
       async function refreshTaskPendingBadge() {

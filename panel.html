@@ -13962,6 +13962,20 @@
         }
       }
 
+      function invalidateMusicPlaylistsCache(playlistIds = []) {
+        const state = window.__musicState;
+        if (!Array.isArray(state.playlists)) return;
+        
+        const targetIds = Array.isArray(playlistIds) ? playlistIds : [playlistIds];
+        state.playlists.forEach(playlist => {
+          // Si no hay IDs específicos, invalidar todas. Si hay IDs, solo invalidar los especificados
+          if (targetIds.length === 0 || targetIds.includes(playlist.id)) {
+            delete playlist.items;
+            delete playlist._loadedTrackCount;
+          }
+        });
+      }
+
       async function loadMusicPlaylists() {
         const state = window.__musicState;
         if (window.isGuestSession) {
@@ -14079,7 +14093,10 @@
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || 'No se pudo agregar a la lista');
+        invalidateMusicPlaylistsCache([targetPlaylistId]);
         await loadMusicPlaylists();
+        // Cargar los items de la playlist para mostrar la canción nueva inmediatamente
+        await fetchPlaylistTracksFromServer(targetPlaylistId);
         return true;
       }
 
@@ -14167,9 +14184,19 @@
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(payload.error || 'No se pudo actualizar la música');
           mostrarMensaje('success', 'Actualizado', 'La pista fue actualizada.');
+          invalidateMusicPlaylistsCache();
+          await loadMusicPlaylists();
+          // Recargar items de todas las playlists expandidas
+          const state = window.__musicState;
+          if (Array.isArray(state.playlists)) {
+            await Promise.all(
+              state.playlists
+                .filter(p => isMusicPlaylistExpanded(p.id))
+                .map(p => fetchPlaylistTracksFromServer(p.id))
+            );
+          }
           renderMusicPlaylists();
           closeEditMusicModal();
-          await Promise.all([loadMusicCatalog(), loadMusicPlaylists()]);
         } catch (err) {
           mostrarMensaje('error', 'Error', err?.message || String(err));
         }
@@ -14190,8 +14217,18 @@
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(payload.error || 'No se pudo eliminar la música');
           mostrarMensaje('success', 'Eliminado', 'La pista fue eliminada correctamente.');
+          invalidateMusicPlaylistsCache();
+          await loadMusicPlaylists();
+          // Recargar items de todas las playlists expandidas
+          const state = window.__musicState;
+          if (Array.isArray(state.playlists)) {
+            await Promise.all(
+              state.playlists
+                .filter(p => isMusicPlaylistExpanded(p.id))
+                .map(p => fetchPlaylistTracksFromServer(p.id))
+            );
+          }
           renderMusicPlaylists();
-          await Promise.all([loadMusicCatalog(), loadMusicPlaylists()]);
         } catch (err) {
           mostrarMensaje('error', 'Error', err?.message || 'No se pudo eliminar');
         }
@@ -14455,7 +14492,7 @@
               await addMusicToPlaylist(destinationPlaylistId, createdMusic.id);
             }
             mostrarMensaje('success', 'Música agregada', 'Se guardó correctamente.');
-            renderMusicPlaylists();
+            // renderMusicPlaylists() ya se llamó en addMusicToPlaylist()
           } else {
             const rows = Array.from(dynamicListFields ? dynamicListFields.querySelectorAll('input') : []);
             const listData = rows.map((row) => {
@@ -14484,13 +14521,13 @@
             const payload = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error(payload.error || 'No se pudo subir la lista');
             mostrarMensaje('success', 'Lista agregada', `Se agregaron ${payload.inserted || 0} elementos.`);
-            renderMusicPlaylists();
+            invalidateMusicPlaylistsCache();
+            await loadMusicPlaylists();
           }
 
           document.getElementById('addMusicModal')?.classList.add('hiddenX');
           document.body.style.overflow = '';
           targetNewName && (targetNewName.value = '');
-          await Promise.all([loadMusicCatalog(), loadMusicPlaylists()]);
         } catch (error) {
           mostrarMensaje('error', 'No se pudo guardar', error?.message || 'Intenta nuevamente');
         }

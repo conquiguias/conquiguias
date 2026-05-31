@@ -4768,6 +4768,24 @@
       background: rgba(59, 130, 246, 0.08);
     }
 
+    /* Estilo especial para lista virtual "Todas las Canciones" */
+    #musicaSection .music-folder-item[data-is-virtual="true"] .music-folder-header {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.08) 100%);
+      border-radius: 8px;
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      margin-bottom: 8px;
+    }
+
+    #musicaSection .music-folder-item[data-is-virtual="true"] .music-folder-header:hover {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.18) 0%, rgba(59, 130, 246, 0.14) 100%);
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    #musicaSection .music-folder-item[data-is-virtual="true"] .music-folder-name {
+      color: #60a5fa;
+      font-weight: 700;
+    }
+
     #musicaSection .music-folder-left {
       display: flex;
       align-items: center;
@@ -13080,9 +13098,79 @@
         if (!key) return [];
         try {
           const idToken = auth?.currentUser ? await auth.currentUser.getIdToken(true) : '';
-          // determine next page based on already loaded items (3 items per page)
           const playlists = Array.isArray(state.playlists) ? state.playlists : [];
           const idx = playlists.findIndex((p) => String(p.id) === key);
+          
+          // Caso especial: lista virtual __ALL_SONGS__
+          if (key === '__ALL_SONGS__') {
+            const existingItems = idx >= 0 && Array.isArray(playlists[idx].items) ? playlists[idx].items : [];
+            const pageSize = 20;
+            const nextPage = Math.floor(existingItems.length / pageSize);
+            
+            const headers = {};
+            if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
+            
+            // Petición al servidor para todas las canciones (el servidor asume __ALL_SONGS__)
+            try {
+              const response = await fetch(`/api/social?action=get-all-songs&page=${nextPage}&pageSize=${pageSize}`, {
+                method: 'GET',
+                headers
+              });
+              const payload = await response.json().catch(() => ({}));
+              
+              if (response.ok && payload) {
+                if (idx >= 0) {
+                  const incoming = Array.isArray(payload.items) ? payload.items : [];
+                  if (!Array.isArray(playlists[idx].items) || playlists[idx].items.length === 0) {
+                    playlists[idx].items = incoming;
+                  } else {
+                    playlists[idx].items = playlists[idx].items.concat(incoming);
+                  }
+                  playlists[idx].songs_count = Number(payload.total || payload.totalItems || payload.songs_count || playlists[idx].songs_count || 0);
+                  playlists[idx].hasMore = incoming.length === pageSize;
+                  state.playlists = playlists;
+                  return playlists[idx].items;
+                }
+              }
+            } catch (serverErr) {
+              // Fallback: combinar todos los items de todas las playlists localmente
+              const autoPlaylists = playlists.filter(p => String(p?.name || '').startsWith('__AUTO__:'));
+              let allItems = [];
+              autoPlaylists.forEach(playlist => {
+                const items = Array.isArray(playlist.items) ? playlist.items : [];
+                allItems = allItems.concat(items);
+              });
+              
+              // Eliminar duplicados
+              const itemIds = new Set();
+              allItems = allItems.filter(item => {
+                const id = String(item?.music?.id || item?.musicId || item?.music_id || '').trim();
+                if (!id || itemIds.has(id)) return false;
+                itemIds.add(id);
+                return true;
+              });
+              
+              // Gestionar paginación
+              const skip = nextPage * pageSize;
+              const paginatedItems = allItems.slice(skip, skip + pageSize);
+              
+              if (idx >= 0) {
+                if (nextPage === 0) {
+                  playlists[idx].items = paginatedItems;
+                } else {
+                  playlists[idx].items = playlists[idx].items.concat(paginatedItems);
+                }
+                playlists[idx].songs_count = allItems.length;
+                playlists[idx].hasMore = paginatedItems.length === pageSize;
+                state.playlists = playlists;
+                return playlists[idx].items;
+              }
+            }
+            
+            return [];
+          }
+          
+          // Caso normal: lista específica
           const existingItems = idx >= 0 && Array.isArray(playlists[idx].items) ? playlists[idx].items : [];
           const pageSize = 20;
           const nextPage = Math.floor(existingItems.length / pageSize);
@@ -13407,7 +13495,7 @@
         playMusicTrackById(normalizedId, { autoplay: true, reason });
       }
 
-      function buildMusicPlaylistFolderItem(playlist, { isAuto = false } = {}) {
+      function buildMusicPlaylistFolderItem(playlist, { isAuto = false, isVirtual = false } = {}) {
         const state = window.__musicState;
         const playlistId = String(playlist?.id || '').trim();
         const displayName = getMusicPlaylistDisplayName(playlist);
@@ -13418,6 +13506,7 @@
         li.className = 'music-list-item music-folder-item';
         li.dataset.playlistId = playlistId;
         li.dataset.playlistType = isAuto ? 'auto' : 'user';
+        if (isVirtual) li.dataset.isVirtual = 'true';
 
         if (playlistId && state.selectedPlaylistId === playlistId) li.classList.add('selected');
         if (playlistId && isOpen) li.classList.add('is-open');
@@ -13445,7 +13534,7 @@
 
         const meta = document.createElement('span');
         meta.className = 'music-folder-track-meta';
-        meta.textContent = isAuto ? 'Lista automática' : 'Lista personalizada';
+        meta.textContent = isVirtual ? 'Todas las canciones automáticas' : (isAuto ? 'Lista automática' : 'Lista personalizada');
 
         nameWrap.appendChild(name);
         nameWrap.appendChild(meta);
@@ -13460,7 +13549,7 @@
         headerBtn.appendChild(left);
         headerBtn.appendChild(count);
 
-        if (canManageMusicPlaylist(playlist)) {
+        if (canManageMusicPlaylist(playlist) && !isVirtual) {
           const deleteBtn = document.createElement('button');
           deleteBtn.type = 'button';
           deleteBtn.className = 'music-pill-btn';
@@ -13808,10 +13897,35 @@
         const autoPlaylists = playlists.filter((playlist) => String(playlist.name || '').startsWith('__AUTO__:'));
         const userPlaylists = playlists.filter((playlist) => !String(playlist.name || '').startsWith('__AUTO__:'));
 
-        renderMusicPlaylistSection(autoListEl, autoPlaylists, {
-          isAuto: true,
-          emptyMessage: 'No hay listas automáticas.'
-        });
+        if (autoListEl) {
+          autoListEl.innerHTML = '';
+          
+          // Crear playlist virtual "Todas las Canciones" si hay listas automáticas
+          if (autoPlaylists.length > 0) {
+            // Crear el objeto virtual de la playlist (sin items - se cargarán del servidor)
+            const allSongsPlaylist = {
+              id: '__ALL_SONGS__',
+              name: '__ALL_SONGS__:Todas las Canciones',
+              owner_id: window.currentUserId || auth?.currentUser?.uid,
+              songs_count: 0, // Se actualizará desde el servidor
+              items: [], // Vacío inicialmente
+              isVirtual: true
+            };
+            
+            // Renderizar la playlist virtual primero
+            autoListEl.appendChild(buildMusicPlaylistFolderItem(allSongsPlaylist, { isAuto: true, isVirtual: true }));
+          }
+          
+          // Luego renderizar las listas automáticas
+          autoPlaylists.forEach((playlist) => {
+            autoListEl.appendChild(buildMusicPlaylistFolderItem(playlist, { isAuto: true }));
+          });
+        } else {
+          const empty = document.createElement('li');
+          empty.className = 'music-folder-empty';
+          empty.textContent = 'No hay listas automáticas.';
+          if (autoListEl) autoListEl.appendChild(empty);
+        }
 
         renderMusicPlaylistSection(playlistsList, userPlaylists, {
           isAuto: false,
@@ -14008,6 +14122,20 @@
               newPlaylist.items = oldPlaylist.items;
             }
           });
+          
+          // Preservar la lista virtual __ALL_SONGS__
+          const oldAllSongs = oldPlaylists.find(p => p.id === '__ALL_SONGS__');
+          if (oldAllSongs) {
+            newPlaylists.unshift({
+              id: '__ALL_SONGS__',
+              name: '__ALL_SONGS__:Todas las Canciones',
+              owner_id: oldAllSongs.owner_id,
+              songs_count: oldAllSongs.songs_count || 0,
+              items: oldAllSongs.items || [],
+              _loadedTrackCount: oldAllSongs._loadedTrackCount || 0,
+              isVirtual: true
+            });
+          }
           
           state.playlists = newPlaylists;
           if (state.selectedPlaylistId && !state.playlists.some((x) => x.id === state.selectedPlaylistId)) {

@@ -390,6 +390,9 @@ export default async function handler(req, res) {
       case "get-music-playlist":
         await handleGetMusicPlaylist(req, res);
         break;
+      case "get-all-songs":
+        await handleGetAllSongs(req, res);
+        break;
       case "get-music-track-engagement":
         await handleGetMusicTrackEngagement(req, res);
         break;
@@ -1065,6 +1068,76 @@ async function handleGetMusicPlaylist(req, res) {
   } catch (err) {
     console.error('handleGetMusicPlaylist error:', err);
     return res.status(err.statusCode || 500).json({ success: false, error: err.message || 'Error obteniendo playlist' });
+  }
+}
+
+/**
+ * Handle get-all-songs - Devuelve todas las canciones de todas las playlists automáticas del usuario con paginación
+ */
+async function handleGetAllSongs(req, res) {
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Método no permitido' });
+  try {
+    const requester = await requireAuthenticated(req);
+    const requesterId = String(requester?.uid || requester?.email || '').trim();
+    if (!requesterId) return res.status(401).json({ success: false, error: 'Usuario no autenticado' });
+
+    // Soporte para paginación: params page (0-based) y pageSize (default 20)
+    const pageRaw = Number.parseInt(String(req.query?.page || '0'), 10);
+    const page = Number.isFinite(pageRaw) && pageRaw >= 0 ? pageRaw : 0;
+    const pageSizeRaw = Number.parseInt(String(req.query?.pageSize || '20'), 10);
+    const pageSize = Number.isFinite(pageSizeRaw) ? Math.min(200, Math.max(1, pageSizeRaw)) : 20;
+
+    // 1) Obtener todos los playlists automáticos del usuario
+    const { data: playlistsData, error: playlistsErr } = await supabase
+      .from('music_playlists')
+      .select('id')
+      .eq('owner_id', requesterId)
+      .like('name', '__AUTO__%')  // Solo playlists que empiezan con __AUTO__
+      .order('created_at', { ascending: false });
+
+    if (playlistsErr) throw playlistsErr;
+    
+    if (!Array.isArray(playlistsData) || playlistsData.length === 0) {
+      return res.status(200).json({ success: true, items: [], total: 0, page, pageSize });
+    }
+
+    const playlistIds = playlistsData.map(p => p.id);
+
+    // 2) Obtener el total de items de todos estos playlists
+    const { count: totalCount, error: countErr } = await supabase
+      .from('music_playlist_items')
+      .select('id', { count: 'exact', head: true })
+      .in('playlist_id', playlistIds);
+
+    if (countErr) throw countErr;
+    const total = Number.isFinite(Number(totalCount)) ? Number(totalCount) : 0;
+
+    // 3) Obtener los items paginados
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+
+    const { data: itemsData, error: itemsErr } = await supabase
+      .from('music_playlist_items')
+      .select('id,position,music_id,musics(id,title,url,artist,album,is_video,metadata,owner_id,created_at)')
+      .in('playlist_id', playlistIds)
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    if (itemsErr) throw itemsErr;
+
+    const items = Array.isArray(itemsData)
+      ? itemsData.map((item) => ({
+          id: item.id,
+          position: item.position,
+          music_id: item.music_id,
+          music: item.musics || null,
+        }))
+      : [];
+
+    return res.status(200).json({ success: true, items, total, page, pageSize });
+  } catch (err) {
+    console.error('handleGetAllSongs error:', err);
+    return res.status(err.statusCode || 500).json({ success: false, error: err.message || 'Error obteniendo todas las canciones' });
   }
 }
 

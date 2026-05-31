@@ -13129,6 +13129,8 @@
                   }
                   playlists[idx].songs_count = Number(payload.total || payload.totalItems || payload.songs_count || playlists[idx].songs_count || 0);
                   playlists[idx].hasMore = incoming.length === pageSize;
+                                    // Guardar _loadedTrackCount para cachear y evitar cargas repetidas
+                                    playlists[idx]._loadedTrackCount = (Array.isArray(playlists[idx].items) ? playlists[idx].items.length : 0);
                   state.playlists = playlists;
                   return playlists[idx].items;
                 }
@@ -13163,6 +13165,8 @@
                 }
                 playlists[idx].songs_count = allItems.length;
                 playlists[idx].hasMore = paginatedItems.length === pageSize;
+                                // Guardar _loadedTrackCount para cachear
+                                playlists[idx]._loadedTrackCount = (Array.isArray(playlists[idx].items) ? playlists[idx].items.length : 0);
                 state.playlists = playlists;
                 return playlists[idx].items;
               }
@@ -13194,6 +13198,8 @@
               playlists[idx].items = playlists[idx].items.concat(incoming);
             }
             playlists[idx].songs_count = Number(payload.playlist?.songs_count || payload.playlist?.totalItems || playlists[idx].songs_count || 0);
+                        // Guardar _loadedTrackCount para cachear y evitar cargas repetidas
+                        playlists[idx]._loadedTrackCount = (Array.isArray(playlists[idx].items) ? playlists[idx].items.length : 0);
             playlists[idx].hasMore = incoming.length === pageSize;
             state.playlists = playlists;
             return playlists[idx].items;

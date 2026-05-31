@@ -1124,7 +1124,7 @@ async function handleGetAllSongs(req, res) {
       .from('music_playlist_items')
       .select('id,position,music_id,musics(id,title,url,artist,album,is_video,metadata,owner_id,created_at)')
       .in('playlist_id', playlistIds)
-      .order('created_at', { ascending: false })
+      .order('position', { ascending: true })
       .range(from, to);
 
     if (itemsErr) throw itemsErr;

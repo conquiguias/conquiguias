@@ -14167,6 +14167,7 @@
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(payload.error || 'No se pudo actualizar la música');
           mostrarMensaje('success', 'Actualizado', 'La pista fue actualizada.');
+          renderMusicPlaylists();
           closeEditMusicModal();
           await Promise.all([loadMusicCatalog(), loadMusicPlaylists()]);
         } catch (err) {
@@ -14189,6 +14190,7 @@
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(payload.error || 'No se pudo eliminar la música');
           mostrarMensaje('success', 'Eliminado', 'La pista fue eliminada correctamente.');
+          renderMusicPlaylists();
           await Promise.all([loadMusicCatalog(), loadMusicPlaylists()]);
         } catch (err) {
           mostrarMensaje('error', 'Error', err?.message || 'No se pudo eliminar');
@@ -14453,6 +14455,7 @@
               await addMusicToPlaylist(destinationPlaylistId, createdMusic.id);
             }
             mostrarMensaje('success', 'Música agregada', 'Se guardó correctamente.');
+            renderMusicPlaylists();
           } else {
             const rows = Array.from(dynamicListFields ? dynamicListFields.querySelectorAll('input') : []);
             const listData = rows.map((row) => {
@@ -14481,6 +14484,7 @@
             const payload = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error(payload.error || 'No se pudo subir la lista');
             mostrarMensaje('success', 'Lista agregada', `Se agregaron ${payload.inserted || 0} elementos.`);
+            renderMusicPlaylists();
           }
 
           document.getElementById('addMusicModal')?.classList.add('hiddenX');

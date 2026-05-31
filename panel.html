@@ -13055,7 +13055,8 @@
       function getMusicPlaylistDisplayName(playlist = {}) {
         const rawName = String(playlist?.name || '').trim();
         if (!rawName) return 'Sin nombre';
-        return rawName.replace(/^__AUTO__:/, '').trim() || 'Sin nombre';
+        // Limpiar ambos prefijos: __AUTO__: y __ALL_SONGS__:
+        return rawName.replace(/^(__AUTO__|__ALL_SONGS__):\s*/, '').trim() || 'Sin nombre';
       }
 
       function getMusicPlaylistTracks(playlist = {}) {
@@ -13894,25 +13895,15 @@
         const playlistsList = document.getElementById('playlistsList');
         const playlists = Array.isArray(state.playlists) ? state.playlists : [];
 
+        const allSongsPlaylist = playlists.find(p => p.id === '__ALL_SONGS__');
         const autoPlaylists = playlists.filter((playlist) => String(playlist.name || '').startsWith('__AUTO__:'));
-        const userPlaylists = playlists.filter((playlist) => !String(playlist.name || '').startsWith('__AUTO__:'));
+        const userPlaylists = playlists.filter((playlist) => !String(playlist.name || '').startsWith('__AUTO__:') && playlist.id !== '__ALL_SONGS__');
 
         if (autoListEl) {
           autoListEl.innerHTML = '';
           
-          // Crear playlist virtual "Todas las Canciones" si hay listas automáticas
-          if (autoPlaylists.length > 0) {
-            // Crear el objeto virtual de la playlist (sin items - se cargarán del servidor)
-            const allSongsPlaylist = {
-              id: '__ALL_SONGS__',
-              name: '__ALL_SONGS__:Todas las Canciones',
-              owner_id: window.currentUserId || auth?.currentUser?.uid,
-              songs_count: 0, // Se actualizará desde el servidor
-              items: [], // Vacío inicialmente
-              isVirtual: true
-            };
-            
-            // Renderizar la playlist virtual primero
+          // Renderizar la playlist virtual primero si existe
+          if (allSongsPlaylist) {
             autoListEl.appendChild(buildMusicPlaylistFolderItem(allSongsPlaylist, { isAuto: true, isVirtual: true }));
           }
           
@@ -13920,11 +13911,14 @@
           autoPlaylists.forEach((playlist) => {
             autoListEl.appendChild(buildMusicPlaylistFolderItem(playlist, { isAuto: true }));
           });
-        } else {
-          const empty = document.createElement('li');
-          empty.className = 'music-folder-empty';
-          empty.textContent = 'No hay listas automáticas.';
-          if (autoListEl) autoListEl.appendChild(empty);
+          
+          // Mostrar mensaje si no hay listas automáticas
+          if (!allSongsPlaylist && autoPlaylists.length === 0) {
+            const empty = document.createElement('li');
+            empty.className = 'music-folder-empty';
+            empty.textContent = 'No hay listas automáticas.';
+            autoListEl.appendChild(empty);
+          }
         }
 
         renderMusicPlaylistSection(playlistsList, userPlaylists, {
@@ -14125,17 +14119,18 @@
           
           // Preservar la lista virtual __ALL_SONGS__
           const oldAllSongs = oldPlaylists.find(p => p.id === '__ALL_SONGS__');
-          if (oldAllSongs) {
-            newPlaylists.unshift({
-              id: '__ALL_SONGS__',
-              name: '__ALL_SONGS__:Todas las Canciones',
-              owner_id: oldAllSongs.owner_id,
-              songs_count: oldAllSongs.songs_count || 0,
-              items: oldAllSongs.items || [],
-              _loadedTrackCount: oldAllSongs._loadedTrackCount || 0,
-              isVirtual: true
-            });
-          }
+          const allSongsPlaylist = {
+            id: '__ALL_SONGS__',
+            name: '__ALL_SONGS__:Todas las Canciones',
+            owner_id: window.currentUserId || auth?.currentUser?.uid,
+            songs_count: oldAllSongs?.songs_count || 0,
+            items: oldAllSongs?.items || [],
+            _loadedTrackCount: oldAllSongs?._loadedTrackCount || 0,
+            isVirtual: true
+          };
+          
+          // Agregar la lista virtual siempre al inicio
+          newPlaylists.unshift(allSongsPlaylist);
           
           state.playlists = newPlaylists;
           if (state.selectedPlaylistId && !state.playlists.some((x) => x.id === state.selectedPlaylistId)) {

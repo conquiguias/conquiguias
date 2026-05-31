@@ -1087,15 +1087,19 @@ async function handleGetAllSongs(req, res) {
     const pageSizeRaw = Number.parseInt(String(req.query?.pageSize || '20'), 10);
     const pageSize = Number.isFinite(pageSizeRaw) ? Math.min(200, Math.max(1, pageSizeRaw)) : 20;
 
-    // 1) Obtener todos los playlists automáticos del usuario
-    const { data: playlistsData, error: playlistsErr } = await supabase
+    // 1) Obtener todos los playlists del usuario y filtrar los automáticos en memoria
+    const { data: allPlaylistsData, error: playlistsErr } = await supabase
       .from('music_playlists')
-      .select('id')
+      .select('id,name')
       .eq('owner_id', requesterId)
-      .like('name', '__AUTO__%')  // Solo playlists que empiezan con __AUTO__
       .order('created_at', { ascending: false });
 
     if (playlistsErr) throw playlistsErr;
+    
+    // Filtrar solo los playlists automáticos (nombre comienza con __AUTO__:)
+    const playlistsData = Array.isArray(allPlaylistsData)
+      ? allPlaylistsData.filter(p => String(p.name || '').startsWith('__AUTO__:'))
+      : [];
     
     if (!Array.isArray(playlistsData) || playlistsData.length === 0) {
       return res.status(200).json({ success: true, items: [], total: 0, page, pageSize });

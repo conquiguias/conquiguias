@@ -13943,7 +13943,7 @@
       function renderMusicPlaylistSelectors() {
         const state = window.__musicState;
         const playlists = Array.isArray(state.playlists) ? state.playlists : [];
-        const editablePlaylists = playlists.filter((playlist) => canManageMusicPlaylist(playlist));
+        const editablePlaylists = playlists.filter((playlist) => canManageMusicPlaylist(playlist) && playlist.id !== '__ALL_SONGS__' && !playlist.isVirtual);
         const selectIds = ['musicTargetPlaylistSelect', 'playlistPickerSelect'];
 
         selectIds.forEach((selectId) => {
@@ -14374,7 +14374,7 @@
         }
         
         const playlists = Array.isArray(state.playlists)
-          ? state.playlists.filter((p) => !String(p.name || '').startsWith('__AUTO__:') && canManageMusicPlaylist(p))
+          ? state.playlists.filter((p) => !String(p.name || '').startsWith('__AUTO__:') && canManageMusicPlaylist(p) && p.id !== '__ALL_SONGS__' && !p.isVirtual)
           : [];
         
         const modalEl = document.createElement('div');

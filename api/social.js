@@ -733,6 +733,23 @@ async function handleAddMusicToPlaylist(req, res) {
     const playlistId = String(body.playlistId || body.playlist_id || '').trim();
     if (!playlistId) return res.status(400).json({ success: false, error: 'playlistId es requerido' });
 
+    // Determinar si el usuario tiene acceso PRO
+    const requesterEmail = normalizeEmail(requester?.email || '');
+    const requesterUid = String(requester?.uid || '').trim();
+    const isOwnerRequester = requesterEmail === normalizeEmail(OWNER_EMAIL);
+    const isAdminRequester = getAdminEmails().includes(requesterEmail);
+    let hasProAccess = isOwnerRequester || isAdminRequester;
+    if (!hasProAccess && requesterUid) {
+      const donationSnap = await admin
+        .firestore()
+        .collection('donaciones_paypal')
+        .where('donorUserId', '==', requesterUid)
+        .where('status', '==', 'approved')
+        .limit(1)
+        .get();
+      hasProAccess = !donationSnap.empty;
+    }
+
     // Buscar playlist
     const { data: playlists, error: pErr } = await supabase.from('music_playlists').select('*').eq('id', playlistId).limit(1);
     if (pErr) throw pErr;
@@ -748,7 +765,8 @@ async function handleAddMusicToPlaylist(req, res) {
     const { data: items, error: itemsErr } = await supabase.from('music_playlist_items').select('id').eq('playlist_id', playlistId).limit(1000);
     if (itemsErr) throw itemsErr;
     const currentCount = Array.isArray(items) ? items.length : 0;
-    if (currentCount >= 20) {
+    // Límite de 20 canciones solo para usuarios sin acceso PRO
+    if (!hasProAccess && currentCount >= 20) {
       return res.status(400).json({ success: false, error: 'Playlist alcanza el máximo de 20 canciones' });
     }
 

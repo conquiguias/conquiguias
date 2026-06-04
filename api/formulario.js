@@ -1400,11 +1400,17 @@ async function handleRestaurarTareasPDF(req, res, repo) {
       .select("especialidad_id, contenido_tareas");
 
     if (evalErr) throw evalErr;
-    if (!Array.isArray(evalData)) return res.status(200).json({ ok: true, restaurando: 0, errores: 0, mensaje: 'No hay evaluaciones' });
+    if (!Array.isArray(evalData)) return res.status(200).json({ ok: true, restauradas: 0, errores: 0, mensaje: 'No hay evaluaciones' });
 
     const vacias = evalData.filter(e => !e.contenido_tareas || typeof e.contenido_tareas !== 'object' || Object.keys(e.contenido_tareas).length === 0);
+
+    if (vacias.length === 0) {
+      return res.status(200).json({ ok: true, restauradas: 0, errores: 0, mensaje: 'No hay evaluaciones con contenido_tareas vacío.', afectados: [] });
+    }
+
     let restauradas = 0;
     let errores = 0;
+    const listaProblemas = [];
 
     // 2) Listar directorios en storage (cada directorio = especialidad_id)
     const { data: dirs, error: dirsErr } = await supabase.storage
@@ -1412,29 +1418,47 @@ async function handleRestaurarTareasPDF(req, res, repo) {
       .list('tareas', { limit: 200, offset: 0, sortBy: { column: 'name', order: 'asc' } });
 
     if (dirsErr) {
+      // Storage no disponible: reportar qué evaluaciones quedaron afectadas
       return res.status(200).json({
         ok: true,
         restauradas: 0,
         errores: 1,
-        mensaje: `No se pudieron listar archivos en storage: ${dirsErr.message}. Las evaluaciones con datos perdidos son: ${vacias.map(e => e.especialidad_id).join(', ')}`,
+        mensaje: `No se pudieron listar archivos en storage (${dirsErr.message}). Las evaluaciones con datos perdidos requieren restauración manual. Afectados: ${vacias.length}`,
         afectados: vacias.map(e => e.especialidad_id)
       });
     }
 
-    const directorios = Array.isArray(dirs) ? dirs.filter(d => d.id) : [];
+    // En Supabase Storage, las carpetas tienen id: null. Filtramos por nombre.
+    const directorios = Array.isArray(dirs) ? dirs.filter(d => d.name && d.id === null) : [];
+
+    if (directorios.length === 0) {
+      return res.status(200).json({
+        ok: true,
+        restauradas: 0,
+        errores: 0,
+        mensaje: `No se encontraron archivos PDF en storage (carpeta tareas/ vacía o eliminada). Evaluaciones afectadas: ${vacias.length}. Los datos no se pudieron recuperar automáticamente.`,
+        afectados: vacias.map(e => e.especialidad_id)
+      });
+    }
 
     // 3) Por cada evaluación vacía, intentar recuperar desde storage
     for (const ev of vacias) {
       const espId = ev.especialidad_id;
-      const dir = directorios.find(d => d.name === espId || d.id === espId);
-      if (!dir) continue;
+      const dir = directorios.find(d => d.name === espId);
+      if (!dir) {
+        listaProblemas.push(`${espId}: sin carpeta en storage`);
+        continue;
+      }
 
       // Listar archivos dentro del directorio de esta especialidad
       const { data: files, error: filesErr } = await supabase.storage
         .from('tareas-pdf')
         .list(`tareas/${espId}`, { limit: 200, offset: 0, sortBy: { column: 'name', order: 'asc' } });
 
-      if (filesErr || !Array.isArray(files) || files.length === 0) continue;
+      if (filesErr || !Array.isArray(files) || files.length === 0) {
+        listaProblemas.push(`${espId}: carpeta vacía en storage`);
+        continue;
+      }
 
       const tareas = {};
       for (const file of files) {
@@ -1442,12 +1466,22 @@ async function handleRestaurarTareasPDF(req, res, repo) {
         const email = file.name.replace(/\.pdf$/i, '');
         const storagePath = `tareas/${espId}/${file.name}`;
 
+        // Generar URL firmada si el archivo existe
+        let signedUrl = '';
+        try {
+          const { data: urlData } = await supabase.storage
+            .from('tareas-pdf')
+            .createSignedUrl(storagePath, 365 * 24 * 60 * 60);
+          if (urlData?.signedUrl) signedUrl = urlData.signedUrl;
+        } catch (_) { /* no firmada */ }
+
         tareas[email] = {
-          url: '',
+          url: signedUrl,
           nota: '100',
           fecha: new Date().toISOString(),
           estado: 'calificado',
           tamano: file.metadata?.size || 0,
+          rubrica: {},
           storagePath,
           retroalimentacion: null,
           nombreArchivoOriginal: file.name,
@@ -1467,7 +1501,7 @@ async function handleRestaurarTareasPDF(req, res, repo) {
       ok: true,
       restauradas,
       errores,
-      mensaje: `Restauradas ${restauradas} evaluaciones de ${vacias.length} con datos perdidos.`,
+      mensaje: `Restauradas ${restauradas} evaluaciones de ${vacias.length} con datos perdidos.${listaProblemas.length ? ` Problemas: ${listaProblemas.join('; ')}` : ''}`,
       afectados: vacias.map(e => e.especialidad_id)
     });
   } catch (e) {

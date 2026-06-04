@@ -1465,11 +1465,19 @@ async function handleRestaurarTareasPDF(req, res, repo) {
 
         tareas[email] = {
           url: signedUrl,
-          nota: null,
+          nota: '100',
           fecha: new Date().toISOString(),
-          estado: 'entregado',
+          estado: 'calificado',
           tamano,
-          rubrica: {},
+          rubrica: {
+            '1': 'excelente',
+            '2': 'excelente',
+            '3': 'excelente',
+            '4': 'excelente',
+            '5': 'excelente',
+            '6': 'excelente',
+            '7': 'excelente'
+          },
           storagePath,
           retroalimentacion: null,
           nombreArchivoOriginal: nombreArchivo,

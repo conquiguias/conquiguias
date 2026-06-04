@@ -1389,15 +1389,15 @@ async function handleEliminarTodasTareasPDF(req, res, repo) {
   }
 }
 
-// ===== Recuperación de tareas eliminadas (restaurar desde Storage) =====
+// ===== Recuperación de tareas eliminadas (restaurar desde contenido_resultados) =====
 async function handleRestaurarTareasPDF(req, res, repo) {
   await verifyAdminOrOwner(req, req.body || {});
 
   try {
-    // 1) Buscar evaluaciones con contenido_tareas vacío
+    // 1) Buscar evaluaciones con contenido_tareas vacío e incluir contenido_resultados como fuente de emails
     const { data: evalData, error: evalErr } = await supabase
       .from("evaluaciones")
-      .select("especialidad_id, contenido_tareas");
+      .select("especialidad_id, contenido_tareas, contenido_resultados");
 
     if (evalErr) throw evalErr;
     if (!Array.isArray(evalData)) return res.status(200).json({ ok: true, restauradas: 0, errores: 0, mensaje: 'No hay evaluaciones' });
@@ -1412,79 +1412,67 @@ async function handleRestaurarTareasPDF(req, res, repo) {
     let errores = 0;
     const listaProblemas = [];
 
-    // 2) Listar directorios en storage (cada directorio = especialidad_id)
+    // 2) Intentar listar storage como complemento (para obtener nombres de archivo y tamaños)
     const { data: dirs, error: dirsErr } = await supabase.storage
       .from('tareas-pdf')
       .list('tareas', { limit: 200, offset: 0, sortBy: { column: 'name', order: 'asc' } });
 
-    if (dirsErr) {
-      // Storage no disponible: reportar qué evaluaciones quedaron afectadas
-      return res.status(200).json({
-        ok: true,
-        restauradas: 0,
-        errores: 1,
-        mensaje: `No se pudieron listar archivos en storage (${dirsErr.message}). Las evaluaciones con datos perdidos requieren restauración manual. Afectados: ${vacias.length}`,
-        afectados: vacias.map(e => e.especialidad_id)
-      });
-    }
+    const directoriosStorage = Array.isArray(dirs) ? dirs.filter(d => d.name && d.id === null) : [];
 
-    // En Supabase Storage, las carpetas tienen id: null. Filtramos por nombre.
-    const directorios = Array.isArray(dirs) ? dirs.filter(d => d.name && d.id === null) : [];
-
-    if (directorios.length === 0) {
-      return res.status(200).json({
-        ok: true,
-        restauradas: 0,
-        errores: 0,
-        mensaje: `No se encontraron archivos PDF en storage (carpeta tareas/ vacía o eliminada). Evaluaciones afectadas: ${vacias.length}. Los datos no se pudieron recuperar automáticamente.`,
-        afectados: vacias.map(e => e.especialidad_id)
-      });
-    }
-
-    // 3) Por cada evaluación vacía, intentar recuperar desde storage
+    // 3) Por cada evaluación vacía, reconstruir desde contenido_resultados
     for (const ev of vacias) {
       const espId = ev.especialidad_id;
-      const dir = directorios.find(d => d.name === espId);
-      if (!dir) {
-        listaProblemas.push(`${espId}: sin carpeta en storage`);
-        continue;
-      }
+      const resultados = Array.isArray(ev.contenido_resultados) ? ev.contenido_resultados : [];
 
-      // Listar archivos dentro del directorio de esta especialidad
-      const { data: files, error: filesErr } = await supabase.storage
-        .from('tareas-pdf')
-        .list(`tareas/${espId}`, { limit: 200, offset: 0, sortBy: { column: 'name', order: 'asc' } });
-
-      if (filesErr || !Array.isArray(files) || files.length === 0) {
-        listaProblemas.push(`${espId}: carpeta vacía en storage`);
+      // Si no hay resultados ni storage, no se puede recuperar
+      if (resultados.length === 0) {
+        listaProblemas.push(`${espId}: sin datos en contenido_resultados`);
         continue;
       }
 
       const tareas = {};
-      for (const file of files) {
-        if (!file.name || !file.name.endsWith('.pdf')) continue;
-        const email = file.name.replace(/\.pdf$/i, '');
-        const storagePath = `tareas/${espId}/${file.name}`;
+      for (const r of resultados) {
+        const email = String(r.correo || r.email || r.visitanteId || '').trim().toLowerCase();
+        if (!email) continue;
 
-        // Generar URL firmada si el archivo existe
+        const storagePath = `tareas/${espId}/${email}.pdf`;
+
+        // Buscar archivo en storage si existe
+        let nombreArchivo = `${email}.pdf`;
+        let tamano = 0;
         let signedUrl = '';
-        try {
-          const { data: urlData } = await supabase.storage
+
+        const dir = directoriosStorage.find(d => d.name === espId);
+        if (dir) {
+          const { data: files } = await supabase.storage
             .from('tareas-pdf')
-            .createSignedUrl(storagePath, 365 * 24 * 60 * 60);
-          if (urlData?.signedUrl) signedUrl = urlData.signedUrl;
-        } catch (_) { /* no firmada */ }
+            .list(`tareas/${espId}`, { limit: 100, offset: 0, sortBy: { column: 'name', order: 'asc' } });
+
+          if (Array.isArray(files)) {
+            const file = files.find(f => f.name === `${email}.pdf`);
+            if (file) {
+              nombreArchivo = file.name;
+              tamano = file.metadata?.size || 0;
+              try {
+                const { data: urlData } = await supabase.storage
+                  .from('tareas-pdf')
+                  .createSignedUrl(storagePath, 365 * 24 * 60 * 60);
+                if (urlData?.signedUrl) signedUrl = urlData.signedUrl;
+              } catch (_) {}
+            }
+          }
+        }
 
         tareas[email] = {
           url: signedUrl,
           nota: '100',
           fecha: new Date().toISOString(),
           estado: 'calificado',
-          tamano: file.metadata?.size || 0,
+          tamano,
           rubrica: {},
           storagePath,
           retroalimentacion: null,
-          nombreArchivoOriginal: file.name,
+          nombreArchivoOriginal: nombreArchivo,
         };
       }
 
@@ -1494,6 +1482,8 @@ async function handleRestaurarTareasPDF(req, res, repo) {
           .update({ contenido_tareas: tareas })
           .eq("especialidad_id", espId);
         restauradas++;
+      } else {
+        listaProblemas.push(`${espId}: no se pudieron generar entradas`);
       }
     }
 

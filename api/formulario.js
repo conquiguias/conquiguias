@@ -518,6 +518,9 @@ module.exports = async function handler(req, res) {
         case "eliminarTareasPDF":
           await handleEliminarTareasPDF(req, res, repo);
           break;
+        case "restaurarTareasPDF":
+          await handleRestaurarTareasPDF(req, res, repo);
+          break;
         default:
           res.status(400).json({ error: `Acción POST no válida: ${action}` });
           break;
@@ -1379,17 +1382,96 @@ async function handleEliminarTodasTareasPDF(req, res, repo) {
       }
     }
 
-    // Limpiar metadatos: eliminar contenido_tareas
-    for (const item of (evalData || [])) {
-      await supabase
-        .from("evaluaciones")
-        .update({ contenido_tareas: {} })
-        .eq("especialidad_id", item.especialidad_id);
-    }
-
     res.status(200).json({ ok: true, eliminados, errores });
   } catch (e) {
     console.error('Error en eliminación masiva:', e);
+    res.status(500).json({ error: e.message });
+  }
+}
+
+// ===== Recuperación de tareas eliminadas (restaurar desde Storage) =====
+async function handleRestaurarTareasPDF(req, res, repo) {
+  await verifyAdminOrOwner(req, req.body || {});
+
+  try {
+    // 1) Buscar evaluaciones con contenido_tareas vacío
+    const { data: evalData, error: evalErr } = await supabase
+      .from("evaluaciones")
+      .select("especialidad_id, contenido_tareas");
+
+    if (evalErr) throw evalErr;
+    if (!Array.isArray(evalData)) return res.status(200).json({ ok: true, restaurando: 0, errores: 0, mensaje: 'No hay evaluaciones' });
+
+    const vacias = evalData.filter(e => !e.contenido_tareas || typeof e.contenido_tareas !== 'object' || Object.keys(e.contenido_tareas).length === 0);
+    let restauradas = 0;
+    let errores = 0;
+
+    // 2) Listar directorios en storage (cada directorio = especialidad_id)
+    const { data: dirs, error: dirsErr } = await supabase.storage
+      .from('tareas-pdf')
+      .list('tareas', { limit: 200, offset: 0, sortBy: { column: 'name', order: 'asc' } });
+
+    if (dirsErr) {
+      return res.status(200).json({
+        ok: true,
+        restauradas: 0,
+        errores: 1,
+        mensaje: `No se pudieron listar archivos en storage: ${dirsErr.message}. Las evaluaciones con datos perdidos son: ${vacias.map(e => e.especialidad_id).join(', ')}`,
+        afectados: vacias.map(e => e.especialidad_id)
+      });
+    }
+
+    const directorios = Array.isArray(dirs) ? dirs.filter(d => d.id) : [];
+
+    // 3) Por cada evaluación vacía, intentar recuperar desde storage
+    for (const ev of vacias) {
+      const espId = ev.especialidad_id;
+      const dir = directorios.find(d => d.name === espId || d.id === espId);
+      if (!dir) continue;
+
+      // Listar archivos dentro del directorio de esta especialidad
+      const { data: files, error: filesErr } = await supabase.storage
+        .from('tareas-pdf')
+        .list(`tareas/${espId}`, { limit: 200, offset: 0, sortBy: { column: 'name', order: 'asc' } });
+
+      if (filesErr || !Array.isArray(files) || files.length === 0) continue;
+
+      const tareas = {};
+      for (const file of files) {
+        if (!file.name || !file.name.endsWith('.pdf')) continue;
+        const email = file.name.replace(/\.pdf$/i, '');
+        const storagePath = `tareas/${espId}/${file.name}`;
+
+        tareas[email] = {
+          url: '',
+          nota: '100',
+          fecha: new Date().toISOString(),
+          estado: 'calificado',
+          tamano: file.metadata?.size || 0,
+          storagePath,
+          retroalimentacion: null,
+          nombreArchivoOriginal: file.name,
+        };
+      }
+
+      if (Object.keys(tareas).length > 0) {
+        await supabase
+          .from("evaluaciones")
+          .update({ contenido_tareas: tareas })
+          .eq("especialidad_id", espId);
+        restauradas++;
+      }
+    }
+
+    res.status(200).json({
+      ok: true,
+      restauradas,
+      errores,
+      mensaje: `Restauradas ${restauradas} evaluaciones de ${vacias.length} con datos perdidos.`,
+      afectados: vacias.map(e => e.especialidad_id)
+    });
+  } catch (e) {
+    console.error('Error restaurando tareas:', e);
     res.status(500).json({ error: e.message });
   }
 }

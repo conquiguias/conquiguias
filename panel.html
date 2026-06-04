@@ -7802,6 +7802,10 @@
             style="padding: 10px 20px; background: var(--error-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width:100%;">
             <i class="fas fa-bomb"></i> Eliminar TODOS los PDFs (Liberar Espacio)
           </button>
+          <button id="btnRestaurarTareasPDF" onclick="restaurarTareasPDF()"
+            style="margin-top:8px; padding: 10px 20px; background: var(--accent-color, #2563eb); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width:100%;">
+            <i class="fas fa-undo-alt"></i> Restaurar Tareas (nota 100)
+          </button>
         </div>
       </div>
 
@@ -31363,6 +31367,9 @@
                   <button id="btnEliminarTodoPDFs" onclick="eliminarTodoMasivo()" disabled style="padding: 10px 20px; background: var(--error-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width:100%;">
                       <i class="fas fa-bomb"></i> Eliminar TODOS los PDFs (Liberar Espacio)
                   </button>
+                  <button onclick="restaurarTareasPDF()" style="margin-top:8px; padding: 10px 20px; background: var(--accent-color, #2563eb); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; width:100%;">
+                      <i class="fas fa-undo-alt"></i> Restaurar Tareas (nota 100)
+                  </button>
               </div>
           </div>
       `;
@@ -32679,6 +32686,39 @@
 
         btn.innerHTML = originalText;
         btn.disabled = false; // Se habilitará si hay algo, pero al recargar se deshabilita si está vacío
+      };
+
+      window.restaurarTareasPDF = async function () {
+        if (!window.isOwner) {
+          alert('❌ Solo el propietario puede restaurar tareas.');
+          return;
+        }
+        if (!confirm("⚠️ ¿Restaurar tareas desde archivos PDF en Storage?\n\nSe buscarán archivos PDF en el bucket 'tareas-pdf' y se reconstruirán las entradas en contenido_tareas con nota 100 para las evaluaciones que perdieron sus datos.")) return;
+
+        const btn = document.getElementById('btnRestaurarTareasPDF');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Restaurando...';
+        btn.disabled = true;
+
+        try {
+          const authHeaders = await getFormularioAuthHeaders();
+          const resp = await fetch('/api/formulario?action=restaurarTareasPDF', {
+            method: 'POST',
+            headers: authHeaders,
+          });
+          const res = await resp.json();
+
+          if (resp.ok) {
+            alert(`✅ Restauración completada.\n\nEvaluaciones restauradas: ${res.restauradas}\nAfectados: ${res.afectados?.length || 0}\n${res.mensaje || ''}`);
+          } else {
+            alert("❌ Error durante la restauración: " + (res.error || "Desconocido"));
+          }
+        } catch (e) {
+          alert("Error de red: " + e.message);
+        }
+
+        btn.innerHTML = originalText;
+        btn.disabled = false;
       };
 
       // (Función cargarEntregasParaSelector eliminada para usar el alias global vinculado a cargarEntregasInstructor y window.datosEntregasGlobal)

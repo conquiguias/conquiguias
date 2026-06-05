@@ -16833,11 +16833,18 @@
             const reqAsist = item.tomaAsistencia ? 2 : 1;
             const asistStr = numAsist >= 2 ? "2/2" : `${numAsist}/2`;
 
-            // Estado General (LÓGICA CORREGIDA)
-            // Primero, verificar reprobados
+            // Estado General (LÓGICA CORREGIDA CON INTENTOS)
+            const iP = Math.max(item.intentosPermitidos || 0, 3);
+            const iU = item.intentosUsados || 0;
+            // Si reprobó examen pero aún tiene intentos -> En Progreso
             if (tieneExamen && examenHecho && !examenAprobado) {
-              estado = "Reprobado";
-              estadoClass = "calificacion-reprobada";
+              if (iU < iP) {
+                estado = "En Progreso";
+                estadoClass = "estado-pendiente";
+              } else {
+                estado = "Reprobado";
+                estadoClass = "calificacion-reprobada";
+              }
             } else if (tieneTarea && item.miTarea && item.miTarea.estado === 'calificado' && !tareaAprobada) {
               estado = "Reprobado Tarea";
               estadoClass = "calificacion-reprobada";
@@ -16900,7 +16907,7 @@
                     <td style="text-align:center;">${califExamen}</td>
                     <td class="${estadoClass}">${estado}</td>
                     <td style="text-align:center;">
-                        ${examenHecho && item.miExamen.visitanteId ?
+                        ${examenHecho && item.miExamen.visitanteId && (examenAprobado || iU >= iP) ?
                 `<button onclick="verCertificacionCompleta('${item.id}', '${item.miExamen.visitanteId}', window['rubrica_${item.id}'])" 
                                  style="background: #17a2b8; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size:12px;">
                             Ver
@@ -31011,10 +31018,11 @@
                 } else {
                   const iP = Math.max(item.intentosPermitidos || 0, 3);
                   const iU = item.intentosUsados || 1;
-                  estadoExamenHtml = `<span style="color:#EF4444; font-weight:bold;">Reprobado (${parseInt(puntaje)}%)</span>`;
                   if (iU < iP) {
+                    estadoExamenHtml = `<span style="color:#EF4444; font-weight:bold;">Reprobado (${parseInt(puntaje)}%)</span>`;
                     botonExamen = `<button onclick="iniciarExamenConVerificacion('${item.id}', this)" style="background:#10B981; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold; box-shadow: 0 2px 5px rgba(16,185,129,0.3);">Hacer Examen (Intento ${iU + 1}/${iP})</button>`;
                   } else {
+                    estadoExamenHtml = `<span style="color:#EF4444; font-weight:bold;">Reprobado (${parseInt(puntaje)}%)</span>`;
                     botonExamen = '<span style="font-size:12px; color:#aaa;">Examen completado</span>';
                   }
                 }

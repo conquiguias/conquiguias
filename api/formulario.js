@@ -1389,12 +1389,11 @@ async function handleEliminarTodasTareasPDF(req, res, repo) {
   }
 }
 
-// ===== Recuperación de tareas eliminadas (restaurar desde contenido_resultados) =====
+// ===== Restaurar tareas: asigna nota 100 a usuarios que hicieron el examen =====
 async function handleRestaurarTareasPDF(req, res, repo) {
   await verifyAdminOrOwner(req, req.body || {});
 
   try {
-    // 1) Buscar evaluaciones con contenido_tareas vacío e incluir contenido_resultados como fuente de emails
     const { data: evalData, error: evalErr } = await supabase
       .from("evaluaciones")
       .select("especialidad_id, contenido_tareas, contenido_resultados");
@@ -1402,73 +1401,37 @@ async function handleRestaurarTareasPDF(req, res, repo) {
     if (evalErr) throw evalErr;
     if (!Array.isArray(evalData)) return res.status(200).json({ ok: true, restauradas: 0, errores: 0, mensaje: 'No hay evaluaciones' });
 
-    const vacias = evalData.filter(e => !e.contenido_tareas || typeof e.contenido_tareas !== 'object' || Object.keys(e.contenido_tareas).length === 0);
-
-    if (vacias.length === 0) {
-      return res.status(200).json({ ok: true, restauradas: 0, errores: 0, mensaje: 'No hay evaluaciones con contenido_tareas vacío.', afectados: [] });
-    }
-
     let restauradas = 0;
     let errores = 0;
-    const listaProblemas = [];
+    const detalles = [];
 
-    // 2) Intentar listar storage como complemento (para obtener nombres de archivo y tamaños)
-    const { data: dirs, error: dirsErr } = await supabase.storage
-      .from('tareas-pdf')
-      .list('tareas', { limit: 200, offset: 0, sortBy: { column: 'name', order: 'asc' } });
-
-    const directoriosStorage = Array.isArray(dirs) ? dirs.filter(d => d.name && d.id === null) : [];
-
-    // 3) Por cada evaluación vacía, reconstruir desde contenido_resultados
-    for (const ev of vacias) {
+    for (const ev of evalData) {
       const espId = ev.especialidad_id;
       const resultados = Array.isArray(ev.contenido_resultados) ? ev.contenido_resultados : [];
+      const tareasActuales = ev.contenido_tareas && typeof ev.contenido_tareas === 'object' ? ev.contenido_tareas : {};
 
-      // Si no hay resultados ni storage, no se puede recuperar
-      if (resultados.length === 0) {
-        listaProblemas.push(`${espId}: sin datos en contenido_resultados`);
-        continue;
-      }
+      if (resultados.length === 0) continue;
 
-      const tareas = {};
+      let modificada = false;
+
       for (const r of resultados) {
         const email = String(r.correo || r.email || r.visitanteId || '').trim().toLowerCase();
         if (!email) continue;
 
-        const storagePath = `tareas/${espId}/${email}.pdf`;
-
-        // Buscar archivo en storage si existe
-        let nombreArchivo = `${email}.pdf`;
-        let tamano = 0;
-        let signedUrl = '';
-
-        const dir = directoriosStorage.find(d => d.name === espId);
-        if (dir) {
-          const { data: files } = await supabase.storage
-            .from('tareas-pdf')
-            .list(`tareas/${espId}`, { limit: 100, offset: 0, sortBy: { column: 'name', order: 'asc' } });
-
-          if (Array.isArray(files)) {
-            const file = files.find(f => f.name === `${email}.pdf`);
-            if (file) {
-              nombreArchivo = file.name;
-              tamano = file.metadata?.size || 0;
-              try {
-                const { data: urlData } = await supabase.storage
-                  .from('tareas-pdf')
-                  .createSignedUrl(storagePath, 365 * 24 * 60 * 60);
-                if (urlData?.signedUrl) signedUrl = urlData.signedUrl;
-              } catch (_) {}
-            }
-          }
+        // Si ya tiene tarea registrada (pendiente o calificada), no tocarla
+        const tareaExistente = tareasActuales[email];
+        if (tareaExistente && typeof tareaExistente === 'object' && tareaExistente.estado) {
+          continue;
         }
 
-        tareas[email] = {
-          url: signedUrl,
+        // Crear entrada con nota 100 para quien hizo el examen pero perdió su tarea
+        const storagePath = `tareas/${espId}/${email}.pdf`;
+        tareasActuales[email] = {
+          url: '',
           nota: '100',
           fecha: new Date().toISOString(),
           estado: 'calificado',
-          tamano,
+          tamano: 0,
           rubrica: {
             '1': 'excelente',
             '2': 'excelente',
@@ -1480,18 +1443,18 @@ async function handleRestaurarTareasPDF(req, res, repo) {
           },
           storagePath,
           retroalimentacion: null,
-          nombreArchivoOriginal: nombreArchivo,
+          nombreArchivoOriginal: `${email}.pdf`,
         };
+        modificada = true;
       }
 
-      if (Object.keys(tareas).length > 0) {
+      if (modificada) {
         await supabase
           .from("evaluaciones")
-          .update({ contenido_tareas: tareas })
+          .update({ contenido_tareas: tareasActuales })
           .eq("especialidad_id", espId);
         restauradas++;
-      } else {
-        listaProblemas.push(`${espId}: no se pudieron generar entradas`);
+        detalles.push(`${espId}: ${Object.keys(tareasActuales).length} tareas en total`);
       }
     }
 
@@ -1499,8 +1462,10 @@ async function handleRestaurarTareasPDF(req, res, repo) {
       ok: true,
       restauradas,
       errores,
-      mensaje: `Restauradas ${restauradas} evaluaciones de ${vacias.length} con datos perdidos.${listaProblemas.length ? ` Problemas: ${listaProblemas.join('; ')}` : ''}`,
-      afectados: vacias.map(e => e.especialidad_id)
+      mensaje: restauradas > 0
+        ? `Restauradas ${restauradas} evaluaciones. Usuarios con examen ahora tienen nota 100.`
+        : 'No se encontraron usuarios con examen que necesiten restauración.',
+      detalles
     });
   } catch (e) {
     console.error('Error restaurando tareas:', e);

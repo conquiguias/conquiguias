@@ -994,7 +994,7 @@ async function handleVerificarIntentoExamen(req, res) {
 
   const formData = { ...fData.data };
 
-  if (formData.intentos === undefined || formData.intentos === null) {
+  if (!formData.intentos || formData.intentos < 3) {
     formData.intentos = 3;
     await supabase.from("formularios").update({ data: formData }).eq("id", id);
   }
@@ -1060,12 +1060,18 @@ async function handleGuardarResultadoExamen(req, res) {
     .single();
   let resultados = exData?.contenido_resultados || [];
 
-  // Buscar la entrada de intento reservado (puntaje 0 con respuestas vacías, o null por compatibilidad)
-  const pendienteIdx = resultados.findIndex(
-    (r) =>
+  // Buscar la entrada de intento reservado (desde el final, priorizando las más recientes)
+  let pendienteIdx = -1;
+  for (let i = resultados.length - 1; i >= 0; i--) {
+    const r = resultados[i];
+    if (
       r.visitanteId === visitanteId &&
       (r.puntaje === null || (r.puntaje === 0 && (!r.respuestas || Object.keys(r.respuestas).length === 0)))
-  );
+    ) {
+      pendienteIdx = i;
+      break;
+    }
+  }
 
   if (pendienteIdx >= 0) {
     resultados[pendienteIdx] = {
@@ -1814,7 +1820,7 @@ async function handleObtenerEstadoUsuario(req, res) {
       miExamen: bestExam,
       fechaLimiteTarea: form?.tarea?.fechaFin || form?.fechaCierre || null,
       fechaCierre: form.fechaCierre || null,
-      intentosPermitidos: form.intentos || 3,
+      intentosPermitidos: Math.max(Number(form.intentos) || 3, 3),
       intentosUsados: misE.length,
     });
   });

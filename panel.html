@@ -31009,7 +31009,7 @@
                   estadoExamenHtml = `<span style="color:#10B981; font-weight:bold;">Aprobado (${parseInt(puntaje)}%)</span>`;
                   botonExamen = '<span style="font-size:12px; color:#aaa;">Examen completado</span>';
                 } else {
-                  const iP = item.intentosPermitidos || 3;
+                  const iP = Math.max(item.intentosPermitidos || 0, 3);
                   const iU = item.intentosUsados || 1;
                   estadoExamenHtml = `<span style="color:#EF4444; font-weight:bold;">Reprobado (${parseInt(puntaje)}%)</span>`;
                   if (iU < iP) {
@@ -31021,7 +31021,7 @@
               } else {
                 let puedeHacerExamen = true;
                 let mensajeBloqueo = "Pendiente";
-                const iP = item.intentosPermitidos || 1;
+                const iP = Math.max(item.intentosPermitidos || 0, 3);
                 const iU = item.intentosUsados || 0;
 
                 // Validar intentos disponibles primero

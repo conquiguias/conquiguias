@@ -31001,15 +31001,23 @@
               }
             }
 
-            // Lógica Examen
+            // Lógica Examen (con soporte de múltiples intentos)
             if (tieneExamen) {
               if (item.miExamen) {
-                // Ya tiene examen (aprobado o reprobado) -> Mostrar estado estático
                 const puntaje = parseFloat(item.miExamen.puntaje);
-                const color = puntaje >= 70 ? '#10B981' : '#EF4444';
-                const texto = puntaje >= 70 ? 'Aprobado' : 'Reprobado';
-                estadoExamenHtml = `<span style="color:${color}; font-weight:bold;">${texto} (${parseInt(puntaje)}%)</span>`;
-                botonExamen = '<span style="font-size:12px; color:#aaa;">Examen completado</span>';
+                if (puntaje >= 70) {
+                  estadoExamenHtml = `<span style="color:#10B981; font-weight:bold;">Aprobado (${parseInt(puntaje)}%)</span>`;
+                  botonExamen = '<span style="font-size:12px; color:#aaa;">Examen completado</span>';
+                } else {
+                  const iP = item.intentosPermitidos || 1;
+                  const iU = item.intentosUsados || 1;
+                  estadoExamenHtml = `<span style="color:#EF4444; font-weight:bold;">Reprobado (${parseInt(puntaje)}%)</span>`;
+                  if (iU < iP) {
+                    botonExamen = `<button onclick="iniciarExamenConVerificacion('${item.id}', this)" style="background:#10B981; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold; box-shadow: 0 2px 5px rgba(16,185,129,0.3);">Hacer Examen (Intento ${iU + 1}/${iP})</button>`;
+                  } else {
+                    botonExamen = '<span style="font-size:12px; color:#aaa;">Examen completado</span>';
+                  }
+                }
               } else {
                 let puedeHacerExamen = true;
                 let mensajeBloqueo = "Pendiente";
@@ -31034,7 +31042,7 @@
                 }
 
                 if (puedeHacerExamen) {
-                  botonExamen = `<button onclick="iniciarExamenPlataforma('${item.id}')" style="background:#10B981; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold; box-shadow: 0 2px 5px rgba(16,185,129,0.3);">Hacer Examen</button>`;
+                  botonExamen = `<button onclick="iniciarExamenConVerificacion('${item.id}', this)" style="background:#10B981; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold; box-shadow: 0 2px 5px rgba(16,185,129,0.3);">Hacer Examen</button>`;
                   estadoExamenHtml = '<span style="color:#10B981;">Disponible</span>';
                 } else {
                   estadoExamenHtml = `<span style="color:#F59E0B; font-size:11px;">${mensajeBloqueo}</span>`;
@@ -31961,6 +31969,42 @@
       let timerInterval = null;
       let examenFormIdCurrent = null;
       let examenVisitanteId = null;
+
+      window.iniciarExamenConVerificacion = async function (id, btnElement) {
+        btnElement.disabled = true;
+        btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando...';
+
+        const visitanteId = currentUserId || localStorage.getItem('visitanteId');
+
+        try {
+          const res = await fetch("/api/formulario?action=verificarIntentoExamen", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id, visitanteId })
+          });
+          const data = await res.json();
+
+          if (!data.ok || !data.puedeHacerExamen) {
+            alert(data.haAprobado
+              ? "Ya aprobaste este examen."
+              : !data.ok
+                ? (data.error || "Error al verificar intento")
+                : "Ya usaste todos tus intentos disponibles.");
+            btnElement.disabled = false;
+            btnElement.innerHTML = 'Hacer Examen';
+            invalidateEstadoUsuarioCache();
+            cargarTareasExamenes(true);
+            return;
+          }
+
+          // Iniciar el examen (el modal se encarga del loading visual)
+          await iniciarExamenPlataforma(id);
+        } catch (e) {
+          alert("Error: " + e.message);
+          btnElement.disabled = false;
+          btnElement.innerHTML = 'Hacer Examen';
+        }
+      };
 
       window.iniciarExamenPlataforma = async function (id) {
         examenFormIdCurrent = id;

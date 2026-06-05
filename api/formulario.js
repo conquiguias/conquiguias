@@ -984,7 +984,6 @@ async function handleGuardarEvaluacion(req, res) {
 async function handleVerificarIntentoExamen(req, res) {
   const { id, visitanteId } = req.body;
 
-  // Leer formulario para obtener intentos configurados
   const { data: fData } = await supabase
     .from("formularios")
     .select("data")
@@ -993,17 +992,15 @@ async function handleVerificarIntentoExamen(req, res) {
 
   if (!fData) return res.status(404).json({ ok: false, error: "Formulario no encontrado" });
 
-  const data = { ...fData.data };
+  const formData = { ...fData.data };
 
-  // Si no existe el atributo intentos, crearlo con valor 1
-  if (data.intentos === undefined || data.intentos === null) {
-    data.intentos = 1;
-    await supabase.from("formularios").update({ data }).eq("id", id);
+  if (formData.intentos === undefined || formData.intentos === null) {
+    formData.intentos = 1;
+    await supabase.from("formularios").update({ data: formData }).eq("id", id);
   }
 
-  const intentosPermitidos = data.intentos;
+  const intentosPermitidos = formData.intentos;
 
-  // Contar intentos del usuario
   const { data: exData } = await supabase
     .from("evaluaciones")
     .select("contenido_resultados")
@@ -1011,34 +1008,50 @@ async function handleVerificarIntentoExamen(req, res) {
     .single();
 
   const resultados = exData?.contenido_resultados || [];
-  const misResultados = resultados.filter(
-    (r) => r.visitanteId === visitanteId
-  );
+  const misResultados = resultados.filter((r) => r.visitanteId === visitanteId);
   const intentosUsados = misResultados.length;
+
+  // Solo considerar aprobado si tiene puntaje real (no null)
   const haAprobado = misResultados.some(
-    (r) => parseFloat(r.puntaje) >= 70
+    (r) => r.puntaje !== null && parseFloat(r.puntaje) >= 70
   );
-  const puedeHacerExamen = !haAprobado && intentosUsados < intentosPermitidos;
+
+  if (haAprobado || intentosUsados >= intentosPermitidos) {
+    return res.json({
+      ok: true,
+      intentosPermitidos,
+      intentosUsados,
+      puedeHacerExamen: false,
+      haAprobado,
+    });
+  }
+
+  // Reservar el intento: crear entrada con puntaje null
+  const nuevoIntento = intentosUsados + 1;
+  resultados.push({
+    visitanteId,
+    respuestas: null,
+    puntaje: null,
+    intento: nuevoIntento,
+    fecha: new Date().toISOString(),
+    correo: null,
+  });
+
+  await supabase
+    .from("evaluaciones")
+    .upsert({ especialidad_id: id, contenido_resultados: resultados });
 
   res.json({
     ok: true,
     intentosPermitidos,
-    intentosUsados,
-    puedeHacerExamen,
-    haAprobado,
+    intentosUsados: intentosUsados + 1,
+    puedeHacerExamen: true,
+    haAprobado: false,
   });
 }
 
 async function handleGuardarResultadoExamen(req, res) {
   const { id, visitanteId, respuestas, puntaje, email } = req.body;
-
-  // Validar límite de intentos
-  const { data: fData } = await supabase
-    .from("formularios")
-    .select("data")
-    .eq("id", id)
-    .single();
-  const intentosPermitidos = fData?.data?.intentos || 1;
 
   const { data: exData } = await supabase
     .from("evaluaciones")
@@ -1047,30 +1060,38 @@ async function handleGuardarResultadoExamen(req, res) {
     .single();
   let resultados = exData?.contenido_resultados || [];
 
-  const misIntentos = resultados.filter(
-    (r) => r.visitanteId === visitanteId
+  // Buscar la entrada con puntaje null (intento reservado sin completar)
+  const pendienteIdx = resultados.findIndex(
+    (r) => r.visitanteId === visitanteId && r.puntaje === null
   );
-  const intento = misIntentos.length + 1;
 
-  if (intento > intentosPermitidos) {
-    return res.status(400).json({ ok: false, error: "Límite de intentos alcanzado" });
+  if (pendienteIdx >= 0) {
+    resultados[pendienteIdx] = {
+      ...resultados[pendienteIdx],
+      respuestas,
+      puntaje,
+      fecha: new Date().toISOString(),
+      correo: email || null,
+    };
+  } else {
+    const misIntentos = resultados.filter((r) => r.visitanteId === visitanteId);
+    const intento = misIntentos.length + 1;
+    resultados.push({
+      visitanteId,
+      respuestas,
+      puntaje,
+      fecha: new Date().toISOString(),
+      correo: email || null,
+      intento,
+    });
   }
-
-  resultados.push({
-    visitanteId,
-    respuestas,
-    puntaje,
-    fecha: new Date().toISOString(),
-    correo: email || null,
-    intento,
-  });
 
   await supabase
     .from("evaluaciones")
     .upsert({ especialidad_id: id, contenido_resultados: resultados });
   res
     .status(200)
-    .json({ ok: true, message: "✅ Examen enviado correctamente.", puntaje, intento });
+    .json({ ok: true, message: "✅ Examen enviado correctamente.", puntaje });
 }
 
 async function handleActualizarEstadoAsistencia(req, res) {
@@ -1747,12 +1768,12 @@ async function handleObtenerEstadoUsuario(req, res) {
         allUserIds.has(r.visitanteId),
     );
 
-    // Mejor nota lógica (si hay múltiples intentos, quedarse con el mejor)
+    // Mejor nota lógica: ignorar intentos con puntaje null (aún no completados)
+    const completados = misE.filter((r) => r.puntaje !== null && r.puntaje !== undefined);
     let bestExam = null;
-    if (misE.length > 0) {
-      // Ordenar por puntaje descendente para tomar el primero como el mejor
-      misE.sort((a, b) => parseFloat(b.puntaje) - parseFloat(a.puntaje));
-      bestExam = misE[0];
+    if (completados.length > 0) {
+      completados.sort((a, b) => parseFloat(b.puntaje) - parseFloat(a.puntaje));
+      bestExam = completados[0];
     }
 
     // Mi tarea

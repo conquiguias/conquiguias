@@ -31021,8 +31021,14 @@
               } else {
                 let puedeHacerExamen = true;
                 let mensajeBloqueo = "Pendiente";
+                const iP = item.intentosPermitidos || 1;
+                const iU = item.intentosUsados || 0;
 
-                if (tieneTarea) {
+                // Validar intentos disponibles primero
+                if (iU >= iP) {
+                  puedeHacerExamen = false;
+                  mensajeBloqueo = "Sin intentos disponibles";
+                } else if (tieneTarea) {
                   if (!item.miTarea || item.miTarea.estado !== 'calificado') {
                     puedeHacerExamen = false;
                     mensajeBloqueo = "Completa la tarea primero";
@@ -31042,8 +31048,12 @@
                 }
 
                 if (puedeHacerExamen) {
-                  botonExamen = `<button onclick="iniciarExamenConVerificacion('${item.id}', this)" style="background:#10B981; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold; box-shadow: 0 2px 5px rgba(16,185,129,0.3);">Hacer Examen</button>`;
+                  const label = iU > 0 ? `Hacer Examen (Intento ${iU + 1}/${iP})` : 'Hacer Examen';
+                  botonExamen = `<button onclick="iniciarExamenConVerificacion('${item.id}', this)" style="background:#10B981; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-weight:bold; box-shadow: 0 2px 5px rgba(16,185,129,0.3);">${label}</button>`;
                   estadoExamenHtml = '<span style="color:#10B981;">Disponible</span>';
+                } else if (iU >= iP) {
+                  estadoExamenHtml = '<span style="color:#EF4444; font-size:11px;">Intentos agotados</span>';
+                  botonExamen = '<span style="font-size:12px; color:#aaa;">Examen completado</span>';
                 } else {
                   estadoExamenHtml = `<span style="color:#F59E0B; font-size:11px;">${mensajeBloqueo}</span>`;
                   botonExamen = `<button disabled style="opacity:0.5; cursor:not-allowed; background:#4B5563; color:white; border:none; padding:4px 8px; border-radius:4px;">Bloqueado</button>`;

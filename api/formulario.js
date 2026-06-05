@@ -1394,6 +1394,18 @@ async function handleRestaurarTareasPDF(req, res, repo) {
   await verifyAdminOrOwner(req, req.body || {});
 
   try {
+    // Cargar especialidades que tienen tareas activas
+    const { data: formsData } = await supabase
+      .from("formularios")
+      .select("id, data");
+
+    const especialidadesConTarea = new Set();
+    if (Array.isArray(formsData)) {
+      formsData.forEach(f => {
+        if (f.data?.tarea?.activa) especialidadesConTarea.add(f.id);
+      });
+    }
+
     const { data: evalData, error: evalErr } = await supabase
       .from("evaluaciones")
       .select("especialidad_id, contenido_tareas, contenido_resultados");
@@ -1407,6 +1419,13 @@ async function handleRestaurarTareasPDF(req, res, repo) {
 
     for (const ev of evalData) {
       const espId = ev.especialidad_id;
+
+      // Saltar especialidades que no tienen tarea activa
+      if (!especialidadesConTarea.has(espId)) {
+        detalles.push(`${espId}: sin tarea activa, se omite`);
+        continue;
+      }
+
       const resultados = Array.isArray(ev.contenido_resultados) ? ev.contenido_resultados : [];
       const tareasActuales = ev.contenido_tareas && typeof ev.contenido_tareas === 'object' ? ev.contenido_tareas : {};
 
@@ -1424,7 +1443,6 @@ async function handleRestaurarTareasPDF(req, res, repo) {
           continue;
         }
 
-        // Crear entrada con nota 100 para quien hizo el examen pero perdió su tarea
         const storagePath = `tareas/${espId}/${email}.pdf`;
         tareasActuales[email] = {
           url: '',
@@ -1454,7 +1472,8 @@ async function handleRestaurarTareasPDF(req, res, repo) {
           .update({ contenido_tareas: tareasActuales })
           .eq("especialidad_id", espId);
         restauradas++;
-        detalles.push(`${espId}: ${Object.keys(tareasActuales).length} tareas en total`);
+        const total = Object.keys(tareasActuales).length;
+        detalles.push(`${espId}: ${total} tareas en total`);
       }
     }
 
@@ -1463,7 +1482,7 @@ async function handleRestaurarTareasPDF(req, res, repo) {
       restauradas,
       errores,
       mensaje: restauradas > 0
-        ? `Restauradas ${restauradas} evaluaciones. Usuarios con examen ahora tienen nota 100.`
+        ? `Restauradas ${restauradas} especialidades con tarea activa. Usuarios con examen ahora tienen nota 100.`
         : 'No se encontraron usuarios con examen que necesiten restauración.',
       detalles
     });

@@ -982,7 +982,7 @@ async function handleGuardarEvaluacion(req, res) {
 }
 
 async function handleVerificarIntentoExamen(req, res) {
-  const { id, visitanteId } = req.body;
+  const { id, visitanteId, email } = req.body;
 
   const { data: fData } = await supabase
     .from("formularios")
@@ -995,7 +995,7 @@ async function handleVerificarIntentoExamen(req, res) {
   const formData = { ...fData.data };
 
   if (formData.intentos === undefined || formData.intentos === null) {
-    formData.intentos = 1;
+    formData.intentos = 3;
     await supabase.from("formularios").update({ data: formData }).eq("id", id);
   }
 
@@ -1011,9 +1011,9 @@ async function handleVerificarIntentoExamen(req, res) {
   const misResultados = resultados.filter((r) => r.visitanteId === visitanteId);
   const intentosUsados = misResultados.length;
 
-  // Solo considerar aprobado si tiene puntaje real (no null)
+  // Solo considerar aprobado si tiene respuestas con contenido (no es reserva) y puntaje >= 70
   const haAprobado = misResultados.some(
-    (r) => r.puntaje !== null && parseFloat(r.puntaje) >= 70
+    (r) => r.puntaje >= 70
   );
 
   if (haAprobado || intentosUsados >= intentosPermitidos) {
@@ -1026,15 +1026,15 @@ async function handleVerificarIntentoExamen(req, res) {
     });
   }
 
-  // Reservar el intento: crear entrada con puntaje null
+  // Reservar el intento con puntaje 0 y respuestas vacío (validación anti fallos)
   const nuevoIntento = intentosUsados + 1;
   resultados.push({
     visitanteId,
-    respuestas: null,
-    puntaje: null,
+    respuestas: {},
+    puntaje: 0,
     intento: nuevoIntento,
     fecha: new Date().toISOString(),
-    correo: null,
+    correo: email || null,
   });
 
   await supabase
@@ -1060,9 +1060,11 @@ async function handleGuardarResultadoExamen(req, res) {
     .single();
   let resultados = exData?.contenido_resultados || [];
 
-  // Buscar la entrada con puntaje null (intento reservado sin completar)
+  // Buscar la entrada de intento reservado (puntaje 0 con respuestas vacías, o null por compatibilidad)
   const pendienteIdx = resultados.findIndex(
-    (r) => r.visitanteId === visitanteId && r.puntaje === null
+    (r) =>
+      r.visitanteId === visitanteId &&
+      (r.puntaje === null || (r.puntaje === 0 && (!r.respuestas || Object.keys(r.respuestas).length === 0)))
   );
 
   if (pendienteIdx >= 0) {
@@ -1768,8 +1770,10 @@ async function handleObtenerEstadoUsuario(req, res) {
         allUserIds.has(r.visitanteId),
     );
 
-    // Mejor nota lógica: ignorar intentos con puntaje null (aún no completados)
-    const completados = misE.filter((r) => r.puntaje !== null && r.puntaje !== undefined);
+    // Mejor nota lógica: solo considerar intentos con respuestas reales (no reservas con puntaje 0)
+    const completados = misE.filter(
+      (r) => r.respuestas && typeof r.respuestas === 'object' && Object.keys(r.respuestas).length > 0
+    );
     let bestExam = null;
     if (completados.length > 0) {
       completados.sort((a, b) => parseFloat(b.puntaje) - parseFloat(a.puntaje));
@@ -1810,7 +1814,7 @@ async function handleObtenerEstadoUsuario(req, res) {
       miExamen: bestExam,
       fechaLimiteTarea: form?.tarea?.fechaFin || form?.fechaCierre || null,
       fechaCierre: form.fechaCierre || null,
-      intentosPermitidos: form.intentos || 1,
+      intentosPermitidos: form.intentos || 3,
       intentosUsados: misE.length,
     });
   });

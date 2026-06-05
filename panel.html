@@ -31009,7 +31009,7 @@
                   estadoExamenHtml = `<span style="color:#10B981; font-weight:bold;">Aprobado (${parseInt(puntaje)}%)</span>`;
                   botonExamen = '<span style="font-size:12px; color:#aaa;">Examen completado</span>';
                 } else {
-                  const iP = item.intentosPermitidos || 1;
+                  const iP = item.intentosPermitidos || 3;
                   const iU = item.intentosUsados || 1;
                   estadoExamenHtml = `<span style="color:#EF4444; font-weight:bold;">Reprobado (${parseInt(puntaje)}%)</span>`;
                   if (iU < iP) {
@@ -31985,12 +31985,16 @@
         btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cargando...';
 
         const visitanteId = currentUserId || localStorage.getItem('visitanteId');
+        const userEmail =
+          (typeof userData !== 'undefined' && userData ? userData.email : null) ||
+          (typeof auth !== 'undefined' && auth.currentUser ? auth.currentUser.email : null) ||
+          localStorage.getItem('userEmail');
 
         try {
           const res = await fetch("/api/formulario?action=verificarIntentoExamen", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id, visitanteId })
+            body: JSON.stringify({ id, visitanteId, email: userEmail })
           });
           const data = await res.json();
 

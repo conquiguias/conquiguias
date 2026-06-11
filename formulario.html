@@ -1141,48 +1141,39 @@
         }
       }
 
-      async function finalizarRegistro() {
+      function finalizarRegistro() {
         if (!isAdmin) return;
-        if (!confirm("¿Finalizar registro? Se desactivarán ambas asistencias.")) return;
+        mostrarMensaje("confirm", "Finalizar Registro", "¿Finalizar registro? Se desactivarán ambas asistencias.", async () => {
+          const estadoPrevio = { ...estadoAsistencias };
+          estadoAsistencias = normalizarEstadoAsistencias({ 1: false, 2: false });
+          actualizarUI();
 
-        const estadoPrevio = { ...estadoAsistencias };
-        estadoAsistencias = normalizarEstadoAsistencias({ 1: false, 2: false });
-        actualizarUI();
+          try {
+            const headers = {
+              "Content-Type": "application/json",
+              ...(adminSessionToken ? { "X-Admin-Session": adminSessionToken } : {}),
+            };
 
-        try {
-          const headers = {
-            "Content-Type": "application/json",
-            ...(adminSessionToken ? { "X-Admin-Session": adminSessionToken } : {}),
-          };
-          const payload = (num) => ({
-            id: currentIdFormulario,
-            asistencia: num,
-            activo: false,
-            adminSessionToken,
-          });
+            const res = await fetch("/api/formulario?action=actualizarEstadoAsistencia", {
+              method: "POST", headers,
+              body: JSON.stringify({
+                id: currentIdFormulario,
+                asistencias: { 1: false, 2: false },
+                adminSessionToken,
+              }),
+            });
+            if (!res.ok) throw new Error("Falló actualización");
 
-          const [res1, res2] = await Promise.all([
-            fetch("/api/formulario?action=actualizarEstadoAsistencia", {
-              method: "POST", headers, body: JSON.stringify(payload(1)),
-            }),
-            fetch("/api/formulario?action=actualizarEstadoAsistencia", {
-              method: "POST", headers, body: JSON.stringify(payload(2)),
-            }),
-          ]);
-
-          if (res1.ok && res2.ok) {
-            const data = await res1.json();
+            const data = await res.json();
             estadoAsistencias = normalizarEstadoAsistencias(data.asistenciasActivas);
             actualizarUI();
-          } else {
-            throw new Error("Falló actualización");
+          } catch (e) {
+            mostrarMensaje("error", "Error", "Error al finalizar registro");
+            console.error(e);
+            estadoAsistencias = normalizarEstadoAsistencias(estadoPrevio);
+            actualizarUI();
           }
-        } catch (e) {
-          mostrarMensaje("error", "Error", "Error al finalizar registro");
-          console.error(e);
-          estadoAsistencias = normalizarEstadoAsistencias(estadoPrevio);
-          actualizarUI();
-        }
+        });
       }
 
       function actualizarBotonAdmin(num, activo) {

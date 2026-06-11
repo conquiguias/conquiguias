@@ -1105,7 +1105,7 @@ async function handleGuardarResultadoExamen(req, res) {
 async function handleActualizarEstadoAsistencia(req, res) {
   await verifyAdminOrOwner(req, req.body || {});
 
-  const { id, asistencia, activo } = req.body;
+  const { id, asistencia, activo, asistencias } = req.body;
 
   const { data: fData } = await supabase
     .from("formularios")
@@ -1115,17 +1115,26 @@ async function handleActualizarEstadoAsistencia(req, res) {
   if (!fData) return res.status(404).json({ error: "No encontrado" });
 
   const nuevoData = { ...fData.data };
-  const asistenciaNumero = Number(asistencia);
-  if (![1, 2].includes(asistenciaNumero)) {
-    return res.status(400).json({ error: "Número de asistencia inválido" });
-  }
-
   const estadoActual = normalizeAsistenciasActivas(nuevoData.asistenciasActivas);
-  estadoActual[asistenciaNumero] = toBoolean(activo);
 
-  if (toBoolean(activo)) {
-    const otroNum = asistenciaNumero === 1 ? 2 : 1;
-    estadoActual[otroNum] = false;
+  if (asistencias && typeof asistencias === "object") {
+    for (const [num, val] of Object.entries(asistencias)) {
+      const n = Number(num);
+      if ([1, 2].includes(n)) {
+        estadoActual[n] = toBoolean(val);
+      }
+    }
+  } else {
+    const asistenciaNumero = Number(asistencia);
+    if (![1, 2].includes(asistenciaNumero)) {
+      return res.status(400).json({ error: "Número de asistencia inválido" });
+    }
+    estadoActual[asistenciaNumero] = toBoolean(activo);
+
+    if (toBoolean(activo)) {
+      const otroNum = asistenciaNumero === 1 ? 2 : 1;
+      estadoActual[otroNum] = false;
+    }
   }
 
   nuevoData.asistenciasActivas = normalizeAsistenciasActivas(estadoActual);

@@ -532,6 +532,85 @@
         color: #065f46;
         font-weight: bold;
       }
+
+      /* === MODAL MENSAJE === */
+      #mensajeModal {
+        display: flex;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 20000;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #mensajeModal.hiddenX {
+        display: none !important;
+      }
+
+      .mensaje-content {
+        background: white;
+        border-radius: 20px;
+        padding: 35px;
+        width: 90%;
+        max-width: 420px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        text-align: center;
+      }
+
+      .mensaje-content h3 {
+        font-size: 1.5rem;
+        margin-bottom: 12px;
+        color: #111827;
+      }
+
+      .mensaje-content p {
+        color: #4b5563;
+        font-size: 1rem;
+        margin-bottom: 25px;
+        line-height: 1.5;
+        word-break: break-word;
+      }
+
+      #mensajeBotones {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+      }
+
+      #mensajeBotones button {
+        padding: 12px 28px;
+        border: none;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        min-width: 100px;
+      }
+
+      #mensajeBotones button:hover {
+        transform: translateY(-2px);
+      }
+
+      #mensajeAceptar {
+        background: linear-gradient(135deg, var(--primary), #4338ca);
+        color: white;
+      }
+
+      #mensajeCancelar {
+        background: #ef4444;
+        color: white;
+      }
+
+      #mensajeCancelar.hiddenX {
+        display: none !important;
+      }
     </style>
   </head>
 
@@ -609,6 +688,14 @@
             </button>
           </div>
         </div>
+
+        <button
+          class="action-btn"
+          style="background: #ef4444; margin-top: 20px; font-size: 1rem; padding: 14px;"
+          onclick="finalizarRegistro()"
+        >
+          🛑 Finalizar Registro
+        </button>
       </div>
 
       <!-- USER INTERFACE -->
@@ -743,7 +830,7 @@
                 type="text"
                 name="nombre"
                 placeholder="Tu nombre real"
-                autocomplete="off"
+                autocomplete="name"
               />
             </div>
           </div>
@@ -755,7 +842,7 @@
               name="correo"
               required
               placeholder="ejemplo@correo.com"
-              autocomplete="off"
+              autocomplete="email"
             />
           </div>
 
@@ -826,6 +913,30 @@
         };
 
         return state;
+      }
+
+      function mostrarMensaje(tipo, titulo, mensaje, onConfirm = null) {
+        const modal = document.getElementById("mensajeModal");
+        const tituloEl = document.getElementById("mensajeTitulo");
+        const textoEl = document.getElementById("mensajeTexto");
+        const btnAceptar = document.getElementById("mensajeAceptar");
+        const btnCancelar = document.getElementById("mensajeCancelar");
+
+        tituloEl.innerHTML = titulo;
+        textoEl.innerHTML = mensaje;
+        modal.classList.remove("hiddenX");
+
+        btnCancelar.classList.toggle("hiddenX", tipo !== "confirm");
+        const cerrar = () => {
+          modal.classList.add("hiddenX");
+          btnAceptar.onclick = null;
+          btnCancelar.onclick = null;
+        };
+        btnAceptar.onclick = () => {
+          cerrar();
+          if (onConfirm && (tipo === "confirm" || tipo === "info")) onConfirm();
+        };
+        btnCancelar.onclick = cerrar;
       }
 
       // === INICIALIZACIÓN ===
@@ -936,7 +1047,7 @@
 
         try {
           if (!email) {
-            alert("❌ Correo no autorizado");
+            mostrarMensaje("error", "Acceso denegado", "❌ Correo no autorizado");
             return;
           }
 
@@ -957,15 +1068,15 @@
             document.getElementById("modalLoginAdmin").style.display = "none";
             document.getElementById("panelAdmin").style.display = "block";
             document.getElementById("admin-float-btn").style.display = "none";
-            alert("✅ Bienvenido Admin");
+            mostrarMensaje("info", "Bienvenido", "✅ Bienvenido Admin");
             // Recargar información del formulario para obtener estados actualizados
             await cargarInfoFormulario();
           } else {
-            alert("❌ Contraseña incorrecta");
+            mostrarMensaje("error", "Error", "❌ Contraseña incorrecta");
           }
         } catch (error) {
           console.error("Error validando admin:", error);
-          alert("Error de conexión al validar credenciales.");
+          mostrarMensaje("error", "Error de conexión", "Error de conexión al validar credenciales.");
         } finally {
           btn.textContent = originalText;
           btn.disabled = false;
@@ -1023,7 +1134,51 @@
             throw new Error("Falló actualización");
           }
         } catch (e) {
-          alert("Error al cambiar estado");
+          mostrarMensaje("error", "Error", "Error al cambiar estado");
+          console.error(e);
+          estadoAsistencias = normalizarEstadoAsistencias(estadoPrevio);
+          actualizarUI();
+        }
+      }
+
+      async function finalizarRegistro() {
+        if (!isAdmin) return;
+        if (!confirm("¿Finalizar registro? Se desactivarán ambas asistencias.")) return;
+
+        const estadoPrevio = { ...estadoAsistencias };
+        estadoAsistencias = normalizarEstadoAsistencias({ 1: false, 2: false });
+        actualizarUI();
+
+        try {
+          const headers = {
+            "Content-Type": "application/json",
+            ...(adminSessionToken ? { "X-Admin-Session": adminSessionToken } : {}),
+          };
+          const payload = (num) => ({
+            id: currentIdFormulario,
+            asistencia: num,
+            activo: false,
+            adminSessionToken,
+          });
+
+          const [res1, res2] = await Promise.all([
+            fetch("/api/formulario?action=actualizarEstadoAsistencia", {
+              method: "POST", headers, body: JSON.stringify(payload(1)),
+            }),
+            fetch("/api/formulario?action=actualizarEstadoAsistencia", {
+              method: "POST", headers, body: JSON.stringify(payload(2)),
+            }),
+          ]);
+
+          if (res1.ok && res2.ok) {
+            const data = await res1.json();
+            estadoAsistencias = normalizarEstadoAsistencias(data.asistenciasActivas);
+            actualizarUI();
+          } else {
+            throw new Error("Falló actualización");
+          }
+        } catch (e) {
+          mostrarMensaje("error", "Error", "Error al finalizar registro");
           console.error(e);
           estadoAsistencias = normalizarEstadoAsistencias(estadoPrevio);
           actualizarUI();
@@ -1076,7 +1231,7 @@
         data.correo = normalizarEmail(data.correo);
 
         if (!data.correo) {
-          alert("❌ Debes ingresar un correo válido.");
+          mostrarMensaje("error", "Campo requerido", "❌ Debes ingresar un correo válido.");
           return;
         }
 
@@ -1128,7 +1283,9 @@
               actualizarUI();
             }
 
-            alert(
+            mostrarMensaje(
+              "info",
+              "Registro exitoso",
               responseData.message || "✅ Asistencia registrada correctamente",
             );
             document.getElementById("modalFormulario").style.display = "none";
@@ -1137,11 +1294,11 @@
           } else {
             // Errores
             const errorMsg = responseData.error || responseData.message || txt;
-            alert(errorMsg.replace(/^"|"$/g, "")); // Limpiar comillas si es texto plano
+            mostrarMensaje("error", "Error", errorMsg.replace(/^"|"$/g, ""));
           }
         } catch (err) {
           console.error("Error:", err);
-          alert("Error de conexión. Verifica tu internet.");
+          mostrarMensaje("error", "Error de conexión", "Error de conexión. Verifica tu internet.");
         } finally {
           isSubmittingAsistencia = false;
           btn.disabled = false;
@@ -1364,14 +1521,14 @@
           preguntasExamen = await res.json();
 
           if (!preguntasExamen || preguntasExamen.length === 0) {
-            alert("No hay preguntas configuradas.");
+            mostrarMensaje("info", "Examen", "No hay preguntas configuradas.");
             document.getElementById("examenOverlay").remove();
             return;
           }
 
           iniciarInterfazExamen();
         } catch (e) {
-          alert("Error al cargar el examen.");
+          mostrarMensaje("error", "Error", "Error al cargar el examen.");
           document.getElementById("examenOverlay").remove();
         }
       }
@@ -1575,15 +1732,17 @@
           );
 
           if (res.ok) {
-            alert(
-              `🎉 Examen Completado.\nTu calificación: ${finalScore.toFixed(0)} / 100`,
+            mostrarMensaje(
+              "info",
+              "🎉 Examen Completado",
+              `Tu calificación: ${finalScore.toFixed(0)} / 100`,
             );
             location.reload();
           } else {
             throw new Error("Error enviando");
           }
         } catch (e) {
-          alert("❌ Error al enviar resultados. Intenta de nuevo.");
+          mostrarMensaje("error", "Error", "❌ Error al enviar resultados. Intenta de nuevo.");
           overlay.remove(); // Permitir reintentar o cerrar
         }
       }
@@ -1619,15 +1778,15 @@
           );
 
           if (res.ok) {
-            alert(`Examen enviado. Tu puntaje: ${finalScore.toFixed(0)}/100`);
+            mostrarMensaje("info", "Examen enviado", `Tu puntaje: ${finalScore.toFixed(0)}/100`);
             examenModal.style.display = "none";
             desactivarSeguridadExamen();
             cargarRespuestas();
           } else {
-            alert("Error al enviar resultados.");
+            mostrarMensaje("error", "Error", "Error al enviar resultados.");
           }
         } catch (e) {
-          alert("Error de conexión");
+          mostrarMensaje("error", "Error de conexión", "Error de conexión");
         }
       }
 
@@ -1647,15 +1806,28 @@
         e.preventDefault();
       }
       function handleVisibility() {
-        if (document.hidden) alert("⚠️ ¡No salgas de la pestaña del examen!");
+        if (document.hidden) mostrarMensaje("info", "Atención", "⚠️ ¡No salgas de la pestaña del examen!");
       }
 
       async function verResultadosExamen(puntaje) {
-        alert(
+        mostrarMensaje(
+          "info",
+          "Resultado",
           `📊 Tu calificación final es: ${parseFloat(puntaje).toFixed(0)} / 100`,
         );
       }
     </script>
+
+    <div id="mensajeModal" class="hiddenX">
+      <div class="mensaje-content">
+        <h3 id="mensajeTitulo">Título</h3>
+        <p id="mensajeTexto">Texto del mensaje</p>
+        <div id="mensajeBotones">
+          <button id="mensajeAceptar">Aceptar</button>
+          <button id="mensajeCancelar" class="hiddenX">Cancelar</button>
+        </div>
+      </div>
+    </div>
 
   </body>
 </html>

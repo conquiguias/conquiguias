@@ -1122,6 +1122,12 @@ async function handleActualizarEstadoAsistencia(req, res) {
 
   const estadoActual = normalizeAsistenciasActivas(nuevoData.asistenciasActivas);
   estadoActual[asistenciaNumero] = toBoolean(activo);
+
+  if (toBoolean(activo)) {
+    const otroNum = asistenciaNumero === 1 ? 2 : 1;
+    estadoActual[otroNum] = false;
+  }
+
   nuevoData.asistenciasActivas = normalizeAsistenciasActivas(estadoActual);
 
   await supabase.from("formularios").update({ data: nuevoData }).eq("id", id);

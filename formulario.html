@@ -982,14 +982,15 @@
 
       async function toggleAsistencia(num) {
         if (!isAdmin) return;
-        const nuevoEstado = !estadoAsistencias[num];
-        const estadoPrevio = { ...estadoAsistencias };
-        estadoAsistencias = normalizarEstadoAsistencias({
-          ...estadoAsistencias,
-          [num]: nuevoEstado,
-        });
+        if (estadoAsistencias[num]) return;
 
-        // UI Optimista
+        const otroNum = num === 1 ? 2 : 1;
+        const estadoPrevio = { ...estadoAsistencias };
+
+        estadoAsistencias = normalizarEstadoAsistencias({
+          [num]: true,
+          [otroNum]: false,
+        });
         actualizarUI();
 
         try {
@@ -1006,7 +1007,7 @@
               body: JSON.stringify({
                 id: currentIdFormulario,
                 asistencia: num,
-                activo: nuevoEstado,
+                activo: true,
                 adminSessionToken,
               }),
             },
@@ -1014,7 +1015,9 @@
 
           if (res.ok) {
             const data = await res.json();
-            estadoAsistencias = normalizarEstadoAsistencias(data.asistenciasActivas);
+            estadoAsistencias = normalizarEstadoAsistencias(
+              data.asistenciasActivas,
+            );
             actualizarUI();
           } else {
             throw new Error("Falló actualización");
@@ -1022,7 +1025,6 @@
         } catch (e) {
           alert("Error al cambiar estado");
           console.error(e);
-          // Revertir UI
           estadoAsistencias = normalizarEstadoAsistencias(estadoPrevio);
           actualizarUI();
         }

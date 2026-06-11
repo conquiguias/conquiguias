@@ -43,7 +43,7 @@
     <style>
       /* === BASE STYLES === */
       :root {
-        --primary: #4f46e5;
+        --primary: #3b82f6;
         --secondary: #10b981;
         --accent: #f59e0b;
         --bg: #f3f4f6;
@@ -208,7 +208,7 @@
       }
 
       .btn-primary {
-        background: linear-gradient(135deg, var(--primary), #4338ca);
+        background: linear-gradient(135deg, var(--primary), #2563eb);
       }
 
       .btn-secondary {
@@ -599,7 +599,7 @@
       }
 
       #mensajeAceptar {
-        background: linear-gradient(135deg, var(--primary), #4338ca);
+        background: linear-gradient(135deg, var(--primary), #2563eb);
         color: white;
       }
 
@@ -694,7 +694,7 @@
           style="background: #ef4444; margin-top: 20px; font-size: 1rem; padding: 14px;"
           onclick="finalizarRegistro()"
         >
-          🛑 Finalizar Registro
+          Finalizar Registro
         </button>
       </div>
 
@@ -716,7 +716,7 @@
             <h3 style="color: var(--primary)">¡Primera Asistencia Abierta!</h3>
             <p style="margin-bottom: 20px">Registra tu llegada ahora.</p>
             <button class="action-btn btn-primary" onclick="abrirFormulario(1)">
-              📝 Registrar Primera Asistencia
+              Registrar Primera Asistencia
             </button>
           </div>
 
@@ -731,7 +731,7 @@
               class="action-btn btn-secondary"
               onclick="abrirFormulario(2)"
             >
-              ✅ Registrar Segunda Asistencia
+              Registrar Segunda Asistencia
             </button>
           </div>
 
@@ -746,10 +746,7 @@
 
       <!-- TABLA RESPUESTAS -->
       <div class="card">
-        <h3 style="margin-bottom: 15px">📊 Registros en tiempo real</h3>
-        <p style="font-size: 0.9rem; margin-bottom: 10px; color: #666">
-          Se actualiza automáticamente cada 30 segundos.
-        </p>
+        <h3 style="margin-bottom: 15px">Registros en tiempo real</h3>
         <table border="1" id="tablaRespuestas">
           <thead>
             <tr>
@@ -771,7 +768,7 @@
 
     <!-- ADMIN BUTTON -->
     <div id="admin-float-btn" onclick="abrirLoginAdmin()" title="Acceso Admin">
-      🛡️
+      Admin
     </div>
 
     <!-- MODAL LOGIN ADMIN -->
@@ -1235,7 +1232,7 @@
         isSubmittingAsistencia = true;
         btn.disabled = true;
         btn.setAttribute("aria-busy", "true");
-        btn.textContent = "⏳ Enviando...";
+        btn.textContent = "Enviando...";
 
         try {
           const res = await fetch("/api/formulario?action=guardar", {
@@ -1359,7 +1356,9 @@
               };
             }
             if (r.asistenciaNumero) {
-              agrupadas[key].asistencias.push(r.asistenciaNumero);
+              if (!agrupadas[key].asistencias.includes(r.asistenciaNumero)) {
+                agrupadas[key].asistencias.push(r.asistenciaNumero);
+              }
               agrupadas[key].maxAsistencia = Math.max(
                 agrupadas[key].maxAsistencia,
                 r.asistenciaNumero,

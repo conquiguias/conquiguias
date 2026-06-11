@@ -638,9 +638,17 @@ async function handleVerRespuestas(req, res) {
 
   const asistenciasPublicas = asistenciasRaw.map((item) => maskPublicUserData(item, requester));
   const examenesPublicos = examenesRaw.map((item) => maskPublicUserData(item, requester));
+
+  const esAdmin = isAdminEmail(requesterEmail);
   const tareasPublicas = {};
   Object.entries(tareasRaw).forEach(([key, value]) => {
-    tareasPublicas[key] = maskPublicUserData(value, requester);
+    const keyLower = normalizeEmail(key);
+    const esPropio = keyLower === requesterEmail || key === requesterVisitanteId;
+    if (esAdmin) {
+      tareasPublicas[key] = value;
+    } else if (esPropio) {
+      tareasPublicas[key] = { estado: value.estado, nota: value.nota };
+    }
   });
 
   res.status(200).json({

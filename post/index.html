@@ -2153,7 +2153,7 @@
       // 🔧 Direct stream verification (Pure JS - No API call)
       async function detectLiveStatusDirect(streamUrl) {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2800);
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
 
         try {
           const streamRes = await fetch(streamUrl, {
@@ -2162,7 +2162,8 @@
             headers: {
               Accept: "application/vnd.apple.mpegurl, application/x-mpegURL, text/plain;q=0.9, */*;q=0.8",
               "Cache-Control": "no-cache",
-              pragma: "no-cache"
+              pragma: "no-cache",
+              "Referrer-Policy": "no-referrer"
             },
             cache: 'no-store'
           });

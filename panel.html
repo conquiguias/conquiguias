@@ -151,6 +151,31 @@
       font-weight: bold;
     }
 
+    #sidebar button#menuEnVivo {
+      border: 2px solid #ef4444;
+      color: #ef4444;
+      font-weight: bold;
+      transition: background 0.3s, transform 0.2s, opacity 0.3s;
+    }
+
+    #sidebar button#menuEnVivo:hover:not(:disabled) {
+      background: rgba(239, 68, 68, 0.15);
+      transform: translateX(5px);
+    }
+
+    #sidebar button#menuEnVivo:disabled {
+      border-color: #6b7280;
+      color: #6b7280;
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    #sidebar button#menuEnVivo:disabled:hover {
+      background: transparent;
+      transform: none;
+    }
+
     #menuAdmin,
     #menuTareasExamenes {
       font-size: 20px;
@@ -6435,6 +6460,7 @@
     <h2 style="font-family: 'Great Vibes', cursive; font-size: 28px; text-transform: none; color: white; margin-bottom: 10px; margin-top: 20px;">
       <img src="/images/logo%20oficial%20conquiguias%20world%20vectorial.png" alt="Conquiguias World" class="logo-sidebar">
     </h2>
+    <button id="menuEnVivo" disabled><i class="fas fa-broadcast-tower" style="margin-right: 8px;"></i> EN VIVO</button>
     <button id="menuInicio" class="active"><i class="fas fa-home" style="margin-right: 8px;"></i> Inicio</button>
     <button id="menuClubes"><i class="fas fa-users" style="margin-right: 8px;"></i> Clubes</button>
     <button id="menuTutoriales"><i class="fas fa-play-circle" style="margin-right: 8px;"></i> Tutoriales</button>
@@ -21176,7 +21202,7 @@
       // Verificación estricta del estado del stream basada en análisis del M3U8
       async function detectLiveStatusDirect(streamUrl = LIVE_STREAM_URL) {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2800);
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
 
         try {
           const streamRes = await fetch(streamUrl, {
@@ -21185,7 +21211,8 @@
             headers: {
               Accept: "application/vnd.apple.mpegurl, application/x-mpegURL, text/plain;q=0.9, */*;q=0.8",
               "Cache-Control": "no-cache",
-              pragma: "no-cache"
+              pragma: "no-cache",
+              "Referrer-Policy": "no-referrer"
             },
             cache: 'no-store'
           });
@@ -21195,29 +21222,23 @@
           }
 
           const playlist = await streamRes.text();
-          
-          // Validaciones estrictas del M3U8:
-          // 1. Debe contener #EXTM3U al inicio
+
           if (!/^#EXTM3U/i.test(playlist.trim())) {
             return { live: false, reason: "No M3U header" };
           }
 
-          // 2. Verificar peso mínimo del contenido (debe tener datos significativos)
           if (playlist.trim().length < 50) {
             return { live: false, reason: "Playlist too small" };
           }
 
-          // 3. Buscar indicadores de stream activo
           const hasSegments = /#EXTINF/i.test(playlist);
           const hasVariantInfo = /#EXT-X-STREAM-INF/i.test(playlist);
           const hasMediaUrls = /^[^#\n\r][^\n\r]*\.(ts|m4s|m3u8)(\?[^\n\r]*)?\s*$/im.test(playlist);
 
-          // 4. Buscar indicadores de stream offline/error en el header (primeros 500 chars)
           const looksOffline = /\boffline\b|\bnot.?found\b|\bforbidden\b|\berror\b|\bunavailable\b/i.test(
             playlist.slice(0, 500)
           );
 
-          // Criterio final: debe tener al menos segmentos válidos y NO parecer offline
           const isLiveStream = (hasSegments || hasVariantInfo || hasMediaUrls) && !looksOffline;
 
           return { 
@@ -21244,20 +21265,19 @@
 
         liveStreamRequestPromise = (async () => {
           try {
-            // 🔧 DIRECT verification - No API call needed
             const streamStatus = await detectLiveStatusDirect(LIVE_STREAM_URL);
-            
+
             liveStreamCache = {
               data: { live: streamStatus.live },
               checkedAt: Date.now()
             };
-            
+
             if (streamStatus.live) {
               console.log('[Live] ✅ Stream is live');
             } else {
               console.log(`[Live] ⏸ Stream offline: ${streamStatus.reason}`);
             }
-            
+
             return liveStreamCache.data;
           } catch (e) {
             console.warn('[Live] ❌ Verification failed:', e);
@@ -21339,6 +21359,47 @@
           updateFirstPostMarker();
           return false;
         }
+      }
+
+      // 🔹 MANEJO DEL BOTÓN EN VIVO EN LA BARRA LATERAL
+      let enVivoButton = null;
+      let enVivoIntervalId = null;
+
+      function initEnVivoButton() {
+        enVivoButton = document.getElementById('menuEnVivo');
+        if (!enVivoButton) return;
+
+        enVivoButton.addEventListener('click', () => {
+          if (enVivoButton.disabled) return;
+          const shareUrl = new URL(`/share/${LIVE_POST_ID}`, window.location.origin);
+          window.open(shareUrl.toString(), '_blank');
+        });
+
+        updateEnVivoButton();
+        enVivoIntervalId = setInterval(updateEnVivoButton, LIVE_STREAM_CACHE_MS);
+      }
+
+      async function updateEnVivoButton() {
+        if (!enVivoButton) return;
+        try {
+          const result = await checkLiveStream();
+          if (result.live) {
+            enVivoButton.disabled = false;
+            enVivoButton.innerHTML = '<i class="fas fa-broadcast-tower" style="margin-right: 8px;"></i> 🔴 EN VIVO';
+          } else {
+            enVivoButton.disabled = true;
+            enVivoButton.innerHTML = '<i class="fas fa-broadcast-tower" style="margin-right: 8px;"></i> EN VIVO';
+          }
+        } catch (e) {
+          enVivoButton.disabled = true;
+          enVivoButton.innerHTML = '<i class="fas fa-broadcast-tower" style="margin-right: 8px;"></i> EN VIVO';
+        }
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initEnVivoButton);
+      } else {
+        initEnVivoButton();
       }
 
       // 🔹 CARGA INICIAL DE PUBLICACIONES (Modificada para scroll infinito)
@@ -21565,6 +21626,7 @@
           const liveData = await liveCheckPromise;
           const livePostRendered = await renderLivePostIntoFeed(liveData, categoryAtRequest);
           markFeedPerf(perfTrace, 'live-check-resolved', { live: !!liveData?.live });
+          if (enVivoButton) updateEnVivoButton();
 
           if (renderedPostsCount === 0 && !livePostRendered) {
             renderEmptyFeedMessage();

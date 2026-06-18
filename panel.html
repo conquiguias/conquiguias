@@ -21201,56 +21201,73 @@
       // LIVE STREAM VERIFICATION (Pure JavaScript - No Backend Call)
       // Verificación estricta del estado del stream basada en análisis del M3U8
       async function detectLiveStatusDirect(streamUrl = LIVE_STREAM_URL) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const timeoutMs = 8000;
+        let playlist = null;
+        let fetchError = null;
 
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
           const streamRes = await fetch(streamUrl, {
             method: "GET",
             signal: controller.signal,
-            headers: {
-              Accept: "application/vnd.apple.mpegurl, application/x-mpegURL, text/plain;q=0.9, */*;q=0.8",
-              "Cache-Control": "no-cache",
-              pragma: "no-cache",
-              "Referrer-Policy": "no-referrer"
-            },
+            headers: { Accept: "application/vnd.apple.mpegurl" },
             cache: 'no-store'
           });
-
-          if (!streamRes.ok) {
-            return { live: false, reason: `HTTP ${streamRes.status}` };
-          }
-
-          const playlist = await streamRes.text();
-
-          if (!/^#EXTM3U/i.test(playlist.trim())) {
-            return { live: false, reason: "No M3U header" };
-          }
-
-          if (playlist.trim().length < 50) {
-            return { live: false, reason: "Playlist too small" };
-          }
-
-          const hasSegments = /#EXTINF/i.test(playlist);
-          const hasVariantInfo = /#EXT-X-STREAM-INF/i.test(playlist);
-          const hasMediaUrls = /^[^#\n\r][^\n\r]*\.(ts|m4s|m3u8)(\?[^\n\r]*)?\s*$/im.test(playlist);
-
-          const looksOffline = /\boffline\b|\bnot.?found\b|\bforbidden\b|\berror\b|\bunavailable\b/i.test(
-            playlist.slice(0, 500)
-          );
-
-          const isLiveStream = (hasSegments || hasVariantInfo || hasMediaUrls) && !looksOffline;
-
-          return { 
-            live: isLiveStream, 
-            reason: !isLiveStream ? "No valid segments" : "Stream active" 
-          };
-        } catch (error) {
-          const reason = error?.name === 'AbortError' ? 'Timeout' : error?.message || 'Unknown error';
-          return { live: false, reason };
-        } finally {
           clearTimeout(timeoutId);
+
+          if (streamRes.ok) {
+            playlist = await streamRes.text();
+          } else {
+            fetchError = `HTTP ${streamRes.status}`;
+          }
+        } catch (e) {
+          fetchError = e?.name === 'AbortError' ? 'Timeout' : e?.message || 'Fetch error';
         }
+
+        if (!playlist) {
+          try {
+            playlist = await new Promise((resolve, reject) => {
+              const xhr = new XMLHttpRequest();
+              xhr.open('GET', streamUrl, true);
+              xhr.setRequestHeader('Accept', 'application/vnd.apple.mpegurl');
+              xhr.timeout = timeoutMs;
+              xhr.onload = () => {
+                if (xhr.status === 200) resolve(xhr.responseText);
+                else reject(new Error(`HTTP ${xhr.status}`));
+              };
+              xhr.onerror = () => reject(new Error('XHR error'));
+              xhr.ontimeout = () => reject(new Error('Timeout'));
+              xhr.send();
+            });
+            fetchError = null;
+          } catch (xhrErr) {
+            return { live: false, reason: fetchError || xhrErr?.message || 'Unknown error' };
+          }
+        }
+
+        if (!/^#EXTM3U/i.test(playlist.trim())) {
+          return { live: false, reason: "No M3U header" };
+        }
+
+        if (playlist.trim().length < 50) {
+          return { live: false, reason: "Playlist too small" };
+        }
+
+        const hasSegments = /#EXTINF/i.test(playlist);
+        const hasVariantInfo = /#EXT-X-STREAM-INF/i.test(playlist);
+        const hasMediaUrls = /^[^#\n\r][^\n\r]*\.(ts|m4s|m3u8)(\?[^\n\r]*)?\s*$/im.test(playlist);
+
+        const looksOffline = /\boffline\b|\bnot.?found\b|\bforbidden\b|\berror\b|\bunavailable\b/i.test(
+          playlist.slice(0, 500)
+        );
+
+        const isLiveStream = (hasSegments || hasVariantInfo || hasMediaUrls) && !looksOffline;
+
+        return { 
+          live: isLiveStream, 
+          reason: !isLiveStream ? "No valid segments" : "Stream active" 
+        };
       }
 
       async function checkLiveStream(forceRefresh = false) {

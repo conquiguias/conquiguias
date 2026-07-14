@@ -530,7 +530,7 @@
       position:absolute;
       bottom:1px; right:3px;
       font-size:8px; font-weight:800;
-      color:var(--accent-color);
+      color:white;
       line-height:1;
     }
 
@@ -1135,6 +1135,9 @@
             <button id="musicRepeatBtn" class="music-transport-btn" type="button" title="Repetir: todo (bucle)">
               <i class="fas fa-repeat"></i>
             </button>
+            <button id="musicShuffleBtn" class="music-transport-btn" type="button" title="Aleatorio: desactivado">
+              <i class="fas fa-shuffle"></i>
+            </button>
           </div>
           <div style="flex:1"></div>
           <div style="font-size:11px; color:var(--text-secondary); white-space:nowrap; display:flex; align-items:center; gap:6px;">
@@ -1215,6 +1218,7 @@
       audio: null,
       sessionStartedAt: 0,
       repeatMode: 'all',
+      shuffle: false,
       autoAdvanceLocked: false,
       hasUserSelectedTrack: false,
       isCreatingPlayer: false,
@@ -1616,6 +1620,12 @@
           repeatBtn.title = 'Repetir: desactivado';
         }
       }
+
+      var shuffleBtn = document.getElementById('musicShuffleBtn');
+      if (shuffleBtn) {
+        shuffleBtn.classList.toggle('is-active', !!s.shuffle);
+        shuffleBtn.title = s.shuffle ? 'Aleatorio: activado' : 'Aleatorio: desactivado';
+      }
     }
 
     function updateMusicPlayStates() {
@@ -1702,6 +1712,21 @@
     // ============================================================
     // MEDIA BINDINGS
     // ============================================================
+    function musicGetNextIndex(opts) {
+      var s = window.__musicState;
+      if (!Array.isArray(s.catalog) || s.catalog.length < 1) return -1;
+      var current = opts && Number.isInteger(opts.current) ? opts.current : s.currentIndex;
+      if (!Number.isInteger(current) || current < 0) { return 0; }
+      if (s.catalog.length === 1) { return current; }
+      if (s.shuffle) {
+        var idx;
+        do { idx = Math.floor(Math.random() * s.catalog.length); } while (idx === current);
+        return idx;
+      }
+      var direction = opts && opts.direction === -1 ? -1 : 1;
+      return (current + direction + s.catalog.length) % s.catalog.length;
+    }
+
     function musicClearCurrentTrack() {
       var s = window.__musicState;
       musicDestroyPlayers();
@@ -1721,9 +1746,8 @@
         playMusicTrackByIndex(s.currentIndex, { autoplay: true, reason: 'auto-advance', force: true });
         return;
       }
-      var nextIndex = (s.currentIndex + 1) % s.catalog.length;
-      var nextTrack = s.catalog[nextIndex];
-      if (!nextTrack) return;
+      var nextIndex = musicGetNextIndex({ direction: 1 });
+      if (nextIndex < 0) return;
       playMusicTrackByIndex(nextIndex, { autoplay: true, reason: 'auto-advance', force: true });
     }
 
@@ -1788,12 +1812,6 @@
             nameElements.forEach(function(el) { el.textContent = cleanTitle; });
             var smallNameElements = container.querySelectorAll('[id$="smalltextradioname"], [id$="smalltextradionamespan"]');
             smallNameElements.forEach(function(el) { el.textContent = cleanTitle; });
-          } catch (_) {}
-          // Update LunaRadio cover
-          try {
-            var coverUrl = musicResolveTrackImage(track, 'audio', DEFAULT_MUSIC_COVER_IMAGE);
-            var coverImgEl = container.querySelector('img');
-            if (coverImgEl) coverImgEl.src = coverUrl;
           } catch (_) {}
 
           // Swap the audio source
@@ -2868,15 +2886,15 @@
       // --- Transport controls ---
       document.getElementById('musicPrevBtn').addEventListener('click', function() {
         if (!Array.isArray(state.catalog) || !state.catalog.length) return;
-        var current = Number.isInteger(state.currentIndex) && state.currentIndex >= 0 ? state.currentIndex : 0;
-        var target = (current - 1 + state.catalog.length) % state.catalog.length;
+        var target = musicGetNextIndex({ direction: -1 });
+        if (target < 0) return;
         playMusicTrackByIndex(target, { autoplay: true, reason: 'transport-prev' });
       });
 
       document.getElementById('musicNextBtn').addEventListener('click', function() {
         if (!Array.isArray(state.catalog) || !state.catalog.length) return;
-        var current = Number.isInteger(state.currentIndex) && state.currentIndex >= 0 ? state.currentIndex : -1;
-        var target = (current + 1 + state.catalog.length) % state.catalog.length;
+        var target = musicGetNextIndex({ direction: 1 });
+        if (target < 0) return;
         playMusicTrackByIndex(target, { autoplay: true, reason: 'transport-next' });
       });
 
@@ -2903,6 +2921,11 @@
         var modes = ['off', 'all', 'one'];
         var idx = modes.indexOf(state.repeatMode);
         state.repeatMode = modes[(idx + 1) % modes.length];
+        musicUpdateTransportControls();
+      });
+
+      document.getElementById('musicShuffleBtn').addEventListener('click', function() {
+        state.shuffle = !state.shuffle;
         musicUpdateTransportControls();
       });
 

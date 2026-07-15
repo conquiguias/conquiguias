@@ -1858,7 +1858,7 @@
       container.innerHTML = '';
       try {
         var coverUrl = musicResolveTrackImage(track, 'audio', DEFAULT_MUSIC_COVER_IMAGE);
-        var instance = window.jQuery('#lunaradioPlayerPlaceholder').lunaradio({
+        var lunaOpts = {
           userinterface: 'big',
           backgroundcolor: 'rgba(9,15,25,0.2)',
           fontcolor: '#FFFFFF',
@@ -1866,11 +1866,11 @@
           fontname: 'Saira Condensed',
           googlefont: 'Saira+Condensed:wght@100',
           fontratio: '0.6',
-          radioname: (track.title || 'Conquiguias M\u00fasica').replace(/\.[^.]+$/, '').slice(0, 80),
+          radioname: (track.title || 'PROYECTO JA').replace(/\.[^.]+$/, '').slice(0, 80),
           scroll: 'true',
           usecover: 'true',
-          radiocover: coverUrl,
-          coverimage: coverUrl,
+          radiocover: coverUrl || undefined,
+          coverimage: coverUrl || undefined,
           usevisualizer: 'real',
           coverstyle: 'animated',
           visualizertype: '4',
@@ -1891,7 +1891,8 @@
           usestreamcorsproxy: 'false',
           corsproxy: '',
           autoplay: autoplay ? 'true' : 'false'
-        });
+        };
+        var instance = window.jQuery('#lunaradioPlayerPlaceholder').lunaradio(lunaOpts);
 
         s.instance = instance;
         s.lunaInstance = instance;

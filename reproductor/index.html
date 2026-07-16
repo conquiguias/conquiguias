@@ -1546,25 +1546,17 @@
       </main>
     </div>
 
-    <div id="playlistPickerModal" class="hiddenX" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(2,6,23,0.62); backdrop-filter:blur(6px); z-index:1201; padding:20px;">
-      <div class="music-modal-card" style="width:min(560px,calc(100% - 40px)); height:auto; max-height:calc(100% - 48px);">
-        <button id="closePlaylistPickerModal" class="music-modal-close">&#10005;</button>
-        <h3 class="music-modal-title">Agregar a lista</h3>
-        <p id="playlistPickerSubtitle" class="music-modal-subtitle">Selecciona una lista o crea una nueva.</p>
-        <div class="music-modal-selector" style="grid-template-columns:1.2fr 1fr auto;">
-          <label class="music-field" style="margin:0;">
-            <small>Lista existente</small>
-            <select id="playlistPickerSelect" class="music-target-select"></select>
-          </label>
-          <label class="music-field" style="margin:0;">
-            <small>Nueva lista</small>
-            <input id="playlistPickerNewName" class="music-target-input" placeholder="Nombre">
-          </label>
-          <div class="music-inline-actions">
-            <button type="button" id="playlistPickerCreateBtn" class="music-pill-btn">Crear y agregar</button>
-            <button type="button" id="playlistPickerAddBtn" class="music-pill-btn">Agregar</button>
-          </div>
+    <div id="playlistPickerModal" class="hiddenX" style="position:fixed;z-index:1201;">
+      <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:14px;box-shadow:0 8px 32px rgba(0,0,0,0.5);width:220px;animation:musicModalIn 0.12s ease;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <span style="font-size:13px;font-weight:700;">Agregar a lista</span>
+          <button id="closePlaylistPickerModal" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:20px;padding:0 4px;line-height:1;">&times;</button>
         </div>
+        <select id="playlistPickerSelect" style="width:100%;background:var(--bg-secondary);border:1px solid var(--border-color);color:var(--text-primary);padding:7px 8px;border-radius:8px;outline:none;font-size:12px;margin-bottom:6px;cursor:pointer;color-scheme:dark;">
+        </select>
+        <input id="playlistPickerNewName" style="display:none;width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border-color);color:var(--text-primary);padding:7px 8px;border-radius:8px;outline:none;font-size:12px;margin-bottom:6px;box-sizing:border-box;" placeholder="Nombre de la nueva lista">
+        <button id="playlistPickerAddBtn" class="music-pill-btn" style="display:none;width:100%;font-size:12px;padding:7px 12px;">Agregar</button>
+        <button id="playlistPickerCreateBtn" class="music-pill-btn" style="width:100%;font-size:12px;padding:7px 12px;">Crear y agregar</button>
       </div>
     </div>
   </div>
@@ -1663,10 +1655,17 @@
       isCreatingPlayer: false,
       listenersBoundTo: null,
       currentYoutubeId: '',
-      ytPlaybackState: ''
+      ytPlaybackState: '',
+      ytResults: [],
+      ytCurrentIndex: -1
     };
 
     var state = window.__musicState;
+
+    function isYtSearchActive() {
+      var el = document.getElementById('youtubePanel');
+      return el && el.style.display !== 'none';
+    }
 
     // ============================================================
     // TOAST
@@ -2039,23 +2038,27 @@
       var playPauseBtn = document.getElementById('musicPlayPauseBtn');
       var nextBtn = document.getElementById('musicNextBtn');
       if (!prevBtn || !playPauseBtn || !nextBtn) return;
-
-      var hasTracks = Array.isArray(s.catalog) && s.catalog.length > 0;
+      var ytSearchOpen = isYtSearchActive();
+      var hasYtResults = ytSearchOpen && Array.isArray(s.ytResults) && s.ytResults.length > 0;
+      var hasCatalog = Array.isArray(s.catalog) && s.catalog.length > 0;
       var isYt = !!s.currentYoutubeId && !!s.clapprPlayer;
-      var canControl = isYt || (hasTracks && !!s.hasUserSelectedTrack && Number.isInteger(s.currentIndex) && s.currentIndex >= 0);
+      var canControl = isYt || (hasCatalog && !!s.hasUserSelectedTrack && 
+Number.isInteger(s.currentIndex) && s.currentIndex >= 0);
+      var canPrevNext = hasYtResults || canControl;
       var playbackState = musicGetCurrentPlaybackState();
       var isPlaying = playbackState === 'playing';
       var icon = playPauseBtn.querySelector('i');
       if (icon) icon.className = isPlaying ? 'fas fa-pause' : 'fas fa-play';
       playPauseBtn.title = isPlaying ? 'Pausar' : 'Reproducir';
       playPauseBtn.setAttribute('aria-label', isPlaying ? 'Pausar' : 'Reproducir');
-      prevBtn.disabled = !canControl;
-      nextBtn.disabled = !canControl;
+      prevBtn.disabled = !canPrevNext;
+      nextBtn.disabled = !canPrevNext;
       playPauseBtn.disabled = !canControl;
 
       var repeatBtn = document.getElementById('musicRepeatBtn');
       if (repeatBtn) {
         repeatBtn.classList.remove('is-active', 'is-one');
+        repeatBtn.disabled = false;
         var rIcon = repeatBtn.querySelector('i');
         if (s.repeatMode === 'all') {
           repeatBtn.classList.add('is-active');
@@ -2070,8 +2073,15 @@
 
       var shuffleBtn = document.getElementById('musicShuffleBtn');
       if (shuffleBtn) {
-        shuffleBtn.classList.toggle('is-active', !!s.shuffle);
-        shuffleBtn.title = s.shuffle ? 'Aleatorio: activado' : 'Aleatorio: desactivado';
+        if (ytSearchOpen) {
+          shuffleBtn.disabled = true;
+          shuffleBtn.classList.remove('is-active');
+          shuffleBtn.title = 'Aleatorio: no disponible en b\u00fasqueda';
+        } else {
+          shuffleBtn.disabled = false;
+          shuffleBtn.classList.toggle('is-active', !!s.shuffle);
+          shuffleBtn.title = s.shuffle ? 'Aleatorio: activado' : 'Aleatorio: desactivado';
+        }
       }
     }
 
@@ -2211,6 +2221,43 @@
 
     function musicAutoAdvanceToNextTrack() {
       var s = window.__musicState;
+      if (isYtSearchActive()) {
+        var results = s.ytResults;
+        if (!Array.isArray(results) || results.length < 1) return;
+        var idx = s.ytCurrentIndex;
+        if (!Number.isInteger(idx) || idx < 0) return;
+        if (s.repeatMode === 'off') { musicClearCurrentTrack(); return; }
+        if (s.repeatMode === 'one') {
+          var curVideo = results[idx];
+          if (!curVideo) { musicClearCurrentTrack(); return; }
+          s.ytCurrentIndex = idx;
+          var trackOne = {
+            url: curVideo.id || '',
+            title: curVideo.title || 'Video de YouTube',
+            artist: curVideo.channel ? curVideo.channel.name : '',
+            coverimage: curVideo.thumbnail || ''
+          };
+          s.currentYoutubeId = curVideo.id || '';
+          initMusicVideoPlayer(trackOne, { autoplay: true });
+          return;
+        }
+        var next = idx + 1;
+        if (next >= results.length) {
+          if (s.repeatMode === 'all') { next = 0; }
+          else { musicClearCurrentTrack(); return; }
+        }
+        var nextVideo = results[next];
+        s.ytCurrentIndex = next;
+        var track = {
+          url: nextVideo.id || '',
+          title: nextVideo.title || 'Video de YouTube',
+          artist: nextVideo.channel ? nextVideo.channel.name : '',
+          coverimage: nextVideo.thumbnail || ''
+        };
+        s.currentYoutubeId = nextVideo.id || '';
+        initMusicVideoPlayer(track, { autoplay: true });
+        return;
+      }
       if (!Array.isArray(s.catalog) || s.catalog.length < 1) return;
       if (!Number.isInteger(s.currentIndex) || s.currentIndex < 0) return;
       if (s.repeatMode === 'off') { musicClearCurrentTrack(); return; }
@@ -2959,7 +3006,7 @@
             addToListOpt.addEventListener('mouseleave', function() { addToListOpt.style.background = 'none'; });
             addToListOpt.addEventListener('click', function() {
               state.pendingPlaylistTrack = track;
-              openPlaylistPickerModal(track);
+              openPlaylistPickerModal(track, menuBtn);
               if (document.body.contains(modalEl)) document.body.removeChild(modalEl);
             });
 
@@ -3057,33 +3104,78 @@
       select.value = hasPrevious ? previousValue : (editablePlaylists.length > 0 ? editablePlaylists[0].id : '__new__');
 
       var pickerNewName = document.getElementById('playlistPickerNewName');
-      if (pickerNewName) pickerNewName.style.display = select.value === '__new__' ? '' : 'none';
-
-      var pickerModal = document.getElementById('playlistPickerModal');
-      if (pickerModal && !pickerModal.classList.contains('hiddenX')) {
-        var subtitle = document.getElementById('playlistPickerSubtitle');
-        if (subtitle) {
-          var pending = state.pendingPlaylistTrack;
-          subtitle.textContent = pending ? 'Selecciona una lista para "' + (pending.title || 'esta canci\u00f3n') + '".' : 'Selecciona una lista o crea una nueva.';
-        }
-      }
+      var addBtn = document.getElementById('playlistPickerAddBtn');
+      var createBtn = document.getElementById('playlistPickerCreateBtn');
+      var isNew = select.value === '__new__';
+      if (pickerNewName) pickerNewName.style.display = isNew ? '' : 'none';
+      if (addBtn) addBtn.style.display = isNew ? 'none' : '';
+      if (createBtn) createBtn.style.display = isNew ? '' : 'none';
     }
 
     // ============================================================
     // PLAYLIST PICKER MODAL
     // ============================================================
-    function openPlaylistPickerModal(track) {
+    function openPlaylistPickerModal(track, triggerEl) {
       state.pendingPlaylistTrack = track || null;
       var modal = document.getElementById('playlistPickerModal');
       if (!modal) return;
+      modal.style.position = 'fixed';
+      modal.style.inset = 'auto';
+      modal.style.transform = 'none';
+      modal.style.left = '-999px';
+      modal.style.top = '0';
       modal.classList.remove('hiddenX');
+      var cardH = modal.firstElementChild ? modal.firstElementChild.offsetHeight : 160;
+      if (triggerEl) {
+        var rect = triggerEl.getBoundingClientRect();
+        var cardW = 220, gap = 6;
+        var left = Math.min(rect.right - cardW, window.innerWidth - cardW - gap);
+        left = Math.max(gap, left);
+        var top = rect.bottom + gap;
+        if (top + cardH > window.innerHeight - gap) {
+          top = Math.max(gap, rect.top - cardH - gap);
+        }
+        modal.style.left = left + 'px';
+        modal.style.top = top + 'px';
+      } else {
+        modal.style.left = '50%';
+        modal.style.top = Math.max(10, (window.innerHeight - cardH) / 2) + 'px';
+        modal.style.transform = 'translateX(-50%)';
+      }
+      var sel = document.getElementById('playlistPickerSelect');
+      var nInput = document.getElementById('playlistPickerNewName');
+      var addBtn = document.getElementById('playlistPickerAddBtn');
+      var createBtn = document.getElementById('playlistPickerCreateBtn');
+      if (sel && nInput && addBtn && createBtn) {
+        if (sel.value === '__new__') {
+          nInput.style.display = '';
+          createBtn.style.display = '';
+          addBtn.style.display = 'none';
+        } else {
+          nInput.style.display = 'none';
+          createBtn.style.display = 'none';
+          addBtn.style.display = '';
+        }
+      }
       renderMusicPlaylistSelectors();
+      setTimeout(function() {
+        document.addEventListener('click', closePlaylistPickerOutside);
+      }, 0);
     }
 
     function closePlaylistPickerModal() {
       var modal = document.getElementById('playlistPickerModal');
       if (modal) modal.classList.add('hiddenX');
       state.pendingPlaylistTrack = null;
+      document.removeEventListener('click', closePlaylistPickerOutside);
+    }
+
+    function closePlaylistPickerOutside(e) {
+      var modal = document.getElementById('playlistPickerModal');
+      var card = modal && modal.firstElementChild;
+      if (modal && !modal.classList.contains('hiddenX') && card && !card.contains(e.target)) {
+        closePlaylistPickerModal();
+      }
     }
 
     // ============================================================
@@ -3449,6 +3541,24 @@
 
       // --- Transport controls ---
       document.getElementById('musicPrevBtn').addEventListener('click', function() {
+        if (isYtSearchActive()) {
+          var results = state.ytResults;
+          if (!Array.isArray(results) || results.length < 1) return;
+          var idx = state.ytCurrentIndex;
+          var prev = (Number.isInteger(idx) && idx > 0) ? idx - 1 : -1;
+          if (prev < 0) return;
+          var prevVideo = results[prev];
+          state.ytCurrentIndex = prev;
+          var track = {
+            url: prevVideo.id || '',
+            title: prevVideo.title || 'Video de YouTube',
+            artist: prevVideo.channel ? prevVideo.channel.name : '',
+            coverimage: prevVideo.thumbnail || ''
+          };
+          state.currentYoutubeId = prevVideo.id || '';
+          initMusicVideoPlayer(track, { autoplay: true });
+          return;
+        }
         if (!Array.isArray(state.catalog) || !state.catalog.length) return;
         var target = musicGetNextIndex({ direction: -1 });
         if (target < 0) return;
@@ -3456,6 +3566,24 @@
       });
 
       document.getElementById('musicNextBtn').addEventListener('click', function() {
+        if (isYtSearchActive()) {
+          var results = state.ytResults;
+          if (!Array.isArray(results) || results.length < 1) return;
+          var idx = state.ytCurrentIndex;
+          var next = (Number.isInteger(idx) && idx >= 0) ? idx + 1 : 0;
+          if (next >= results.length) return;
+          var nextVideo = results[next];
+          state.ytCurrentIndex = next;
+          var track = {
+            url: nextVideo.id || '',
+            title: nextVideo.title || 'Video de YouTube',
+            artist: nextVideo.channel ? nextVideo.channel.name : '',
+            coverimage: nextVideo.thumbnail || ''
+          };
+          state.currentYoutubeId = nextVideo.id || '';
+          initMusicVideoPlayer(track, { autoplay: true });
+          return;
+        }
         if (!Array.isArray(state.catalog) || !state.catalog.length) return;
         var target = musicGetNextIndex({ direction: 1 });
         if (target < 0) return;
@@ -3604,7 +3732,11 @@
 
       document.getElementById('playlistPickerSelect').addEventListener('change', function() {
         var n = document.getElementById('playlistPickerNewName');
+        var addBtn = document.getElementById('playlistPickerAddBtn');
+        var createBtn = document.getElementById('playlistPickerCreateBtn');
         if (n) n.style.display = this.value === '__new__' ? '' : 'none';
+        if (addBtn) addBtn.style.display = this.value === '__new__' ? 'none' : '';
+        if (createBtn) createBtn.style.display = this.value === '__new__' ? '' : 'none';
       });
 
       // --- YouTube search ---
@@ -3647,12 +3779,14 @@
           sidebar.style.display = '';
           ytPanel.style.display = 'none';
           setActiveBtn(panelBtn);
+          if (typeof musicUpdateTransportControls === 'function') musicUpdateTransportControls();
         }
 
         function showYtPanel() {
           sidebar.style.display = 'none';
           ytPanel.style.display = '';
           setActiveBtn(ytBtn);
+          if (typeof musicUpdateTransportControls === 'function') musicUpdateTransportControls();
         }
 
         // Set initial active
@@ -3780,7 +3914,7 @@
               coverimage: video.thumbnail || ''
             };
             if (typeof openPlaylistPickerModal === 'function') {
-              openPlaylistPickerModal(track);
+              openPlaylistPickerModal(track, this);
             }
           });
           row.appendChild(gear);
@@ -3821,7 +3955,10 @@
               coverimage: video.thumbnail || ''
             };
             var st = window.__musicState;
-            if (st) st.currentYoutubeId = video.id || '';
+            if (st) {
+              st.currentYoutubeId = video.id || '';
+              st.ytCurrentIndex = allResults.findIndex(function(v) { return v.id === video.id; });
+            }
             if (typeof initMusicVideoPlayer === 'function') {
               initMusicVideoPlayer(track, { autoplay: true });
               if (typeof musicSwitchModeUI === 'function') {
@@ -3888,6 +4025,8 @@
               stopProgress(false);
               if (Array.isArray(data)) {
                 allResults = data;
+                var st = window.__musicState;
+                if (st) { st.ytResults = data; st.ytCurrentIndex = -1; }
                 renderResults(0, 10);
               } else {
                 ytResults.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-secondary);font-size:12px;">Sin resultados</div>';

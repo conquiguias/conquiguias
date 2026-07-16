@@ -1587,12 +1587,13 @@
     var DEFAULT_TV_COVER_IMAGE = '';
 
     // Patch YoutubePlayback to handle re-initialization when YT is already loaded
-    // and to add mute:1 for autoplay without user gesture
     if (typeof YoutubePlayback !== 'undefined') {
       var _origYtEmbed = YoutubePlayback.prototype.embedYoutubeApiScript;
       YoutubePlayback.prototype.embedYoutubeApiScript = function() {
         if (window.YT && window.YT.Player) {
           this._ready = true;
+          this.ready();
+          window.__lastYtPlayback = this;
           return;
         }
         _origYtEmbed.call(this);
@@ -1603,6 +1604,7 @@
         var playerVars = {
           controls: 0,
           autoplay: 1,
+          mute: 1,
           disablekb: 1,
           enablejsapi: 1,
           iv_load_policy: 3,
@@ -1614,11 +1616,18 @@
           playerVars.listType = 'playlist';
           playerVars.list = this.options.youtubePlaylist;
         }
-        this.player = new YT.Player('yt' + this.cid, {
+        var ytTarget = this.$('#yt' + this.cid)[0] || this.el;
+        this.player = new YT.Player(ytTarget, {
           videoId: this.options.src,
           playerVars: playerVars,
           events: {
-            onReady: function() { return _this.ready(); },
+            onReady: function() {
+              _this.ready();
+              if (_this.player) {
+                if (typeof _this.player.unMute === 'function') _this.player.unMute();
+                if (typeof _this.player.setVolume === 'function') _this.player.setVolume(100);
+              }
+            },
             onStateChange: function(event) { return _this.stateChange(event); },
             onPlaybackQualityChange: function(event) { return _this.qualityChange(event); }
           }
@@ -2451,7 +2460,6 @@
 
     function initMusicVideoPlayer(track, opts) {
       opts = opts || {};
-      var autoplay = opts.autoplay !== false;
       var s = window.__musicState;
       var container = document.getElementById('clapprPlayerPlaceholder');
       if (!container || !track) return;
@@ -2464,9 +2472,6 @@
       musicSetPlayerMode('video');
       musicDestroyPlayers();
       s.activePlayerType = 'video';
-      if (extractYouTubeVideoId(mediaUrl)) {
-        s.currentYoutubeId = extractYouTubeVideoId(mediaUrl);
-      }
 
       if (typeof Clappr === 'undefined') {
         container.textContent = 'Video no disponible';
@@ -2476,6 +2481,10 @@
       var mediaUrl = String(track.url || '').trim();
       container.innerHTML = '';
 
+      if (extractYouTubeVideoId(mediaUrl)) {
+        s.currentYoutubeId = extractYouTubeVideoId(mediaUrl);
+      }
+
       try {
         var posterUrl = musicResolveTrackImage(track, 'video', '') || '';
         var player = new Clappr.Player({
@@ -2484,7 +2493,7 @@
           poster: posterUrl,
           width: '100%',
           height: '100%',
-          autoPlay: autoplay,
+          autoPlay: false,
           hideVolumeBar: false,
           disableVideoTagContextMenu: true,
           plugins: getAvailableClapprPlugins(mediaUrl),
@@ -2525,16 +2534,17 @@
           s.ytPlaybackState = '';
           updateMusicPlayStates();
         });
-        player.on(Clappr.Events.PLAYER_READY, function() {
-          setTimeout(function() {
-            var poster = container.querySelector('.player-poster.clickable');
-            if (poster) {
-              poster.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-            } else if (typeof player.play === 'function') {
-              player.play();
-            }
-          }, 1000);
-        });
+
+        if (window.__lastYtPlayback && typeof window.__lastYtPlayback.play === 'function') {
+          try { window.__lastYtPlayback.play(); } catch (_e) {}
+        }
+        var _playTimer = setTimeout(function() {
+          try { if (typeof player.play === 'function') player.play(); } catch (_e) {}
+          var poster = container.querySelector('.player-poster.clickable');
+          if (poster) {
+            poster.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+          }
+        }, 800);
 
         musicStartProgressTracker(s.playbackNonce);
         musicBindProgressSeekControls();
@@ -2656,18 +2666,28 @@
       var currentId = musicGetCurrentTrackId();
       var playbackState = musicGetCurrentPlaybackState();
 
-      if (currentId === normalizedId && playbackState === 'playing') {
-        var media = musicGetActiveMediaElement();
-        if (media) { try { media.pause(); } catch (_) {} }
-        updateMusicPlayStates();
-        return;
-      }
-
-      if (currentId === normalizedId && playbackState === 'paused') {
-        var m2 = musicGetActiveMediaElement();
-        if (m2 && typeof m2.play === 'function') { m2.play().catch(function() {}); }
-        updateMusicPlayStates();
-        return;
+      if (currentId === normalizedId) {
+        if (s.currentYoutubeId && s.clapprPlayer) {
+          var cp = s.clapprPlayer;
+          if (cp && typeof cp.play === 'function') {
+            if (playbackState === 'playing') { cp.pause(); }
+            else if (playbackState === 'paused') { cp.play(); }
+          }
+          updateMusicPlayStates();
+          return;
+        }
+        if (playbackState === 'playing') {
+          var media = musicGetActiveMediaElement();
+          if (media) { try { media.pause(); } catch (_) {} }
+          updateMusicPlayStates();
+          return;
+        }
+        if (playbackState === 'paused') {
+          var m2 = musicGetActiveMediaElement();
+          if (m2 && typeof m2.play === 'function') { m2.play().catch(function() {}); }
+          updateMusicPlayStates();
+          return;
+        }
       }
 
       playMusicTrackById(normalizedId, { autoplay: true, reason: options.reason || 'playlist-track' });
@@ -3446,12 +3466,9 @@
         var isYt = !!state.currentYoutubeId && !!state.clapprPlayer;
         if (isYt) {
           var cp = state.clapprPlayer;
-          if (cp && typeof cp.getCurrentPlayback === 'function') {
-            var pb = cp.getCurrentPlayback();
-            if (pb && typeof pb.play === 'function') {
-              if (state.ytPlaybackState === 'playing') { pb.pause(); }
-              else { pb.play(); }
-            }
+          if (cp && typeof cp.play === 'function') {
+            if (state.ytPlaybackState === 'playing') { cp.pause(); }
+            else { cp.play(); }
           }
           updateMusicPlayStates();
           return;

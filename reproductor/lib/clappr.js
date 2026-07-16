@@ -13735,8 +13735,8 @@
     function (t, e, r) {
       (e = t.exports = r(6)(void 0)),
         e.push([
-          t.i,  //MODIFIQUE LA PARTE DE LA MARCA DE AGUA DE CLAPPR | POR DEFECTO: WIDTH: 12%
-          "[data-watermark]{position:absolute;min-width:70px;max-width:200px;width:20%;text-align:center;z-index:10}[data-watermark] a{outline:none;cursor:pointer}[data-watermark] img{max-width:100%}[data-watermark-bottom-left]{bottom:10px;left:10px}[data-watermark-bottom-right]{bottom:10px;right:42px}[data-watermark-top-left]{top:10px;left:10px}[data-watermark-top-right]{top:10px;right:37px}",
+          t.i, //MODIFIQUE LA PARTE DE LA MARCA DE AGUA DE CLAPPR | POR DEFECTO: WIDTH: 12%; RIGHT: 37PX;
+          "[data-watermark]{position:absolute;min-width:70px;max-width:500px;width:30%;text-align:center;z-index:10}[data-watermark] a{outline:none;cursor:pointer}[data-watermark] img{max-width:100%}[data-watermark-bottom-left]{bottom:10px;left:10px}[data-watermark-bottom-right]{bottom:10px;right:10px}[data-watermark-top-left]{top:10px;left:10px}[data-watermark-top-right]{top:0px;right:0px}",
           "",
         ]);
     },

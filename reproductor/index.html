@@ -565,28 +565,342 @@
       width:100%;
     }
 
-    #app .youtube-gear {
+    #app .youtube-actions {
       position:absolute;
       top:4px;
       right:4px;
+      display:flex;
+      flex-direction:column;
+      gap:3px;
+      z-index:2;
+    }
+
+    #app .youtube-action-btn {
       width:24px;
       height:24px;
-      background:rgba(0,0,0,0.5);
+      background:rgba(0,0,0,0.45);
       border:none;
       color:#fff;
-      font-size:13px;
+      font-size:12px;
       cursor:pointer;
       display:flex;
       align-items:center;
       justify-content:center;
       border-radius:4px;
       transition:background 0.15s,color 0.15s;
-      z-index:2;
     }
 
-    #app .youtube-gear:hover {
+    #app .youtube-action-btn:hover {
       background:rgba(165,42,42,0.7);
       color:#fff;
+    }
+
+    /* --- YouTube panel tabs --- */
+    #app .yt-panel-tabs {
+      display:flex;
+      gap:4px;
+      background:var(--bg-primary);
+      border-radius:8px;
+      padding:3px;
+      flex-shrink:0;
+    }
+
+    #app .yt-panel-tab {
+      flex:1;
+      padding:6px 10px;
+      border:none;
+      background:transparent;
+      color:var(--text-secondary);
+      font-size:12px;
+      font-weight:600;
+      cursor:pointer;
+      border-radius:6px;
+      transition:all 0.18s ease;
+    }
+
+    #app .yt-panel-tab.active {
+      background:var(--accent-color);
+      color:#fff;
+    }
+
+    #app .yt-panel-section {
+      display:none;
+      flex:1;
+      flex-direction:column;
+      gap:10px;
+      min-height:0;
+    }
+
+    #app .yt-panel-section.active {
+      display:flex;
+    }
+
+    /* --- Download config --- */
+    #app .dl-config {
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      flex-shrink:0;
+    }
+
+    #app .dl-config-row {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:12px;
+      color:var(--text-primary);
+    }
+
+    #app .dl-folder-btn {
+      display:flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 12px;
+      border:1px solid var(--border-color);
+      border-radius:6px;
+      background:var(--bg-primary);
+      color:var(--text-primary);
+      font-size:12px;
+      cursor:pointer;
+      transition:background 0.15s,border-color 0.15s;
+      white-space:nowrap;
+    }
+
+    #app .dl-folder-btn:hover {
+      border-color:var(--accent-color);
+      background:rgba(165,42,42,0.08);
+    }
+
+    #app .dl-folder-path {
+      font-size:11px;
+      color:var(--text-secondary);
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      flex:1;
+      min-width:0;
+    }
+
+    #app .dl-format-toggle {
+      display:flex;
+      gap:3px;
+      background:var(--bg-primary);
+      border-radius:6px;
+      padding:2px;
+    }
+
+    #app .dl-format-opt {
+      padding:4px 12px;
+      border:none;
+      background:transparent;
+      color:var(--text-secondary);
+      font-size:11px;
+      font-weight:600;
+      cursor:pointer;
+      border-radius:4px;
+      transition:all 0.15s ease;
+    }
+
+    #app .dl-format-opt.active {
+      background:var(--accent-color);
+      color:#fff;
+    }
+
+    #app .dl-divider {
+      height:1px;
+      background:var(--border-color);
+      flex-shrink:0;
+      margin:2px 0;
+    }
+
+    /* --- Download queue --- */
+    #app .dl-queue {
+      flex:1;
+      overflow-y:auto;
+      overflow-x:hidden;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      min-height:0;
+    }
+
+    #app .dl-queue-empty {
+      text-align:center;
+      color:var(--text-secondary);
+      font-size:12px;
+      padding:30px 10px;
+    }
+
+    #app .dl-clear-btn {
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
+      padding:3px 8px;
+      border:1px solid var(--border-color);
+      border-radius:4px;
+      background:transparent;
+      color:var(--text-secondary);
+      font-size:10px;
+      cursor:pointer;
+      transition:all 0.15s;
+    }
+
+    #app .dl-clear-btn:hover {
+      border-color:rgba(239,68,68,0.5);
+      color:#ef4444;
+      background:rgba(239,68,68,0.08);
+    }
+
+    #app .dl-item {
+      display:flex;
+      flex-direction:column;
+      gap:5px;
+      padding:7px 8px;
+      border-radius:8px;
+      background:var(--bg-primary);
+      border:1px solid var(--border-color);
+    }
+
+    #app .dl-item-main {
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+
+    #app .dl-item-thumb {
+      width:56px;
+      height:32px;
+      border-radius:4px;
+      object-fit:cover;
+      flex-shrink:0;
+      background:var(--bg-secondary);
+    }
+
+    #app .dl-item-info {
+      flex:1;
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:1px;
+    }
+
+    #app .dl-item-title {
+      font-size:11px;
+      font-weight:600;
+      color:var(--text-primary);
+      display:-webkit-box;
+      -webkit-line-clamp:1;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+      line-height:1.3;
+    }
+
+    #app .dl-item-meta {
+      font-size:10px;
+      color:var(--text-secondary);
+    }
+
+    #app .dl-item-controls {
+      display:flex;
+      align-items:center;
+      gap:4px;
+      flex-shrink:0;
+    }
+
+    #app .dl-item-quality {
+      font-size:10px;
+      padding:3px 4px;
+      border-radius:4px;
+      border:1px solid var(--border-color);
+      background:var(--bg-primary);
+      color:var(--text-primary);
+      cursor:pointer;
+      min-width:58px;
+      max-width:80px;
+      height:24px;
+    }
+
+    #app .dl-item-btn {
+      width:26px;
+      height:24px;
+      border:none;
+      border-radius:5px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      font-size:11px;
+      transition:background 0.15s,color 0.15s;
+      flex-shrink:0;
+    }
+
+    #app .dl-item-btn.download {
+      background:var(--accent-color);
+      color:#fff;
+    }
+
+    #app .dl-item-btn.download:hover {
+      filter:brightness(1.15);
+    }
+
+    #app .dl-item-btn.stop {
+      background:rgba(239,68,68,0.2);
+      color:#ef4444;
+    }
+
+    #app .dl-item-btn.stop:hover {
+      background:rgba(239,68,68,0.35);
+    }
+
+    #app .dl-item-btn.completed {
+      background:rgba(16,185,129,0.2);
+      color:#10b981;
+      cursor:default;
+      pointer-events:none;
+    }
+
+    #app .dl-item-btn.error {
+      background:rgba(239,68,68,0.15);
+      color:#ef4444;
+      cursor:default;
+      pointer-events:none;
+    }
+
+    #app .dl-item-btn.delete-item {
+      width:20px;
+      height:20px;
+      background:transparent;
+      color:var(--text-secondary);
+      font-size:9px;
+      border-radius:4px;
+    }
+
+    #app .dl-item-btn.delete-item:hover {
+      background:rgba(239,68,68,0.15);
+      color:#ef4444;
+    }
+
+    #app .dl-item-progress-wrap {
+      height:4px;
+      border-radius:4px;
+      background:var(--border-color);
+      overflow:hidden;
+      position:relative;
+    }
+
+    #app .dl-item-progress-bar {
+      height:100%;
+      border-radius:4px;
+      background:linear-gradient(90deg,var(--accent-color),#dc143c);
+      transition:width 0.25s ease;
+      width:0%;
+    }
+
+    #app .dl-item-progress-text {
+      font-size:9px;
+      color:var(--text-secondary);
+      text-align:right;
+      margin-top:1px;
     }
 
     #app .youtube-load-more {
@@ -958,6 +1272,12 @@
     }
 
     #app .music-mode-switch .small-toggle:hover::after { transform:translateX(120%); }
+
+    #app .music-mode-switch .small-toggle.disabled {
+      opacity:0.35;
+      cursor:not-allowed;
+      pointer-events:none;
+    }
 
     #app #playerContainer {
       background:var(--bg-secondary);
@@ -1490,18 +1810,47 @@
       </aside>
 
       <div class="youtube-panel" id="youtubePanel" style="display:none;">
-        <div class="youtube-header">
-          <strong>YouTube</strong>
+        <div class="yt-panel-tabs">
+          <button class="yt-panel-tab active" data-section="search">YouTube</button>
+          <button class="yt-panel-tab" data-section="downloads">Descargas</button>
         </div>
-        <div class="youtube-search-bar">
-          <div class="yt-input-wrap">
-            <input type="text" id="youtubeSearchInput" placeholder="Buscar en YouTube..." maxlength="200" autocomplete="off">
-            <button class="yt-clear-btn" id="youtubeClearBtn" type="button" title="Limpiar"><i class="fas fa-times"></i></button>
+        <div id="ytSearchSection" class="yt-panel-section active">
+          <div class="youtube-header">
+            <strong>YouTube</strong>
           </div>
-          <button id="youtubeSearchBtn"><i class="fas fa-search"></i> Buscar</button>
+          <div class="youtube-search-bar">
+            <div class="yt-input-wrap">
+              <input type="text" id="youtubeSearchInput" placeholder="Buscar en YouTube..." maxlength="200" autocomplete="off">
+              <button class="yt-clear-btn" id="youtubeClearBtn" type="button" title="Limpiar"><i class="fas fa-times"></i></button>
+            </div>
+            <button id="youtubeSearchBtn"><i class="fas fa-search"></i> Buscar</button>
+          </div>
+          <div class="youtube-progress-wrap"><div class="youtube-progress-bar" id="youtubeProgressBar"></div></div>
+          <div class="youtube-results" id="youtubeResults"></div>
         </div>
-        <div class="youtube-progress-wrap"><div class="youtube-progress-bar" id="youtubeProgressBar"></div></div>
-        <div class="youtube-results" id="youtubeResults"></div>
+        <div id="ytDownloadsSection" class="yt-panel-section">
+          <div class="dl-config">
+            <div class="dl-config-row">
+              <button class="dl-folder-btn" id="dlFolderBtn"><i class="fas fa-folder"></i> Elegir carpeta</button>
+              <span class="dl-folder-path" id="dlFolderPath">Ninguna carpeta seleccionada</span>
+            </div>
+            <div class="dl-config-row">
+              <span style="font-size:12px;color:var(--text-primary);">Formato:</span>
+              <div class="dl-format-toggle">
+                <button class="dl-format-opt active" data-fmt="mp4">.Mp4</button>
+                <button class="dl-format-opt" data-fmt="mp3">.Mp3</button>
+              </div>
+            </div>
+            <div class="dl-config-row" style="justify-content:space-between;">
+              <span style="font-size:10px;color:var(--text-secondary);" id="dlQueueCount">0 videos en cola</span>
+              <button class="dl-clear-btn" id="dlClearBtn" style="display:none;"><i class="fas fa-trash-alt"></i> Limpiar todo</button>
+            </div>
+          </div>
+          <div class="dl-divider"></div>
+          <div class="dl-queue" id="dlQueue">
+            <div class="dl-queue-empty">No hay videos en la cola de descarga</div>
+          </div>
+        </div>
       </div>
 
       <main class="music-panel" style="display:flex; flex-direction:column; gap:12px; overflow:hidden; min-width:0;">
@@ -1657,7 +2006,10 @@
       currentYoutubeId: '',
       ytPlaybackState: '',
       ytResults: [],
-      ytCurrentIndex: -1
+      ytCurrentIndex: -1,
+      ytDownloadQueue: [],
+      ytDownloadFolder: null,
+      ytDownloadFormat: 'mp4'
     };
 
     var state = window.__musicState;
@@ -2083,6 +2435,7 @@ Number.isInteger(s.currentIndex) && s.currentIndex >= 0);
           shuffleBtn.title = s.shuffle ? 'Aleatorio: activado' : 'Aleatorio: desactivado';
         }
       }
+      musicUpdateToggleState();
     }
 
     function updateMusicPlayStates() {
@@ -2643,6 +2996,16 @@ Number.isInteger(s.currentIndex) && s.currentIndex >= 0);
       icon.className = 'fas fa-' + (state.mode === 'video' ? 'video' : 'music');
     }
 
+    function musicUpdateToggleState() {
+      var s = window.__musicState;
+      var btnAudio = document.getElementById('btnAudio');
+      var btnVideo = document.getElementById('btnVideo');
+      if (!btnAudio || !btnVideo) return;
+      var track = Array.isArray(s.catalog) && s.catalog[s.currentIndex];
+      var isYt = track && extractYouTubeVideoId(track.url);
+      btnAudio.classList.toggle('disabled', !!isYt);
+    }
+
     function playMusicTrackByIndex(index, options) {
       options = options || {};
       var s = window.__musicState;
@@ -2658,6 +3021,7 @@ Number.isInteger(s.currentIndex) && s.currentIndex >= 0);
 
       s.currentIndex = index;
       s.hasUserSelectedTrack = true;
+      musicUpdateToggleState();
       musicSetTrackInfo(track);
 
       var trackUrl = String(track && track.url || '').trim();
@@ -2988,7 +3352,7 @@ Number.isInteger(s.currentIndex) && s.currentIndex >= 0);
                 }
                 if (pl && Array.isArray(pl.items)) {
                   for (var i = 0; i < pl.items.length; i++) {
-                    if (pl.items[i] === track) { pl.items.splice(i, 1); break; }
+                    if (String(pl.items[i].id) === String(track.id)) { pl.items.splice(i, 1); break; }
                   }
                   saveLocalPlaylists();
                   loadPlaylistTracks(playlistId);
@@ -3004,7 +3368,8 @@ Number.isInteger(s.currentIndex) && s.currentIndex >= 0);
             addToListOpt.style.cssText = 'display:flex;align-items:center;width:100%;padding:8px 12px;background:none;border:none;color:var(--text-primary);text-align:left;cursor:pointer;font-size:13px;border-radius:4px;';
             addToListOpt.addEventListener('mouseenter', function() { addToListOpt.style.background = 'rgba(var(--accent-rgb),0.2)'; });
             addToListOpt.addEventListener('mouseleave', function() { addToListOpt.style.background = 'none'; });
-            addToListOpt.addEventListener('click', function() {
+            addToListOpt.addEventListener('click', function(e) {
+              e.stopPropagation();
               state.pendingPlaylistTrack = track;
               openPlaylistPickerModal(track, menuBtn);
               if (document.body.contains(modalEl)) document.body.removeChild(modalEl);
@@ -3158,9 +3523,10 @@ Number.isInteger(s.currentIndex) && s.currentIndex >= 0);
         }
       }
       renderMusicPlaylistSelectors();
+      document.removeEventListener('click', closePlaylistPickerOutside);
       setTimeout(function() {
         document.addEventListener('click', closePlaylistPickerOutside);
-      }, 0);
+      }, 10);
     }
 
     function closePlaylistPickerModal() {
@@ -3510,11 +3876,54 @@ Number.isInteger(s.currentIndex) && s.currentIndex >= 0);
     }
 
     // ============================================================
+    // Download panel init
+    // ============================================================
+    function initDownloadPanel() {
+      var tabs = document.querySelectorAll('.yt-panel-tab');
+      tabs.forEach(function(tab) {
+        tab.addEventListener('click', function() {
+          var section = this.dataset.section;
+          tabs.forEach(function(t) { t.classList.remove('active'); });
+          this.classList.add('active');
+          document.querySelectorAll('.yt-panel-section').forEach(function(s) { s.classList.remove('active'); });
+          var target = document.getElementById('yt' + section.charAt(0).toUpperCase() + section.slice(1) + 'Section');
+          if (target) target.classList.add('active');
+        });
+      });
+      document.getElementById('dlFolderBtn').addEventListener('click', function() {
+        if (!('showDirectoryPicker' in window)) {
+          showToast('info', 'No disponible', 'Tu navegador no soporta selecci\u00f3n de carpetas. Usa Chrome/Edge.');
+          return;
+        }
+        window.showDirectoryPicker().then(function(dirHandle) {
+          state.ytDownloadFolder = dirHandle;
+          document.getElementById('dlFolderPath').textContent = dirHandle.name;
+        }).catch(function(err) {
+          if (err.name !== 'AbortError') showToast('error', 'Error', 'No se pudo seleccionar la carpeta');
+        });
+      });
+      document.querySelectorAll('.dl-format-opt').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.dl-format-opt').forEach(function(b) { b.classList.remove('active'); });
+          this.classList.add('active');
+          state.ytDownloadFormat = this.dataset.fmt;
+        });
+      });
+      var _dlClearBtn = document.getElementById('dlClearBtn');
+      if (_dlClearBtn) {
+        _dlClearBtn.addEventListener('click', function() {
+          clearDownloadQueue();
+        });
+      }
+    }
+
+    // ============================================================
     // INIT
     // ============================================================
     function initApp() {
       if (state.initialized) return;
       state.initialized = true;
+      initDownloadPanel();
 
       loadLocalPlaylists();
       restoreFolderPlaylistUrls();
@@ -3524,6 +3933,7 @@ Number.isInteger(s.currentIndex) && s.currentIndex >= 0);
 
       // --- Mode switch ---
       btnAudio.addEventListener('click', function() {
+        if (btnAudio.classList.contains('disabled')) return;
         if (state.currentIndex >= 0) {
           playMusicTrackByIndex(state.currentIndex, { mode: 'audio' });
         } else {
@@ -3739,6 +4149,290 @@ Number.isInteger(s.currentIndex) && s.currentIndex >= 0);
         if (createBtn) createBtn.style.display = this.value === '__new__' ? '' : 'none';
       });
 
+      // --- Download panel helpers ---
+      function formatFileSize(bytes) {
+        if (!bytes || bytes <= 0) return '';
+        var units = ['B', 'KB', 'MB', 'GB'];
+        var i = 0;
+        var size = bytes;
+        while (size >= 1024 && i < units.length - 1) { size /= 1024; i++; }
+        return size.toFixed(i > 0 ? 1 : 0) + ' ' + units[i];
+      }
+
+      function updateMetaText(el, item) {
+        var parts = [];
+        if (item.sizeFormatted) parts.push(item.sizeFormatted);
+        if (item.duration) parts.push(item.duration);
+        el.textContent = parts.join(' \u00b7 ');
+      }
+
+      function fetchVideoInfo(videoId) {
+        return Promise.resolve({
+          formatStreams: [
+            { qualityLabel: '1080p', url: 'https://api-youtube-gamma.vercel.app/api/download?id=' + encodeURIComponent(videoId) + '&quality=1080p', contentLength: '0' },
+            { qualityLabel: '720p', url: 'https://api-youtube-gamma.vercel.app/api/download?id=' + encodeURIComponent(videoId) + '&quality=720p', contentLength: '0' },
+            { qualityLabel: '480p', url: 'https://api-youtube-gamma.vercel.app/api/download?id=' + encodeURIComponent(videoId) + '&quality=480p', contentLength: '0' },
+            { qualityLabel: '360p', url: 'https://api-youtube-gamma.vercel.app/api/download?id=' + encodeURIComponent(videoId) + '&quality=360p', contentLength: '0' },
+            { qualityLabel: '144p', url: 'https://api-youtube-gamma.vercel.app/api/download?id=' + encodeURIComponent(videoId) + '&quality=144p', contentLength: '0' }
+          ],
+          adaptiveFormats: []
+        });
+      }
+
+      function addToDownloadQueue(video) {
+        var s = window.__musicState;
+        if (!video || !video.id) return;
+        var exists = s.ytDownloadQueue.some(function(i) { return i.id === video.id; });
+        if (exists) {
+          showToast('info', 'Ya est\u00e1 en la cola', 'Este video ya fue agregado');
+          return;
+        }
+        var item = {
+          id: video.id,
+          title: video.title || 'Video sin t\u00edtulo',
+          thumbnail: video.thumbnail || '',
+          duration: video.duration || '',
+          format: s.ytDownloadFormat,
+          status: 'pending',
+          progress: 0,
+          abortController: null,
+          qualities: [],
+          selectedQuality: '',
+          streamUrl: '',
+          contentLength: 0,
+          sizeFormatted: ''
+        };
+        s.ytDownloadQueue.push(item);
+        renderDownloadQueue();
+        showToast('success', 'Agregado a la cola', 'Video agregado a la cola de descarga');
+        switchToDownloadsTab();
+
+        fetchVideoInfo(item.id).then(function(info) {
+          if (!info) return;
+          var idx = s.ytDownloadQueue.indexOf(item);
+          if (idx === -1) return;
+          if (item.format === 'mp4') {
+            var combined = info.formatStreams || [];
+            item.qualities = combined.map(function(f) {
+              return { label: f.qualityLabel || f.resolution || 'Desconocido', url: f.url, contentLength: parseInt(f.contentLength || '0', 10) };
+            });
+            if (item.qualities.length === 0) {
+              var vStreams = (info.adaptiveFormats || []).filter(function(f) { return f.type && f.type.indexOf('video/') === 0; });
+              item.qualities = vStreams.map(function(f) {
+                return { label: f.qualityLabel || f.resolution || 'Desconocido', url: f.url, contentLength: parseInt(f.contentLength || '0', 10) };
+              });
+            }
+          } else {
+            var aStreams = (info.adaptiveFormats || []).filter(function(f) { return f.type && f.type.indexOf('audio/') === 0; });
+            item.qualities = aStreams.map(function(f) {
+              return { label: (f.bitrate ? Math.round(f.bitrate / 1000) + ' kbps' : '') || 'Audio', url: f.url, contentLength: parseInt(f.contentLength || '0', 10) };
+            });
+          }
+          if (item.qualities.length > 0) {
+            item.selectedQuality = item.qualities[0].label;
+            item.streamUrl = item.qualities[0].url;
+            item.contentLength = item.qualities[0].contentLength;
+            item.sizeFormatted = formatFileSize(item.contentLength);
+          }
+          renderDownloadQueue();
+        }).catch(function() {
+          var idx = s.ytDownloadQueue.indexOf(item);
+          if (idx !== -1) {
+            item.qualities = [{ label: 'No disponible', url: '' }];
+            item.selectedQuality = '';
+            item.sizeFormatted = 'Error al obtener info';
+            renderDownloadQueue();
+          }
+        });
+      }
+
+      function renderDownloadQueue() {
+        var container = document.getElementById('dlQueue');
+        if (!container) return;
+        var s = window.__musicState;
+        var countEl = document.getElementById('dlQueueCount');
+        var clearBtn = document.getElementById('dlClearBtn');
+        if (!s.ytDownloadQueue || s.ytDownloadQueue.length === 0) {
+          container.innerHTML = '<div class="dl-queue-empty">No hay videos en la cola de descarga</div>';
+          if (countEl) countEl.textContent = '0 videos en cola';
+          if (clearBtn) clearBtn.style.display = 'none';
+          return;
+        }
+        container.innerHTML = '';
+        s.ytDownloadQueue.forEach(function(item, idx) {
+          container.appendChild(renderDownloadItem(item, idx));
+        });
+        if (countEl) countEl.textContent = s.ytDownloadQueue.length + ' video' + (s.ytDownloadQueue.length > 1 ? 's' : '') + ' en cola';
+        if (clearBtn) clearBtn.style.display = '';
+      }
+
+      function renderDownloadItem(item, idx) {
+        var div = document.createElement('div');
+        div.className = 'dl-item';
+        div.dataset.index = idx;
+
+        var main = document.createElement('div');
+        main.className = 'dl-item-main';
+
+        var thumb = document.createElement('img');
+        thumb.className = 'dl-item-thumb';
+        thumb.src = item.thumbnail || '';
+        thumb.alt = '';
+        thumb.onerror = function() { this.style.display = 'none'; };
+        main.appendChild(thumb);
+
+        var info = document.createElement('div');
+        info.className = 'dl-item-info';
+        var title = document.createElement('div');
+        title.className = 'dl-item-title';
+        title.textContent = item.title;
+        info.appendChild(title);
+        var meta = document.createElement('div');
+        meta.className = 'dl-item-meta';
+        updateMetaText(meta, item);
+        info.appendChild(meta);
+        main.appendChild(info);
+
+        var controls = document.createElement('div');
+        controls.className = 'dl-item-controls';
+
+        var qSel = document.createElement('select');
+        qSel.className = 'dl-item-quality';
+        qSel.disabled = item.qualities.length === 0;
+        var opts = item.qualities.length > 0 ? item.qualities : [{ label: 'Cargando...' }];
+        opts.forEach(function(q) {
+          var opt = document.createElement('option');
+          opt.value = q.label;
+          opt.textContent = q.label;
+          if (q.label === item.selectedQuality && item.qualities.length > 0) opt.selected = true;
+          qSel.appendChild(opt);
+        });
+        qSel.addEventListener('change', function() {
+          var q = item.qualities.find(function(q) { return q.label === this.value; }, this);
+          if (q) {
+            item.selectedQuality = q.label;
+            item.streamUrl = q.url;
+            item.contentLength = q.contentLength;
+            item.sizeFormatted = formatFileSize(q.contentLength);
+            updateMetaText(meta, item);
+          }
+        });
+        controls.appendChild(qSel);
+
+        var btn = document.createElement('button');
+        var isDone = item.status === 'completed';
+        var isErr = item.status === 'error';
+        btn.className = 'dl-item-btn ' + (isDone ? 'completed' : isErr ? 'error' : 'download');
+        var ico = document.createElement('i');
+        if (isDone) { ico.className = 'fas fa-check'; btn.title = 'Completado'; }
+        else if (isErr) { ico.className = 'fas fa-exclamation-triangle'; btn.title = 'Error'; }
+        else { ico.className = 'fas fa-download'; btn.title = 'Descargar'; }
+        btn.appendChild(ico);
+        btn.addEventListener('click', function() {
+          if (!isDone && !isErr) processDownloadItem(idx);
+        });
+        controls.appendChild(btn);
+
+        var delBtn = document.createElement('button');
+        delBtn.className = 'dl-item-btn delete-item';
+        delBtn.title = 'Quitar de la cola';
+        var delIcon = document.createElement('i');
+        delIcon.className = 'fas fa-times';
+        delBtn.appendChild(delIcon);
+        delBtn.addEventListener('click', function() {
+          if (typeof removeFromDownloadQueue === 'function') removeFromDownloadQueue(idx);
+        });
+        controls.appendChild(delBtn);
+
+        main.appendChild(controls);
+        div.appendChild(main);
+
+        var progWrap = document.createElement('div');
+        progWrap.className = 'dl-item-progress-wrap';
+        var progBar = document.createElement('div');
+        progBar.className = 'dl-item-progress-bar';
+        progBar.style.width = item.progress + '%';
+        progWrap.appendChild(progBar);
+        div.appendChild(progWrap);
+
+        var progText = document.createElement('div');
+        progText.className = 'dl-item-progress-text';
+        if (item.status === 'downloading') progText.textContent = item.progress + '%';
+        else if (item.status === 'completed') progText.textContent = 'Completado';
+        else if (item.status === 'error') progText.textContent = 'Error en la descarga';
+        div.appendChild(progText);
+
+        return div;
+      }
+
+      function switchToDownloadsTab() {
+        var tabs = document.querySelectorAll('.yt-panel-tab');
+        tabs.forEach(function(t) { t.classList.remove('active'); });
+        var dlTab = Array.from(tabs).find(function(t) { return t.dataset.section === 'downloads'; });
+        if (dlTab) dlTab.classList.add('active');
+        document.querySelectorAll('.yt-panel-section').forEach(function(s) { s.classList.remove('active'); });
+        var section = document.getElementById('ytDownloadsSection');
+        if (section) section.classList.add('active');
+      }
+
+      function processDownloadItem(idx) {
+        var s = window.__musicState;
+        var item = s.ytDownloadQueue[idx];
+        if (!item) return;
+        if (!s.ytDownloadFolder) {
+          showToast('info', 'Sin carpeta', 'Primero elige una carpeta para guardar la descarga');
+          switchToDownloadsTab();
+          return;
+        }
+        if (!item.streamUrl) {
+          if (item.qualities && item.qualities.length > 0 && item.qualities[0].url) {
+            item.streamUrl = item.qualities[0].url;
+            item.contentLength = item.qualities[0].contentLength;
+            item.sizeFormatted = formatFileSize(item.contentLength);
+          } else {
+            showToast('info', 'Sin enlace', 'Usando descarga directa...');
+            item.streamUrl = 'https://api-youtube-gamma.vercel.app/api/download?id=' + encodeURIComponent(item.id) + '&quality=720p';
+          }
+        }
+
+        item.status = 'downloading';
+        item.progress = 0;
+        renderDownloadQueue();
+
+        var a = document.createElement('a');
+        a.href = item.streamUrl;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        item.status = 'completed';
+        item.progress = 100;
+        item.streamUrl = '';
+        renderDownloadQueue();
+        showToast('success', 'Descarga iniciada', item.title + ' se est\u00e1 descargando');
+      }
+
+      function cancelDownloadItem(idx) {
+        // No-op: downloads are instant via window.open
+      }
+
+      function removeFromDownloadQueue(idx) {
+        var s = window.__musicState;
+        if (idx < 0 || idx >= s.ytDownloadQueue.length) return;
+        s.ytDownloadQueue.splice(idx, 1);
+        renderDownloadQueue();
+      }
+
+      function clearDownloadQueue() {
+        var s = window.__musicState;
+        s.ytDownloadQueue = [];
+        renderDownloadQueue();
+        showToast('info', 'Cola limpiada', 'Todas las descargas han sido eliminadas');
+      }
+
       // --- YouTube search ---
       (function() {
         var sidebar = document.querySelector('.music-sidebar');
@@ -3898,12 +4592,15 @@ Number.isInteger(s.currentIndex) && s.currentIndex >= 0);
 
           row.appendChild(info);
 
+          var actions = document.createElement('div');
+          actions.className = 'youtube-actions';
+
           var gear = document.createElement('button');
-          gear.className = 'youtube-gear';
+          gear.className = 'youtube-action-btn';
           gear.title = 'Agregar a lista';
           gear.setAttribute('aria-label', 'Agregar a lista de reproducción');
           var gearIcon = document.createElement('i');
-          gearIcon.className = 'fas fa-gear';
+          gearIcon.className = 'fas fa-plus';
           gear.appendChild(gearIcon);
           gear.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -3917,8 +4614,24 @@ Number.isInteger(s.currentIndex) && s.currentIndex >= 0);
               openPlaylistPickerModal(track, this);
             }
           });
-          row.appendChild(gear);
+          actions.appendChild(gear);
 
+          var dlBtn = document.createElement('button');
+          dlBtn.className = 'youtube-action-btn';
+          dlBtn.title = 'Descargar video';
+          dlBtn.setAttribute('aria-label', 'Descargar video');
+          var dlIcon = document.createElement('i');
+          dlIcon.className = 'fas fa-download';
+          dlBtn.appendChild(dlIcon);
+          dlBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (typeof addToDownloadQueue === 'function') {
+              addToDownloadQueue(video);
+            }
+          });
+          actions.appendChild(dlBtn);
+
+          div.appendChild(actions);
           div.appendChild(row);
 
           var meta = document.createElement('div');
@@ -3964,6 +4677,7 @@ Number.isInteger(s.currentIndex) && s.currentIndex >= 0);
               if (typeof musicSwitchModeUI === 'function') {
                 musicSwitchModeUI('video');
               }
+              if (typeof musicUpdateToggleState === 'function') musicUpdateToggleState();
             }
           });
 

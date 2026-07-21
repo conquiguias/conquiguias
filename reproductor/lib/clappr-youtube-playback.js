@@ -86,6 +86,9 @@ var YoutubePlugin = Clappr.Playback.extend({
         },
         onPlaybackQualityChange: function(event) {
           return _this3.qualityChange(event);
+        },
+        onError: function(event) {
+          return _this3.onYtError(event);
         }
       }
     });
@@ -104,6 +107,13 @@ var YoutubePlugin = Clappr.Playback.extend({
 
   qualityChange: function(event) {
     this.trigger(Clappr.Events.PLAYBACK_HIGHDEFINITIONUPDATE, this.isHighDefinitionInUse());
+  },
+
+  onYtError: function(event) {
+    this.trigger(Clappr.Events.PLAYBACK_ERROR, { code: event.data, type: 'youtube' });
+    if (typeof window.__onYoutubeError === 'function') {
+      window.__onYoutubeError(event.data);
+    }
   },
 
   stateChange: function(event) {

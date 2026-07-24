@@ -196,24 +196,12 @@
         async function processOAuthRedirectResult() {
           try {
             const authInstance = await ensureFirebaseAuth();
-            const { getRedirectResult, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
+            const { getRedirectResult } = await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
             const redirectResult = await getRedirectResult(authInstance);
             if (redirectResult?.user) {
               await syncSocialProfile(redirectResult.user);
               window.location.replace("/panel");
-              return;
             }
-            await new Promise((resolve) => {
-              const timeoutId = setTimeout(() => { unsubscribe?.(); resolve(); }, 2500);
-              const unsubscribe = onAuthStateChanged(authInstance, async (user) => {
-                clearTimeout(timeoutId);
-                unsubscribe();
-                if (!user) { resolve(); return; }
-                try { await syncSocialProfile(user); } catch (e) { console.warn("[WARN] No se pudo sincronizar perfil social:", e); }
-                window.location.replace("/panel");
-                resolve();
-              });
-            });
           } catch (error) {
             console.error("Error procesando login por redirección:", error);
             mostrarMensaje("error", "⚠️ No se pudo completar el acceso", "Intenta nuevamente.");
@@ -258,26 +246,12 @@
           showLoader(googleLoginBtn, "⏳ Conectando con Google...");
           try {
             const authInstance = await ensureFirebaseAuth();
-            const { GoogleAuthProvider, signInWithPopup, signInWithRedirect } =
+            const { GoogleAuthProvider, signInWithRedirect } =
               await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
             const provider = new GoogleAuthProvider();
             provider.setCustomParameters({ prompt: "select_account" });
-            const result = await signInWithPopup(authInstance, provider);
-            await syncSocialProfile(result.user);
-            showLoader(googleLoginBtn, "✅ Redirigiendo...");
-            setTimeout(() => { window.location.href = "/panel"; }, 700);
+            await signInWithRedirect(authInstance, provider);
           } catch (error) {
-            if (error?.code === "auth/popup-blocked" || error?.code === "auth/popup-closed-by-user") {
-              try {
-                const authInstance = await ensureFirebaseAuth();
-                const { GoogleAuthProvider, signInWithRedirect } =
-                  await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
-                const provider = new GoogleAuthProvider();
-                provider.setCustomParameters({ prompt: "select_account" });
-                await signInWithRedirect(authInstance, provider);
-                return;
-              } catch (redirectError) { hideLoader(googleLoginBtn, "Continuar con Google"); console.error(redirectError); }
-            }
             hideLoader(googleLoginBtn, "Continuar con Google");
             console.error(error);
             mostrarMensaje("error", "⚠️ No se pudo iniciar con Google", "Verifica que Google esté habilitado en Firebase Authentication.");

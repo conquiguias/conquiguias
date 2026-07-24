@@ -39,6 +39,19 @@
         li { margin-bottom: 6px; }
         .back-link { display: inline-block; margin-bottom: 16px; color: var(--accent); text-decoration: none; font-size: 14px; }
         .back-link:hover { text-decoration: underline; }
+        .article-hero { width:100%; border-radius:10px; margin-bottom:24px; }
+        .figure { margin:24px 0; text-align:center; }
+        .figure img { max-width:100%; border-radius:8px; }
+        .figure figcaption { font-size:12px; color:var(--muted); margin-top:6px; }
+        .post-nav { display:flex; justify-content:space-between; margin-top:36px; padding-top:20px; border-top:1px solid var(--border); gap:16px; }
+        .post-nav a { color:var(--accent); text-decoration:none; font-weight:600; font-size:14px; padding:8px 16px; border:1px solid var(--border); border-radius:8px; transition:border-color 0.2s; }
+        .post-nav a:hover { border-color:var(--accent); }
+        .post-nav .prev { margin-right:auto; }
+        .post-nav .next { margin-left:auto; }
+        .post-nav .disabled { opacity:0.3; pointer-events:none; border-color:transparent; }
+        .infobox { background:rgba(59,130,246,0.06); border:1px solid var(--border); border-left:4px solid var(--accent); border-radius:8px; padding:16px 20px; margin:20px 0; }
+        .infobox h4 { color:var(--accent); margin-bottom:6px; font-size:14px; }
+        .infobox p { margin-bottom:0; font-size:14px; color:var(--muted); }
         @media (max-width: 600px) { .card { padding: 20px; } h1 { font-size: 1.5rem; } }
     </style>
 </head>
@@ -54,6 +67,8 @@
         <article class="card">
             <h1>Significado de la Insignia del Conquistador</h1>
             <div class="meta">Publicado: 24 de julio de 2026 | Actualizado: 24 de julio de 2026</div>
+
+            <img class="article-hero" src="https://placehold.co/800x300/1e3a5f/ffffff?text=Significado+de+la+Insignia" alt="Significado de la Insignia del Conquistador" loading="lazy">
 
             <p>La insignia del Club de Conquistadores es uno de los símbolos más reconocibles del movimiento juvenil adventista. Cada elemento que la compone tiene un significado profundo que refleja los valores, la misión y la identidad de todo conquistador. En este artículo exploraremos en detalle el simbolismo de cada parte de esta emblemática insignia.</p>
 
@@ -90,6 +105,10 @@
             <p>Cada vez que un conquistador viste su uniforme con la insignia, está declarando visualmente su compromiso con Dios, con su iglesia y con los ideales del club. La insignia es un recordatorio constante de quién es el conquistador y a quién representa. En un mundo lleno de símbolos vacíos, la insignia del Conquistador está llena de significado y propósito, invitando a cada joven a vivir de acuerdo con los más altos ideales.</p>
 
             <p>La insignia del Conquistador es más que un adorno en el uniforme. Es un resumen visual de la identidad y los valores del movimiento conquistador. Cada elemento nos recuerda quiénes somos, en quién confiamos y a qué estamos llamados. Como conquistador, llevar esta insignia es un honor y una responsabilidad.</p>
+            <div class="post-nav">
+                <a href="/blog/voto-y-ley-del-conquistador" class="prev">&larr; Anterior: Voto y Ley</a>
+                <a href="/blog/himno-del-conquistador" class="next">Siguiente: Himno del Conquistador &rarr;</a>
+            </div>
         </article>
     </main>
 </body>

@@ -39,6 +39,19 @@
         li { margin-bottom: 6px; }
         .back-link { display: inline-block; margin-bottom: 16px; color: var(--accent); text-decoration: none; font-size: 14px; }
         .back-link:hover { text-decoration: underline; }
+        .article-hero { width:100%; border-radius:10px; margin-bottom:24px; }
+        .figure { margin:24px 0; text-align:center; }
+        .figure img { max-width:100%; border-radius:8px; }
+        .figure figcaption { font-size:12px; color:var(--muted); margin-top:6px; }
+        .post-nav { display:flex; justify-content:space-between; margin-top:36px; padding-top:20px; border-top:1px solid var(--border); gap:16px; }
+        .post-nav a { color:var(--accent); text-decoration:none; font-weight:600; font-size:14px; padding:8px 16px; border:1px solid var(--border); border-radius:8px; transition:border-color 0.2s; }
+        .post-nav a:hover { border-color:var(--accent); }
+        .post-nav .prev { margin-right:auto; }
+        .post-nav .next { margin-left:auto; }
+        .post-nav .disabled { opacity:0.3; pointer-events:none; border-color:transparent; }
+        .infobox { background:rgba(59,130,246,0.06); border:1px solid var(--border); border-left:4px solid var(--accent); border-radius:8px; padding:16px 20px; margin:20px 0; }
+        .infobox h4 { color:var(--accent); margin-bottom:6px; font-size:14px; }
+        .infobox p { margin-bottom:0; font-size:14px; color:var(--muted); }
         @media (max-width: 600px) { .card { padding: 20px; } h1 { font-size: 1.5rem; } }
     </style>
 </head>
@@ -54,6 +67,8 @@
         <article class="card">
             <h1>Especialidad de Astronomía para Conquistadores</h1>
             <div class="meta">Publicado: 24 de julio de 2026 | Actualizado: 24 de julio de 2026</div>
+
+            <img class="article-hero" src="https://placehold.co/800x300/1a1a3d/ffffff?text=Astronomía" alt="Astronomía" loading="lazy">
 
             <p>La astronomía es una de las especialidades más fascinantes del programa de Conquistadores. Nos invita a levantar la vista al cielo y maravillarnos con la inmensidad del universo. En esta guía completa exploraremos los conocimientos básicos que todo conquistador necesita para obtener su especialidad de Astronomía.</p>
 
@@ -131,7 +146,15 @@
                 <li>Impresiones personales o datos interesantes.</li>
             </ul>
 
+            <div class="figure">
+                <img src="https://placehold.co/700x350/1a1a3d/ffffff?text=Sistema+Solar" alt="Diagrama del Sistema Solar" loading="lazy">
+                <figcaption>El sistema solar: ocho planetas orbitando alrededor del Sol.</figcaption>
+            </div>
             <p>La astronomía nos conecta con la grandeza de la creación. Como dice el Salmo 19:1: "Los cielos cuentan la gloria de Dios, y el firmamento anuncia la obra de sus manos". Cada estrella en el cielo es un recordatorio de la inmensidad del amor divino. ¡Sal y explora el universo!</p>
+            <div class="post-nav">
+                <a href="/blog/especialidad-observacion-aves" class="prev">&larr; Anterior: Observación de Aves</a>
+                <a href="/blog/especialidad-geologia" class="next">Siguiente: Geología &rarr;</a>
+            </div>
         </article>
     </main>
 </body>

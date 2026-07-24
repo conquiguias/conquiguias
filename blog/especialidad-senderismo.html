@@ -39,6 +39,19 @@
         li { margin-bottom: 6px; }
         .back-link { display: inline-block; margin-bottom: 16px; color: var(--accent); text-decoration: none; font-size: 14px; }
         .back-link:hover { text-decoration: underline; }
+        .article-hero { width:100%; border-radius:10px; margin-bottom:24px; }
+        .figure { margin:24px 0; text-align:center; }
+        .figure img { max-width:100%; border-radius:8px; }
+        .figure figcaption { font-size:12px; color:var(--muted); margin-top:6px; }
+        .post-nav { display:flex; justify-content:space-between; margin-top:36px; padding-top:20px; border-top:1px solid var(--border); gap:16px; }
+        .post-nav a { color:var(--accent); text-decoration:none; font-weight:600; font-size:14px; padding:8px 16px; border:1px solid var(--border); border-radius:8px; transition:border-color 0.2s; }
+        .post-nav a:hover { border-color:var(--accent); }
+        .post-nav .prev { margin-right:auto; }
+        .post-nav .next { margin-left:auto; }
+        .post-nav .disabled { opacity:0.3; pointer-events:none; border-color:transparent; }
+        .infobox { background:rgba(59,130,246,0.06); border:1px solid var(--border); border-left:4px solid var(--accent); border-radius:8px; padding:16px 20px; margin:20px 0; }
+        .infobox h4 { color:var(--accent); margin-bottom:6px; font-size:14px; }
+        .infobox p { margin-bottom:0; font-size:14px; color:var(--muted); }
         @media (max-width: 600px) { .card { padding: 20px; } h1 { font-size: 1.5rem; } }
     </style>
 </head>
@@ -54,6 +67,8 @@
         <article class="card">
             <h1>Especialidad de Senderismo para Conquistadores</h1>
             <div class="meta">Publicado: 24 de julio de 2026 | Actualizado: 24 de julio de 2026</div>
+
+            <img class="article-hero" src="https://placehold.co/800x300/2d4a3e/ffffff?text=Senderismo" alt="Senderismo" loading="lazy">
 
             <p>El senderismo es una de las actividades más completas y gratificantes para un conquistador. Combina ejercicio físico, conexión con la naturaleza, trabajo en equipo y desarrollo personal. La especialidad de Senderismo te enseña a planificar y realizar caminatas seguras, respetando el medio ambiente y disfrutando de cada paso del recorrido.</p>
 
@@ -145,6 +160,10 @@
             </ul>
 
             <p>El senderismo es una actividad que puedes disfrutar toda la vida. Te conecta con la naturaleza, fortalece tu cuerpo y renueva tu espíritu. Como conquistador, cada caminata es una oportunidad para maravillarte con la creación de Dios y fortalecer los lazos con tus compañeros. ¡Prepara tu mochila y sal a explorar!</p>
+            <div class="post-nav">
+                <a href="/blog/especialidad-campismo" class="prev">&larr; Anterior: Campismo</a>
+                <a href="/blog/especialidad-ordenacion-campamento" class="next">Siguiente: Ordenación de Campamento &rarr;</a>
+            </div>
         </article>
     </main>
 </body>

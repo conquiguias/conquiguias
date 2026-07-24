@@ -39,6 +39,19 @@
         li { margin-bottom: 6px; }
         .back-link { display: inline-block; margin-bottom: 16px; color: var(--accent); text-decoration: none; font-size: 14px; }
         .back-link:hover { text-decoration: underline; }
+        .article-hero { width:100%; border-radius:10px; margin-bottom:24px; }
+        .figure { margin:24px 0; text-align:center; }
+        .figure img { max-width:100%; border-radius:8px; }
+        .figure figcaption { font-size:12px; color:var(--muted); margin-top:6px; }
+        .post-nav { display:flex; justify-content:space-between; margin-top:36px; padding-top:20px; border-top:1px solid var(--border); gap:16px; }
+        .post-nav a { color:var(--accent); text-decoration:none; font-weight:600; font-size:14px; padding:8px 16px; border:1px solid var(--border); border-radius:8px; transition:border-color 0.2s; }
+        .post-nav a:hover { border-color:var(--accent); }
+        .post-nav .prev { margin-right:auto; }
+        .post-nav .next { margin-left:auto; }
+        .post-nav .disabled { opacity:0.3; pointer-events:none; border-color:transparent; }
+        .infobox { background:rgba(59,130,246,0.06); border:1px solid var(--border); border-left:4px solid var(--accent); border-radius:8px; padding:16px 20px; margin:20px 0; }
+        .infobox h4 { color:var(--accent); margin-bottom:6px; font-size:14px; }
+        .infobox p { margin-bottom:0; font-size:14px; color:var(--muted); }
         @media (max-width: 600px) { .card { padding: 20px; } h1 { font-size: 1.5rem; } }
     </style>
 </head>
@@ -54,6 +67,8 @@
         <article class="card">
             <h1>Especialidad de Ordenación de Campamento para Conquistadores</h1>
             <div class="meta">Publicado: 24 de julio de 2026 | Actualizado: 24 de julio de 2026</div>
+
+            <img class="article-hero" src="https://placehold.co/800x300/2d4a3e/ffffff?text=Ordenación+de+Campamento" alt="Ordenación de Campamento" loading="lazy">
 
             <p>La ordenación de campamento es una especialidad que combina creatividad, organización y trabajo en equipo. Un campamento bien ordenado no solo es más funcional y seguro, sino que también crea un ambiente acogedor que eleva la experiencia de todos los participantes. Esta especialidad te enseña a diseñar y construir un campamento modelo con áreas claramente definidas.</p>
 
@@ -118,6 +133,10 @@
             <p>La ordenación de campamento es un proyecto de equipo. Designa líderes para cada área (cocina, carpas, fogata, servicios) y asegúrate de que todos los participantes tengan una tarea asignada. Realiza reuniones breves al inicio y final de cada día para coordinar el trabajo y evaluar el progreso. Reconoce públicamente el esfuerzo de cada miembro del equipo.</p>
 
             <p>Un campamento bien ordenado no solo es más seguro y funcional, sino que también crea un sentido de orgullo y pertenencia entre los participantes. Es un testimonio del trabajo en equipo, la creatividad y la dedicación de los conquistadores. Como dice la Ley del Conquistador: "Cumplir con la parte que me toca". En la ordenación de campamento, cada conquistador contribuye con su parte para crear un espacio donde todos puedan crecer y disfrutar.</p>
+            <div class="post-nav">
+                <a href="/blog/especialidad-senderismo" class="prev">&larr; Anterior: Senderismo</a>
+                <a href="/blog/especialidad-supervivencia" class="next">Siguiente: Supervivencia &rarr;</a>
+            </div>
         </article>
     </main>
 </body>

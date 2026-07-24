@@ -42,6 +42,19 @@
         .lyrics-box { background: rgba(59,130,246,0.06); border: 1px solid var(--accent); border-radius: 10px; padding: 24px; margin-bottom: 20px; text-align: center; }
         .lyrics-box p { color: var(--text); font-size: 15px; line-height: 2; margin-bottom: 0; }
         .lyrics-box .chorus { color: var(--accent); font-weight: 600; }
+        .article-hero { width:100%; border-radius:10px; margin-bottom:24px; }
+        .figure { margin:24px 0; text-align:center; }
+        .figure img { max-width:100%; border-radius:8px; }
+        .figure figcaption { font-size:12px; color:var(--muted); margin-top:6px; }
+        .post-nav { display:flex; justify-content:space-between; margin-top:36px; padding-top:20px; border-top:1px solid var(--border); gap:16px; }
+        .post-nav a { color:var(--accent); text-decoration:none; font-weight:600; font-size:14px; padding:8px 16px; border:1px solid var(--border); border-radius:8px; transition:border-color 0.2s; }
+        .post-nav a:hover { border-color:var(--accent); }
+        .post-nav .prev { margin-right:auto; }
+        .post-nav .next { margin-left:auto; }
+        .post-nav .disabled { opacity:0.3; pointer-events:none; border-color:transparent; }
+        .infobox { background:rgba(59,130,246,0.06); border:1px solid var(--border); border-left:4px solid var(--accent); border-radius:8px; padding:16px 20px; margin:20px 0; }
+        .infobox h4 { color:var(--accent); margin-bottom:6px; font-size:14px; }
+        .infobox p { margin-bottom:0; font-size:14px; color:var(--muted); }
         @media (max-width: 600px) { .card { padding: 20px; } h1 { font-size: 1.5rem; } }
     </style>
 </head>
@@ -58,6 +71,8 @@
             <h1>Himno del Conquistador: Historia, Letra Completa y Significado</h1>
             <div class="meta">Publicado: 24 de julio de 2026 | Actualizado: 24 de julio de 2026</div>
 
+            <img class="article-hero" src="https://placehold.co/800x300/1e3a5f/ffffff?text=Himno+del+Conquistador" alt="Himno del Conquistador" loading="lazy">
+
             <p>El Himno del Conquistador es uno de los símbolos más queridos del Club de Conquistadores. Cada semana, en las reuniones de los clubes alrededor del mundo, los conquistadores entonan con orgullo este canto que expresa su identidad, su misión y su fe. En este artículo conocerás la historia detrás del himno, su letra completa y el profundo significado de cada estrofa.</p>
 
             <h2>Historia del Himno</h2>
@@ -67,7 +82,7 @@
 
             <h2>Letra completa del Himno del Conquistador</h2>
 
-            <div class="lyrics-box">
+            <figure class="figure"><div class="lyrics-box">
                 <p>
                     <strong>Verso 1:</strong><br>
                     Soy un conquistador,<br>
@@ -96,7 +111,7 @@
                     con valor y con fe,<br>
                     y su amor a otros yo daré.
                 </p>
-            </div>
+            </div><figcaption>Letra completa del Himno del Conquistador</figcaption></figure>
 
             <h2>Significado del himno</h2>
 
@@ -130,6 +145,10 @@
             </ul>
 
             <p>El Himno del Conquistador es más que una canción; es un himno de identidad, compromiso y esperanza. Cada vez que lo cantas, recuerdas quién eres, a quién sirves y cuál es tu misión en este mundo. ¡Cántalo con orgullo!</p>
+            <div class="post-nav">
+                <a href="/blog/significado-insignia-conquistador" class="prev">&larr; Anterior: Insignia</a>
+                <a href="/blog/clases-iniciales-conquistadores" class="next">Siguiente: Clases Iniciales &rarr;</a>
+            </div>
         </article>
     </main>
 </body>

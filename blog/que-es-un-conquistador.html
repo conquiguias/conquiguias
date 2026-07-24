@@ -38,9 +38,22 @@
         ul, ol { margin: 0 0 16px 24px; color: var(--muted); }
         li { margin-bottom: 6px; }
         .highlight { border-left: 4px solid var(--accent); padding: 16px 20px; background: rgba(59,130,246,0.06); border-radius: 0 8px 8px 0; margin-bottom: 20px; }
-        .highlight p { margin-bottom: 0; }
+        .highlight p { margin-bottom: 0; color: var(--muted); }
         .back-link { display: inline-block; margin-bottom: 16px; color: var(--accent); text-decoration: none; font-size: 14px; }
         .back-link:hover { text-decoration: underline; }
+        .article-hero { width:100%; border-radius:10px; margin-bottom:24px; }
+        .figure { margin:24px 0; text-align:center; }
+        .figure img { max-width:100%; border-radius:8px; }
+        .figure figcaption { font-size:12px; color:var(--muted); margin-top:6px; }
+        .post-nav { display:flex; justify-content:space-between; margin-top:36px; padding-top:20px; border-top:1px solid var(--border); gap:16px; }
+        .post-nav a { color:var(--accent); text-decoration:none; font-weight:600; font-size:14px; padding:8px 16px; border:1px solid var(--border); border-radius:8px; transition:border-color 0.2s; }
+        .post-nav a:hover { border-color:var(--accent); }
+        .post-nav .prev { margin-right:auto; }
+        .post-nav .next { margin-left:auto; }
+        .post-nav .disabled { opacity:0.3; pointer-events:none; border-color:transparent; }
+        .infobox { background:rgba(59,130,246,0.06); border:1px solid var(--border); border-left:4px solid var(--accent); border-radius:8px; padding:16px 20px; margin:20px 0; }
+        .infobox h4 { color:var(--accent); margin-bottom:6px; font-size:14px; }
+        .infobox p { margin-bottom:0; font-size:14px; color:var(--muted); }
         @media (max-width: 600px) { .card { padding: 20px; } h1 { font-size: 1.5rem; } }
     </style>
 </head>
@@ -56,6 +69,8 @@
         <article class="card">
             <h1>¿Qué es un Conquistador? Historia del Club de Conquistadores</h1>
             <div class="meta">Publicado: 24 de julio de 2026 | Actualizado: 24 de julio de 2026</div>
+
+            <img class="article-hero" src="https://placehold.co/800x300/1e3a5f/ffffff?text=Historia+del+Club+de+Conquistadores" alt="Historia del Club de Conquistadores" loading="lazy">
 
             <p>El Club de Conquistadores es una organización juvenil mundial que forma parte de la Iglesia Adventista del Séptimo Día. Su propósito es desarrollar jóvenes líderes, fuertes física, mental y espiritualmente, preparándolos para servir a Dios y a su comunidad. Pero, ¿cómo nació este movimiento que hoy impacta a millones de jóvenes en más de 150 países?</p>
 
@@ -106,7 +121,24 @@
 
             <p>Ser conquistador es más que pertenecer a un club: es formar parte de una hermandad global que busca hacer de cada joven un ciudadano ejemplar, un líder en su comunidad y un testimonio vivo de fe y servicio.</p>
 
+            <div class="infobox">
+                <h4>Línea de tiempo del Club de Conquistadores</h4>
+                <p><strong>1946:</strong> John H. Hancock inicia el primer grupo experimental en Riverside, California.<br>
+                <strong>1950:</strong> Fundación oficial del Club de Conquistadores en San Francisco.<br>
+                <strong>1952:</strong> Se establece el primer plan de estudios unificado.<br>
+                <strong>1960s:</strong> El programa se expande a Latinoamérica, Europa y Asia.<br>
+                <strong>1970s:</strong> Se crea la clase de Guía Mayor como nivel máximo.<br>
+                <strong>1980s:</strong> Primeros camporíes internacionales.<br>
+                <strong>2000s:</strong> Digitalización de especialidades y materiales.<br>
+                <strong>Hoy:</strong> Más de 2 millones de miembros en 150+ países.</p>
+            </div>
+
             <p>Si eres conquistador o estás interesado en serlo, te invitamos a explorar nuestro contenido sobre especialidades, clases y recursos para tu desarrollo. ¡Bienvenido a la familia conquistadora!</p>
+
+            <div class="post-nav">
+                <span class="prev disabled">&larr; Anterior</span>
+                <a href="/blog/voto-y-ley-del-conquistador" class="next">Artículo siguiente: Voto y Ley &rarr;</a>
+            </div>
         </article>
     </main>
 </body>

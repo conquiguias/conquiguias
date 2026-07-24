@@ -31,13 +31,15 @@
         .top-links a:hover { text-decoration: underline; }
         h1 { font-size: 2rem; margin-bottom: 8px; }
         .subtitle { color: var(--muted); margin-bottom: 30px; font-size: 16px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 22px; transition: border-color 0.2s; }
-        .card:hover { border-color: var(--accent); }
-        .card h2 { font-size: 1.15rem; margin-bottom: 8px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: border-color 0.2s, transform 0.2s; }
+        .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+        .card-img { width: 100%; height: 160px; object-fit: cover; display: block; }
+        .card-body { padding: 16px 18px 20px; }
+        .card h2 { font-size: 1.1rem; margin-bottom: 8px; }
         .card h2 a { color: var(--text); text-decoration: none; }
         .card h2 a:hover { color: var(--accent); }
-        .card p { color: var(--muted); font-size: 14px; margin-bottom: 10px; }
+        .card p { color: var(--muted); font-size: 13px; margin-bottom: 10px; line-height: 1.5; }
         .card .tag { display: inline-block; font-size: 11px; background: rgba(59,130,246,0.15); color: var(--accent); padding: 2px 10px; border-radius: 999px; }
         @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } h1 { font-size: 1.5rem; } }
     </style>
@@ -54,96 +56,114 @@
         <p class="subtitle">Artículos educativos sobre el Club de Conquistadores: especialidades, clases, historia, liderazgo y recursos para tu desarrollo.</p>
 
         <div class="grid">
-            <div class="card">
-                <span class="tag">Historia</span>
-                <h2><a href="/blog/que-es-un-conquistador">¿Qué es un Conquistador? Historia del Club de Conquistadores</a></h2>
-                <p>Descubre el origen del Club de Conquistadores, su fundación en 1950 y cómo ha impactado a millones de jóvenes en todo el mundo.</p>
-            </div>
-            <div class="card">
-                <span class="tag">Valores</span>
-                <h2><a href="/blog/voto-y-ley-del-conquistador">Voto y Ley del Conquistador: Significado y Explicación Completa</a></h2>
-                <p>Explora el significado profundo del Voto y la Ley del Conquistador. Cada frase, su base bíblica y cómo aplicarla en tu vida diaria.</p>
-            </div>
-            <div class="card">
-                <span class="tag">Especialidades</span>
-                <h2><a href="/blog/especialidades-para-conquistadores-guia-completa">Especialidades para Conquistadores: Guía Completa</a></h2>
-                <p>Todo lo que necesitas saber sobre las especialidades: qué son, las 6 clases, requisitos y consejos para obtenerlas.</p>
-            </div>
-            <div class="card">
-                <span class="tag">Especialidades</span>
-                <h2><a href="/blog/especialidad-primeros-auxilios">Especialidad de Primeros Auxilios para Conquistadores</a></h2>
-                <p>Técnicas básicas de emergencia, vendajes, RCP, botiquín y cómo actuar ante accidentes. Una habilidad que salva vidas.</p>
-            </div>
-            <div class="card">
-                <span class="tag">Vida al Aire Libre</span>
-                <h2><a href="/blog/especialidad-campismo">Especialidad de Campismo para Conquistadores</a></h2>
-                <p>Aprende a armar una carpa, hacer fuego, cocinar al aire libre y disfrutar la naturaleza con responsabilidad.</p>
-            </div>
-            <div class="card">
-                <span class="tag">Supervivencia</span>
-                <h2><a href="/blog/especialidad-supervivencia">Especialidad de Supervivencia para Conquistadores</a></h2>
-                <p>Técnicas de orientación, refugio, obtención de agua, señales de emergencia y kit de supervivencia.</p>
-            </div>
-            <div class="card">
-                <span class="tag">Habilidades</span>
-                <h2><a href="/blog/especialidad-nudos">Especialidad de Nudos y Amarras para Conquistadores</a></h2>
-                <p>Domina los nudos fundamentales: as de guía, ballestrinque, llano, ocho, pescador y las amarras básicas.</p>
-            </div>
-            <div class="card">
-                <span class="tag">Clases</span>
-                <h2><a href="/blog/clases-iniciales-conquistadores">Clases Iniciales: Amigo, Amiga, Explorador y Exploradora</a></h2>
-                <p>Explicación completa de las 4 clases iniciales del Club de Conquistadores: requisitos, insignias y cómo avanzar.</p>
-            </div>
-            <div class="card">
-                <span class="tag">Liderazgo</span>
-                <h2><a href="/blog/como-ser-guia-mayor">Cómo ser Guía Mayor: Requisitos y Proceso Completo</a></h2>
-                <p>Guía completa para convertirte en Guía Mayor: requisitos, especialidades, proyectos de servicio e investidura.</p>
-            </div>
-            <div class="card">
-                <span class="tag">Historia</span>
-                <h2><a href="/blog/himno-del-conquistador">Himno del Conquistador: Historia, Letra Completa y Significado</a></h2>
-                <p>Conoce la historia del himno, su letra completa y el profundo significado de cada estrofa.</p>
-            </div>
-            <div class="card">
-                <span class="tag">Naturaleza</span>
-                <h2><a href="/blog/especialidad-observacion-aves">Especialidad de Observación de Aves para Conquistadores</a></h2>
-                <p>Aprende a identificar aves, usar binoculares, llevar un registro de avistamiento y conocer su hábitat.</p>
-            </div>
-            <div class="card">
-                <span class="tag">Salud</span>
-                <h2><a href="/blog/especialidad-rcp">Especialidad de RCP para Conquistadores: Guía Completa</a></h2>
-                <p>Aprende a salvar vidas con técnicas de reanimación cardiopulmonar. Una habilidad esencial para todo conquistador.</p>
-            </div>
-            <div class="card">
-                <span class="tag">Vida al Aire Libre</span>
-                <h2><a href="/blog/especialidad-senderismo">Especialidad de Senderismo para Conquistadores</a></h2>
-                <p>Técnicas de caminata, preparación física, equipo adecuado y seguridad en la montaña para tus excursiones.</p>
-            </div>
-            <div class="card">
-                <span class="tag">Naturaleza</span>
-                <h2><a href="/blog/especialidad-astronomia">Especialidad de Astronomía para Conquistadores</a></h2>
-                <p>Aprende sobre estrellas, planetas, constelaciones, telescopios y los misterios del universo.</p>
-            </div>
-            <div class="card">
-                <span class="tag">Naturaleza</span>
-                <h2><a href="/blog/especialidad-geologia">Especialidad de Geología para Conquistadores</a></h2>
-                <p>Descubre los tipos de rocas, minerales, fósiles y la historia de la Tierra a través de la geología.</p>
-            </div>
-            <div class="card">
-                <span class="tag">Vida al Aire Libre</span>
-                <h2><a href="/blog/especialidad-cocina-aire-libre">Especialidad de Cocina al Aire Libre</a></h2>
-                <p>Aprende a cocinar en fogatas, estufas portátiles y técnicas de cocina sin utensilios en campamentos.</p>
-            </div>
-            <div class="card">
-                <span class="tag">Historia</span>
-                <h2><a href="/blog/significado-insignia-conquistador">Significado de la Insignia del Conquistador</a></h2>
-                <p>Explicación completa del simbolismo del escudo, la cruz, la espada, el hacha y los colores de la insignia.</p>
-            </div>
-            <div class="card">
-                <span class="tag">Vida al Aire Libre</span>
-                <h2><a href="/blog/especialidad-ordenacion-campamento">Especialidad de Ordenación de Campamento</a></h2>
-                <p>Diseña y organiza un campamento modelo con áreas funcionales, estructuras de amarras y señalización.</p>
-            </div>
+        <div class="card">
+            <img class="card-img" src="https://placehold.co/600x340/1e3a5f/ffffff?text=Historia+del+Club" alt="Historia del Club de Conquistadores" loading="lazy">
+            <div class="card-body"><span class="tag">Historia</span>
+            <h2><a href="/blog/que-es-un-conquistador">¿Qué es un Conquistador? Historia del Club de Conquistadores</a></h2>
+            <p>Descubre el origen del Club de Conquistadores, su fundación en 1950 y cómo ha impactado a millones de jóvenes en todo el mundo.</p></div>
+        </div>
+        <div class="card">
+            <img class="card-img" src="https://placehold.co/600x340/1e3a5f/ffffff?text=Voto+y+Ley" alt="Voto y Ley del Conquistador" loading="lazy">
+            <div class="card-body"><span class="tag">Valores</span>
+            <h2><a href="/blog/voto-y-ley-del-conquistador">Voto y Ley del Conquistador: Significado y Explicación Completa</a></h2>
+            <p>Explora el significado profundo del Voto y la Ley del Conquistador. Cada frase, su base bíblica y cómo aplicarla en tu vida diaria.</p></div>
+        </div>
+        <div class="card">
+            <img class="card-img" src="https://placehold.co/600x340/1e3a5f/ffffff?text=Insignia+del+Conquistador" alt="Significado de la Insignia" loading="lazy">
+            <div class="card-body"><span class="tag">Símbolos</span>
+            <h2><a href="/blog/significado-insignia-conquistador">Significado de la Insignia del Conquistador</a></h2>
+            <p>Explicación completa del simbolismo del escudo, la cruz, la espada, el hacha y los colores de la insignia.</p></div>
+        </div>
+        <div class="card">
+            <img class="card-img" src="https://placehold.co/600x340/1e3a5f/ffffff?text=Himno+del+Conquistador" alt="Himno del Conquistador" loading="lazy">
+            <div class="card-body"><span class="tag">Historia</span>
+            <h2><a href="/blog/himno-del-conquistador">Himno del Conquistador: Historia, Letra Completa y Significado</a></h2>
+            <p>Conoce la historia del himno, su letra completa y el profundo significado de cada estrofa.</p></div>
+        </div>
+        <div class="card">
+            <img class="card-img" src="https://placehold.co/600x340/2d4a3e/ffffff?text=Clases+Iniciales" alt="Clases Iniciales del Conquistador" loading="lazy">
+            <div class="card-body"><span class="tag">Clases</span>
+            <h2><a href="/blog/clases-iniciales-conquistadores">Clases Iniciales: Amigo, Amiga, Explorador y Exploradora</a></h2>
+            <p>Explicación completa de las 4 clases iniciales del Club de Conquistadores: requisitos, insignias y cómo avanzar.</p></div>
+        </div>
+        <div class="card">
+            <img class="card-img" src="https://placehold.co/600x340/3d3d1a/ffffff?text=Guía+Mayor" alt="Cómo ser Guía Mayor" loading="lazy">
+            <div class="card-body"><span class="tag">Liderazgo</span>
+            <h2><a href="/blog/como-ser-guia-mayor">Cómo ser Guía Mayor: Requisitos y Proceso Completo</a></h2>
+            <p>Guía completa para convertirte en Guía Mayor: requisitos, especialidades, proyectos de servicio e investidura.</p></div>
+        </div>
+        <div class="card">
+            <img class="card-img" src="https://placehold.co/600x340/2d4a3e/ffffff?text=Especialidades" alt="Especialidades: Guía Completa" loading="lazy">
+            <div class="card-body"><span class="tag">Especialidades</span>
+            <h2><a href="/blog/especialidades-para-conquistadores-guia-completa">Especialidades para Conquistadores: Guía Completa</a></h2>
+            <p>Todo lo que necesitas saber sobre las especialidades: qué son, las 6 clases, requisitos y consejos para obtenerlas.</p></div>
+        </div>
+        <div class="card">
+            <img class="card-img" src="https://placehold.co/600x340/2d4a3e/ffffff?text=Campismo" alt="Especialidad de Campismo" loading="lazy">
+            <div class="card-body"><span class="tag">Vida al Aire Libre</span>
+            <h2><a href="/blog/especialidad-campismo">Especialidad de Campismo para Conquistadores</a></h2>
+            <p>Aprende a armar una carpa, hacer fuego, cocinar al aire libre y disfrutar la naturaleza con responsabilidad.</p></div>
+        </div>
+        <div class="card">
+            <img class="card-img" src="https://placehold.co/600x340/2d4a3e/ffffff?text=Senderismo" alt="Especialidad de Senderismo" loading="lazy">
+            <div class="card-body"><span class="tag">Vida al Aire Libre</span>
+            <h2><a href="/blog/especialidad-senderismo">Especialidad de Senderismo para Conquistadores</a></h2>
+            <p>Técnicas de caminata, preparación física, equipo adecuado y seguridad en la montaña para tus excursiones.</p></div>
+        </div>
+        <div class="card">
+            <img class="card-img" src="https://placehold.co/600x340/2d4a3e/ffffff?text=Ordenación+de+Campamento" alt="Ordenación de Campamento" loading="lazy">
+            <div class="card-body"><span class="tag">Vida al Aire Libre</span>
+            <h2><a href="/blog/especialidad-ordenacion-campamento">Especialidad de Ordenación de Campamento</a></h2>
+            <p>Diseña y organiza un campamento modelo con áreas funcionales, estructuras de amarras y señalización.</p></div>
+        </div>
+        <div class="card">
+            <img class="card-img" src="https://placehold.co/600x340/3d2a1a/ffffff?text=Supervivencia" alt="Especialidad de Supervivencia" loading="lazy">
+            <div class="card-body"><span class="tag">Supervivencia</span>
+            <h2><a href="/blog/especialidad-supervivencia">Especialidad de Supervivencia para Conquistadores</a></h2>
+            <p>Técnicas de orientación, refugio, obtención de agua, señales de emergencia y kit de supervivencia.</p></div>
+        </div>
+        <div class="card">
+            <img class="card-img" src="https://placehold.co/600x340/3d2a1a/ffffff?text=Nudos+y+Amarras" alt="Especialidad de Nudos" loading="lazy">
+            <div class="card-body"><span class="tag">Habilidades</span>
+            <h2><a href="/blog/especialidad-nudos">Especialidad de Nudos y Amarras para Conquistadores</a></h2>
+            <p>Domina los nudos fundamentales: as de guía, ballestrinque, llano, ocho, pescador y las amarras básicas.</p></div>
+        </div>
+        <div class="card">
+            <img class="card-img" src="https://placehold.co/600x340/3d2a1a/ffffff?text=Cocina+al+Aire+Libre" alt="Cocina al Aire Libre" loading="lazy">
+            <div class="card-body"><span class="tag">Habilidades</span>
+            <h2><a href="/blog/especialidad-cocina-aire-libre">Especialidad de Cocina al Aire Libre</a></h2>
+            <p>Aprende a cocinar en fogatas, estufas portátiles y técnicas de cocina sin utensilios en campamentos.</p></div>
+        </div>
+        <div class="card">
+            <img class="card-img" src="https://placehold.co/600x340/4a1a1a/ffffff?text=Primeros+Auxilios" alt="Especialidad de Primeros Auxilios" loading="lazy">
+            <div class="card-body"><span class="tag">Salud</span>
+            <h2><a href="/blog/especialidad-primeros-auxilios">Especialidad de Primeros Auxilios para Conquistadores</a></h2>
+            <p>Técnicas básicas de emergencia, vendajes, RCP, botiquín y cómo actuar ante accidentes. Una habilidad que salva vidas.</p></div>
+        </div>
+        <div class="card">
+            <img class="card-img" src="https://placehold.co/600x340/4a1a1a/ffffff?text=RCP" alt="Especialidad de RCP" loading="lazy">
+            <div class="card-body"><span class="tag">Salud</span>
+            <h2><a href="/blog/especialidad-rcp">Especialidad de RCP para Conquistadores: Guía Completa</a></h2>
+            <p>Aprende a salvar vidas con técnicas de reanimación cardiopulmonar. Una habilidad esencial para todo conquistador.</p></div>
+        </div>
+        <div class="card">
+            <img class="card-img" src="https://placehold.co/600x340/1a3d2d/ffffff?text=Observación+de+Aves" alt="Observación de Aves" loading="lazy">
+            <div class="card-body"><span class="tag">Naturaleza</span>
+            <h2><a href="/blog/especialidad-observacion-aves">Especialidad de Observación de Aves para Conquistadores</a></h2>
+            <p>Aprende a identificar aves, usar binoculares, llevar un registro de avistamiento y conocer su hábitat.</p></div>
+        </div>
+        <div class="card">
+            <img class="card-img" src="https://placehold.co/600x340/1a1a3d/ffffff?text=Astronomía" alt="Especialidad de Astronomía" loading="lazy">
+            <div class="card-body"><span class="tag">Naturaleza</span>
+            <h2><a href="/blog/especialidad-astronomia">Especialidad de Astronomía para Conquistadores</a></h2>
+            <p>Aprende sobre estrellas, planetas, constelaciones, telescopios y los misterios del universo.</p></div>
+        </div>
+        <div class="card">
+            <img class="card-img" src="https://placehold.co/600x340/2d2d1a/ffffff?text=Geología" alt="Especialidad de Geología" loading="lazy">
+            <div class="card-body"><span class="tag">Naturaleza</span>
+            <h2><a href="/blog/especialidad-geologia">Especialidad de Geología para Conquistadores</a></h2>
+            <p>Descubre los tipos de rocas, minerales, fósiles y la historia de la Tierra a través de la geología.</p></div>
+        </div>
         </div>
     </main>
 </body>

@@ -356,6 +356,22 @@
           }
         });
       });
+      // Auto-scroll a #auth si la URL contiene #auth o es /login
+      if (window.location.hash === '#auth' || window.location.pathname === '/login' || window.location.pathname === '/index.html') {
+        document.addEventListener('DOMContentLoaded', () => {
+          setTimeout(() => {
+            const el = document.getElementById('auth');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 300);
+        });
+      }
+      // Si la URL termina en ?register, mostrar el formulario de registro
+      if (window.location.search.includes('register')) {
+        document.addEventListener('DOMContentLoaded', () => {
+          document.getElementById('loginBox')?.classList.add('hidden');
+          document.getElementById('registerBox')?.classList.remove('hidden');
+        });
+      }
     </script>
     <style>
       :root {
@@ -363,7 +379,7 @@
         --bg-secondary: #1e293b;
         --bg-card: #1e293b;
         --text-primary: #e2e8f0;
-        --text-secondary: #94a3b8;
+        --text-secondary: #cbd5e1;
         --accent-color: #3b82f6;
         --accent-hover: #2563eb;
         --danger-color: #ef4444;
@@ -757,7 +773,7 @@
     </section>
 
     <!-- AUTH / REGISTRO -->
-    <section class="section section-dark" id="auth">
+    <section class="section section-dark" id="auth" style="scroll-margin-top: 80px;">
       <div class="auth-section">
         <div class="auth-layout">
           <div class="auth-info">

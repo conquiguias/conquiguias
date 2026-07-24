@@ -200,7 +200,7 @@
             const redirectResult = await getRedirectResult(authInstance);
             if (redirectResult?.user) {
               await syncSocialProfile(redirectResult.user);
-              window.location.replace("/");
+              window.location.replace("/panel");
               return;
             }
             await new Promise((resolve) => {
@@ -210,7 +210,7 @@
                 unsubscribe();
                 if (!user) { resolve(); return; }
                 try { await syncSocialProfile(user); } catch (e) { console.warn("[WARN] No se pudo sincronizar perfil social:", e); }
-                window.location.replace("/");
+                window.location.replace("/panel");
                 resolve();
               });
             });
@@ -247,7 +247,7 @@
             }
             console.log("✅ Bienvenido de nuevo");
             showLoader(loginBtn, "✅ Redirigiendo...");
-            setTimeout(() => { window.location.href = "/"; }, 1000);
+            setTimeout(() => { window.location.href = "/panel"; }, 1000);
           } catch (error) {
             hideLoader(loginBtn, "Entrar");
             console.error(error);
@@ -265,7 +265,7 @@
             const result = await signInWithPopup(authInstance, provider);
             await syncSocialProfile(result.user);
             showLoader(googleLoginBtn, "✅ Redirigiendo...");
-            setTimeout(() => { window.location.href = "/"; }, 700);
+            setTimeout(() => { window.location.href = "/panel"; }, 700);
           } catch (error) {
             if (error?.code === "auth/popup-blocked" || error?.code === "auth/popup-closed-by-user") {
               try {

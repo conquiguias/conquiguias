@@ -1,8 +1,26 @@
 User-agent: *
 Allow: /
+Allow: /blog/
+Allow: /acerca-de
+Allow: /acerca-de.html
+Allow: /contacto
+Allow: /contacto.html
+Allow: /privacidad
+Allow: /privacidad.html
+Allow: /terminos
+Allow: /terminos.html
+Allow: /images/
+Allow: /iconos/
 Disallow: /panel
 Disallow: /panel.html
 Disallow: /formulario
 Disallow: /formulario.html
+Disallow: /post/
+Disallow: /api/
+Disallow: /lib/
+Disallow: /scripts/
+Disallow: /sql/
+Disallow: /migrations/
+Disallow: /visorPDFMozilla/
 
 Sitemap: /sitemap.xml

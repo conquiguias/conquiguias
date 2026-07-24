@@ -3,31 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ConquiGuías World - Acceso</title>
-    <meta name="description" content="ConquiGuías World: plataforma de especialidades, publicaciones, tareas, exámenes y certificaciones para conquistadores." />
+    <title>Conquiguias World - Plataforma Educativa para Conquistadores</title>
+    <meta name="description" content="Conquiguias World es la plataforma educativa para el Club de Conquistadores y Guías Mayores. Especialidades, clases, publicaciones, radio en vivo y comunidad. ¡Únete gratis!" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="theme-color" content="#0f172a" />
-    <link rel="canonical" href="/login" />
-
+    <link rel="canonical" href="https://conquiguias.xyz/" />
     <meta property="og:locale" content="es_ES" />
     <meta property="og:site_name" content="Conquiguias World" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="ConquiGuías World - Acceso" />
-    <meta property="og:description" content="Plataforma de especialidades, publicaciones, tareas, exámenes y certificaciones." />
-    <meta property="og:url" content="/login" />
+    <meta property="og:title" content="Conquiguias World - Plataforma Educativa para Conquistadores" />
+    <meta property="og:description" content="Plataforma educativa para el Club de Conquistadores y Guías Mayores. Especialidades, clases, publicaciones y comunidad." />
+    <meta property="og:url" content="https://conquiguias.xyz/" />
     <meta property="og:image" content="/images/flayer%20conquiguias%20world.png" />
-
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="ConquiGuías World - Acceso" />
-    <meta name="twitter:description" content="Plataforma de especialidades, publicaciones, tareas, exámenes y certificaciones." />
+    <meta name="twitter:title" content="Conquiguias World - Plataforma Educativa para Conquistadores" />
+    <meta name="twitter:description" content="Plataforma educativa para el Club de Conquistadores y Guías Mayores." />
     <meta name="twitter:image" content="/images/flayer%20conquiguias%20world.png" />
-
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="/scrollbar-theme.css" />
-    <!-- Favicon: flayer 64 -->
     <link rel="icon" href="/iconos/flayer%20conquiguias%20fondo%2064.jpg" type="image/jpeg" sizes="64x64" />
     <link rel="shortcut icon" href="/iconos/flayer%20conquiguias%20fondo%2064.jpg" />
     <link rel="apple-touch-icon" href="/iconos/flayer%20conquiguias%20fondo%2064.jpg" />
@@ -50,93 +43,52 @@
       // ==========================================
       // 1. FUNCIONES DE UTILIDAD (Deben estar al principio)
       // ==========================================
-
-      // Función para mostrar mensajes
-      window.mostrarMensaje = function (
-        tipo,
-        titulo,
-        mensaje,
-        onConfirm = null,
-      ) {
+      window.mostrarMensaje = function (tipo, titulo, mensaje, onConfirm = null) {
         const modal = document.getElementById("mensajeModal");
         if (!modal) return console.error("Modal no encontrado");
-
         const tituloEl = document.getElementById("mensajeTitulo");
         const textoEl = document.getElementById("mensajeTexto");
         const btnAceptar = document.getElementById("mensajeAceptar");
         const btnCancelar = document.getElementById("mensajeCancelar");
-
         tituloEl.textContent = titulo;
         textoEl.textContent = mensaje;
         modal.classList.remove("hiddenX");
-
-        // Configurar botones
         btnCancelar.classList.toggle("hiddenX", tipo !== "confirm");
-
         const cerrar = () => {
           modal.classList.add("hiddenX");
           btnAceptar.onclick = null;
           btnCancelar.onclick = null;
         };
-
         btnAceptar.onclick = () => {
           cerrar();
           if (onConfirm && (tipo === "confirm" || tipo === "info")) onConfirm();
         };
-
         btnCancelar.onclick = cerrar;
       };
-
-      // Alternar formularios
       window.toggleForms = function () {
         document.getElementById("loginBox").classList.toggle("hidden");
         document.getElementById("registerBox").classList.toggle("hidden");
       };
-
-      // Mostrar formulario de recuperación de contraseña
       window.showResetPassword = function () {
         document.getElementById("loginBox").classList.add("hidden");
         document.getElementById("resetPasswordBox").classList.remove("hidden");
       };
-
-      // Volver al login desde recuperación
       window.backToLogin = function () {
         document.getElementById("resetPasswordBox").classList.add("hidden");
         document.getElementById("loginBox").classList.remove("hidden");
       };
-
       function showLoader(button, text) {
         button.disabled = true;
-        button.innerHTML = `
-        <div class="loader-button">
-          <div class="loader-spinner"></div>
-          <span>${text}</span>
-        </div>
-      `;
+        button.innerHTML = `<div class="loader-button"><div class="loader-spinner"></div><span>${text}</span></div>`;
       }
-
       function updateLoader(button, text) {
-        button.innerHTML = `
-        <div class="loader-button">
-          <div class="loader-spinner"></div>
-          <span>${text}</span>
-        </div>
-      `;
+        button.innerHTML = `<div class="loader-button"><div class="loader-spinner"></div><span>${text}</span></div>`;
       }
-
       function hideLoader(button, originalText) {
         button.disabled = false;
         button.innerHTML = originalText;
       }
-
-      // ==========================================
-      // 2. CONFIGURACIÓN E INICIALIZACIÓN
-      // ==========================================
-
-      // 🔒 OBTENER CONFIGURACIÓN DE MANERA SEGURA
       let firebaseConfig;
-
-      // Función autoejecutable para inicialización asíncrona segura
       (async function initConfig() {
         try {
           const configResponse = await fetch("/api/auth", {
@@ -144,72 +96,40 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "get-config" }),
           });
-
-          if (!configResponse.ok) {
-            throw new Error("Error cargando configuración segura");
-          }
-
+          if (!configResponse.ok) throw new Error("Error cargando configuración segura");
           firebaseConfig = await configResponse.json();
         } catch (error) {
           console.error("[ERROR] No se pudo cargar la configuración:", error);
           if (document.readyState === "loading") {
             document.addEventListener("DOMContentLoaded", () => {
-              mostrarMensaje(
-                "error",
-                "Error de Sistema",
-                "No se pudo conectar de forma segura. Intenta más tarde.",
-              );
+              mostrarMensaje("error", "Error de Sistema", "No se pudo conectar de forma segura. Intenta más tarde.");
             });
           } else {
-            mostrarMensaje(
-              "error",
-              "Error de Sistema",
-              "No se pudo conectar de forma segura. Intenta más tarde.",
-            );
+            mostrarMensaje("error", "Error de Sistema", "No se pudo conectar de forma segura. Intenta más tarde.");
           }
         }
       })();
-
-      // Función para llamar a nuestra API segura
       async function callAPI(action, data) {
         try {
           const response = await fetch("/api/auth.js", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action, data }),
           });
-
           const result = await response.json();
-
-          if (!response.ok) {
-            throw new Error(result.error || "Error en la API");
-          }
-
+          if (!response.ok) throw new Error(result.error || "Error en la API");
           return result;
-        } catch (error) {
-          throw error;
-        }
+        } catch (error) { throw error; }
       }
-
       function isTooManyRequestsError(error) {
         const code = String(error?.code || "").toLowerCase();
         const message = String(error?.message || "").toLowerCase();
-        return (
-          code === "auth/too-many-requests" ||
-          message.includes("auth/too-many-requests")
-        );
+        return code === "auth/too-many-requests" || message.includes("auth/too-many-requests");
       }
-
       function getFriendlyAuthMessage(error, fallback) {
-        if (isTooManyRequestsError(error)) {
-          return "Demasiados intentos en poco tiempo. Espera unos minutos e inténtalo nuevamente.";
-        }
+        if (isTooManyRequestsError(error)) return "Demasiados intentos en poco tiempo. Espera unos minutos e inténtalo nuevamente.";
         return fallback;
       }
-
-      // Función para convertir imagen a Base64
       function fileToBase64(file) {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
@@ -218,7 +138,6 @@
           reader.onerror = (error) => reject(error);
         });
       }
-
       document.addEventListener("DOMContentLoaded", () => {
         const loginForm = document.getElementById("loginForm");
         const registerForm = document.getElementById("registerForm");
@@ -228,294 +147,127 @@
         const registerBtn = document.getElementById("registerBtn");
         const resetPasswordBtn = document.getElementById("resetPasswordBtn");
         const registerPasswordInput = document.getElementById("passwordX");
-        const registerPasswordRules = document.getElementById(
-          "registerPasswordRules",
-        );
-
+        const registerPasswordRules = document.getElementById("registerPasswordRules");
         const PASSWORD_RULES = [
-          {
-            label: "Mínimo 6 caracteres",
-            test: (value) => String(value || "").length >= 6,
-          },
-          {
-            label: "Al menos una mayúscula",
-            test: (value) => /[A-Z]/.test(String(value || "")),
-          },
-          {
-            label: "Al menos una minúscula",
-            test: (value) => /[a-z]/.test(String(value || "")),
-          },
-          {
-            label: "Al menos un número",
-            test: (value) => /\d/.test(String(value || "")),
-          },
-          {
-            label: "Al menos un carácter especial",
-            test: (value) => /[^A-Za-z0-9]/.test(String(value || "")),
-          },
+          { label: "Mínimo 6 caracteres", test: (value) => String(value || "").length >= 6 },
+          { label: "Al menos una mayúscula", test: (value) => /[A-Z]/.test(String(value || "")) },
+          { label: "Al menos una minúscula", test: (value) => /[a-z]/.test(String(value || "")) },
+          { label: "Al menos un número", test: (value) => /\d/.test(String(value || "")) },
+          { label: "Al menos un carácter especial", test: (value) => /[^A-Za-z0-9]/.test(String(value || "")) },
         ];
-
         function getPasswordRuleResults(passwordValue) {
-          return PASSWORD_RULES.map((rule) => ({
-            label: rule.label,
-            ok: rule.test(passwordValue),
-          }));
+          return PASSWORD_RULES.map((rule) => ({ label: rule.label, ok: rule.test(passwordValue) }));
         }
-
         function renderPasswordRules(container, passwordValue) {
           if (!container) return;
           const results = getPasswordRuleResults(passwordValue);
-          container.innerHTML = results
-            .map(
-              (result) => `
-                <li class="password-rule-item ${result.ok ? "ok" : ""}">
-                  <span class="password-rule-icon">${result.ok ? "✓" : "✖"}</span>
-                  <span>${result.label}</span>
-                </li>
-              `,
-            )
-            .join("");
+          container.innerHTML = results.map((r) => `<li class="password-rule-item ${r.ok ? "ok" : ""}"><span class="password-rule-icon">${r.ok ? "✓" : "✖"}</span><span>${r.label}</span></li>`).join("");
         }
-
         renderPasswordRules(registerPasswordRules, "");
         registerPasswordInput?.addEventListener("input", () => {
           renderPasswordRules(registerPasswordRules, registerPasswordInput.value);
         });
-
         let app;
         let auth;
-
-        async function configureAuthPersistence(
-          authInstance,
-          setPersistence,
-          persistenceOptions,
-        ) {
-          const [localPersistence, sessionPersistence, memoryPersistence] =
-            persistenceOptions;
-
-          try {
-            await setPersistence(authInstance, localPersistence);
-            return;
-          } catch (localError) {
-            console.warn(
-              "[WARN] No se pudo activar persistencia local:",
-              localError,
-            );
-          }
-
-          try {
-            await setPersistence(authInstance, sessionPersistence);
-            return;
-          } catch (sessionError) {
-            console.warn(
-              "[WARN] No se pudo activar persistencia de sesión:",
-              sessionError,
-            );
-          }
-
-          try {
-            await setPersistence(authInstance, memoryPersistence);
-          } catch (memoryError) {
-            console.warn(
-              "[WARN] No se pudo activar persistencia en memoria:",
-              memoryError,
-            );
-          }
+        async function configureAuthPersistence(authInstance, setPersistence, persistenceOptions) {
+          const [localPersistence, sessionPersistence, memoryPersistence] = persistenceOptions;
+          try { await setPersistence(authInstance, localPersistence); return; } catch (e) { console.warn("[WARN] No se pudo activar persistencia local:", e); }
+          try { await setPersistence(authInstance, sessionPersistence); return; } catch (e) { console.warn("[WARN] No se pudo activar persistencia de sesión:", e); }
+          try { await setPersistence(authInstance, memoryPersistence); } catch (e) { console.warn("[WARN] No se pudo activar persistencia en memoria:", e); }
         }
-
         async function ensureFirebaseAuth() {
           if (auth) return auth;
-
           if (!firebaseConfig) {
             await new Promise((r) => setTimeout(r, 1000));
-            if (!firebaseConfig)
-              throw new Error("Configuración de seguridad no cargada");
+            if (!firebaseConfig) throw new Error("Configuración de seguridad no cargada");
           }
-
-          const { initializeApp } =
-            await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js");
-          const {
-            getAuth,
-            setPersistence,
-            browserLocalPersistence,
-            browserSessionPersistence,
-            inMemoryPersistence,
-          } =
+          const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js");
+          const { getAuth, setPersistence, browserLocalPersistence, browserSessionPersistence, inMemoryPersistence } =
             await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
-
           app = app || initializeApp(firebaseConfig);
           auth = getAuth(app);
-          await configureAuthPersistence(auth, setPersistence, [
-            browserLocalPersistence,
-            browserSessionPersistence,
-            inMemoryPersistence,
-          ]);
+          await configureAuthPersistence(auth, setPersistence, [browserLocalPersistence, browserSessionPersistence, inMemoryPersistence]);
           return auth;
         }
-
         async function syncSocialProfile(user) {
           const idToken = await user.getIdToken();
           await callAPI("upsertSocialUser", { idToken });
         }
-
         async function processOAuthRedirectResult() {
           try {
             const authInstance = await ensureFirebaseAuth();
-            const { getRedirectResult, onAuthStateChanged } =
-              await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
-
+            const { getRedirectResult, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
             const redirectResult = await getRedirectResult(authInstance);
             if (redirectResult?.user) {
               await syncSocialProfile(redirectResult.user);
               window.location.replace("/");
               return;
             }
-
             await new Promise((resolve) => {
-              const timeoutId = setTimeout(() => {
-                unsubscribe?.();
-                resolve();
-              }, 2500);
-
+              const timeoutId = setTimeout(() => { unsubscribe?.(); resolve(); }, 2500);
               const unsubscribe = onAuthStateChanged(authInstance, async (user) => {
                 clearTimeout(timeoutId);
                 unsubscribe();
-                if (!user) {
-                  resolve();
-                  return;
-                }
-
-                try {
-                  await syncSocialProfile(user);
-                } catch (syncError) {
-                  console.warn("[WARN] No se pudo sincronizar perfil social tras restaurar sesión:", syncError);
-                }
-
+                if (!user) { resolve(); return; }
+                try { await syncSocialProfile(user); } catch (e) { console.warn("[WARN] No se pudo sincronizar perfil social:", e); }
                 window.location.replace("/");
                 resolve();
               });
             });
           } catch (error) {
             console.error("Error procesando login por redirección:", error);
-            mostrarMensaje(
-              "error",
-              "⚠️ No se pudo completar el acceso",
-              "Intenta nuevamente. Si persiste, revisa la configuración de Firebase Authentication.",
-            );
+            mostrarMensaje("error", "⚠️ No se pudo completar el acceso", "Intenta nuevamente.");
           }
         }
-
-        // 🔹 LOGIN - MANTENEMOS FIREBASE AUTH (es seguro)
         loginForm.addEventListener("submit", async (e) => {
           e.preventDefault();
           const email = loginForm.email.value.trim();
           const password = loginForm.password.value.trim();
-
           showLoader(loginBtn, "⏳ Iniciando sesión...");
-
           try {
             const authInstance = await ensureFirebaseAuth();
-            const {
-              signInWithEmailAndPassword,
-              sendEmailVerification,
-              signOut,
-            } =
+            const { signInWithEmailAndPassword, sendEmailVerification, signOut } =
               await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
-
-            const userCredential = await signInWithEmailAndPassword(
-              authInstance,
-              email,
-              password,
-            );
-
+            const userCredential = await signInWithEmailAndPassword(authInstance, email, password);
             if (!userCredential.user.emailVerified) {
               hideLoader(loginBtn, "Entrar");
-              mostrarMensaje(
-                "confirm",
-                "⚠️ Correo no verificado",
-                "Debes verificar tu correo electrónico antes de ingresar al panel. ¿Quieres reenviar el correo de verificación?",
-                async () => {
-                  try {
-                    const idToken = await userCredential.user.getIdToken(true);
-                    await callAPI("resendVerification", {
-                      email,
-                      idToken,
-                    });
-                    mostrarMensaje(
-                      "info",
-                      "📧 Verificación reenviada",
-                      "Revisa tu bandeja de entrada y la carpeta de spam.",
-                    );
-                  } catch (verificationError) {
-                    try {
-                      await sendEmailVerification(userCredential.user);
-                      mostrarMensaje(
-                        "info",
-                        "📧 Verificación reenviada",
-                        "Revisa tu bandeja de entrada y la carpeta de spam.",
-                      );
-                    } catch (fallbackError) {
-                      console.error(
-                        "Error reenviando verificación:",
-                        verificationError,
-                        fallbackError,
-                      );
-                      mostrarMensaje(
-                        "error",
-                        "❌ No se pudo reenviar",
-                        "No se pudo reenviar el correo de verificación. Inténtalo de nuevo más tarde.",
-                      );
-                    }
+              mostrarMensaje("confirm", "⚠️ Correo no verificado", "Debes verificar tu correo electrónico antes de ingresar al panel. ¿Quieres reenviar el correo de verificación?", async () => {
+                try {
+                  const idToken = await userCredential.user.getIdToken(true);
+                  await callAPI("resendVerification", { email, idToken });
+                  mostrarMensaje("info", "📧 Verificación reenviada", "Revisa tu bandeja de entrada y la carpeta de spam.");
+                } catch (e) {
+                  try { await sendEmailVerification(userCredential.user); mostrarMensaje("info", "📧 Verificación reenviada", "Revisa tu bandeja de entrada."); } catch (f) {
+                    mostrarMensaje("error", "❌ No se pudo reenviar", "Inténtalo de nuevo más tarde.");
                   }
-                },
-              );
-
+                }
+              });
               await signOut(authInstance);
               return;
             }
-
             console.log("✅ Bienvenido de nuevo");
             showLoader(loginBtn, "✅ Redirigiendo...");
-            setTimeout(() => {
-              window.location.href = "/";
-            }, 1000);
+            setTimeout(() => { window.location.href = "/"; }, 1000);
           } catch (error) {
             hideLoader(loginBtn, "Entrar");
             console.error(error);
-            mostrarMensaje(
-              "error",
-              "⚠️ Error al iniciar sesión",
-              getFriendlyAuthMessage(
-                error,
-                "Verifica tus credenciales e intenta nuevamente.",
-              ),
-            );
+            mostrarMensaje("error", "⚠️ Error al iniciar sesión", getFriendlyAuthMessage(error, "Verifica tus credenciales e intenta nuevamente."));
           }
         });
-
         googleLoginBtn.addEventListener("click", async () => {
           showLoader(googleLoginBtn, "⏳ Conectando con Google...");
-
           try {
             const authInstance = await ensureFirebaseAuth();
             const { GoogleAuthProvider, signInWithPopup, signInWithRedirect } =
               await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
-
             const provider = new GoogleAuthProvider();
             provider.setCustomParameters({ prompt: "select_account" });
-
             const result = await signInWithPopup(authInstance, provider);
             await syncSocialProfile(result.user);
-
             showLoader(googleLoginBtn, "✅ Redirigiendo...");
-            setTimeout(() => {
-              window.location.href = "/";
-            }, 700);
+            setTimeout(() => { window.location.href = "/"; }, 700);
           } catch (error) {
-            if (
-              error?.code === "auth/popup-blocked" ||
-              error?.code === "auth/popup-closed-by-user"
-            ) {
+            if (error?.code === "auth/popup-blocked" || error?.code === "auth/popup-closed-by-user") {
               try {
                 const authInstance = await ensureFirebaseAuth();
                 const { GoogleAuthProvider, signInWithRedirect } =
@@ -524,28 +276,16 @@
                 provider.setCustomParameters({ prompt: "select_account" });
                 await signInWithRedirect(authInstance, provider);
                 return;
-              } catch (redirectError) {
-                hideLoader(googleLoginBtn, "Continuar con Google");
-                console.error(redirectError);
-              }
+              } catch (redirectError) { hideLoader(googleLoginBtn, "Continuar con Google"); console.error(redirectError); }
             }
-
             hideLoader(googleLoginBtn, "Continuar con Google");
             console.error(error);
-            mostrarMensaje(
-              "error",
-              "⚠️ No se pudo iniciar con Google",
-              "Verifica que Google esté habilitado en Firebase Authentication y que tu dominio esté autorizado.",
-            );
+            mostrarMensaje("error", "⚠️ No se pudo iniciar con Google", "Verifica que Google esté habilitado en Firebase Authentication.");
           }
         });
-
         processOAuthRedirectResult();
-
-        // 🔹 REGISTRO - USAMOS NUESTRA API SEGURA
         registerForm.addEventListener("submit", async (e) => {
           e.preventDefault();
-
           const nombre = registerForm.nombre.value.trim();
           const apellido = registerForm.apellido.value.trim();
           const edad = registerForm.edad.value.trim();
@@ -554,131 +294,61 @@
           const email = registerForm.email.value.trim();
           const password = registerForm.password.value.trim();
           const foto = registerForm.foto.files[0];
-
           showLoader(registerBtn, "⏳ Creando cuenta...");
-
           try {
-            if (!foto) {
-              hideLoader(registerBtn, "Registrar");
-              mostrarMensaje(
-                "info",
-                "⚠️ Debes seleccionar una foto de perfil.",
-              );
-              return;
-            }
-
-            if (foto.size > 1024 * 1024) {
-              hideLoader(registerBtn, "Registrar");
-              mostrarMensaje("info", "⚠️ La imagen no debe superar 1 MB.");
-              return;
-            }
-
+            if (!foto) { hideLoader(registerBtn, "Registrar"); mostrarMensaje("info", "⚠️ Debes seleccionar una foto de perfil."); return; }
+            if (foto.size > 1024 * 1024) { hideLoader(registerBtn, "Registrar"); mostrarMensaje("info", "⚠️ La imagen no debe superar 1 MB."); return; }
             const passwordResults = getPasswordRuleResults(password);
             const firstFailedRule = passwordResults.find((rule) => !rule.ok);
             if (firstFailedRule) {
               hideLoader(registerBtn, "Registrar");
               renderPasswordRules(registerPasswordRules, password);
-              mostrarMensaje(
-                "info",
-                "⚠️ Contraseña inválida",
-                `La contraseña no cumple: ${firstFailedRule.label}.`,
-              );
+              mostrarMensaje("info", "⚠️ Contraseña inválida", `La contraseña no cumple: ${firstFailedRule.label}.`);
               return;
             }
-
             updateLoader(registerBtn, "⏳ Procesando imagen...");
             const fotoBase64 = await fileToBase64(foto);
             const fileName = foto.name;
-
             updateLoader(registerBtn, "⏳ Creando usuario...");
-            const result = await callAPI("register", {
-              nombre,
-              apellido,
-              edad,
-              sexo,
-              pais,
-              email,
-              password,
-              fotoBase64,
-              fileName,
-            });
-
-            let verificationMessage =
-              "Tu cuenta fue creada. Te enviamos un correo de verificación; debes confirmarlo antes de iniciar sesión.";
-
+            const result = await callAPI("register", { nombre, apellido, edad, sexo, pais, email, password, fotoBase64, fileName });
+            let verificationMessage = "Tu cuenta fue creada. Te enviamos un correo de verificación; debes confirmarlo antes de iniciar sesión.";
             try {
               updateLoader(registerBtn, "⏳ Enviando verificación...");
               const authInstance = await ensureFirebaseAuth();
-              const {
-                signInWithEmailAndPassword,
-                sendEmailVerification,
-                signOut,
-              } =
+              const { signInWithEmailAndPassword, sendEmailVerification, signOut } =
                 await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
-
-              const registerCredential = await signInWithEmailAndPassword(
-                authInstance,
-                email,
-                password,
-              );
+              const registerCredential = await signInWithEmailAndPassword(authInstance, email, password);
               await sendEmailVerification(registerCredential.user);
               await signOut(authInstance);
             } catch (verificationError) {
-              console.warn(
-                "Aviso al enviar verificación tras registro:",
-                verificationError,
-              );
+              console.warn("Aviso al enviar verificación tras registro:", verificationError);
               verificationMessage = isTooManyRequestsError(verificationError)
-                ? "Tu cuenta fue creada correctamente, pero el sistema limitó temporalmente el envío del correo de verificación. Espera unos minutos y luego usa la opción de reenvío en el inicio de sesión."
-                : "Tu cuenta fue creada correctamente, pero no pudimos enviar el correo de verificación en este momento. Intenta iniciar sesión y usar la opción de reenvío.";
+                ? "Tu cuenta fue creada, pero el sistema limitó el envío del correo de verificación. Espera unos minutos y usa la opción de reenvío."
+                : "Tu cuenta fue creada correctamente, pero no pudimos enviar el correo de verificación. Intenta iniciar sesión y usar la opción de reenvío.";
             }
-
             hideLoader(registerBtn, "Registrar");
-            mostrarMensaje(
-              "info",
-              `🎉 Registro exitoso, ${nombre}`,
-              verificationMessage,
-              () => {
-                registerForm.reset();
-                renderPasswordRules(registerPasswordRules, "");
-                toggleForms();
-              },
-            );
+            mostrarMensaje("info", `🎉 Registro exitoso, ${nombre}`, verificationMessage, () => {
+              registerForm.reset();
+              renderPasswordRules(registerPasswordRules, "");
+              toggleForms();
+            });
           } catch (error) {
             hideLoader(registerBtn, "Registrar");
             console.error("Error al registrarse:", error);
-            mostrarMensaje(
-              "error",
-              "❌ Error en el registro",
-              getFriendlyAuthMessage(
-                error,
-                error.message || "No se pudo completar el registro.",
-              ),
-            );
+            mostrarMensaje("error", "❌ Error en el registro", getFriendlyAuthMessage(error, error.message || "No se pudo completar el registro."));
           }
         });
-
-        // 🔹 RECUPERACIÓN DE CONTRASEÑA
         resetPasswordForm.addEventListener("submit", async (e) => {
           e.preventDefault();
           const email = resetPasswordForm.email.value.trim();
-
           showLoader(resetPasswordBtn, "⏳ Enviando enlace...");
-
           try {
             await callAPI("resetPassword", { email });
             hideLoader(resetPasswordBtn, "Enviar enlace de recuperación");
-            mostrarMensaje(
-              "info",
-              "📧 Correo enviado",
-              "Te hemos enviado un enlace para restablecer tu contraseña.",
-              () => {
-                document
-                  .getElementById("resetPasswordBox")
-                  .classList.add("hidden");
-                document.getElementById("loginBox").classList.remove("hidden");
-              },
-            );
+            mostrarMensaje("info", "📧 Correo enviado", "Te hemos enviado un enlace para restablecer tu contraseña.", () => {
+              document.getElementById("resetPasswordBox").classList.add("hidden");
+              document.getElementById("loginBox").classList.remove("hidden");
+            });
           } catch (error) {
             hideLoader(resetPasswordBtn, "Enviar enlace de recuperación");
             console.error("Error al enviar correo:", error);
@@ -687,11 +357,7 @@
         });
       });
     </script>
-
     <style>
-      /* ============================================
-      ESTILOS UNIFICADOS CON PANEL.HTML (MODO OSCURO)
-      ============================================ */
       :root {
         --bg-primary: #0f172a;
         --bg-secondary: #1e293b;
@@ -705,195 +371,185 @@
         --border-color: #334155;
         --shadow-color: rgba(0, 0, 0, 0.3);
       }
-
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-
+      * { margin: 0; padding: 0; box-sizing: border-box; }
       body {
-        margin: 0;
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         background: var(--bg-primary);
         color: var(--text-primary);
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        position: relative;
+        line-height: 1.7;
         overflow-x: hidden;
       }
+      a { color: var(--accent-color); text-decoration: none; }
+      a:hover { text-decoration: underline; }
 
-      /* ============================================
-       NUEVO ESTILO SPLIT (TIPO RUMBLE)
-       ============================================ */
-      .main-wrapper {
+      /* ===== NAV ===== */
+      .site-nav {
         display: flex;
-        flex-direction: row;
         align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-        width: 100%;
-        padding: 5%;
-        gap: 60px;
-        box-sizing: border-box;
+        justify-content: space-between;
+        padding: 14px 5%;
+        background: rgba(15,23,42,0.95);
+        border-bottom: 1px solid var(--border-color);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        backdrop-filter: blur(8px);
       }
-
-      #desktopRightAdShell {
-        display: none !important;
-        width: 0 !important;
-        height: 0 !important;
-      }
-
-      #mobileTopAdShell {
-        display: none !important;
-        width: 0 !important;
-        height: 0 !important;
-      }
-
-      @media (min-width: 1024px) {
-        body {
-          /* padding-right: 184px; */
-          padding-right: 0 !important;
-          overflow-y: auto;
-        }
-
-        .main-wrapper {
-          min-height: 100vh;
-          height: auto;
-          padding: 24px 5%;
-        }
-
-        #desktopRightAdShell {
-          display: none !important;
-        }
-
-        #desktopRightAdSlot {
-          width: 160px;
-          height: 600px;
-          overflow: hidden;
-        }
-
-        #desktopRightAdSlot iframe {
-          width: 160px !important;
-          height: 600px !important;
-          border: 0 !important;
-          display: block;
-        }
-      }
-
-      @media (max-width: 1023px) {
-        body.has-mobile-top-ad {
-          padding-top: 0 !important;
-        }
-
-        #mobileTopAdShell {
-          display: none !important;
-        }
-
-        #mobileTopAdSlot {
-          width: min(100%, 468px);
-          height: 60px;
-          overflow: hidden;
-        }
-
-        #mobileTopAdSlot iframe {
-          width: 100% !important;
-          max-width: 468px !important;
-          height: 60px !important;
-          border: 0 !important;
-          display: block;
-        }
-      }
-
-      /* Columna Izquierda: Branding */
-      .branding-section {
-        flex: 1;
-        max-width: 600px;
-        text-align: left;
-        animation: fadeIn 0.8s ease-out;
-      }
-
-      .site-title-large {
-        font-size: 0;
-        font-weight: 800;
-        color: var(--text-primary);
-        line-height: 1.1;
-        margin-bottom: 15px;
-        letter-spacing: -1px;
-      }
-
-      .logo-brand {
-        height: 250px;
-        max-width: 100%;
-        object-fit: contain;
-        margin-bottom: 10px;
-        filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
-      }
-
-      .tagline-large {
-        font-size: 1.5rem;
-        color: var(--text-secondary);
-        font-weight: 300;
-      }
-
-      /* Columna Derecha: Auth */
-      .auth-container {
-        flex: 1;
+      .site-nav .nav-logo {
         display: flex;
-        justify-content: center;
-        width: 100%;
-        max-width: 450px;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: var(--text-primary);
       }
+      .site-nav .nav-logo img { height: 36px; }
+      .site-nav .nav-links { display: flex; gap: 20px; align-items: center; font-size: 14px; }
+      .site-nav .nav-links a { color: var(--text-secondary); }
+      .site-nav .nav-links a:hover { color: var(--accent-color); text-decoration: none; }
+      .nav-cta {
+        background: var(--accent-color);
+        color: #fff !important;
+        padding: 6px 16px;
+        border-radius: 6px;
+        font-weight: 600;
+      }
+      .nav-cta:hover { background: var(--accent-hover); text-decoration: none !important; }
+      .nav-toggle { display: none; background: none; border: none; color: var(--text-primary); font-size: 1.5rem; cursor: pointer; }
 
-      .container {
-        width: 100%;
-        /* Mantener estilos previos de tarjeta */
+      /* ===== HERO ===== */
+      .hero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 60px 5% 40px;
+        gap: 50px;
+      }
+      .hero-text { flex: 1; }
+      .hero-text h1 {
+        font-size: 2.8rem;
+        font-weight: 800;
+        line-height: 1.2;
+        margin-bottom: 16px;
+      }
+      .hero-text h1 span { color: var(--accent-color); }
+      .hero-text p {
+        font-size: 1.15rem;
+        color: var(--text-secondary);
+        margin-bottom: 24px;
+        max-width: 540px;
+      }
+      .hero-btns { display: flex; gap: 14px; flex-wrap: wrap; }
+      .btn-primary {
+        display: inline-block;
+        background: var(--accent-color);
+        color: #fff;
+        padding: 12px 28px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 15px;
+        transition: background 0.2s;
+      }
+      .btn-primary:hover { background: var(--accent-hover); text-decoration: none; }
+      .btn-secondary {
+        display: inline-block;
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        padding: 12px 28px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 15px;
+        transition: border-color 0.2s;
+      }
+      .btn-secondary:hover { border-color: var(--accent-color); text-decoration: none; }
+      .hero-image { flex: 1; text-align: center; }
+      .hero-image img { max-width: 100%; height: auto; max-height: 400px; border-radius: 16px; }
+
+      /* ===== SECCIONES ===== */
+      .section { padding: 60px 5%; }
+      .section-title {
+        text-align: center;
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+      .section-subtitle {
+        text-align: center;
+        color: var(--text-secondary);
+        font-size: 1rem;
+        margin-bottom: 40px;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .section-dark { background: var(--bg-secondary); }
+
+      /* ===== FEATURES ===== */
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      .feature-card {
         background: var(--bg-card);
         border: 1px solid var(--border-color);
         border-radius: 12px;
-        padding: 40px;
-        box-shadow: 0 10px 25px var(--shadow-color);
+        padding: 24px;
+        transition: border-color 0.2s, transform 0.2s;
+      }
+      .feature-card:hover { border-color: var(--accent-color); transform: translateY(-2px); }
+      .feature-card .icon {
+        font-size: 2rem;
+        color: var(--accent-color);
+        margin-bottom: 12px;
+      }
+      .feature-card h3 { font-size: 1.15rem; margin-bottom: 8px; }
+      .feature-card p { color: var(--text-secondary); font-size: 14px; line-height: 1.6; }
+
+      /* ===== STATS ===== */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 20px;
+        max-width: 900px;
+        margin: 0 auto;
         text-align: center;
-        animation: fadeIn 0.5s ease-out;
       }
+      .stat-item h3 { font-size: 2.4rem; font-weight: 800; color: var(--accent-color); }
+      .stat-item p { color: var(--text-secondary); font-size: 14px; }
 
-      /* ============================================
-       ESTILOS RESTAURADOS DE FORMULARIOS & UTILIDADES
-       ============================================ */
-
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(20px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
+      /* ===== AUTH SECTION ===== */
+      .auth-section { max-width: 1200px; margin: 0 auto; }
+      .auth-layout {
+        display: flex;
+        align-items: center;
+        gap: 50px;
       }
-
-      .container h1 {
-        font-size: 28px;
-        font-weight: 700;
-        margin-bottom: 10px;
-        color: var(--text-primary);
-      }
-
-      .container p {
-        color: var(--text-secondary);
-        font-size: 14px;
-        margin-bottom: 30px;
-      }
-
-      /* Inputs estilo panel */
-      input,
-      select {
+      .auth-info { flex: 1; }
+      .auth-info h2 { font-size: 1.6rem; margin-bottom: 12px; }
+      .auth-info ul { list-style: none; padding: 0; }
+      .auth-info ul li { padding: 6px 0; color: var(--text-secondary); font-size: 15px; }
+      .auth-info ul li i { color: var(--success-color); margin-right: 10px; width: 18px; }
+      .auth-container { flex: 1; max-width: 420px; }
+      .container {
         width: 100%;
-        margin: 8px 0;
-        padding: 12px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 32px;
+        box-shadow: 0 10px 25px var(--shadow-color);
+      }
+      .container.hidden { display: none !important; }
+      .container h1 { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+      .container > p { color: var(--text-secondary); font-size: 14px; margin-bottom: 20px; }
+      input, select {
+        width: 100%;
+        margin: 6px 0;
+        padding: 11px 12px;
         background: var(--bg-primary);
         border: 1px solid var(--border-color);
         border-radius: 6px;
@@ -901,27 +557,11 @@
         font-size: 14px;
         transition: border 0.3s;
       }
-
-      input:focus,
-      select:focus {
-        outline: none;
-        border-color: var(--accent-color);
-        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-      }
-
-      input::placeholder {
-        color: var(--text-secondary);
-      }
-
-      select option {
-        background: var(--bg-primary);
-      }
-
-      /* Botones estilo panel */
+      input:focus, select:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
       button {
         width: 100%;
-        padding: 12px;
-        margin-top: 15px;
+        padding: 11px;
+        margin-top: 10px;
         border: none;
         border-radius: 6px;
         background: var(--accent-color);
@@ -931,453 +571,321 @@
         cursor: pointer;
         transition: background 0.3s;
       }
-
-      button:hover:not(:disabled) {
-        background: var(--accent-hover);
-      }
-
-      button:disabled {
-        background: var(--border-color);
-        color: var(--text-secondary);
-        cursor: not-allowed;
-      }
-
-      .divider {
-        margin: 18px 0 10px;
-        display: flex;
-        align-items: center;
-        color: var(--text-secondary);
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-
-      .divider::before,
-      .divider::after {
-        content: "";
-        flex: 1;
-        border-bottom: 1px solid var(--border-color);
-      }
-
-      .divider span {
-        padding: 0 10px;
-      }
-
-      #googleLoginBtn {
-        margin-top: 8px;
-        background: var(--bg-primary);
-        border: 1px solid var(--border-color);
-        color: var(--text-primary);
-      }
-
-      #googleLoginBtn:hover:not(:disabled) {
-        background: var(--bg-card);
-        border-color: var(--accent-color);
-      }
-
-      /* Links */
-      .toggle,
-      .forgot-password,
-      .back-link {
-        color: var(--accent-color);
-        margin-top: 15px;
-        cursor: pointer;
-        font-size: 14px;
-        display: inline-block;
-      }
-
-      .guest-access-note {
-        margin-top: 12px;
-        text-align: center;
-        font-size: 12px;
-        color: var(--text-secondary);
-      }
-
-      .guest-access-note a {
-        color: var(--accent-color);
-        text-decoration: none;
-        font-weight: 600;
-      }
-
-      .guest-access-note a:hover {
-        text-decoration: underline;
-      }
-
-      .toggle:hover,
-      .forgot-password:hover,
-      .back-link:hover {
-        text-decoration: underline;
-      }
-
-      .legal-links {
-        margin-top: 14px;
-        text-align: center;
-        font-size: 0.9rem;
-        color: #94a3b8;
-        line-height: 1.4;
-      }
-
-      .legal-links a {
-        color: #93c5fd;
-        text-decoration: none;
-        margin: 0 6px;
-      }
-
-      .legal-links a:hover {
-        text-decoration: underline;
-      }
-
-      .legal-links .sep {
-        color: #64748b;
-      }
-
-      .hidden {
-        display: none !important;
-      }
-
-      /* Utilidades */
-      .contenedor-password {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-
-      .chkShow {
-        width: auto;
-        margin: 0;
-      }
-
-      .password-toggle-label {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 12px;
-        color: var(--text-secondary);
-        white-space: nowrap;
-        user-select: none;
-      }
-
-      .password-rules {
-        list-style: none;
-        margin: 6px 0 0;
-        padding: 0;
-        text-align: left;
-        font-size: 12px;
-      }
-
-      .password-rule-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin: 4px 0;
-        color: #ef4444;
-      }
-
-      .password-rule-item.ok {
-        color: #10b981;
-      }
-
-      .password-rule-icon {
-        font-weight: 700;
-        width: 14px;
-        text-align: center;
-        flex: 0 0 14px;
-      }
-
-      /* Input File */
-      input[type="file"] {
-        border: 1px dashed var(--border-color);
-        cursor: pointer;
-      }
-      input[type="file"]:hover {
-        border-color: var(--accent-color);
-      }
-
-      /* Loader */
-      .loader-button {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-      }
-
-      .loader-spinner {
-        width: 16px;
-        height: 16px;
-        border: 2px solid transparent;
-        border-top: 2px solid white;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
-      }
-
-      /* Modal mensajes */
+      button:hover:not(:disabled) { background: var(--accent-hover); }
+      button:disabled { background: var(--border-color); color: var(--text-secondary); cursor: not-allowed; }
+      .divider { margin: 14px 0 8px; display: flex; align-items: center; color: var(--text-secondary); font-size: 12px; text-transform: uppercase; }
+      .divider::before, .divider::after { content: ""; flex: 1; border-bottom: 1px solid var(--border-color); }
+      .divider span { padding: 0 10px; }
+      #googleLoginBtn { margin-top: 6px; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary); }
+      #googleLoginBtn:hover:not(:disabled) { background: var(--bg-card); border-color: var(--accent-color); }
+      .toggle, .forgot-password, .back-link { color: var(--accent-color); margin-top: 12px; cursor: pointer; font-size: 14px; display: inline-block; }
+      .toggle:hover, .forgot-password:hover, .back-link:hover { text-decoration: underline; }
+      .guest-access-note { margin-top: 10px; text-align: center; font-size: 12px; color: var(--text-secondary); }
+      .guest-access-note a { color: var(--accent-color); font-weight: 600; }
+      .legal-links { margin-top: 12px; text-align: center; font-size: 0.85rem; color: #94a3b8; }
+      .legal-links a { color: #93c5fd; margin: 0 4px; }
+      .legal-links .sep { color: #64748b; }
+      .contenedor-password { display: flex; align-items: center; gap: 8px; }
+      .chkShow { width: auto; margin: 0; }
+      .password-toggle-label { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); white-space: nowrap; user-select: none; }
+      .password-rules { list-style: none; margin: 4px 0 0; padding: 0; text-align: left; font-size: 12px; }
+      .password-rule-item { display: flex; align-items: center; gap: 6px; margin: 2px 0; color: #ef4444; }
+      .password-rule-item.ok { color: #10b981; }
+      .password-rule-icon { font-weight: 700; width: 14px; text-align: center; flex: 0 0 14px; }
+      input[type="file"] { border: 1px dashed var(--border-color); cursor: pointer; }
+      input[type="file"]:hover { border-color: var(--accent-color); }
+      .loader-button { display: flex; align-items: center; justify-content: center; gap: 10px; }
+      .loader-spinner { width: 16px; height: 16px; border: 2px solid transparent; border-top: 2px solid white; border-radius: 50%; animation: spin 1s linear infinite; }
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
       #mensajeModal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.7);
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center;
         z-index: 2000;
       }
-
       .mensaje-content {
+        background: var(--bg-card); padding: 28px; border-radius: 12px;
+        border: 1px solid var(--border-color); max-width: 400px; text-align: center;
+        color: var(--text-primary); box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      }
+      .mensaje-content h3 { color: var(--accent-color); margin-bottom: 8px; }
+      #mensajeBotones { display: flex; justify-content: center; gap: 10px; margin-top: 16px; }
+      #mensajeAceptar { background: var(--success-color); margin: 0; width: auto; padding: 10px 20px; }
+      #mensajeCancelar { background: var(--danger-color); margin: 0; width: auto; padding: 10px 20px; }
+      #mensajeAceptar:hover, #mensajeCancelar:hover { opacity: 0.9; }
+      .hiddenX { display: none !important; }
+
+      /* ===== BLOG PREVIEW ===== */
+      .blog-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 16px;
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      .blog-card {
         background: var(--bg-card);
-        padding: 30px;
-        border-radius: 12px;
         border: 1px solid var(--border-color);
-        max-width: 400px;
-        text-align: center;
-        color: var(--text-primary);
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        border-radius: 10px;
+        padding: 20px;
+        transition: border-color 0.2s;
       }
+      .blog-card:hover { border-color: var(--accent-color); }
+      .blog-card h3 { font-size: 1rem; margin-bottom: 6px; }
+      .blog-card h3 a { color: var(--text-primary); }
+      .blog-card h3 a:hover { color: var(--accent-color); text-decoration: none; }
+      .blog-card p { color: var(--text-secondary); font-size: 13px; margin-bottom: 8px; }
+      .blog-card .tag { font-size: 11px; background: rgba(59,130,246,0.15); color: var(--accent-color); padding: 2px 10px; border-radius: 999px; }
+      .blog-cta { text-align: center; margin-top: 28px; }
 
-      .mensaje-content h3 {
-        color: var(--accent-color);
-        margin-bottom: 10px;
+      /* ===== FOOTER ===== */
+      .site-footer {
+        border-top: 1px solid var(--border-color);
+        padding: 40px 5% 24px;
+        color: var(--text-secondary);
+        font-size: 13px;
       }
-      #mensajeBotones {
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-        margin-top: 20px;
+      .footer-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 24px;
+        max-width: 1100px;
+        margin: 0 auto 24px;
       }
+      .footer-col h4 { color: var(--text-primary); margin-bottom: 10px; font-size: 14px; }
+      .footer-col a { display: block; padding: 3px 0; color: var(--text-secondary); font-size: 13px; }
+      .footer-col a:hover { color: var(--accent-color); }
+      .footer-bottom { text-align: center; padding-top: 16px; border-top: 1px solid var(--border-color); max-width: 1100px; margin: 0 auto; }
 
-      #mensajeAceptar {
-        background: var(--success-color);
-        margin: 0;
-        width: auto;
-        padding: 10px 20px;
-        transform: none;
-        box-shadow: none;
-      }
-      #mensajeCancelar {
-        background: var(--danger-color);
-        margin: 0;
-        width: auto;
-        padding: 10px 20px;
-        transform: none;
-        box-shadow: none;
-      }
-
-      #mensajeAceptar:hover,
-      #mensajeCancelar:hover {
-        opacity: 0.9;
-        transform: translateY(-1px);
-      }
-
-      .hiddenX {
-        display: none !important;
-      }
-
-      /* Responsive */
+      /* ===== RESPONSIVE ===== */
       @media (max-width: 900px) {
-        .main-wrapper {
-          flex-direction: column;
-          text-align: center;
-          padding-top: 50px;
-          gap: 30px;
-        }
-        .branding-section {
-          text-align: center;
-          margin-bottom: 20px;
-        }
-        .site-title-large {
-          font-size: 0;
-        }
-
-        .logo-brand {
-          height: 120px;
-        }
-        .tagline-large {
-          font-size: 1.2rem;
-        }
+        .hero { flex-direction: column; text-align: center; padding: 40px 5% 20px; }
+        .hero-text p { margin-left: auto; margin-right: auto; }
+        .hero-btns { justify-content: center; }
+        .hero-text h1 { font-size: 2rem; }
+        .hero-image { display: none; }
+        .auth-layout { flex-direction: column; }
+        .auth-info { text-align: center; }
+        .auth-info ul li { text-align: left; }
+        .auth-container { max-width: 100%; }
+        .section-title { font-size: 1.5rem; }
+        .site-nav .nav-links { display: none; flex-direction: column; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-primary); border-bottom: 1px solid var(--border-color); padding: 16px 5%; gap: 12px; }
+        .site-nav .nav-links.open { display: flex; }
+        .nav-toggle { display: block; }
       }
     </style>
   </head>
-
   <body>
-    <!-- Contenedor principal -->
-    <div class="main-wrapper">
-      <!-- Columna Izquierda: Branding -->
-      <div class="branding-section">
-        <img src="/images/logo oficial conquiguias world vectorial.png" alt="Conquiguias World" class="logo-brand">
-        <div class="tagline-large">
-          Plataforma de Conquistadores y Guías Mayores
+    <!-- NAV -->
+    <nav class="site-nav">
+      <div class="nav-logo">
+        <img src="/images/logo oficial conquiguias world vectorial.png" alt="Conquiguias World" style="height:36px">
+        <span>Conquiguias World</span>
+      </div>
+      <button class="nav-toggle" onclick="document.getElementById('navLinks').classList.toggle('open')" aria-label="Menú">&#9776;</button>
+      <div class="nav-links" id="navLinks">
+        <a href="/">Inicio</a>
+        <a href="/blog">Blog</a>
+        <a href="/acerca-de">Acerca de</a>
+        <a href="/contacto">Contacto</a>
+        <a href="/login" class="nav-cta">Iniciar sesión</a>
+      </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-text">
+        <h1>La plataforma <span>educativa</span> para Conquistadores y Guías Mayores</h1>
+        <p>Accede a especialidades, tareas, exámenes, certificaciones, publicaciones y música. Una plataforma educativa para el desarrollo espiritual, mental, físico y social de cada joven. Todo gratis.</p>
+        <div class="hero-btns">
+          <a href="#auth" class="btn-primary">Comenzar ahora</a>
+          <a href="/blog" class="btn-secondary">Explorar blog</a>
         </div>
       </div>
+      <div class="hero-image">
+        <img src="/images/logo oficial conquiguias world vectorial.png" alt="Conquiguias World" style="max-height:400px">
+      </div>
+    </section>
 
-      <!-- Columna Derecha: Formularios -->
-      <div class="auth-container">
-        <!-- Login -->
-        <div class="container" id="loginBox">
-          <h1>
-            <i class="fas fa-sign-in-alt" style="margin-right: 10px"></i>Iniciar
-            Sesión
-          </h1>
-          <p>Ingresa tus credenciales para acceder a tu cuenta</p>
-          <form id="loginForm">
-            <input
-              class="email"
-              type="email"
-              name="email"
-              placeholder="Correo electrónico"
-              autocomplete="email"
-              required
-            />
-            <div class="contenedor-password">
-              <input
-                class="password"
-                id="password"
-                type="password"
-                name="password"
-                placeholder="Contraseña"
-                autocomplete="current-password"
-                required
-              />
-              <input class="chkShow" id="chkShow" type="checkbox" />
-            </div>
-            <button type="submit" id="loginBtn" style="font-size: 20px">
-              Entrar
-            </button>
-            <div class="divider"><span>o</span></div>
-            <button type="button" id="googleLoginBtn" style="font-size: 18px">
-              <i class="fab fa-google" style="margin-right: 8px"></i>Continuar
-              con Google
-            </button>
-            <div class="guest-access-note">
-              También puedes
-              <a href="/panel?guest=1">ingresar como invitado</a>.
-            </div>
-          </form>
-          <div class="forgot-password" onclick="showResetPassword()">
-            ¿Olvidaste tu contraseña?
-          </div>
-          <div class="toggle" onclick="toggleForms()">
-            ¿No tienes cuenta? Regístrate
-          </div>
-          <div class="legal-links">
-            <a href="/privacidad">Política de privacidad</a>
-            <span class="sep">|</span>
-            <a href="/terminos">Términos y condiciones</a>
-            <span class="sep">|</span>
-            <a href="/contacto">Contacto</a>
-          </div>
+    <!-- FEATURES -->
+    <section class="section section-dark">
+      <h2 class="section-title">Todo lo que necesitas en un solo lugar</h2>
+      <p class="section-subtitle">Conquiguias World reúne las herramientas que todo conquistador necesita para crecer y desarrollarse.</p>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="icon"><i class="fas fa-graduation-cap"></i></div>
+          <h3>Especialidades</h3>
+          <p>Explora más de 100 especialidades con búsqueda por áreas, materiales de apoyo, imágenes, grabaciones educativas y recursos descargables.</p>
         </div>
-
-        <!-- Registro -->
-        <div class="container hidden" id="registerBox">
-          <h1 style="margin: 0%">
-            <i class="fas fa-user-plus" style="margin-right: 10px"></i>Únete a
-            Nosotros
-          </h1>
-          <p>Crea tu cuenta y comienza tu aventura</p>
-          <form id="registerForm">
-            <input
-              type="text"
-              name="nombre"
-              placeholder="Nombre o como deseas aparecer"
-              autocomplete="name"
-              required
-            />
-            <input
-              type="text"
-              name="apellido"
-              placeholder="Apellido o como deseas aparecer"
-              autocomplete="family-name"
-              required
-            />
-            <input type="number" name="edad" placeholder="Edad" required />
-            <select name="sexo" required>
-              <option value="">Sexo</option>
-              <option>Masculino</option>
-              <option>Femenino</option>
-            </select>
-            <input
-              type="text"
-              name="pais"
-              placeholder="País"
-              autocomplete="country-name"
-              required
-            />
-            <input
-              type="email"
-              name="email"
-              placeholder="Correo"
-              autocomplete="email"
-              required
-            />
-            <div class="contenedor-password">
-              <input
-                class="password"
-                id="passwordX"
-                type="password"
-                name="password"
-                placeholder="Contraseña"
-                autocomplete="new-password"
-                required
-              />
-              <label class="password-toggle-label" for="chkShowX">
-                <input class="chkShow" id="chkShowX" type="checkbox" />
-                <span>Ver</span>
-              </label>
-            </div>
-            <ul id="registerPasswordRules" class="password-rules" aria-live="polite"></ul>
-            <h2 style="margin: 0%">Subir Foto:</h2>
-            <input
-              type="file"
-              name="foto"
-              accept="image/jpg, image/jpeg, image/png"
-              required
-            />
-            <button type="submit" id="registerBtn">Registrar</button>
-          </form>
-          <div class="toggle" onclick="toggleForms()">
-            ¿Ya tienes cuenta? Inicia sesión
-          </div>
+        <div class="feature-card">
+          <div class="icon"><i class="fas fa-tasks"></i></div>
+          <h3>Tareas y Exámenes</h3>
+          <p>Sube tus tareas en formato PDF, rinde exámenes en línea con preguntas de opción múltiple y recibe calificaciones detalladas de instructores.</p>
         </div>
+        <div class="feature-card">
+          <div class="icon"><i class="fas fa-certificate"></i></div>
+          <h3>Certificaciones</h3>
+          <p>Obtén certificaciones digitales por cada especialidad completada, verificables mediante un código único de 9 dígitos.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon"><i class="fas fa-music"></i></div>
+          <h3>Música</h3>
+          <p>Reproductor de audio y video integrado con biblioteca musical, listas de reproducción y gestión de canciones.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon"><i class="fas fa-newspaper"></i></div>
+          <h3>Publicaciones</h3>
+          <p>Muro social con categorías: comparte fotos, videos, transmisiones y contenido con la comunidad conquistadora. Comenta y reacciona.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon"><i class="fas fa-user-graduate"></i></div>
+          <h3>Roles y Perfiles</h3>
+          <p>Panel de instructor para crear formularios y evaluar tareas. Panel de administración con analytics, moderación y bloc de notas.</p>
+        </div>
+      </div>
+    </section>
 
-        <!-- Recuperación de contraseña -->
-        <div class="container hidden" id="resetPasswordBox">
-          <h1>
-            <i class="fas fa-key" style="margin-right: 10px"></i>Recuperar
-            Contraseña
-          </h1>
-          <p>Te enviaremos un enlace para restablecer tu contraseña</p>
-          <form id="resetPasswordForm">
-            <input
-              type="email"
-              name="email"
-              placeholder="Correo electrónico"
-              autocomplete="email"
-              required
-            />
-            <button type="submit" id="resetPasswordBtn">
-              Enviar enlace de recuperación
-            </button>
-          </form>
-          <div class="back-link" onclick="backToLogin()">
-            Volver al inicio de sesión
+    <!-- STATS -->
+    <section class="section">
+      <h2 class="section-title">Una comunidad que crece</h2>
+      <p class="section-subtitle">Cada día más conquistadores se suman a nuestra plataforma para aprender y compartir.</p>
+      <div class="stats-grid">
+        <div class="stat-item"><h3>500+</h3><p>Usuarios registrados</p></div>
+        <div class="stat-item"><h3>100+</h3><p>Especialidades disponibles</p></div>
+        <div class="stat-item"><h3>10+</h3><p>Países con usuarios</p></div>
+        <div class="stat-item"><h3>50+</h3><p>Clubes representados</p></div>
+      </div>
+    </section>
+
+    <!-- AUTH / REGISTRO -->
+    <section class="section section-dark" id="auth">
+      <div class="auth-section">
+        <div class="auth-layout">
+          <div class="auth-info">
+            <h2>Únete a la familia conquistadora</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">Crea tu cuenta gratis y accede a todos los recursos de Conquiguias World.</p>
+            <ul>
+              <li><i class="fas fa-check"></i> Explora más de 100 especialidades con materiales y recursos</li>
+              <li><i class="fas fa-check"></i> Sube tareas en PDF, rinde exámenes y obtén certificaciones</li>
+              <li><i class="fas fa-check"></i> Muro social con publicaciones, tutoriales y grabaciones</li>
+              <li><i class="fas fa-check"></i> Reproductor de música con biblioteca y listas de reproducción</li>
+              <li><i class="fas fa-check"></i> Bloc de notas personal y almacenamiento de archivos</li>
+              <li><i class="fas fa-check"></i> Panel de instructor y administración con analytics</li>
+              <li><i class="fas fa-check"></i> Completamente gratis, sin costos ocultos</li>
+            </ul>
+          </div>
+          <div class="auth-container">
+            <!-- Login -->
+            <div class="container" id="loginBox">
+              <h1><i class="fas fa-sign-in-alt" style="margin-right: 10px"></i>Iniciar Sesión</h1>
+              <p>Ingresa tus credenciales para acceder a tu cuenta</p>
+              <form id="loginForm">
+                <input class="email" type="email" name="email" placeholder="Correo electrónico" autocomplete="email" required />
+                <div class="contenedor-password">
+                  <input class="password" id="password" type="password" name="password" placeholder="Contraseña" autocomplete="current-password" required />
+                  <input class="chkShow" id="chkShow" type="checkbox" />
+                </div>
+                <button type="submit" id="loginBtn" style="font-size: 18px">Entrar</button>
+                <div class="divider"><span>o</span></div>
+                <button type="button" id="googleLoginBtn" style="font-size: 16px"><i class="fab fa-google" style="margin-right: 8px"></i>Continuar con Google</button>
+                <div class="guest-access-note">También puedes <a href="/panel?guest=1">ingresar como invitado</a>.</div>
+              </form>
+              <div class="forgot-password" onclick="showResetPassword()">¿Olvidaste tu contraseña?</div>
+              <div class="toggle" onclick="toggleForms()">¿No tienes cuenta? Regístrate</div>
+              <div class="legal-links">
+                <a href="/privacidad">Política de privacidad</a><span class="sep"> | </span>
+                <a href="/terminos">Términos y condiciones</a><span class="sep"> | </span>
+                <a href="/contacto">Contacto</a>
+              </div>
+            </div>
+            <!-- Registro -->
+            <div class="container hidden" id="registerBox">
+              <h1 style="margin:0"><i class="fas fa-user-plus" style="margin-right:10px"></i>Únete a Nosotros</h1>
+              <p>Crea tu cuenta y comienza tu aventura</p>
+              <form id="registerForm">
+                <input type="text" name="nombre" placeholder="Nombre" autocomplete="name" required />
+                <input type="text" name="apellido" placeholder="Apellido" autocomplete="family-name" required />
+                <input type="number" name="edad" placeholder="Edad" required />
+                <select name="sexo" required><option value="">Sexo</option><option>Masculino</option><option>Femenino</option></select>
+                <input type="text" name="pais" placeholder="País" autocomplete="country-name" required />
+                <input type="email" name="email" placeholder="Correo" autocomplete="email" required />
+                <div class="contenedor-password">
+                  <input class="password" id="passwordX" type="password" name="password" placeholder="Contraseña" autocomplete="new-password" required />
+                  <label class="password-toggle-label" for="chkShowX"><input class="chkShow" id="chkShowX" type="checkbox" /><span>Ver</span></label>
+                </div>
+                <ul id="registerPasswordRules" class="password-rules" aria-live="polite"></ul>
+                <h2 style="margin:0;font-size:14px;margin-top:8px;">Subir Foto:</h2>
+                <input type="file" name="foto" accept="image/jpg, image/jpeg, image/png" required />
+                <button type="submit" id="registerBtn">Registrar</button>
+              </form>
+              <div class="toggle" onclick="toggleForms()">¿Ya tienes cuenta? Inicia sesión</div>
+            </div>
+            <!-- Recuperación -->
+            <div class="container hidden" id="resetPasswordBox">
+              <h1><i class="fas fa-key" style="margin-right:10px"></i>Recuperar Contraseña</h1>
+              <p>Te enviaremos un enlace para restablecer tu contraseña</p>
+              <form id="resetPasswordForm">
+                <input type="email" name="email" placeholder="Correo electrónico" autocomplete="email" required />
+                <button type="submit" id="resetPasswordBtn">Enviar enlace de recuperación</button>
+              </form>
+              <div class="back-link" onclick="backToLogin()">Volver al inicio de sesión</div>
+            </div>
           </div>
         </div>
       </div>
-      <!-- Cierre auth-container -->
-    </div>
-    <!-- Cierre main-wrapper -->
+    </section>
 
-    <!-- 🔹 Contenedor general de mensajes -->
+    <!-- BLOG PREVIEW -->
+    <section class="section">
+      <h2 class="section-title">Artículos educativos</h2>
+      <p class="section-subtitle">Explora nuestra colección de artículos sobre el Club de Conquistadores, especialidades, clases y más.</p>
+      <div class="blog-grid">
+        <div class="blog-card">
+          <span class="tag">Historia</span>
+          <h3><a href="/blog/que-es-un-conquistador">¿Qué es un Conquistador? Historia del Club</a></h3>
+          <p>Descubre el origen del Club de Conquistadores, su fundación y su impacto global.</p>
+        </div>
+        <div class="blog-card">
+          <span class="tag">Valores</span>
+          <h3><a href="/blog/voto-y-ley-del-conquistador">Voto y Ley del Conquistador: Significado</a></h3>
+          <p>Explora el significado profundo del Voto y la Ley que guían a cada conquistador.</p>
+        </div>
+        <div class="blog-card">
+          <span class="tag">Especialidades</span>
+          <h3><a href="/blog/especialidades-para-conquistadores-guia-completa">Especialidades: Guía Completa</a></h3>
+          <p>Todo sobre las especialidades: qué son, las 6 clases, requisitos y consejos.</p>
+        </div>
+        <div class="blog-card">
+          <span class="tag">Liderazgo</span>
+          <h3><a href="/blog/como-ser-guia-mayor">Cómo ser Guía Mayor: Requisitos</a></h3>
+          <p>El proceso completo para convertirte en Guía Mayor del Club de Conquistadores.</p>
+        </div>
+        <div class="blog-card">
+          <span class="tag">Clases</span>
+          <h3><a href="/blog/clases-iniciales-conquistadores">Clases Iniciales: Amigo y Explorador</a></h3>
+          <p>Requisitos e insignias de las 4 clases iniciales del programa.</p>
+        </div>
+        <div class="blog-card">
+          <span class="tag">Naturaleza</span>
+          <h3><a href="/blog/especialidad-observacion-aves">Observación de Aves</a></h3>
+          <p>Aprende a identificar aves y llevar un registro de avistamiento.</p>
+        </div>
+        <div class="blog-card">
+          <span class="tag">Salud</span>
+          <h3><a href="/blog/especialidad-rcp">RCP: Guía Completa</a></h3>
+          <p>Aprende a salvar vidas con técnicas de reanimación cardiopulmonar.</p>
+        </div>
+        <div class="blog-card">
+          <span class="tag">Vida al Aire Libre</span>
+          <h3><a href="/blog/especialidad-senderismo">Senderismo</a></h3>
+          <p>Técnicas de caminata, equipo y seguridad para tus excursiones.</p>
+        </div>
+      </div>
+      <div class="blog-cta">
+        <a href="/blog" class="btn-primary">Ver todos los artículos</a>
+      </div>
+    </section>
+
+    <!-- MODAL -->
     <div id="mensajeModal" class="hiddenX">
       <div class="mensaje-content">
         <h3 id="mensajeTitulo">Título</h3>
@@ -1389,25 +897,44 @@
       </div>
     </div>
 
-    <aside id="desktopRightAdShell" aria-label="Publicidad lateral" aria-hidden="true" hidden style="display: none !important;">
-      <div id="desktopRightAdSlot"></div>
-    </aside>
+    <!-- ADS -->
+    <aside id="desktopRightAdShell" aria-label="Publicidad lateral" aria-hidden="true" hidden style="display:none!important"><div id="desktopRightAdSlot"></div></aside>
+    <aside id="mobileTopAdShell" aria-label="Publicidad superior" aria-hidden="true" hidden style="display:none!important"><div id="mobileTopAdSlot"></div></aside>
 
-    <aside id="mobileTopAdShell" aria-label="Publicidad superior" aria-hidden="true" hidden style="display: none !important;">
-      <div id="mobileTopAdSlot"></div>
-    </aside>
+    <!-- FOOTER -->
+    <footer class="site-footer">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h4>Conquiguias World</h4>
+          <a href="/acerca-de">Acerca de</a>
+          <a href="/blog">Blog</a>
+          <a href="/contacto">Contacto</a>
+        </div>
+        <div class="footer-col">
+          <h4>Recursos</h4>
+          <a href="/blog/especialidades-para-conquistadores-guia-completa">Especialidades</a>
+          <a href="/blog/como-ser-guia-mayor">Guía Mayor</a>
+          <a href="/blog/clases-iniciales-conquistadores">Clases Iniciales</a>
+          <a href="/blog/himno-del-conquistador">Himno del Conquistador</a>
+        </div>
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <a href="/privacidad">Política de privacidad</a>
+          <a href="/terminos">Términos y condiciones</a>
+          <a href="/ads.txt">Anuncios</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        &copy; 2026 Conquiguias World. Todos los derechos reservados. Plataforma educativa para el Club de Conquistadores.
+      </div>
+    </footer>
   </body>
   <script>
     document.getElementById("chkShow").addEventListener("change", (e) => {
-      document.getElementById("password").type = e.target.checked
-        ? "text"
-        : "password";
+      document.getElementById("password").type = e.target.checked ? "text" : "password";
     });
     document.getElementById("chkShowX").addEventListener("change", (e) => {
-      document.getElementById("passwordX").type = e.target.checked
-        ? "text"
-        : "password";
+      document.getElementById("passwordX").type = e.target.checked ? "text" : "password";
     });
-
   </script>
 </html>

@@ -196,12 +196,22 @@
         async function processOAuthRedirectResult() {
           try {
             const authInstance = await ensureFirebaseAuth();
-            const { getRedirectResult } = await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
+            const { getRedirectResult, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
             const redirectResult = await getRedirectResult(authInstance);
             if (redirectResult?.user) {
               await syncSocialProfile(redirectResult.user);
               window.location.replace("/panel");
+              return;
             }
+            const timeoutId = setTimeout(() => unsub?.(), 4000);
+            const unsub = onAuthStateChanged(authInstance, async (user) => {
+              if (user) {
+                clearTimeout(timeoutId);
+                unsub();
+                try { await syncSocialProfile(user); } catch (_) {}
+                window.location.replace("/panel");
+              }
+            });
           } catch (error) {
             console.error("Error procesando login por redirección:", error);
             mostrarMensaje("error", "⚠️ No se pudo completar el acceso", "Intenta nuevamente.");

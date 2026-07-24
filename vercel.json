@@ -2,7 +2,7 @@
   "routes": [
     {
       "src": "^/$",
-      "dest": "/panel.html"
+      "dest": "/index.html"
     },
     {
       "src": "^/panel$",
@@ -14,7 +14,7 @@
     },
     {
       "src": "^/index$",
-      "dest": "/panel.html"
+      "dest": "/index.html"
     },
     {
       "src": "^/login$",
@@ -33,6 +33,18 @@
       "dest": "/contacto.html"
     },
     {
+      "src": "^/acerca-de$",
+      "dest": "/acerca-de.html"
+    },
+    {
+      "src": "^/blog/?$",
+      "dest": "/blog/index.html"
+    },
+    {
+      "src": "^/blog/([^/]+)$",
+      "dest": "/blog/$1.html"
+    },
+    {
       "src": "^/formulario$",
       "dest": "/formulario.html"
     },
@@ -46,7 +58,7 @@
     },
     {
       "src": "^/sitemap\\.xml$",
-      "dest": "/api/post-share?action=sitemap"
+      "dest": "/sitemap.xml"
     }
   ],
   "crons": [

@@ -194,27 +194,28 @@
           await callAPI("upsertSocialUser", { idToken });
         }
         async function processOAuthRedirectResult() {
+          let authInstance;
           try {
-            const authInstance = await ensureFirebaseAuth();
+            authInstance = await ensureFirebaseAuth();
+          } catch (_) { return; }
+          try {
             const { getRedirectResult, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
-            const redirectResult = await getRedirectResult(authInstance);
+            const redirectResult = await getRedirectResult(authInstance).catch(() => null);
             if (redirectResult?.user) {
-              await syncSocialProfile(redirectResult.user);
+              syncSocialProfile(redirectResult.user).catch(() => {});
               window.location.replace("/panel");
               return;
             }
-            const timeoutId = setTimeout(() => unsub?.(), 4000);
-            const unsub = onAuthStateChanged(authInstance, async (user) => {
+            const timeoutId = setTimeout(() => unsub?.(), 5000);
+            const unsub = onAuthStateChanged(authInstance, (user) => {
               if (user) {
                 clearTimeout(timeoutId);
                 unsub();
-                try { await syncSocialProfile(user); } catch (_) {}
                 window.location.replace("/panel");
               }
             });
           } catch (error) {
-            console.error("Error procesando login por redirección:", error);
-            mostrarMensaje("error", "⚠️ No se pudo completar el acceso", "Intenta nuevamente.");
+            console.error("Error procesando login:", error);
           }
         }
         loginForm.addEventListener("submit", async (e) => {
